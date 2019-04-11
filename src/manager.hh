@@ -1,6 +1,6 @@
-#include "tester.hh"
+#include "globalPhenomHM.h"
 
-class GPUAdder {
+class GPUPhenomHM {
   // pointer to the GPU memory where the array is stored
   int* array_device;
   // pointer to the CPU memory where the array is stored
@@ -14,7 +14,7 @@ public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
      file (these aren't the names in the implementation file), we're giving
      swig the info it needs to cast to and from numpy arrays.
-     
+
      If instead the constructor line said
        GPUAdder(int* myarray, int length);
 

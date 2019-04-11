@@ -14,7 +14,7 @@ This class will get translated into python via swig
 //#include "tester.hh"
 using namespace std;
 
-GPUAdder::GPUAdder (int* array_host_, int length_) {
+GPUAdder::GPUPhenomHM (int* array_host_, int length_) {
   array_host = array_host_;
   length = length_;
   double_errthing(array_host, length);

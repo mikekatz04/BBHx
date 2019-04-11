@@ -832,8 +832,7 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
      unsigned int *l_vals,
      unsigned int *m_vals,
      int num_modes,
-     int to_gpu,
-     PhenomHMStorage **pHM_trans
+     int to_gpu
 )
 {
     /* define and init return code for this function */
@@ -851,6 +850,18 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
     assert (*hptilde == NULL); //, PD_EFAULT, "check bad");
     assert(*hctilde == NULL); //, PD_EFAULT, "check bad");
     assert (distance > 0); //, PD_EDOM, "distance must be positive.\n");
+
+    // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
+    PhenomHMStorage *pHM_trans = NULL;
+    IMRPhenomDAmplitudeCoefficients *pAmp_trans = NULL;
+    AmpInsPrefactors *amp_prefactors_trans = NULL;
+    PhenDAmpAndPhasePreComp *pDPreComp_all_trans = NULL;
+    HMPhasePreComp *q_all_trans = NULL;
+    double complex *factorp_trans = NULL;
+    double complex *factorc_trans = NULL;
+    double t0;
+    double phi0;
+    double amp0;
 
     /* main: evaluate model at given frequencies */
     retcode = 0;
@@ -871,9 +882,25 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
         m_vals,
         num_modes,
         to_gpu,
-        pHM_trans);
+        &pHM_trans,
+        &pAmp_trans,
+        &amp_prefactors_trans,
+        &pDPreComp_all_trans,
+        &q_all_trans,
+        &factorp_trans,
+        &factorc_trans,
+        &t0,
+        &phi0,
+        &amp0);
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in IMRPhenomHM.");
 
+    free(pHM_trans);
+    free(pAmp_trans);
+    free(amp_prefactors_trans);
+    free(pDPreComp_all_trans);
+    free(q_all_trans);
+    free(factorp_trans);
+    free(factorc_trans);
     /* cleanup */
     /* XLALDestroy and XLALFree any pointers. */
 
@@ -1066,7 +1093,16 @@ int IMRPhenomHMCore(
     unsigned int *m_vals,
     int num_modes,
     int to_gpu,
-    PhenomHMStorage **pHM_trans
+    PhenomHMStorage **pHM_trans,
+    IMRPhenomDAmplitudeCoefficients **pAmp_trans,
+    AmpInsPrefactors **amp_prefactors_trans,
+    PhenDAmpAndPhasePreComp **pDPreComp_all_trans,
+    HMPhasePreComp **q_all_trans,
+    double complex **factorp_trans,
+    double complex **factorc_trans,
+    double *t0,
+    double *phi0,
+    double *amp0
 )
 {
     int retcode;
@@ -1094,8 +1130,8 @@ int IMRPhenomHMCore(
 failed");
 
     /* setup frequency sequency */
-    RealVector *amps = NULL;
-    RealVector *phases = NULL;
+    //RealVector *amps = NULL;
+    //RealVector *phases = NULL;
     RealVector *freqs_geom = NULL; /* freqs is in geometric units */
 
 
@@ -1103,7 +1139,7 @@ failed");
     if (pHM->freq_is_uniform == 1)
     { /* 1. uniformly spaced */
         printf("freq_is_uniform = True\n");
-
+/**
         freqs = CreateRealVector(pHM->npts);
         phases = CreateRealVector(pHM->npts);
         amps = CreateRealVector(pHM->npts);
@@ -1111,10 +1147,10 @@ failed");
         for (size_t i = 0; i < pHM->npts; i++)
         {                                     /* populate the frequency unitformly from zero - this is the standard
              convention we use when generating waveforms in LAL. */
-            freqs->data[i] = i * pHM->deltaF; /* This is in Hz */
-            phases->data[i] = 0;              /* initalise all phases to zero. */
-            amps->data[i] = 0;                /* initalise all amps to zero. */
-        }
+        /**    freqs->data[i] = i * pHM->deltaF; /* This is in Hz */
+        //    phases->data[i] = 0;              /* initalise all phases to zero. */
+        //    amps->data[i] = 0;                /* initalise all amps to zero. */
+        //}
         /* coalesce at t=0 */
         /*CHECK(
             XLALGPSAdd(&tC, -1. / pHM->deltaF),
@@ -1128,19 +1164,18 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     { /* 2. arbitrarily space */
         printf("freq_is_uniform = False\n");
         freqs = pHM->freqs; /* This is in Hz */
-        phases = CreateRealVector(freqs->length);
-        amps = CreateRealVector(freqs->length);
-        for (size_t i = 0; i < pHM->npts; i++)
-        {
-            phases->data[i] = 0; /* initalise all phases to zero. */
-            amps->data[i] = 0;   /* initalise all phases to zero. */
-        }
+        //phases = CreateRealVector(freqs->length);
+        //amps = CreateRealVector(freqs->length);
+        //for (size_t i = 0; i < pHM->npts; i++)
+        //{
+        //    phases->data[i] = 0; /* initalise all phases to zero. */
+        //    amps->data[i] = 0;   /* initalise all phases to zero. */
+        //}
     }
     else
     {
         assert(0); // ERROR(PD_EDOM, "freq_is_uniform is not 0 or 1.");
     }
-
 
     /* PhenomD functions take geometric frequencies */
     freqs_geom = CreateRealVector(pHM->npts);
@@ -1170,23 +1205,24 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     (l,m)=(2,2) mode.
     phi0 is the correction we need to add to each mode. */
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
-    double phi0 = 0.5 * phi_22_at_f_ref + phiRef;
+    *phi0 = 0.5 * phi_22_at_f_ref + phiRef;
 
-    double t0 = IMRPhenomDComputet0(
+    *t0 = IMRPhenomDComputet0(
     pHM->eta, pHM->chi1z, pHM->chi2z,
     pHM->finspin);
 
 
-    IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(pHM->eta, pHM->chi1z, pHM->chi2z,
+    (*pAmp_trans) = ComputeIMRPhenomDAmplitudeCoefficients(pHM->eta, pHM->chi1z, pHM->chi2z,
     pHM->finspin);
+    IMRPhenomDAmplitudeCoefficients *pAmp = (*pAmp_trans);
     if (!pAmp)
       assert(0); //ERROR(PD_EFUNC, "pAmp Failed");
 
-    AmpInsPrefactors amp_prefactors;
+    (*amp_prefactors_trans) = (AmpInsPrefactors*)malloc(sizeof(AmpInsPrefactors));
     retcode = 0;
-    retcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+    retcode = init_amp_ins_prefactors(*amp_prefactors_trans, pAmp);
     assert (1 == retcode); //, retcode, "init_amp_ins_prefactors failed");
-
+    AmpInsPrefactors *amp_prefactors = *amp_prefactors_trans;
     /* compute the frequency bounds */
     const double Mtot = (m1_SI + m2_SI) / MSUN_SI;
     PhenomHMFrequencyBoundsStorage *pHMFS;
@@ -1201,14 +1237,20 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     assert (1 == retcode); //,
                 //PD_EFUNC, "init_IMRPhenomHMGet_FrequencyBounds_storage failed");
    /* Compute the amplitude pre-factor */
-   const double amp0 = PhenomUtilsFDamp0(Mtot, distance); // TODO check if this is right units
+   *amp0 = PhenomUtilsFDamp0(Mtot, distance); // TODO check if this is right units
 
     //HMPhasePreComp q;
-    HMPhasePreComp q_all[num_modes];
+    (*q_all_trans) = (HMPhasePreComp*)malloc(num_modes*sizeof(HMPhasePreComp));
+    HMPhasePreComp * q_all = (*q_all_trans);
     //PhenDAmpAndPhasePreComp pDPreComp;
-    PhenDAmpAndPhasePreComp pDPreComp_all[num_modes];
+    (*pDPreComp_all_trans) = (PhenDAmpAndPhasePreComp*)malloc(num_modes*sizeof(PhenDAmpAndPhasePreComp));
+    PhenDAmpAndPhasePreComp *pDPreComp_all = (*pDPreComp_all_trans);
     double complex Y, Ymstar;
-    double complex factorp[num_modes], factorc[num_modes];
+
+    (*factorp_trans) = (double complex*)malloc(num_modes*sizeof(double complex));
+    double complex * factorp = (*factorp_trans);
+    (*factorc_trans) = (double complex*)malloc(num_modes*sizeof(double complex));
+    double complex * factorc = (*factorc_trans);
     double Rholm, Taulm;
     unsigned int ell, mm;
     int minus1l; /* (-1)^l */
@@ -1279,26 +1321,27 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     *hptilde = CreateCOMPLEX2dArray(pHM->npts, pHM->nmodes);
     *hctilde = CreateCOMPLEX2dArray(pHM->npts, pHM->nmodes);
 
-    host_calculate_all_modes(hptilde, hctilde, l_vals, m_vals, pHM, freqs_geom, pAmp, amp_prefactors, pDPreComp_all, q_all, amp0, factorp, factorc, num_modes, t0, phi0);
+    host_calculate_all_modes(hptilde, hctilde, l_vals, m_vals, pHM, freqs_geom, pAmp, *amp_prefactors, pDPreComp_all, q_all, *amp0, factorp, factorc, num_modes, *t0, *phi0);
 
     /* Two possibilities */
     if (pHM->freq_is_uniform == 1)
     { /* 1. uniformly spaced */
         DestroyRealVector(freqs);
-        DestroyRealVector(amps);
-        DestroyRealVector(phases);
+        //DestroyRealVector(amps);
+        //DestroyRealVector(phases);
 
     }
     else if (pHM->freq_is_uniform == 0)
     { /* 2. arbitrarily space */
-        DestroyRealVector(amps);
-        DestroyRealVector(phases);
+
+        //DestroyRealVector(amps);
+        //DestroyRealVector(phases);
     }
     else
     {
         assert(0); //ERROR(PD_EDOM, "freq_is_uniform should be either 0 or 1.");
     }
-    free(pAmp);
+    //free(pAmp);
     //free(pHM);
     free(pHMFS);
     DestroyRealVector(freqs_geom);
@@ -1338,8 +1381,6 @@ int main(){
     for (size_t i=0; i<freqs->length; i++)
         freqs->data[i] = 1e-4*(i+1);
 
-    PhenomHMStorage *pHM_trans = NULL;
-
 int out = IMRPhenomHM(
     &hptilde, /**< [out] Frequency-domain waveform h+ */
     &hctilde, /**< [out] Frequency-domain waveform hx */
@@ -1356,8 +1397,7 @@ int out = IMRPhenomHM(
     l,
     m,
     num_modes,
-    to_gpu,
-    &pHM_trans);
+    to_gpu);
 
 
 for (size_t i=0; i<hptilde->num_modes; i++){
@@ -1365,11 +1405,11 @@ for (size_t i=0; i<hptilde->num_modes; i++){
         if (j % 100 == 0) printf("%e, %e, %e, %e, %e\n", freqs->data[j], creal(hptilde->data[i*hptilde->length + j]), cimag(hptilde->data[i*hptilde->length + j]), creal(hctilde->data[i*hctilde->length + j]), cimag(hctilde->data[i*hctilde->length + j]));
     }
 }
-printf("%e\n", pHM_trans->m1);
+//printf("%e\n", pHM_trans->m1);
 
 DestroyCOMPLEX2dArray(hptilde);
 DestroyCOMPLEX2dArray(hctilde);
 DestroyRealVector(freqs);
-free(pHM_trans);
+//free(pHM_trans);
 return(0);
 }

@@ -465,7 +465,6 @@ double EradRational0815(double eta, double chi1, double chi2) {
  */
 double fring(double eta, double chi1, double chi2, double finspin) {
   double return_val;
-
   assert(finspin <= 1.0);
 
   gsl_interp_accel *acc = gsl_interp_accel_alloc();

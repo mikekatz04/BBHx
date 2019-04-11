@@ -232,8 +232,8 @@ int IMRPhenomHM(
 );
 
 int IMRPhenomHMCore(
-    COMPLEX2dArray **hptilde,
-    COMPLEX2dArray **hctilde,
+    COMPLEX2dArray *hptilde,
+    COMPLEX2dArray *hctilde,
     RealVector *freqs,
     double m1_SI,
     double m2_SI,
@@ -248,20 +248,20 @@ int IMRPhenomHMCore(
     unsigned int *m_vals,
     int num_modes,
     int to_gpu,
-    PhenomHMStorage **pHM_trans,
-    IMRPhenomDAmplitudeCoefficients **pAmp_trans,
-    AmpInsPrefactors **amp_prefactors_trans,
-    PhenDAmpAndPhasePreComp **pDPreComp_all_trans,
-    HMPhasePreComp **q_all_trans,
-    double complex **factorp_trans,
-    double complex **factorc_trans,
+    PhenomHMStorage *pHM_trans,
+    IMRPhenomDAmplitudeCoefficients *pAmp_trans,
+    AmpInsPrefactors *amp_prefactors_trans,
+    PhenDAmpAndPhasePreComp *pDPreComp_all_trans,
+    HMPhasePreComp *q_all_trans,
+    double complex *factorp_trans,
+    double complex *factorc_trans,
     double *t0,
     double *phi0,
     double *amp0);
 
-void host_calculate_all_modes(COMPLEX2dArray **hptilde, COMPLEX2dArray **hctilde, unsigned int *l_vals, unsigned int *m_vals, PhenomHMStorage *pHM, RealVector *freqs_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, double complex *factorp, double complex *factorc, int num_modes, double t0, double phi0);
+void host_calculate_all_modes(COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int *l_vals, unsigned int *m_vals, PhenomHMStorage *pHM, RealVector *freqs_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, double complex *factorp, double complex *factorc, int num_modes, double t0, double phi0);
 
-void host_calculate_each_mode(int i, int mode_i, COMPLEX2dArray **hptilde, COMPLEX2dArray **hctilde, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double complex factorp, double complex factorc, double Rholm, double Taulm, double t0, double phi0);
+void host_calculate_each_mode(int i, int mode_i, COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double complex factorp, double complex factorc, double Rholm, double Taulm, double t0, double phi0);
 
 int IMRPhenomHMGetRingdownFrequency(
     double *fringdown,

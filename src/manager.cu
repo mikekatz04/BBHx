@@ -11,10 +11,74 @@ This class will get translated into python via swig
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>
-//#include "tester.hh"
+#include "globalPhenomHM.h"
 using namespace std;
 
-GPUAdder::GPUPhenomHM (int* array_host_, int length_) {
+GPUAdder::GPUPhenomHM (
+    double *freqs,
+    double m1, //solar masses
+    double m2, //solar masses
+    double chi1z,
+    double chi2z,
+    double distance,
+    double inclination,
+    double phiRef,
+    double deltaF,
+    double f_ref,
+    double *l_vals,
+    double *m_vals,
+    int to_gpu){
+
+
+    PhenomHMStorage *pHM_trans = (PhenomHMStorage*)malloc(sizeof(PhenomHMStorage));
+    IMRPhenomDAmplitudeCoefficients *pAmp_trans = NULL;
+    AmpInsPrefactors *amp_prefactors_trans = NULL;
+    PhenDAmpAndPhasePreComp *pDPreComp_all_trans = NULL;
+    HMPhasePreComp *q_all_trans = NULL;
+    double complex *factorp_trans = NULL;
+    double complex *factorc_trans = NULL;
+    double t0;
+    double phi0;
+    double amp0;
+
+    /* main: evaluate model at given frequencies */
+    retcode = 0;
+    retcode = IMRPhenomHMCore(
+        hptilde,
+        hctilde,
+
+        m1_SI,
+        m2_SI,
+        chi1z,
+        chi2z,
+        distance,
+        inclination,
+        phiRef,
+        deltaF,
+        f_ref,
+        l_vals,
+        m_vals,
+        num_modes,
+        to_gpu,
+        pHM_trans,
+        &pAmp_trans,
+        &amp_prefactors_trans,
+        &pDPreComp_all_trans,
+        &q_all_trans,
+        &factorp_trans,
+        &factorc_trans,
+        &t0,
+        &phi0,
+        &amp0);
+    assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in IMRPhenomHM.");
+
+    free(pHM_trans);
+    free(pAmp_trans);
+    free(amp_prefactors_trans);
+    free(pDPreComp_all_trans);
+    free(q_all_trans);
+    free(factorp_trans);
+    free(factorc_trans);int* array_host_, int length_) {
   array_host = array_host_;
   length = length_;
   double_errthing(array_host, length);

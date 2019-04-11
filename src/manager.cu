@@ -14,6 +14,7 @@ This class will get translated into python via swig
 #include "globalPhenomHM.h"
 #include "tester.hh"
 #include "complex.h"
+
 using namespace std;
 
 GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
@@ -35,8 +36,8 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
     f_length = f_length_;
 
-    //COMPLEX2dArray *hptilde = CreateCOMPLEX2dArray(f_length, num_modes);
-    //COMPLEX2dArray *hctilde = CreateCOMPLEX2dArray(f_length, num_modes);
+    double complex *hptilde = (double complex*)malloc(num_modes*f_length*sizeof(double complex));
+    double complex *hctilde = (double complex*)malloc(num_modes*f_length*sizeof(double complex));
     // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
     PhenomHMStorage *pHM_trans = (PhenomHMStorage *)malloc(sizeof(PhenomHMStorage));
     IMRPhenomDAmplitudeCoefficients *pAmp_trans = (IMRPhenomDAmplitudeCoefficients*)malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
@@ -135,6 +136,6 @@ GPUPhenomHM::~GPUPhenomHM() {
   free(factorp_trans);
   free(factorc_trans);
   free(x);
-  //DestroyCOMPLEX2dArray(hptilde);
-  //DestroyCOMPLEX2dArray(hctilde);
+  free(hptilde);
+  free(hctilde);
 }

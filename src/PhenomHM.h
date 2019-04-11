@@ -213,9 +213,10 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
     double X2z);
 
 int IMRPhenomHM(
-    COMPLEX2dArray **hptilde, /**< [out] Frequency-domain waveform h+ */
-    COMPLEX2dArray **hctilde, /**< [out] Frequency-domain waveform hx */
-    RealVector *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+    double complex **hptilde, /**< [out] Frequency-domain waveform h+ */
+    double complex **hctilde, /**< [out] Frequency-domain waveform hx */
+    double *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+    int f_length,
     double m1_SI,                        /**< mass of companion 1 (kg) */
     double m2_SI,                        /**< mass of companion 2 (kg) */
     double chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
@@ -232,9 +233,10 @@ int IMRPhenomHM(
 );
 
 int IMRPhenomHMCore(
-    COMPLEX2dArray *hptilde,
-    COMPLEX2dArray *hctilde,
-    RealVector *freqs,
+    double complex *hptilde_trans,
+    double complex *hctilde_trans,
+    double *freqs,
+    int f_length,
     double m1_SI,
     double m2_SI,
     double chi1z,

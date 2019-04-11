@@ -816,9 +816,10 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
  *
  */
  int IMRPhenomHM(
-     COMPLEX2dArray **hptilde, /**< [out] Frequency-domain waveform h+ */
-     COMPLEX2dArray **hctilde, /**< [out] Frequency-domain waveform hx */
-     RealVector *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+     double complex **hptilde, /**< [out] Frequency-domain waveform h+ */
+     double complex **hctilde, /**< [out] Frequency-domain waveform hx */
+     double *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+     int f_length,
      double m1_SI,                        /**< mass of companion 1 (kg) */
      double m2_SI,                        /**< mass of companion 2 (kg) */
      double chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
@@ -849,8 +850,9 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
     assert (*hptilde == NULL); //, PD_EFAULT, "check bad");
     assert(*hctilde == NULL); //, PD_EFAULT, "check bad");
     assert (distance > 0); //, PD_EDOM, "distance must be positive.\n");
-    *hptilde = CreateCOMPLEX2dArray(freqs->length, num_modes);
-    *hctilde = CreateCOMPLEX2dArray(freqs->length, num_modes);
+    *hptilde = (double complex*)malloc(num_modes*f_length*sizeof(double complex));
+    *hctilde = (double complex*)malloc(num_modes*f_length*sizeof(double complex));
+
     // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
     PhenomHMStorage *pHM_trans = pHM_trans = malloc(sizeof(PhenomHMStorage));
     IMRPhenomDAmplitudeCoefficients *pAmp_trans = (IMRPhenomDAmplitudeCoefficients*)malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
@@ -869,6 +871,7 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
         (*hptilde),
         (*hctilde),
         freqs,
+        f_length,
         m1_SI,
         m2_SI,
         chi1z,
@@ -1077,9 +1080,10 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
 
 
 int IMRPhenomHMCore(
-     COMPLEX2dArray *hptilde, /**< [out] Frequency domain h+ GW strain */
-     COMPLEX2dArray *hctilde, /**< [out] Frequency domain hx GW strain */
-    RealVector *freqs,                      /**< GW frequecny list [Hz] */
+     double complex *hptilde_trans, /**< [out] Frequency domain h+ GW strain */
+     double complex *hctilde_trans, /**< [out] Frequency domain hx GW strain */
+    double *freqs_trans,                      /**< GW frequecny list [Hz] */
+    int f_length,
     double m1_SI,                               /**< primary mass [kg] */
     double m2_SI,                               /**< secondary mass [kg] */
     double chi1z,                               /**< aligned spin of primary */
@@ -1109,6 +1113,8 @@ int IMRPhenomHMCore(
     long ligotimegps_zero = 0;
     int sym;
 
+    RealVector *freqs = CreateRealVector(f_length);
+    freqs->data = freqs_trans;
 
     /* setup PhenomHM model storage struct / structs */
     /* Compute quantities/parameters related to PhenomD only once and store them */
@@ -1312,6 +1318,12 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     }
     pHM->nmodes = num_modes;
 
+    COMPLEX2dArray *hptilde = CreateCOMPLEX2dArray(f_length, num_modes);
+    hptilde->data = hptilde_trans;
+
+    COMPLEX2dArray *hctilde = CreateCOMPLEX2dArray(f_length, num_modes);
+    hctilde->data = hctilde_trans;
+
     host_calculate_all_modes(hptilde, hctilde, l_vals, m_vals, pHM, freqs_geom, pAmp, *amp_prefactors, pDPreComp_all, q_all, *amp0, factorp, factorc, num_modes, *t0, *phi0);
 
     /* Two possibilities */
@@ -1335,17 +1347,20 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     //free(pAmp);
     //free(pHM);
     free(pHMFS);
-    DestroyRealVector(freqs_geom);
-
+    //DestroyRealVector(freqs_geom);
+    free(hptilde);
+    free(hctilde);
+    free(freqs);
     return 1;
 }
 
 
 
 int main(){
-    COMPLEX2dArray *hptilde=NULL;
-    COMPLEX2dArray *hctilde=NULL;
-    RealVector *freqs = CreateRealVector(1024);
+    double complex *hptilde=NULL;
+    double complex *hctilde=NULL;
+    int f_length = 1024;
+    double *freqs = (double*)malloc(f_length*sizeof(double));
     double m1_SI = 3e7*1.989e30;
     double m2_SI = 1e7*1.989e30;
     double chi1z = 0.8;
@@ -1369,13 +1384,17 @@ int main(){
     m[3] = 4;
     l[3] = 4;
 
-    for (size_t i=0; i<freqs->length; i++)
-        freqs->data[i] = 1e-4*(i+1);
+    int i;
+    for (i=0; i<f_length; i++){
+        freqs[i] = 1e-4*(i+1);
+        if (i % 100 == 0) printf("%e\n", freqs[i]);
+    }
 
 int out = IMRPhenomHM(
     &hptilde, /**< [out] Frequency-domain waveform h+ */
     &hctilde, /**< [out] Frequency-domain waveform hx */
     freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+    f_length,
     m1_SI,                        /**< mass of companion 1 (kg) */
     m2_SI,                        /**< mass of companion 2 (kg) */
     chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
@@ -1391,16 +1410,16 @@ int out = IMRPhenomHM(
     to_gpu);
 
 
-for (size_t i=0; i<hptilde->num_modes; i++){
-    for (size_t j=0; j<hctilde->length; j++){
-        if (j % 100 == 0) printf("%e, %e, %e, %e, %e\n", freqs->data[j], creal(hptilde->data[i*hptilde->length + j]), cimag(hptilde->data[i*hptilde->length + j]), creal(hctilde->data[i*hctilde->length + j]), cimag(hctilde->data[i*hctilde->length + j]));
+for (size_t i=0; i<num_modes; i++){
+    for (size_t j=0; j<f_length; j++){
+        if (j % 100 == 0) printf("%e, %e, %e, %e, %e\n", freqs[j], creal(hptilde[i*f_length + j]), cimag(hptilde[i*f_length + j]), creal(hctilde[i*f_length + j]), cimag(hctilde[i*f_length + j]));
     }
 }
 //printf("%e\n", pHM_trans->m1);
 
-DestroyCOMPLEX2dArray(hptilde);
-DestroyCOMPLEX2dArray(hctilde);
-DestroyRealVector(freqs);
+free(hptilde);
+free(hctilde);
+free(freqs);
 //free(pHM_trans);
 return(0);
 }

@@ -3,37 +3,6 @@
 #include "assert.h"
 #include "tester.hh"
 
-/*
-typedef struct tagCOMPLEX2dArray {
-    double __complex__*    data;
-    size_t      length;
-    size_t      num_modes;
-} COMPLEX2dArray;
-
-COMPLEX2dArray *CreateCOMPLEX2dArray(
-    size_t length,
-    size_t num_modes
-){
-    COMPLEX2dArray* tmp = (COMPLEX2dArray*)malloc(sizeof(COMPLEX2dArray));
-    tmp->length = length;
-    tmp->num_modes = num_modes;
-    size_t size = sizeof(double complex)*num_modes*length;
-    tmp->data = (double complex*)malloc(size);
-
-    assert(tmp->data != NULL);
-        //ERROR(PD_ENOMEM, "Failed to allocated data array.");
-
-    memset(tmp->data, 0, sizeof(size));
-    //memset(tmp->data, 0, sizeof(double complex)*(num_modes * length));
-    return tmp;
-}
-
-void DestroyCOMPLEX2dArray(COMPLEX2dArray *tmp) {
-    free(tmp->data);
-    free(tmp);
-}
-*/
-
 class GPUPhenomHM {
   // pointer to the GPU memory where the array is stored
   double *freqs;
@@ -61,8 +30,8 @@ class GPUPhenomHM {
   double t0;
   double phi0;
   double amp0;
-  //COMPLEX2dArray *hptilde;
-  //COMPLEX2dArray *hctilde;
+  double complex *hptilde;
+  double complex *hctilde;
 
   // pointer to the GPU memory where the array is stored
   int* array_device;

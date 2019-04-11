@@ -236,5 +236,4 @@ typedef struct tagHMPhasePreComp
 } HMPhasePreComp;
 
 
-
 #endif

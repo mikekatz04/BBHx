@@ -108,11 +108,13 @@ try:
 except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
+lib_gsl_dir = "/opt/local/lib"
+include_gsl_dir = "/opt/local/include"
 
 ext = Extension('gpuadder',
-        sources = ['src/manager.cu', 'wrapper.pyx'],
-        library_dirs = [CUDA['lib64']],
-        libraries = ['cudart'],
+        sources = ['src/RingdownCW.c', 'src/IMRPhenomD_internals.c', 'src/IMRPhenomD.c', 'src/PhenomHM.c', 'src/manager.cu', 'wrapper.pyx'],
+        library_dirs = [lib_gsl_dir, CUDA['lib64']],
+        libraries = ['cudart', "gsl", "gslcblas"],
         language = 'c++',
         runtime_library_dirs = [CUDA['lib64']],
         # This syntax is specific to this build system
@@ -120,13 +122,13 @@ ext = Extension('gpuadder',
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
         extra_compile_args= {
-            'gcc': [],
+            'gcc': ['-std=c99'],
             'nvcc': [
                 '-arch=sm_30', '--ptxas-options=-v', '-c',
                 '--compiler-options', "'-fPIC'"
                 ]
             },
-            include_dirs = [numpy_include, CUDA['include'], 'src']
+            include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'src']
         )
 
 

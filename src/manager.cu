@@ -12,10 +12,13 @@ This class will get translated into python via swig
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
+#include "tester.hh"
+#include "complex.h"
 using namespace std;
 
-GPUAdder::GPUPhenomHM (
+GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
     double *freqs,
+    int f_length_,
     double m1, //solar masses
     double m2, //solar masses
     double chi1z,
@@ -25,24 +28,29 @@ GPUAdder::GPUPhenomHM (
     double phiRef,
     double deltaF,
     double f_ref,
-    double *l_vals,
-    double *m_vals,
+    unsigned int *l_vals,
+    unsigned int *m_vals,
+    int num_modes,
     int to_gpu){
 
+    f_length = f_length_;
 
-    PhenomHMStorage *pHM_trans = (PhenomHMStorage*)malloc(sizeof(PhenomHMStorage));
-    IMRPhenomDAmplitudeCoefficients *pAmp_trans = NULL;
-    AmpInsPrefactors *amp_prefactors_trans = NULL;
-    PhenDAmpAndPhasePreComp *pDPreComp_all_trans = NULL;
-    HMPhasePreComp *q_all_trans = NULL;
-    double complex *factorp_trans = NULL;
-    double complex *factorc_trans = NULL;
+    //COMPLEX2dArray *hptilde = CreateCOMPLEX2dArray(f_length, num_modes);
+    //COMPLEX2dArray *hctilde = CreateCOMPLEX2dArray(f_length, num_modes);
+    // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
+    PhenomHMStorage *pHM_trans = (PhenomHMStorage *)malloc(sizeof(PhenomHMStorage));
+    IMRPhenomDAmplitudeCoefficients *pAmp_trans = (IMRPhenomDAmplitudeCoefficients*)malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+    AmpInsPrefactors *amp_prefactors_trans = (AmpInsPrefactors*)malloc(sizeof(AmpInsPrefactors));
+    PhenDAmpAndPhasePreComp *pDPreComp_all_trans = (PhenDAmpAndPhasePreComp*)malloc(num_modes*sizeof(PhenDAmpAndPhasePreComp));
+    HMPhasePreComp *q_all_trans = (HMPhasePreComp*)malloc(num_modes*sizeof(HMPhasePreComp));
+    double complex *factorp_trans = (double complex*)malloc(num_modes*sizeof(double complex));
+    double complex *factorc_trans = (double complex*)malloc(num_modes*sizeof(double complex));
     double t0;
     double phi0;
     double amp0;
 
     /* main: evaluate model at given frequencies */
-    retcode = 0;
+    /*retcode = 0;
     retcode = IMRPhenomHMCore(
         hptilde,
         hctilde,
@@ -61,27 +69,19 @@ GPUAdder::GPUPhenomHM (
         num_modes,
         to_gpu,
         pHM_trans,
-        &pAmp_trans,
-        &amp_prefactors_trans,
-        &pDPreComp_all_trans,
-        &q_all_trans,
-        &factorp_trans,
-        &factorc_trans,
+        pAmp_trans,
+        amp_prefactors_trans,
+        pDPreComp_all_trans,
+        q_all_trans,
+        factorp_trans,
+        factorc_trans,
         &t0,
         &phi0,
         &amp0);
-    assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in IMRPhenomHM.");
+    assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in IMRPhenomHM.");*/
 
-    free(pHM_trans);
-    free(pAmp_trans);
-    free(amp_prefactors_trans);
-    free(pDPreComp_all_trans);
-    free(q_all_trans);
-    free(factorp_trans);
-    free(factorc_trans);int* array_host_, int length_) {
   array_host = array_host_;
   length = length_;
-  double_errthing(array_host, length);
   int size = length * sizeof(int);
   cudaError_t err = cudaMalloc((void**) &array_device, size);
   assert(err == 0);
@@ -97,16 +97,15 @@ GPUAdder::GPUPhenomHM (
   err = cudaMemcpy(d_x, x, sizex, cudaMemcpyHostToDevice);
   assert(err == 0);
 
-
 }
 
-void GPUAdder::increment() {
+void GPUPhenomHM::increment() {
   kernel_add_one<<<64, 64>>>(array_device, length, d_x);
   cudaError_t err = cudaGetLastError();
   assert(err == 0);
 }
 
-void GPUAdder::retreive() {
+void GPUPhenomHM::retreive() {
   int size = length * sizeof(int);
   int sizex = sizeof(StructTest);
   cudaMemcpy(array_host, array_device, size, cudaMemcpyDeviceToHost);
@@ -117,7 +116,7 @@ void GPUAdder::retreive() {
 }
 
 
-void GPUAdder::retreive_to (int* array_host_, int length_) {
+void GPUPhenomHM::retreive_to (int* array_host_, int length_) {
   assert(length == length_);
   int size = length * sizeof(int);
   cudaMemcpy(array_host_, array_device, size, cudaMemcpyDeviceToHost);
@@ -125,8 +124,17 @@ void GPUAdder::retreive_to (int* array_host_, int length_) {
   assert(err == 0);
 }
 
-GPUAdder::~GPUAdder() {
+GPUPhenomHM::~GPUPhenomHM() {
   cudaFree(array_device);
   cudaFree(d_x);
+  free(pHM_trans);
+  free(pAmp_trans);
+  free(amp_prefactors_trans);
+  free(pDPreComp_all_trans);
+  free(q_all_trans);
+  free(factorp_trans);
+  free(factorc_trans);
   free(x);
+  //DestroyCOMPLEX2dArray(hptilde);
+  //DestroyCOMPLEX2dArray(hctilde);
 }

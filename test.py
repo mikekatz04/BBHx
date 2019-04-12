@@ -29,8 +29,8 @@ def test():
      to_gpu)
 
     adder.c_test()
+    print(adder.c_retrieve())
 
-    import pdb; pdb.set_trace()
     adder.increment()
 
     adder.retreive_inplace()
@@ -39,7 +39,7 @@ def test():
     npt.assert_array_equal(arr, [2,3,3,3])
     npt.assert_array_equal(results2, [2,3,3,3])
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     test()

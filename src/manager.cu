@@ -58,6 +58,28 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
   this->hptilde = hptilde;
   this->hctilde = hctilde;
 
+  PhenomHMStorage *pHM_trans = new PhenomHMStorage;
+  this->pHM_trans = pHM_trans;
+
+  IMRPhenomDAmplitudeCoefficients *pAmp_trans = new IMRPhenomDAmplitudeCoefficients;
+  this->pAmp_trans = pAmp_trans;
+
+  AmpInsPrefactors *amp_prefactors_trans = new AmpInsPrefactors;
+  this->amp_prefactors_trans = amp_prefactors_trans;
+
+  PhenDAmpAndPhasePreComp *pDPreComp_all_trans = new PhenDAmpAndPhasePreComp[num_modes];
+  this->pDPreComp_all_trans = pDPreComp_all_trans;
+
+  HMPhasePreComp *q_all_trans = new HMPhasePreComp[num_modes];
+  this->q_all_trans = q_all_trans;
+
+  std::complex<double> *factorp_trans = new std::complex<double>[num_modes];
+  this->factorp_trans = factorp_trans;
+
+  std::complex<double> *factorc_trans = new std::complex<double>[num_modes];
+  this->factorc_trans = factorc_trans;
+
+
   array_host = array_host_;
   length = length_;
   int size = length * sizeof(int);
@@ -86,13 +108,6 @@ void GPUPhenomHM::increment() {
 void GPUPhenomHM::c_test(){
 
     // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
-    PhenomHMStorage *pHM_trans = (PhenomHMStorage *)malloc(sizeof(PhenomHMStorage));
-    IMRPhenomDAmplitudeCoefficients *pAmp_trans = (IMRPhenomDAmplitudeCoefficients*)malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
-    AmpInsPrefactors *amp_prefactors_trans = (AmpInsPrefactors*)malloc(sizeof(AmpInsPrefactors));
-    PhenDAmpAndPhasePreComp *pDPreComp_all_trans = (PhenDAmpAndPhasePreComp*)malloc(num_modes*sizeof(PhenDAmpAndPhasePreComp));
-    HMPhasePreComp *q_all_trans = (HMPhasePreComp*)malloc(num_modes*sizeof(HMPhasePreComp));
-    std::complex<double> *factorp_trans = (std::complex<double>*)malloc(num_modes*sizeof(std::complex<double>));
-    std::complex<double> *factorc_trans = (std::complex<double>*)malloc(num_modes*sizeof(std::complex<double>));
     double t0;
     double phi0;
     double amp0;
@@ -180,13 +195,13 @@ void GPUPhenomHM::c_retrieve (std::complex<double>* hptilde_, std::complex<doubl
 GPUPhenomHM::~GPUPhenomHM() {
   cudaFree(array_device);
   cudaFree(d_x);
-  free(pHM_trans);
-  free(pAmp_trans);
-  free(amp_prefactors_trans);
-  free(pDPreComp_all_trans);
-  free(q_all_trans);
-  free(factorp_trans);
-  free(factorc_trans);
+  delete pHM_trans;
+  delete pAmp_trans;
+  delete amp_prefactors_trans;
+  delete pDPreComp_all_trans;
+  delete q_all_trans;
+  delete factorp_trans;
+  delete factorc_trans;
   free(x);
   //free(freqs);
   delete hptilde;

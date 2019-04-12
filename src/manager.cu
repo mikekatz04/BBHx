@@ -7,7 +7,8 @@ you perform actions with the GPU
 This class will get translated into python via swig
 */
 
-#include <kernel.cu>
+//#include <kernel.cu>
+#include <kernel2.cu>
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>
@@ -73,13 +74,6 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
       printf("was here\n");
 
-      // Initialize inputs
-
-      double *d_freqs;
-      size_t freqs_size = f_length*sizeof(double);
-      cudaMalloc(&d_freqs, freqs_size);
-      cudaMemcpy(d_freqs, freqs, freqs_size, cudaMemcpyHostToDevice);
-
       unsigned int *d_l_vals, *d_m_vals;
       size_t mode_array_size = num_modes*sizeof(unsigned int);
       cudaMalloc(&d_l_vals, mode_array_size);
@@ -118,7 +112,6 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
       err = cudaMalloc(&d_factorc_trans, complex_factor_size);
       assert(err == 0);
 
-      this->d_freqs = d_freqs;
       this->d_l_vals = d_l_vals;
       this->d_m_vals = d_m_vals;
       this->d_hptilde = d_hptilde;
@@ -195,8 +188,27 @@ void GPUPhenomHM::gpu_gen_PhenomHM(
         deltaF_,
         f_ref_);
 
+
+    // Initialize inputs
+
+
+    // TODO: need to remove this and do more efficiently
+    double Mtot_Msun = m1_ + m2_;
+    double *freqs_geom = new double[f_length];
+    int kk;
+    for (kk=0; kk<f_length; kk++){
+        freqs_geom[kk] = freqs[kk] * (MTSUN_SI * Mtot_Msun);
+    }
+    this->freqs_geom = freqs_geom;
+
+    double *d_freqs_geom;
+    size_t freqs_size = f_length*sizeof(double);
+    cudaMalloc(&d_freqs_geom, freqs_size);
+    cudaMemcpy(d_freqs_geom, freqs_geom, freqs_size, cudaMemcpyHostToDevice);
+    this->d_freqs_geom = d_freqs_geom;
+
     cudaError_t err;
-    
+
     err = cudaMemcpy(d_pHM_trans, pHM_trans, sizeof(PhenomHMStorage), cudaMemcpyHostToDevice);
     assert(err == 0);
 
@@ -356,7 +368,8 @@ GPUPhenomHM::~GPUPhenomHM() {
       delete hctilde;
   }
   if ((to_gpu == 1) || (to_gpu == 2)){
-      cudaFree(d_freqs);
+      delete freqs_geom;
+      cudaFree(d_freqs_geom);
       cudaFree(d_l_vals);
       cudaFree(d_m_vals);
       cudaFree(d_pHM_trans);

@@ -38,8 +38,9 @@ class GPUPhenomHM {
   double m2_SI;
   std::complex<double> *hptilde;
   std::complex<double> *hctilde;
+  double *freqs_geom;
 
-  double *d_freqs;
+  double *d_freqs_geom;
   unsigned int *d_l_vals;
   unsigned int *d_m_vals;
   PhenomHMStorage *d_pHM_trans;
@@ -105,7 +106,7 @@ public:
           double phiRef_,
           double deltaF_,
           double f_ref_);
-          
+
   void retreive(); //gets results back from GPU, putting them in the memory that was passed in
   // the constructor
   void retreive_to(int* INPLACE_ARRAY1, int DIM1); //gets results back from GPU, putting them in the memory that was passed in

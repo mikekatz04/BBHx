@@ -195,6 +195,29 @@ void GPUPhenomHM::gpu_gen_PhenomHM(
         deltaF_,
         f_ref_);
 
+    cudaError_t err;
+    
+    err = cudaMemcpy(d_pHM_trans, pHM_trans, sizeof(PhenomHMStorage), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    err = cudaMemcpy(d_pAmp_trans, pAmp_trans, sizeof(IMRPhenomDAmplitudeCoefficients), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    err = cudaMemcpy(d_amp_prefactors_trans, amp_prefactors_trans, sizeof(AmpInsPrefactors), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    err = cudaMemcpy(d_pDPreComp_all_trans, pDPreComp_all_trans, num_modes*sizeof(PhenDAmpAndPhasePreComp), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    err = cudaMemcpy(d_q_all_trans, q_all_trans, num_modes*sizeof(HMPhasePreComp), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    err = cudaMemcpy(d_factorp_trans, factorp_trans, num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
+    assert(err == 0);
+    err = cudaMemcpy(d_factorc_trans, factorc_trans, num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+
 
     /* main: evaluate model at given frequencies */
 

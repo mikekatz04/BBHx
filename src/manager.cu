@@ -21,15 +21,6 @@ using namespace std;
 GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
     double *freqs_,
     int f_length_,
-    double m1_, //solar masses
-    double m2_, //solar masses
-    double chi1z_,
-    double chi2z_,
-    double distance_,
-    double inclination_,
-    double phiRef_,
-    double deltaF_,
-    double f_ref_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
@@ -37,15 +28,6 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
     freqs = freqs_;
     f_length = f_length_;
-    m1 = m1_; //solar masses
-    m2 = m2_; //solar masses
-    chi1z = chi1z_;
-    chi2z = chi2z_;
-    distance = distance_;
-    inclination = inclination_;
-    phiRef = phiRef_;
-    deltaF = deltaF_;
-    f_ref = f_ref_;
     l_vals = l_vals_;
     m_vals = m_vals_;
     num_modes = num_modes_;
@@ -59,6 +41,8 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
       this->hptilde = hptilde;
       this->hctilde = hctilde;
   }
+
+      // DECLARE ALL THE  NECESSARY STRUCTS
 
   PhenomHMStorage *pHM_trans = new PhenomHMStorage;
   this->pHM_trans = pHM_trans;
@@ -92,9 +76,6 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
   int retcode;
 
-  this->m1_SI = m1*MSUN_SI;
-  this->m2_SI = m2*MSUN_SI;
-
   array_host = array_host_;
   length = length_;
   int size = length * sizeof(int);
@@ -120,11 +101,31 @@ void GPUPhenomHM::increment() {
   assert(err == 0);
 }
 
-void GPUPhenomHM::c_test(){
+void GPUPhenomHM::cpu_gen_PhenomHM(
+    double m1_, //solar masses
+    double m2_, //solar masses
+    double chi1z_,
+    double chi2z_,
+    double distance_,
+    double inclination_,
+    double phiRef_,
+    double deltaF_,
+    double f_ref_){
 
-    // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
+    m1 = m1_; //solar masses
+    m2 = m2_; //solar masses
+    chi1z = chi1z_;
+    chi2z = chi2z_;
+    distance = distance_;
+    inclination = inclination_;
+    phiRef = phiRef_;
+    deltaF = deltaF_;
+    f_ref = f_ref_;
+
+    m1_SI = m1*MSUN_SI;
+    m2_SI = m2*MSUN_SI;
+
     /* main: evaluate model at given frequencies */
-    printf("%d, %d\n", l_vals[0], m_vals[0]);
     retcode = 0;
     retcode = IMRPhenomHMCore(
         hptilde,
@@ -155,7 +156,7 @@ void GPUPhenomHM::c_test(){
         &phi0,
         &amp0);
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in IMRPhenomHM.");
-    int i, j;
+    /*int i, j;
     printf("f_length %d\n\n", f_length);
     double check;
     for (i=0; i<num_modes; i++){
@@ -166,7 +167,7 @@ void GPUPhenomHM::c_test(){
     }
     //this->hptilde = hptilde;
     printf("\n\n\n\n\n\n\n");
-     printf("\nhptilde %e\n\n", hptilde[0].real());
+     printf("\nhptilde %e\n\n", hptilde[0].real());*/
 
 }
 
@@ -189,13 +190,14 @@ void GPUPhenomHM::retreive_to (int* array_host_, int length_) {
   assert(err == 0);
 }
 
-void GPUPhenomHM::c_retrieve (std::complex<double>* hptilde_, std::complex<double>* hctilde_) {
+void GPUPhenomHM::Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_) {
   //hptilde[10] = std::complex<double>(10.0, 9.0);
   //printf("%e\n", hptilde[0].real());
   //printf("%d %d\n", length_, f_length);
-
- memcpy(hptilde_, hptilde, num_modes*f_length*sizeof(std::complex<double>));
- memcpy(hctilde_, hctilde, num_modes*f_length*sizeof(std::complex<double>));
+if (this->to_gpu == 0){
+     memcpy(hptilde_, hptilde, num_modes*f_length*sizeof(std::complex<double>));
+     memcpy(hctilde_, hctilde, num_modes*f_length*sizeof(std::complex<double>));
+}
   //array_host_[0] = this->hptilde[0];
   //printf("%e\n", array_host_[0].real());
 }

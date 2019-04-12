@@ -15,21 +15,22 @@ def test():
     arr = np.array([1,2,2,2], dtype=np.int32)
     adder = gpuadder.GPUPhenomHM(arr,
      freq,
-     m1, #solar masses
-     m2, #solar masses
-     chi1z,
-     chi2z,
-     distance,
-     inclination,
-     phiRef,
-     deltaF,
-     f_ref,
      l_vals,
      m_vals,
      to_gpu)
 
-    adder.c_test()
-    print(adder.c_retrieve())
+
+    for _ in range(5):
+        adder.cpu_gen_PhenomHM(m1,  # solar masses
+                     m2,  # solar masses
+                     chi1z,
+                     chi2z,
+                     distance,
+                     inclination,
+                     phiRef,
+                     deltaF,
+                     f_ref)
+        print(adder.Get_Waveform())
 
     adder.increment()
 

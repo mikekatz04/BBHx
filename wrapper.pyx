@@ -7,23 +7,22 @@ cdef extern from "src/manager.hh":
     cdef cppclass C_GPUPhenomHM "GPUPhenomHM":
         C_GPUPhenomHM(np.int32_t*, int,
         np.float64_t *, int,
-        double,
-        double,
-        double,
-        double,
-        double,
-        double,
-        double,
-        double,
-        double,
         np.uint32_t *,
         np.uint32_t *,
         int,
         int)
         void increment()
-        void c_test()
+        void cpu_gen_PhenomHM(double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double)
         void retreive()
-        void c_retrieve(np.complex128_t*, np.complex128_t*)
+        void Get_Waveform(np.complex128_t*, np.complex128_t*)
         void retreive_to(np.int32_t*, int)
 
 cdef class GPUPhenomHM:
@@ -34,15 +33,6 @@ cdef class GPUPhenomHM:
 
     def __cinit__(self, np.ndarray[ndim=1, dtype=np.int32_t] arr,
      np.ndarray[ndim=1, dtype=np.float64_t] freqs,
-     m1, #solar masses
-     m2, #solar masses
-     chi1z,
-     chi2z,
-     distance,
-     inclination,
-     phiRef,
-     deltaF,
-     f_ref,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
      to_gpu):
@@ -51,15 +41,6 @@ cdef class GPUPhenomHM:
         self.num_modes = len(l_vals)
         self.g = new C_GPUPhenomHM(&arr[0], self.dim1,
         &freqs[0], self.f_dim,
-        m1, #solar masses
-        m2, #solar masses
-        chi1z,
-        chi2z,
-        distance,
-        inclination,
-        phiRef,
-        deltaF,
-        f_ref,
         &l_vals[0],
         &m_vals[0],
         self.num_modes,
@@ -69,18 +50,36 @@ cdef class GPUPhenomHM:
     def increment(self):
         self.g.increment()
 
-    def c_test(self):
-        self.g.c_test()
+    def cpu_gen_PhenomHM(self,
+                        m1, #solar masses
+                        m2, #solar masses
+                        chi1z,
+                        chi2z,
+                        distance,
+                        inclination,
+                        phiRef,
+                        deltaF,
+                        f_ref):
+
+        self.g.cpu_gen_PhenomHM(m1, #solar masses
+                                m2, #solar masses
+                                chi1z,
+                                chi2z,
+                                distance,
+                                inclination,
+                                phiRef,
+                                deltaF,
+                                f_ref)
 
     def retreive_inplace(self):
         self.g.retreive()
 
-    def c_retrieve(self):
+    def Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] hptilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
 
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] hctilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
 
-        self.g.c_retrieve(&hptilde_[0], &hctilde_[0])
+        self.g.Get_Waveform(&hptilde_[0], &hctilde_[0])
 
         return (hptilde_, hctilde_)
 

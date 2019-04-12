@@ -62,15 +62,6 @@ public:
 
   GPUPhenomHM(int* INPLACE_ARRAY1, int DIM1,
       double *freqs_, int f_length_,
-      double m1_, //solar masses
-      double m2_, //solar masses
-      double chi1z_,
-      double chi2z_,
-      double distance_,
-      double inclination_,
-      double phiRef_,
-      double deltaF_,
-      double f_ref_,
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
@@ -79,14 +70,23 @@ public:
   ~GPUPhenomHM(); // destructor
 
   void increment(); // does operation inplace on the GPU
-  void c_test();
+  void cpu_gen_PhenomHM(
+        double m1_, //solar masses
+        double m2_, //solar masses
+        double chi1z_,
+        double chi2z_,
+        double distance_,
+        double inclination_,
+        double phiRef_,
+        double deltaF_,
+        double f_ref_);
   void retreive(); //gets results back from GPU, putting them in the memory that was passed in
   // the constructor
   void retreive_to(int* INPLACE_ARRAY1, int DIM1); //gets results back from GPU, putting them in the memory that was passed in
   // the constructor
 
   //gets results back from the gpu, putting them in the supplied memory location
-  void c_retrieve (std::complex<double>* hptilde_, std::complex<double>* hctilde_);
+  void Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);
 
 
 };

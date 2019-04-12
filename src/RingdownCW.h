@@ -29,7 +29,7 @@
 /* Include the desired Libs */
 #include <stdbool.h>
 #include <math.h>
-#include <complex.h>
+#include <complex>
 #include "globalPhenomHM.h"
 
 /*
@@ -44,7 +44,7 @@ double SimRingdownCW_KAPPA(double jf, int l, int m);
 /*
 * Dimensionless QNM Frequencies: Note that name encodes date of writing
 */
-complex double SimRingdownCW_CW07102016(double kappa, /* Domain mapping for  remnant BH's spin (Dimensionless) */
+std::complex<double> SimRingdownCW_CW07102016(double kappa, /* Domain mapping for  remnant BH's spin (Dimensionless) */
                                         int l,        /* Polar eigenvalue */
                                         int input_m,  /* Azimuthal eigenvalue*/
                                         int n);       /* Overtone Number*/

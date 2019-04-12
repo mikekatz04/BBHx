@@ -21,13 +21,15 @@ cdef extern from "src/manager.hh":
         int,
         int)
         void increment()
+        void c_test()
         void retreive()
+        void c_retrieve(np.complex128_t*, np.complex128_t*)
         void retreive_to(np.int32_t*, int)
 
 cdef class GPUPhenomHM:
     cdef C_GPUPhenomHM* g
     cdef int dim1
-    cdef num_modes
+    cdef int num_modes
     cdef int f_dim
 
     def __cinit__(self, np.ndarray[ndim=1, dtype=np.int32_t] arr,
@@ -67,8 +69,20 @@ cdef class GPUPhenomHM:
     def increment(self):
         self.g.increment()
 
+    def c_test(self):
+        self.g.c_test()
+
     def retreive_inplace(self):
         self.g.retreive()
+
+    def c_retrieve(self):
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hptilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
+
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hctilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
+
+        self.g.c_retrieve(&hptilde_[0], &hctilde_[0])
+
+        return (hptilde_, hctilde_)
 
     def retreive(self):
         cdef np.ndarray[ndim=1, dtype=np.int32_t] a = np.zeros(self.dim1, dtype=np.int32)

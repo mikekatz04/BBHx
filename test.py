@@ -5,7 +5,7 @@ from astropy.cosmology import Planck15 as cosmo
 from scipy import constants as ct
 
 def test():
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.arange(1, int(1e4)+1, 1)*1e-8, 0.0, 1e-5, 1e5*1.989e30, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, 0.0
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.arange(1, int(1e4)+1, 1)*1e-5, 0.0, 1e-5, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, 0.0
 
     l_vals = np.array([2, 2, 3, 4, 4, 3], dtype=np.uint32)
     m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32)
@@ -27,6 +27,10 @@ def test():
      l_vals,
      m_vals,
      to_gpu)
+
+    adder.c_test()
+
+    import pdb; pdb.set_trace()
     adder.increment()
 
     adder.retreive_inplace()
@@ -34,3 +38,8 @@ def test():
 
     npt.assert_array_equal(arr, [2,3,3,3])
     npt.assert_array_equal(results2, [2,3,3,3])
+
+    import pdb; pdb.set_trace()
+
+if __name__ == "__main__":
+    test()

@@ -405,7 +405,7 @@ int IMRPhenomDGenerateFD_internal(
       double phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors, 1.0, 1.0);
 
       phi -= t0*(Mf-MfRef) + phi_precalc;
-      ((*htilde)->data)[i] = amp0 * amp * cexp(-I * phi);
+      ((*htilde)->data)[i] = amp0 * amp * std::exp(-I * phi);
     }
   }
 

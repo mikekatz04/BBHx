@@ -203,7 +203,7 @@ int IMRPhenomHMPhasePreComp(
     const int mm,
     PhenomHMStorage *pHM);
 
-double complex IMRPhenomHMOnePointFiveSpinPN(
+double IMRPhenomHMOnePointFiveSpinPN(
     double fM,
     int l,
     int m,
@@ -213,8 +213,8 @@ double complex IMRPhenomHMOnePointFiveSpinPN(
     double X2z);
 
 int IMRPhenomHM(
-    double complex **hptilde, /**< [out] Frequency-domain waveform h+ */
-    double complex **hctilde, /**< [out] Frequency-domain waveform hx */
+    std::complex<double> **hptilde, /**< [out] Frequency-domain waveform h+ */
+    std::complex<double> **hctilde, /**< [out] Frequency-domain waveform hx */
     double *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
     int f_length,
     double m1_SI,                        /**< mass of companion 1 (kg) */
@@ -233,8 +233,8 @@ int IMRPhenomHM(
 );
 
 int IMRPhenomHMCore(
-    double complex *hptilde_trans,
-    double complex *hctilde_trans,
+    std::complex<double> *hptilde_trans,
+    std::complex<double> *hctilde_trans,
     double *freqs,
     int f_length,
     double m1_SI,
@@ -255,15 +255,15 @@ int IMRPhenomHMCore(
     AmpInsPrefactors *amp_prefactors_trans,
     PhenDAmpAndPhasePreComp *pDPreComp_all_trans,
     HMPhasePreComp *q_all_trans,
-    double complex *factorp_trans,
-    double complex *factorc_trans,
+    std::complex<double> *factorp_trans,
+    std::complex<double> *factorc_trans,
     double *t0,
     double *phi0,
     double *amp0);
 
-void host_calculate_all_modes(COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int *l_vals, unsigned int *m_vals, PhenomHMStorage *pHM, RealVector *freqs_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, double complex *factorp, double complex *factorc, int num_modes, double t0, double phi0);
+void host_calculate_all_modes(COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int *l_vals, unsigned int *m_vals, PhenomHMStorage *pHM, RealVector *freqs_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, std::complex<double> *factorp, std::complex<double> *factorc, int num_modes, double t0, double phi0);
 
-void host_calculate_each_mode(int i, int mode_i, COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double complex factorp, double complex factorc, double Rholm, double Taulm, double t0, double phi0);
+void host_calculate_each_mode(int i, int mode_i, COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, std::complex<double> factorp, std::complex<double> factorc, double Rholm, double Taulm, double t0, double phi0);
 
 int IMRPhenomHMGetRingdownFrequency(
     double *fringdown,

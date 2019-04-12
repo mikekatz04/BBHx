@@ -53,10 +53,12 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
     f_length = f_length_;
 
-  std::complex<double> *hptilde = new std::complex<double>[num_modes*f_length];
-  std::complex<double> *hctilde = new std::complex<double>[num_modes*f_length];
-  this->hptilde = hptilde;
-  this->hctilde = hctilde;
+  if (!to_gpu){
+      std::complex<double> *hptilde = new std::complex<double>[num_modes*f_length];
+      std::complex<double> *hctilde = new std::complex<double>[num_modes*f_length];
+      this->hptilde = hptilde;
+      this->hctilde = hctilde;
+  }
 
   PhenomHMStorage *pHM_trans = new PhenomHMStorage;
   this->pHM_trans = pHM_trans;
@@ -79,6 +81,19 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
   std::complex<double> *factorc_trans = new std::complex<double>[num_modes];
   this->factorc_trans = factorc_trans;
 
+  //double t0_;
+  this->t0 = 0.0;
+
+  //double phi0_;
+  this->phi0 = 0.0;
+
+  //double amp0_;
+  this->amp0 = 0.0;
+
+  int retcode;
+
+  this->m1_SI = m1*MSUN_SI;
+  this->m2_SI = m2*MSUN_SI;
 
   array_host = array_host_;
   length = length_;
@@ -108,13 +123,6 @@ void GPUPhenomHM::increment() {
 void GPUPhenomHM::c_test(){
 
     // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
-    double t0;
-    double phi0;
-    double amp0;
-    int retcode;
-
-    double m1_SI = m1*MSUN_SI;
-    double m2_SI = m2*MSUN_SI;
     /* main: evaluate model at given frequencies */
     printf("%d, %d\n", l_vals[0], m_vals[0]);
     retcode = 0;

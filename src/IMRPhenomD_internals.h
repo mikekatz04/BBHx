@@ -130,17 +130,6 @@ of this waveform.
  */
 #define f_CUT 0.2
 
-/**
- * Dimensionless frequency (Mf) at which the inspiral amplitude
- * switches to the intermediate amplitude
- */
-#define AMP_fJoin_INS 0.014
-
-/**
- * Dimensionless frequency (Mf) at which the inspiral phase
- * switches to the intermediate phase
- */
-#define PHI_fJoin_INS 0.018
 
 /**
   * Minimal final spin value below which the waveform might behave pathological
@@ -398,6 +387,7 @@ void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p);
 ///////////////////////////// Amplitude: glueing function ////////////////////////////
 
 IMRPhenomDAmplitudeCoefficients* ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2, double finspin);
+int ComputeIMRPhenomDAmplitudeCoefficients_sub(IMRPhenomDAmplitudeCoefficients *p, double eta, double chi1, double chi2, double finspin);
 double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors);
 
 /********************************* Phase functions *********************************/

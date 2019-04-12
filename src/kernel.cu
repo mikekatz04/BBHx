@@ -22,7 +22,7 @@ int d_init_useful_powers(UsefulPowers *p, double number)
 	p->seven_thirds = p->third * p->two;
 	p->eight_thirds = p->two_thirds * p->two;
 
-	return PD_SUCCESS;
+	return 1;
 }
 
 /**
@@ -90,7 +90,7 @@ int d_IMRPhenomHMSlopeAmAndBm(
     //Bm = Ti[fi] - fi*Am;
     *Bm = Ti - fi * (*Am);
 
-    return PD_SUCCESS;
+    return 1;
 }
 
 /**
@@ -129,7 +129,7 @@ int d_IMRPhenomHMMapParams(
         *a = Ai;
         *b = Bi;
     };
-    return PD_SUCCESS;
+    return 1;
 }
 
 /**
@@ -207,13 +207,13 @@ int d_IMRPhenomHMFreqDomainMapParams(
 
     /* Define function to output map params used depending on */
     int ret = d_IMRPhenomHMMapParams(a, b, flm, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
-    if (ret != PD_SUCCESS)
+    if (ret != 1)
     {
         //printf("IMRPhenomHMMapParams failed in IMRPhenomHMFreqDomainMapParams (1)\n");
         //ERROR(PD_EDOM, "error");
     }
 
-    return PD_SUCCESS;
+    return 1;
 }
 
 /**
@@ -239,7 +239,7 @@ double d_IMRPhenomHMFreqDomainMap(
     double fr = 0.;
     double f1 = 0.;
     int ret = d_IMRPhenomHMFreqDomainMapParams(&a, &b, &fi, &fr, &f1, Mflm, ell, mm, pHM, AmpFlag);
-    if (ret != PD_SUCCESS)
+    if (ret != 1)
     {
         //printf("IMRPhenomHMFreqDomainMapParams failed in IMRPhenomHMFreqDomainMap\n");
         //ERROR(PD_EDOM, "error");
@@ -363,46 +363,6 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     return ans;
 }
 
-
-__global__
-void kernel_calculate_all_modes(cuDoubleComplex *hptilde,
-      cuDoubleComplex *hctilde,
-      unsigned int *l_vals,
-      unsigned int *m_vals,
-      PhenomHMStorage *pHM,
-      double *freqs_geom,
-      IMRPhenomDAmplitudeCoefficients *pAmp,
-      AmpInsPrefactors *amp_prefactors,
-      PhenDAmpAndPhasePreComp *pDPreComp_all,
-      HMPhasePreComp *q_all,
-      double amp0,
-      cuDoubleComplex *factorp,
-      cuDoubleComplex *factorc,
-      int num_modes,
-      int length,
-      double t0,
-      double phi0,
-      double *cshift
-        ){
-      unsigned int mm, ell;
-      double Rholm, Taulm;
-
-      unsigned int mode_i = blockIdx.x;
-      unsigned int i = blockIdx.y * blockDim.x + threadIdx.x;
-
-      if ((i < length ) && (mode_i < num_modes))  // kernel setup should always make second part true
-      {
-         ell = l_vals[mode_i];
-         mm = m_vals[mode_i];
-         Rholm = pHM->Rholm[ell][mm];
-         Taulm = pHM->Taulm[ell][mm];
-
-         calculate_each_mode(i, mode_i, length, hptilde, hctilde, ell, mm, pHM, freqs_geom[i], pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, factorp[mode_i], factorc[mode_i], Rholm, Taulm, t0, phi0, cshift);
-
-      }
-  }
-
-
   __device__
   double d_AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors) {
     double Mf2 = powers_of_Mf->two;
@@ -516,6 +476,13 @@ void kernel_calculate_all_modes(cuDoubleComplex *hptilde,
   		 + p->alpha4 * Rholm * atan((f - p->alpha5 * p->fRD) / (Rholm * p->fDM * Taulm));
   }
 
+  __device__
+  double d_PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
+    // 1./eta in paper omitted and put in when need in the functions:
+    // ComputeIMRPhenDPhaseConnectionCoefficients
+    // IMRPhenDPhase
+    return  p->beta1*Mf - p->beta3/(3.*pow(Mf, 3.0)) + p->beta2*log(Mf);
+  }
 
 
 
@@ -541,14 +508,6 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   //	Intermediate range
   double PhiInt = p->etaInv * d_PhiIntAnsatz(f, p) + p->C1Int + p->C2Int * f;
   return PhiInt;
-}
-
-__device__
-double d_PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
-  // 1./eta in paper omitted and put in when need in the functions:
-  // ComputeIMRPhenDPhaseConnectionCoefficients
-  // IMRPhenDPhase
-  return  p->beta1*Mf - p->beta3/(3.*pow(Mf, 3.0)) + p->beta2*log(Mf);
 }
 
   __device__
@@ -599,21 +558,21 @@ __device__
           // IMRPhenomHMAmplitude
         freq_amp = d_IMRPhenomHMFreqDomainMap(freq_geom, ell, mm, pHM, AmpFlagTrue);
 
-            status_in_for = PD_SUCCESS;
+            //status_in_for = PD_SUCCESS;
           /* Now generate the waveform */
               Mf = freq_amp; //freqs->data[i]; // geometric frequency
 
               status_in_for = d_init_useful_powers(&powers_of_f, Mf);
-              if (PD_SUCCESS != status_in_for)
+              /*if (PD_SUCCESS != status_in_for)
               {
                 //printf("init_useful_powers failed for Mf, status_in_for=%d", status_in_for);
                 retcode = status_in_for;
                 //exit(0);
               }
               else
-              {
+              {*/
                 amp_i = d_IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, amp_prefactors);
-              }
+             // }
 
 
             beta_term1 = d_IMRPhenomHMOnePointFiveSpinPN(
@@ -721,3 +680,42 @@ __device__
              //    printf("%d, %d %e\n", ell, mm, (*hptilde)->data[mode_i*(*hptilde)->length + i]);
          //printf("(l, m): (%d, %d)\n", ell, mm);
 }
+
+
+__global__
+void kernel_calculate_all_modes(cuDoubleComplex *hptilde,
+      cuDoubleComplex *hctilde,
+      unsigned int *l_vals,
+      unsigned int *m_vals,
+      PhenomHMStorage *pHM,
+      double *freqs_geom,
+      IMRPhenomDAmplitudeCoefficients *pAmp,
+      AmpInsPrefactors *amp_prefactors,
+      PhenDAmpAndPhasePreComp *pDPreComp_all,
+      HMPhasePreComp *q_all,
+      double amp0,
+      cuDoubleComplex *factorp,
+      cuDoubleComplex *factorc,
+      int num_modes,
+      int length,
+      double t0,
+      double phi0,
+      double *cshift
+        ){
+      unsigned int mm, ell;
+      double Rholm, Taulm;
+
+      unsigned int mode_i = blockIdx.x;
+      unsigned int i = blockIdx.y * blockDim.x + threadIdx.x;
+
+      if ((i < length ) && (mode_i < num_modes))  // kernel setup should always make second part true
+      {
+         ell = l_vals[mode_i];
+         mm = m_vals[mode_i];
+         Rholm = pHM->Rholm[ell][mm];
+         Taulm = pHM->Taulm[ell][mm];
+
+         calculate_each_mode(i, mode_i, length, hptilde, hctilde, ell, mm, pHM, freqs_geom[i], pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, factorp[mode_i], factorc[mode_i], Rholm, Taulm, t0, phi0, cshift);
+
+      }
+  }

@@ -52,6 +52,11 @@ class GPUPhenomHM {
   cuDoubleComplex *d_factorc_trans;
   cuDoubleComplex *d_hptilde;
   cuDoubleComplex *d_hctilde;
+  double *d_cShift;
+
+  dim3 gridDim;
+  int NUM_THREADS;
+  int num_blocks;
 
   // pointer to the GPU memory where the array is stored
   int* array_device;
@@ -114,6 +119,7 @@ public:
 
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);
+  void gpu_Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);
 
 
 };

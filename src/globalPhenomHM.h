@@ -28,6 +28,18 @@
 #define AmpFlagTrue 1
 #define AmpFlagFalse 0
 
+/**
+ * Dimensionless frequency (Mf) at which the inspiral amplitude
+ * switches to the intermediate amplitude
+ */
+#define AMP_fJoin_INS 0.014
+
+/**
+ * Dimensionless frequency (Mf) at which the inspiral phase
+ * switches to the intermediate phase
+ */
+#define PHI_fJoin_INS 0.018
+
 
 typedef struct tagRealVector {
     double* data;

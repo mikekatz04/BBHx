@@ -7,7 +7,7 @@ you perform actions with the GPU
 This class will get translated into python via swig
 */
 
-//#include <kernel.cu>
+#include <kernel.cu>
 #include <kernel2.cu>
 #include <manager.hh>
 #include <assert.h>
@@ -74,6 +74,14 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
       printf("was here\n");
 
+      double *freqs_geom = new double[f_length];
+      this->freqs_geom = freqs_geom;
+
+      double *d_freqs_geom;
+      size_t freqs_size = f_length*sizeof(double);
+      cudaMalloc(&d_freqs_geom, freqs_size);
+      this->d_freqs_geom = d_freqs_geom;
+
       unsigned int *d_l_vals, *d_m_vals;
       size_t mode_array_size = num_modes*sizeof(unsigned int);
       cudaMalloc(&d_l_vals, mode_array_size);
@@ -112,6 +120,20 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
       err = cudaMalloc(&d_factorc_trans, complex_factor_size);
       assert(err == 0);
 
+      double cShift[7] = {0.0,
+                           PI_2 /* i shift */,
+                           0.0,
+                           -PI_2 /* -i shift */,
+                           PI /* 1 shift */,
+                           PI_2 /* -1 shift */,
+                           0.0};
+
+      double *d_cShift;
+      err = cudaMalloc(&d_cShift, 7*sizeof(double));
+      assert(err == 0);
+      err = cudaMemcpy(d_cShift, &cShift, 7*sizeof(double), cudaMemcpyHostToDevice);
+      assert(err == 0);
+
       this->d_l_vals = d_l_vals;
       this->d_m_vals = d_m_vals;
       this->d_hptilde = d_hptilde;
@@ -123,8 +145,14 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
       this->d_q_all_trans = d_q_all_trans;
       this->d_factorp_trans = d_factorp_trans;
       this->d_factorc_trans = d_factorc_trans;
+      this->d_cShift = d_cShift;
   }
 
+  NUM_THREADS = 256;
+  num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
+  dim3 gridDim(num_modes, num_blocks);
+  printf("blocks %d\n", num_blocks);
+  this->gridDim = gridDim;
 
 
   //double t0_;
@@ -194,18 +222,13 @@ void GPUPhenomHM::gpu_gen_PhenomHM(
 
     // TODO: need to remove this and do more efficiently
     double Mtot_Msun = m1_ + m2_;
-    double *freqs_geom = new double[f_length];
     int kk;
     for (kk=0; kk<f_length; kk++){
         freqs_geom[kk] = freqs[kk] * (MTSUN_SI * Mtot_Msun);
     }
-    this->freqs_geom = freqs_geom;
 
-    double *d_freqs_geom;
-    size_t freqs_size = f_length*sizeof(double);
-    cudaMalloc(&d_freqs_geom, freqs_size);
-    cudaMemcpy(d_freqs_geom, freqs_geom, freqs_size, cudaMemcpyHostToDevice);
-    this->d_freqs_geom = d_freqs_geom;
+    cudaMemcpy(d_freqs_geom, freqs_geom, f_length*sizeof(double), cudaMemcpyHostToDevice);
+
 
     cudaError_t err;
 
@@ -230,10 +253,30 @@ void GPUPhenomHM::gpu_gen_PhenomHM(
     assert(err == 0);
 
 
-
     /* main: evaluate model at given frequencies */
 
-    printf("checker %lf\n", pHM_trans->finmass);
+    kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_hptilde,
+          d_hctilde,
+          d_l_vals,
+          d_m_vals,
+          d_pHM_trans,
+          d_freqs_geom,
+          d_pAmp_trans,
+          d_amp_prefactors_trans,
+          d_pDPreComp_all_trans,
+          d_q_all_trans,
+          amp0,
+          d_factorp_trans,
+          d_factorc_trans,
+          num_modes,
+          f_length,
+          t0,
+          phi0,
+          d_cShift
+      );
+     cudaDeviceSynchronize();
+     err = cudaGetLastError();
+     assert(err == 0);
     /*int i, j;
     printf("f_length %d\n\n", f_length);
     double check;
@@ -351,6 +394,21 @@ if ((this->to_gpu == 0) || (this->to_gpu == 2)){
   //printf("%e\n", array_host_[0].real());
 }
 
+void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_) {
+  //hptilde[10] = std::complex<double>(10.0, 9.0);
+  //printf("%e\n", hptilde[0].real());
+  //printf("%d %d\n", length_, f_length);
+  assert((to_gpu == 1) || (to_gpu == 2));
+    cudaError_t err;
+     err = cudaMemcpy(hptilde_, d_hptilde, num_modes*f_length*sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+     assert(err == 0);
+     cudaMemcpy(hctilde_, d_hctilde, num_modes*f_length*sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+     assert(err == 0);
+
+  //array_host_[0] = this->hptilde[0];
+  //printf("%e\n", array_host_[0].real());
+}
+
 GPUPhenomHM::~GPUPhenomHM() {
   cudaFree(array_device);
   cudaFree(d_x);
@@ -381,6 +439,7 @@ GPUPhenomHM::~GPUPhenomHM() {
       cudaFree(d_factorc_trans);
       cudaFree(d_hptilde);
       cudaFree(d_hctilde);
+      cudaFree(d_cShift);
   }
 
   free(x);

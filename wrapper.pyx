@@ -34,6 +34,7 @@ cdef extern from "src/manager.hh":
 
         void retreive()
         void Get_Waveform(np.complex128_t*, np.complex128_t*)
+        void gpu_Get_Waveform(np.complex128_t*, np.complex128_t*)
         void retreive_to(np.int32_t*, int)
 
 cdef class GPUPhenomHM:
@@ -113,7 +114,16 @@ cdef class GPUPhenomHM:
 
         self.g.Get_Waveform(&hptilde_[0], &hctilde_[0])
 
-        return (hptilde_, hctilde_)
+        return (hptilde_.reshape(self.num_modes, self.f_dim), hctilde_.reshape(self.num_modes, self.f_dim))
+
+    def gpu_Get_Waveform(self):
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hptilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
+
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hctilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
+
+        self.g.gpu_Get_Waveform(&hptilde_[0], &hctilde_[0])
+
+        return (hptilde_.reshape(self.num_modes, self.f_dim), hctilde_.reshape(self.num_modes, self.f_dim))
 
     def retreive(self):
         cdef np.ndarray[ndim=1, dtype=np.int32_t] a = np.zeros(self.dim1, dtype=np.int32)

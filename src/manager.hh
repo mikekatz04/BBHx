@@ -1,5 +1,6 @@
 #include "globalPhenomHM.h"
-#include "complex.h"
+#include <complex>
+#include "cuComplex.h"
 
 #include "assert.h"
 #include "tester.hh"
@@ -37,6 +38,19 @@ class GPUPhenomHM {
   double m2_SI;
   std::complex<double> *hptilde;
   std::complex<double> *hctilde;
+
+  double *d_freqs;
+  unsigned int *d_l_vals;
+  unsigned int *d_m_vals;
+  PhenomHMStorage *d_pHM_trans;
+  IMRPhenomDAmplitudeCoefficients *d_pAmp_trans;
+  AmpInsPrefactors *d_amp_prefactors_trans;
+  PhenDAmpAndPhasePreComp *d_pDPreComp_all_trans;
+  HMPhasePreComp *d_q_all_trans;
+  cuDoubleComplex *d_factorp_trans;
+  cuDoubleComplex *d_factorc_trans;
+  cuDoubleComplex *d_hptilde;
+  cuDoubleComplex *d_hctilde;
 
   // pointer to the GPU memory where the array is stored
   int* array_device;
@@ -80,6 +94,18 @@ public:
         double phiRef_,
         double deltaF_,
         double f_ref_);
+
+    void gpu_gen_PhenomHM(
+          double m1_, //solar masses
+          double m2_, //solar masses
+          double chi1z_,
+          double chi2z_,
+          double distance_,
+          double inclination_,
+          double phiRef_,
+          double deltaF_,
+          double f_ref_);
+          
   void retreive(); //gets results back from GPU, putting them in the memory that was passed in
   // the constructor
   void retreive_to(int* INPLACE_ARRAY1, int DIM1); //gets results back from GPU, putting them in the memory that was passed in

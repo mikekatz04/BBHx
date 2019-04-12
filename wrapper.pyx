@@ -21,6 +21,17 @@ cdef extern from "src/manager.hh":
                             double,
                             double,
                             double)
+
+        void gpu_gen_PhenomHM(double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double,
+                            double)
+
         void retreive()
         void Get_Waveform(np.complex128_t*, np.complex128_t*)
         void retreive_to(np.int32_t*, int)
@@ -62,6 +73,27 @@ cdef class GPUPhenomHM:
                         f_ref):
 
         self.g.cpu_gen_PhenomHM(m1, #solar masses
+                                m2, #solar masses
+                                chi1z,
+                                chi2z,
+                                distance,
+                                inclination,
+                                phiRef,
+                                deltaF,
+                                f_ref)
+
+    def gpu_gen_PhenomHM(self,
+                        m1, #solar masses
+                        m2, #solar masses
+                        chi1z,
+                        chi2z,
+                        distance,
+                        inclination,
+                        phiRef,
+                        deltaF,
+                        f_ref):
+
+        self.g.gpu_gen_PhenomHM(m1, #solar masses
                                 m2, #solar masses
                                 chi1z,
                                 chi2z,

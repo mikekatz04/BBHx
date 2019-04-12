@@ -10,7 +10,7 @@ def test():
     l_vals = np.array([2, 2, 3, 4, 4, 3], dtype=np.uint32)
     m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32)
 
-    to_gpu = 0
+    to_gpu = 1
 
     arr = np.array([1,2,2,2], dtype=np.int32)
     adder = gpuadder.GPUPhenomHM(arr,
@@ -21,7 +21,7 @@ def test():
 
 
     for _ in range(5):
-        adder.cpu_gen_PhenomHM(m1,  # solar masses
+        adder.gpu_gen_PhenomHM(m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
                      chi2z,
@@ -30,7 +30,7 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        print(adder.Get_Waveform())
+        #print(adder.Get_Waveform())
 
     adder.increment()
 

@@ -38,7 +38,7 @@ class GPUPhenomHM {
   double m2_SI;
   std::complex<double> *hptilde;
   std::complex<double> *hctilde;
-  double *freqs_geom;
+  double *freqs_geom_trans;
 
   double *d_freqs_geom;
   unsigned int *d_l_vals;

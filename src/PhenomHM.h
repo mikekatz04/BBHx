@@ -236,6 +236,7 @@ int IMRPhenomHMCore(
     std::complex<double> *hptilde_trans,
     std::complex<double> *hctilde_trans,
     double *freqs,
+    double *freqs_geom_trans,
     int f_length,
     double m1_SI,
     double m2_SI,

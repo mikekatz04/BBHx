@@ -38,6 +38,8 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
 
     // DECLARE ALL THE  NECESSARY STRUCTS
 
+    freqs_geom_trans = new double[f_length];
+
     pHM_trans = new PhenomHMStorage;
 
     pAmp_trans = new IMRPhenomDAmplitudeCoefficients;
@@ -60,8 +62,6 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
   if ((to_gpu == 1) || (to_gpu == 2)){
 
       printf("was here\n");
-
-      freqs_geom = new double[f_length];
 
       size_t freqs_size = f_length*sizeof(double);
       cudaMalloc(&d_freqs_geom, freqs_size);
@@ -107,13 +107,15 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
       assert(err == 0);
       err = cudaMemcpy(d_cShift, &cShift, 7*sizeof(double), cudaMemcpyHostToDevice);
       assert(err == 0);
+
+      NUM_THREADS = 256;
+      num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
+      dim3 gridDim(num_modes, num_blocks);
+      printf("blocks %d\n", num_blocks);
+      this->gridDim = gridDim;
   }
 
-  NUM_THREADS = 256;
-  num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
-  dim3 gridDim(num_modes, num_blocks);
-  printf("blocks %d\n", num_blocks);
-  this->gridDim = gridDim;
+
 
 
   //double t0_;
@@ -154,18 +156,10 @@ void GPUPhenomHM::gpu_gen_PhenomHM(
 
     // Initialize inputs
 
-
-    // TODO: need to remove this and do more efficiently
-    double Mtot_Msun = m1_ + m2_;
-    int kk;
-    for (kk=0; kk<f_length; kk++){
-        freqs_geom[kk] = freqs[kk] * (MTSUN_SI * Mtot_Msun);
-    }
-
-    cudaMemcpy(d_freqs_geom, freqs_geom, f_length*sizeof(double), cudaMemcpyHostToDevice);
-
-
     cudaError_t err;
+
+    err = cudaMemcpy(d_freqs_geom, freqs_geom_trans, f_length*sizeof(double), cudaMemcpyHostToDevice);
+    assert(err == 0);
 
     err = cudaMemcpy(d_pHM_trans, pHM_trans, sizeof(PhenomHMStorage), cudaMemcpyHostToDevice);
     assert(err == 0);
@@ -245,6 +239,7 @@ void GPUPhenomHM::cpu_gen_PhenomHM(
         hptilde,
         hctilde,
         freqs,
+        freqs_geom_trans,
         f_length,
         m1_SI,
         m2_SI,
@@ -290,6 +285,7 @@ void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* hptilde_, std::complex
 }
 
 GPUPhenomHM::~GPUPhenomHM() {
+  delete freqs_geom_trans;
   delete pHM_trans;
   delete pAmp_trans;
   delete amp_prefactors_trans;
@@ -303,7 +299,6 @@ GPUPhenomHM::~GPUPhenomHM() {
       delete hctilde;
   }
   if ((to_gpu == 1) || (to_gpu == 2)){
-      delete freqs_geom;
       cudaFree(d_freqs_geom);
       cudaFree(d_l_vals);
       cudaFree(d_m_vals);

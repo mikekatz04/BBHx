@@ -111,8 +111,8 @@ except AttributeError:
 lib_gsl_dir = "/opt/local/lib"
 include_gsl_dir = "/opt/local/include"
 
-ext = Extension('gpuadder',
-        sources = ['src/RingdownCW.c', 'src/IMRPhenomD_internals.c', 'src/IMRPhenomD.c', 'src/PhenomHM.c', 'src/manager.cu', 'wrapper.pyx'],
+ext = Extension('gpuPhenomHM',
+        sources = ['src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/manager.cu', 'wrapper.pyx'],
         library_dirs = [lib_gsl_dir, CUDA['lib64']],
         libraries = ['cudart', "gsl", "gslcblas"],
         language = 'c++',
@@ -125,15 +125,14 @@ ext = Extension('gpuadder',
             'gcc': ['-std=c99'],
             'nvcc': [
                 '-arch=sm_30', '--ptxas-options=-v', '-c',
-                '--compiler-options', "'-fPIC'"
-                ]
+                '--compiler-options', "'-fPIC'"]  # ,"-G", "-g"] # for debugging
             },
             include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'src']
         )
 
 
 
-setup(name = 'gpuadder',
+setup(name = 'gpuPhenomHM',
       # Random metadata. there's more you can supply
       author = 'Robert McGibbon',
       version = '0.1',

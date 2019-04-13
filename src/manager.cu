@@ -8,20 +8,17 @@ This class will get translated into python via swig
 */
 
 #include <kernel.cu>
-#include <kernel2.cu>
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
-#include "tester.hh"
 #include <complex>
 #include "cuComplex.h"
 
 
 using namespace std;
 
-GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
-    double *freqs_,
+GPUPhenomHM::GPUPhenomHM (double *freqs_,
     int f_length_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
@@ -163,32 +160,6 @@ GPUPhenomHM::GPUPhenomHM (int* array_host_, int length_,
 
   //double amp0_;
   this->amp0 = 0.0;
-
-  int retcode;
-
-  array_host = array_host_;
-  length = length_;
-  int size = length * sizeof(int);
-  err = cudaMalloc((void**) &array_device, size);
-  assert(err == 0);
-  err = cudaMemcpy(array_device, array_host, size, cudaMemcpyHostToDevice);
-  assert(err == 0);
-
-  int sizex = sizeof(StructTest);
-  x = (StructTest*) malloc(sizex);
-  x->a = 10;
-
-  err = cudaMalloc((void**) &d_x, sizex);
-  assert(err == 0);
-  err = cudaMemcpy(d_x, x, sizex, cudaMemcpyHostToDevice);
-  assert(err == 0);
-
-}
-
-void GPUPhenomHM::increment() {
-  kernel_add_one<<<64, 64>>>(array_device, length, d_x);
-  cudaError_t err = cudaGetLastError();
-  assert(err == 0);
 }
 
 
@@ -363,25 +334,6 @@ void GPUPhenomHM::cpu_gen_PhenomHM(
 
 }
 
-void GPUPhenomHM::retreive() {
-  int size = length * sizeof(int);
-  int sizex = sizeof(StructTest);
-  cudaMemcpy(array_host, array_device, size, cudaMemcpyDeviceToHost);
-  cudaMemcpy(x, d_x, sizex, cudaMemcpyDeviceToHost);
-  cudaError_t err = cudaGetLastError();
-  if(err != 0) { cout << err << endl; assert(0); }
-  cout << x->a;
-}
-
-
-void GPUPhenomHM::retreive_to (int* array_host_, int length_) {
-  assert(length == length_);
-  int size = length * sizeof(int);
-  cudaMemcpy(array_host_, array_device, size, cudaMemcpyDeviceToHost);
-  cudaError_t err = cudaGetLastError();
-  assert(err == 0);
-}
-
 void GPUPhenomHM::Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_) {
   //hptilde[10] = std::complex<double>(10.0, 9.0);
   //printf("%e\n", hptilde[0].real());
@@ -410,9 +362,6 @@ void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* hptilde_, std::complex
 }
 
 GPUPhenomHM::~GPUPhenomHM() {
-  cudaFree(array_device);
-  cudaFree(d_x);
-
   delete pHM_trans;
   delete pAmp_trans;
   delete amp_prefactors_trans;
@@ -441,8 +390,4 @@ GPUPhenomHM::~GPUPhenomHM() {
       cudaFree(d_hctilde);
       cudaFree(d_cShift);
   }
-
-  free(x);
-  //free(freqs);
-
 }

@@ -1,4 +1,4 @@
-import gpuadder
+import gpuPhenomHM
 import numpy as np
 import numpy.testing as npt
 from astropy.cosmology import Planck15 as cosmo
@@ -14,11 +14,8 @@ def test():
 
     to_gpu = 2
 
-    arr = np.array([1,2,2,2], dtype=np.int32)
-
     to_gpu=1
-    adder = gpuadder.GPUPhenomHM(arr,
-     freq,
+    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(freq,
      l_vals,
      m_vals,
      to_gpu)
@@ -26,7 +23,7 @@ def test():
     #for _ in range(5):
     for i in range(10):
         st = time.perf_counter()
-        adder.gpu_gen_PhenomHM(m1,  # solar masses
+        gpu_phenomHM.gpu_gen_PhenomHM(m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
                      chi2z,
@@ -36,16 +33,15 @@ def test():
                      deltaF,
                      f_ref)
         print('gpu', time.perf_counter() - st)
-    gpu_hp, gpu_hc = adder.gpu_Get_Waveform()
+    gpu_hp, gpu_hc = gpu_phenomHM.gpu_Get_Waveform()
 
     to_gpu=0
-    adder = gpuadder.GPUPhenomHM(arr,
-     freq,
+    cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(freq,
      l_vals,
      m_vals,
      to_gpu)
     st = time.perf_counter()
-    adder.cpu_gen_PhenomHM(m1,  # solar masses
+    cpu_phenomHM.cpu_gen_PhenomHM(m1,  # solar masses
                  m2,  # solar masses
                  chi1z,
                  chi2z,
@@ -55,21 +51,12 @@ def test():
                  deltaF,
                  f_ref)
     print('cpu', time.perf_counter() - st)
-    cpu_hp, cpu_hc = adder.Get_Waveform()
+    cpu_hp, cpu_hc = cpu_phenomHM.Get_Waveform()
 
     assert(np.allclose(cpu_hp, gpu_hp))
     assert(np.allclose(cpu_hc, gpu_hc))
     print('CPU MATCHES GPU!!!!')
 
-    #adder.increment()
-
-    #adder.retreive_inplace()
-    #results2 = adder.retreive()
-
-    #npt.assert_array_equal(arr, [2,3,3,3])
-    #npt.assert_array_equal(results2, [2,3,3,3])
-
-    #import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     test()

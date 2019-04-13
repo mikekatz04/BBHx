@@ -58,16 +58,6 @@ class GPUPhenomHM {
   int NUM_THREADS;
   int num_blocks;
 
-  // pointer to the GPU memory where the array is stored
-  int* array_device;
-  // pointer to the CPU memory where the array is stored
-  int* array_host;
-  // length of the array (number of elements)
-  int length;
-
-  StructTest *x;
-  StructTest *d_x;
-
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
      file (these aren't the names in the implementation file), we're giving
@@ -80,8 +70,7 @@ public:
        %apply (int* ARGOUT_ARRAY1, int DIM1) {(int* myarray, int length)}
    */
 
-  GPUPhenomHM(int* INPLACE_ARRAY1, int DIM1,
-      double *freqs_, int f_length_,
+  GPUPhenomHM(double *freqs_, int f_length_,
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
@@ -89,7 +78,6 @@ public:
 
   ~GPUPhenomHM(); // destructor
 
-  void increment(); // does operation inplace on the GPU
   void cpu_gen_PhenomHM(
         double m1_, //solar masses
         double m2_, //solar masses
@@ -112,10 +100,6 @@ public:
           double deltaF_,
           double f_ref_);
 
-  void retreive(); //gets results back from GPU, putting them in the memory that was passed in
-  // the constructor
-  void retreive_to(int* INPLACE_ARRAY1, int DIM1); //gets results back from GPU, putting them in the memory that was passed in
-  // the constructor
 
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);

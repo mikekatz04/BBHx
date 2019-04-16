@@ -8,7 +8,7 @@ This class will get translated into python via swig
 */
 
 #include <kernel.cu>
-#include <reduction.cu>
+//#include <reduction.cu>
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>

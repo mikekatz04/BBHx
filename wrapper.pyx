@@ -31,6 +31,7 @@ cdef extern from "src/manager.hh":
                             double,
                             double)
 
+        double Likelihood()
         void Get_Waveform(np.complex128_t*, np.complex128_t*)
         void gpu_Get_Waveform(np.complex128_t*, np.complex128_t*)
 
@@ -92,6 +93,9 @@ cdef class GPUPhenomHM:
                                 phiRef,
                                 deltaF,
                                 f_ref)
+
+    def Likelihood(self):
+        return self.g.Likelihood()
 
     def Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] hptilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)

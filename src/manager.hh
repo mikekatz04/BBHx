@@ -1,7 +1,7 @@
 #include "globalPhenomHM.h"
 #include <complex>
 #include "cuComplex.h"
-
+#include "cublas_v2.h"
 #include "assert.h"
 #include "tester.hh"
 #include "PhenomHM.h"
@@ -58,6 +58,10 @@ class GPUPhenomHM {
   int NUM_THREADS;
   int num_blocks;
 
+  cublasHandle_t handle;
+  cublasStatus_t stat;
+  cuDoubleComplex *result;
+
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
      file (these aren't the names in the implementation file), we're giving
@@ -100,7 +104,7 @@ public:
           double deltaF_,
           double f_ref_);
 
-
+  double Likelihood ();
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);
   void gpu_Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);

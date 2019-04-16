@@ -8,12 +8,14 @@ This class will get translated into python via swig
 */
 
 #include <kernel.cu>
+#include <reduction.cu>
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
 #include <complex>
 #include "cuComplex.h"
+#include "cublas_v2.h"
 
 
 using namespace std;
@@ -107,6 +109,17 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
       assert(err == 0);
       err = cudaMemcpy(d_cShift, &cShift, 7*sizeof(double), cudaMemcpyHostToDevice);
       assert(err == 0);
+
+      // for likelihood
+      // --------------
+      cudaMallocHost((cuDoubleComplex**) &result, sizeof(cuDoubleComplex));
+
+      stat = cublasCreate(&handle);
+      if (stat != CUBLAS_STATUS_SUCCESS) {
+              printf ("CUBLAS initialization failed\n");
+              exit(0);
+          }
+      // ----------------
 
       NUM_THREADS = 256;
       num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
@@ -267,6 +280,20 @@ void GPUPhenomHM::cpu_gen_PhenomHM(
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
 }
 
+double GPUPhenomHM::Likelihood (){
+
+    stat = cublasZdotc(handle, f_length*num_modes,
+            d_hptilde, 1,
+            d_hptilde, 1,
+            result);
+
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+            printf ("CUBLAS initialization failed\n");
+            return EXIT_FAILURE;
+        }
+    return cuCreal(result[0]);
+}
+
 void GPUPhenomHM::Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_) {
 
 assert ((to_gpu == 0) || (to_gpu == 2));
@@ -280,7 +307,7 @@ void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* hptilde_, std::complex
     cudaError_t err;
      err = cudaMemcpy(hptilde_, d_hptilde, num_modes*f_length*sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
      assert(err == 0);
-     cudaMemcpy(hctilde_, d_hctilde, num_modes*f_length*sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+     err = cudaMemcpy(hctilde_, d_hctilde, num_modes*f_length*sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
      assert(err == 0);
 }
 
@@ -312,5 +339,7 @@ GPUPhenomHM::~GPUPhenomHM() {
       cudaFree(d_hptilde);
       cudaFree(d_hctilde);
       cudaFree(d_cShift);
+      cudaFree(result);
+      cublasDestroy(handle);
   }
 }

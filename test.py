@@ -4,6 +4,7 @@ import numpy.testing as npt
 from astropy.cosmology import Planck15 as cosmo
 from scipy import constants as ct
 import time
+import pdb
 
 def test():
     df = 1e-7
@@ -32,7 +33,8 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        print('gpu', time.perf_counter() - st)
+        check = gpu_phenomHM.Likelihood()
+        print('gpu', time.perf_counter() - st, 'like', check)
     gpu_hp, gpu_hc = gpu_phenomHM.gpu_Get_Waveform()
 
     to_gpu=0
@@ -52,7 +54,8 @@ def test():
                  f_ref)
     print('cpu', time.perf_counter() - st)
     cpu_hp, cpu_hc = cpu_phenomHM.Get_Waveform()
-
+    print(np.sum(np.real(cpu_hp.conj()*cpu_hp)))
+    #pdb.set_trace()
     assert(np.allclose(cpu_hp, gpu_hp))
     assert(np.allclose(cpu_hc, gpu_hc))
     print('CPU MATCHES GPU!!!!')

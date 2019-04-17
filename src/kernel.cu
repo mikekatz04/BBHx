@@ -706,7 +706,12 @@ void kernel_calculate_all_modes(cuDoubleComplex *hptilde,
       double Rholm, Taulm;
 
       unsigned int mode_i = blockIdx.x;
+
       unsigned int i = blockIdx.y * blockDim.x + threadIdx.x;
+      /* if (mode_i >= num_modes) return;
+       for (int i = blockIdx.y * blockDim.x + threadIdx.x;
+          i < length;
+          i += blockDim.x * gridDim.y)*/
 
       if ((i < length ) && (mode_i < num_modes))  // kernel setup should always make second part true
       {

@@ -1,3 +1,5 @@
+#ifndef __MANAGER_H__
+#define __MANAGER_H__
 #include "globalPhenomHM.h"
 #include <complex>
 #include "cuComplex.h"
@@ -5,6 +7,7 @@
 #include "assert.h"
 #include "tester.hh"
 #include "PhenomHM.h"
+#include "interpolate.hh"
 
 class GPUPhenomHM {
   // pointer to the GPU memory where the array is stored
@@ -62,6 +65,15 @@ class GPUPhenomHM {
   cublasStatus_t stat;
   cuDoubleComplex *result;
 
+  Interpolate *interp;
+  Interpolate *d_interp;
+  int interp_length;
+  double *interp_freqs;
+  double *d_interp_freqs;
+  double *d_amp;
+  double *d_phase;
+
+
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
      file (these aren't the names in the implementation file), we're giving
@@ -81,6 +93,8 @@ public:
       int to_gpu_); // constructor (copies to GPU)
 
   ~GPUPhenomHM(); // destructor
+
+  void add_interp(double *interp_freqs_, int interp_length_);
 
   void cpu_gen_PhenomHM(
         double m1_, //solar masses
@@ -104,6 +118,8 @@ public:
           double deltaF_,
           double f_ref_);
 
+  void interp_wave(double *amp, double *phase);
+
   double Likelihood ();
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (std::complex<double>* hptilde_, std::complex<double>* hctilde_);
@@ -111,3 +127,4 @@ public:
 
 
 };
+#endif //__MANAGER_H__

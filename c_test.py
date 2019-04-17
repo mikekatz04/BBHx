@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 def test():
     df = 1e-7
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.arange(1e-5, 1e-1 + df, df), 0.0, 1e-5, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.arange(1e-8, 1e-1 + df, df), 0.0, 1e-5, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     l_vals = np.array([2, 2, 3, 4, 4, 3], dtype=np.uint32)
     m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32)
@@ -36,10 +36,11 @@ def test():
 
     hp, hc = phenomHM.Get_Waveform()
     fig, (ax1, ax2) = plt.subplots(1, 2)
-    for i in range(len(m_vals)):
+    for i in range(1):#len(m_vals)):
         ax1.loglog(freq, np.abs(hp[i]))
         ax2.semilogx(freq, np.unwrap(np.angle(hp[i])))
     plt.show()
+    pdb.set_trace()
 
 
 

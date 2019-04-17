@@ -16,6 +16,7 @@ This class will get translated into python via swig
 #include <complex>
 #include "cuComplex.h"
 #include "cublas_v2.h"
+#include "interpolate.cu"
 
 
 using namespace std;
@@ -55,13 +56,13 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
     factorp_trans = new std::complex<double>[num_modes];
     factorc_trans = new std::complex<double>[num_modes];
 
-
-  if ((to_gpu == 0) || (to_gpu == 2)){
+    size_t h_size;
+  if ((to_gpu == 0) || (interp_length > 0)){
       printf("cpu\n");
       hptilde = new std::complex<double>[num_modes*f_length];
       hctilde = new std::complex<double>[num_modes*f_length];
   }
-  if ((to_gpu == 1) || (to_gpu == 2)){
+  if (to_gpu == 1){
 
       printf("was here\n");
 
@@ -74,7 +75,7 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
       cudaMemcpy(d_l_vals, l_vals, mode_array_size, cudaMemcpyHostToDevice);
       cudaMemcpy(d_m_vals, m_vals, mode_array_size, cudaMemcpyHostToDevice);
 
-      size_t h_size = num_modes*f_length*sizeof(cuDoubleComplex);
+      h_size = num_modes*f_length*sizeof(cuDoubleComplex);
       cudaMalloc(&d_hptilde, h_size);
       cudaMalloc(&d_hctilde, h_size);
 
@@ -130,7 +131,6 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
 
 
 
-
   //double t0_;
   t0 = 0.0;
 
@@ -140,6 +140,28 @@ GPUPhenomHM::GPUPhenomHM (double *freqs_,
   //double amp0_;
   amp0 = 0.0;
 }
+
+void GPUPhenomHM::add_interp(double *interp_freqs_, int interp_length_){
+    interp_length = interp_length_;
+    interp_freqs = interp_freqs_;
+
+    assert((to_gpu == 0) && (interp_length > 0));
+    size_t h_size = num_modes*interp_length*sizeof(double);
+    cudaError_t err = cudaMalloc(&d_amp, h_size);
+    assert(err == 0);
+    err = cudaMalloc(&d_phase, h_size);
+    assert(err == 0);
+
+    err = cudaMalloc(&d_interp_freqs, interp_length*sizeof(double));
+    assert(err == 0);
+    err = cudaMemcpy(d_interp_freqs, interp_freqs, interp_length*sizeof(double), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    err = cudaMalloc(&d_interp, 2*num_modes*sizeof(Interpolate));
+    assert(err == 0);
+    interp = new Interpolate[2*num_modes];
+}
+
 
 
 void GPUPhenomHM::gpu_gen_PhenomHM(
@@ -280,6 +302,28 @@ void GPUPhenomHM::cpu_gen_PhenomHM(
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
 }
 
+void GPUPhenomHM::interp_wave(double *amp, double *phase){
+    Interpolate trans;
+    for (int i=0; i<num_modes; i++){
+        trans.prep(freqs, &amp[i*f_length], f_length);
+        trans.transferToDevice();
+        interp[i] = trans;
+        trans.prep(freqs,  &phase[i*f_length], f_length);
+        trans.transferToDevice();
+        interp[num_modes + i] = trans;
+    }
+    cudaError_t err = cudaMemcpy(d_interp, interp, 2*num_modes*sizeof(Interpolate), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    dim3 check_dim(num_modes, num_blocks);
+    int check_num_threads = 256;
+    wave_interpolate<<<check_dim, check_num_threads>>>(d_interp_freqs, d_amp, d_phase, num_modes, interp_length, d_interp);
+     cudaDeviceSynchronize();
+     err = cudaGetLastError();
+     assert(err == 0);
+
+}
+
 double GPUPhenomHM::Likelihood (){
 
     stat = cublasZdotc(handle, f_length*num_modes,
@@ -321,11 +365,11 @@ GPUPhenomHM::~GPUPhenomHM() {
   delete factorp_trans;
   delete factorc_trans;
 
-  if ((to_gpu ==0) || (to_gpu == 2)){
+  if ((to_gpu ==0) || (interp_length > 0)){
       delete hptilde;
       delete hctilde;
   }
-  if ((to_gpu == 1) || (to_gpu == 2)){
+  if (to_gpu == 1){
       cudaFree(d_freqs_geom);
       cudaFree(d_l_vals);
       cudaFree(d_m_vals);
@@ -341,5 +385,11 @@ GPUPhenomHM::~GPUPhenomHM() {
       cudaFree(d_cShift);
       cudaFree(result);
       cublasDestroy(handle);
+  }
+  if (interp_length > 0){
+      cudaFree(d_amp);
+      cudaFree(d_phase);
+      cudaFree(d_interp);
+      delete interp;
   }
 }

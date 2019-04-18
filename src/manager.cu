@@ -196,10 +196,7 @@ void GPUPhenomHM::add_interp(int max_interp_length_){
     }
     if (to_gpu){
         d_out_mode_vals = gpu_create_modes(num_modes, m_vals, l_vals, max_interp_length, to_gpu, 0);
-        gpuErrchk(cudaMalloc(&d_interp, 2*num_modes*sizeof(Interpolate)));
     }
-
-    interp = new Interpolate[2*num_modes];
 }
 
 
@@ -329,26 +326,79 @@ void GPUPhenomHM::cpu_gen_PhenomHM(double *freqs_, int f_length_,
 
 }
 
-void GPUPhenomHM::interp_wave(double *amp, double *phase){
-    Interpolate trans;
-    for (int i=0; i<num_modes; i++){
-        trans.prep(freqs, &amp[i*f_length], f_length);
-        trans.transferToDevice();
-        interp[i] = trans;
-        trans.prep(freqs,  &phase[i*f_length], f_length);
-        trans.transferToDevice();
-        interp[num_modes + i] = trans;
+__global__ void fill_B(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    if (i >= f_length) return;
+    if (mode_i >= num_modes) return;
+    if (i == f_length - 1){
+        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
+        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
+    } else if (i == 0){
+        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[1] - mode_vals[mode_i].amp[0]);
+        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0]);
+    } else{
+        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i+1] - mode_vals[mode_i].amp[i-1]);
+        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
     }
-    gpuErrchk(cudaMemcpy(d_interp, interp, 2*num_modes*sizeof(Interpolate), cudaMemcpyHostToDevice));
 
+
+}
+
+__global__ void set_spline_constants(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    if (i >= f_length-1) return;
+    if (mode_i >= num_modes) return;
+    double D_i, D_ip1, y_i, y_ip1;
+
+    D_i = B[mode_i*f_length + i];
+    D_ip1 = B[mode_i*f_length + i + 1];
+    y_i = mode_vals[mode_i].amp[i];
+    y_ip1 = mode_vals[mode_i].amp[i+1];
+    mode_vals[mode_i].amp_coeff_1[i] = D_i;
+    mode_vals[mode_i].amp_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+    mode_vals[mode_i].amp_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+    D_i = B[(num_modes*f_length) + mode_i*f_length + i];
+    D_ip1 = B[(num_modes*f_length) + mode_i*f_length + i + 1];
+    y_i = mode_vals[mode_i].amp[i];
+    y_ip1 = mode_vals[mode_i].amp[i+1];
+    mode_vals[mode_i].amp_coeff_1[i] = D_i;
+    mode_vals[mode_i].amp_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+    mode_vals[mode_i].amp_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+}
+
+void GPUPhenomHM::interp_wave(){
+    double *d_B, *h_B, *h_B1;
+    h_B = new double[2*f_length*num_modes];
+    h_B1 = new double[2*f_length*num_modes];
+    gpuErrchk(cudaMalloc(&d_B, 2*f_length*num_modes*sizeof(double)));
 
     dim3 check_dim(num_modes, num_blocks);
     int check_num_threads = 256;
-    wave_interpolate<<<check_dim, check_num_threads>>>(d_interp_freqs, d_mode_vals[0].amp, d_mode_vals[0].phase, num_modes, max_interp_length, d_interp);
-     cudaDeviceSynchronize();
-     gpuErrchk(cudaGetLastError());
+    fill_B<<<check_dim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    cudaMemcpy(h_B1, d_B, 2*f_length*num_modes*sizeof(double), cudaMemcpyDeviceToHost);
+    //for (int i=0; i<2*f_length*num_modes; i++) printf("%e\n", h_B1[i]);
+    //printf("before\n");
+    interp.prep(d_B, f_length, 2*num_modes, 1);
+    cudaMemcpy(h_B, d_B, 2*f_length*num_modes*sizeof(double), cudaMemcpyDeviceToHost);
+    //for (int i=0; i<2*f_length*num_modes; i++){
+    //    printf("%d %e %e\n", i, h_B[i], h_B1[i]);
+    //}
+    //printf("before\n");
+    set_spline_constants<<<check_dim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
+    //printf("after fillB\n");
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    //printf("after\n");
+    //wave_interpolate<<<check_dim, check_num_threads>>>(d_interp_freqs, d_mode_vals[0].amp, d_mode_vals[0].phase, num_modes, max_interp_length, d_interp);
 
-
+    delete h_B;
+    delete h_B1;
+    cudaFree(d_B);
 }
 
 double GPUPhenomHM::Likelihood (){
@@ -428,8 +478,7 @@ GPUPhenomHM::~GPUPhenomHM() {
   }
   if (to_interp == 1){
       cpu_destroy_modes(out_mode_vals);
-      cudaFree(d_interp);
       gpu_destroy_modes(d_out_mode_vals);
-      delete interp;
+      //delete interp;
   }
 }

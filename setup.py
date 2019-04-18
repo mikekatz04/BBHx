@@ -114,7 +114,7 @@ include_gsl_dir = "/opt/local/include"
 ext = Extension('gpuPhenomHM',
         sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/manager.cu', 'wrapper.pyx'],
         library_dirs = [lib_gsl_dir, CUDA['lib64']],
-        libraries = ['cudart', 'cublas', "gsl", "gslcblas"],
+        libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas"],
         language = 'c++',
         runtime_library_dirs = [CUDA['lib64']],
         # This syntax is specific to this build system
@@ -125,7 +125,7 @@ ext = Extension('gpuPhenomHM',
             'gcc': ['-std=c99'],
             'nvcc': [
                 '-arch=sm_30', '--ptxas-options=-v', '-c',
-                '--compiler-options', "'-fPIC'"]# ,"-G", "-g"] # for debugging
+                '--compiler-options', "'-fPIC'" ,"-G", "-g"] # for debugging
             },
             include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'src']
         )

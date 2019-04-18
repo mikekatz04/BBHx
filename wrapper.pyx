@@ -34,7 +34,7 @@ cdef extern from "src/manager.hh":
                             double)
 
         void add_interp(int)
-        void interp_wave(np.float64_t*, np.float64_t*)
+        void interp_wave()
         double Likelihood()
         void Get_Waveform(int, np.float64_t*, np.float64_t*)
         void gpu_Get_Waveform(int, np.float64_t*, np.float64_t*)
@@ -105,8 +105,8 @@ cdef class GPUPhenomHM:
         self.g.add_interp(interp_length)
         return
 
-    def interp_wave(self, np.ndarray[ndim=1, dtype=np.float64_t] amp, np.ndarray[ndim=1, dtype=np.float64_t] phase):
-        self.g.interp_wave(&amp[0], &phase[0])
+    def interp_wave(self):
+        self.g.interp_wave()
         return
 
     def Likelihood(self):

@@ -64,8 +64,7 @@ class GPUPhenomHM {
   int to_interp;
   ModeContainer *out_mode_vals;
   ModeContainer *d_out_mode_vals;
-  Interpolate *interp;
-  Interpolate *d_interp;
+  Interpolate interp;
   int max_interp_length;
   double *interp_freqs;
   double *d_interp_freqs;
@@ -119,7 +118,7 @@ public:
         double deltaF_,
         double f_ref_);
 
-  void interp_wave(double *amp, double *phase);
+  void interp_wave();
 
   double Likelihood ();
   //gets results back from the gpu, putting them in the supplied memory location

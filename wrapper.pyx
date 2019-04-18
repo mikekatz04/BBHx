@@ -124,7 +124,7 @@ cdef class GPUPhenomHM:
             amp_out[mode_i] = amp_
             phase_out[mode_i] = phase_
 
-        return (amp_, phase_)
+        return (amp_out, phase_out)
 
     def gpu_Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim,), dtype=np.float64)
@@ -138,4 +138,4 @@ cdef class GPUPhenomHM:
             amp_out[mode_i] = amp_
             phase_out[mode_i] = phase_
 
-        return (amp_, phase_)
+        return (amp_out, phase_out)

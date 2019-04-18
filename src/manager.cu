@@ -32,6 +32,14 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 
+__global__ void read_out_kernel(ModeContainer *mode_vals, double *amp, double *phase, int mode_i, int length){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i > length) return;
+    amp[i] = mode_vals[mode_i].amp[i];
+    phase[i] = mode_vals[mode_i].phase[i];
+
+}
+
 ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp){
         ModeContainer * cpu_mode_vals = cpu_create_modes(num_modes,  l_vals, m_vals, max_length, 1, 0);
         ModeContainer * mode_vals;
@@ -371,9 +379,31 @@ void GPUPhenomHM::Get_Waveform (int mode_i, double* amp_, double* phase_) {
 
 void GPUPhenomHM::gpu_Get_Waveform (int mode_i, double* amp_, double* phase_) {
   assert(to_gpu == 1);
-    gpuErrchk(cudaMemcpy(amp_, d_mode_vals[mode_i].amp, f_length*sizeof(double), cudaMemcpyDeviceToHost));
+  double *amp;
+  double *phase;
+  gpuErrchk(cudaMalloc(&amp, f_length*sizeof(double)));
+  gpuErrchk(cudaMalloc(&phase, f_length*sizeof(double)));
 
-    gpuErrchk(cudaMemcpy(phase_, d_mode_vals[mode_i].phase, f_length*sizeof(double), cudaMemcpyDeviceToHost));
+  read_out_kernel<<<num_blocks,NUM_THREADS>>>(d_mode_vals, amp, phase, mode_i, f_length);
+  cudaDeviceSynchronize();
+  gpuErrchk(cudaGetLastError());
+  /*double *amp;
+  double *phase;
+  gpuErrchk(cudaMalloc(&amp, f_length*sizeof(double)));
+  gpuErrchk(cudaMalloc(&phase, f_length*sizeof(double)));
+
+  cudaMemcpy(&(amp), &(mode_vals[mode_i].amp),sizeof(double *), cudaMemcpyDeviceToHost);
+  cudaMemcpy(&(phase), &(mode_vals[mode_i].phase), sizeof(double *), cudaMemcpyDeviceToHost);
+
+    gpuErrchk(cudaMemcpy(amp_, amp, f_length*sizeof(double), cudaMemcpyDeviceToHost));
+
+    gpuErrchk(cudaMemcpy(phase_, phase, f_length*sizeof(double), cudaMemcpyDeviceToHost));
+    */
+    gpuErrchk(cudaMemcpy(amp_, amp, f_length*sizeof(double), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(phase_, phase, f_length*sizeof(double), cudaMemcpyDeviceToHost));
+    cudaFree(amp);
+    cudaFree(phase);
+
 }
 
 GPUPhenomHM::~GPUPhenomHM() {

@@ -17,15 +17,16 @@ def test():
     interp_freq = np.arange(1e-5, 1e-1 + df, df)
 
     to_gpu=0
-    cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(freq,
+    to_interp = 0
+    cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu)
+     to_gpu, to_interp)
 
-    cpu_phenomHM.add_interp(interp_freq, len(interp_freq))
+    #cpu_phenomHM.add_interp(interp_freq, len(interp_freq))
     for i in range(5):
         st = time.perf_counter()
-        cpu_phenomHM.cpu_gen_PhenomHM(m1,  # solar masses
+        cpu_phenomHM.cpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
                      chi2z,
@@ -37,29 +38,28 @@ def test():
 
         cpu_hp, cpu_hc = cpu_phenomHM.Get_Waveform()
 
-        amp = np.abs(cpu_hp).flatten()
-        phase = np.unwrap(np.arctan2(cpu_hp.real, cpu_hp.imag)).flatten()
-        cpu_phenomHM.interp_wave(amp, phase)
+        #amp = np.abs(cpu_hp).flatten()
+        #phase = np.unwrap(np.arctan2(cpu_hp.real, cpu_hp.imag)).flatten()
+        #cpu_phenomHM.interp_wave(amp, phase)
         print('cpu', time.perf_counter() - st)
-    #import pdb; pdb.set_trace()
-    print(np.sum(np.real(cpu_hp.conj()*cpu_hp)))
+    #print(np.sum(np.real(cpu_hp.conj()*cpu_hp)))
 
-    for i in range(4):
-        st = time.perf_counter()
-        spline = np.interp(interp_freq, freq, amp[:len(freq)])
-        print('scipy', time.perf_counter() - st)
+    #for i in range(4):
+    #    st = time.perf_counter()
+    #    spline = np.interp(interp_freq, freq, amp[:len(freq)])
+    #    print('scipy', time.perf_counter() - st)
 
 
     to_gpu=1
-    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(freq,
+    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu)
+     to_gpu, to_interp)
 
     #for _ in range(5):
     for i in range(2):
         st = time.perf_counter()
-        gpu_phenomHM.gpu_gen_PhenomHM(m1,  # solar masses
+        gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
                      chi2z,
@@ -68,8 +68,9 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        check = gpu_phenomHM.Likelihood()
-        print('gpu', time.perf_counter() - st, 'like', check)
+        #check = gpu_phenomHM.Likelihood()
+        print('gpu', time.perf_counter() - st)#, 'like', check)
+    import pdb; pdb.set_trace()
     gpu_hp, gpu_hc = gpu_phenomHM.gpu_Get_Waveform()
 
 

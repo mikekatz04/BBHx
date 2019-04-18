@@ -527,11 +527,8 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   }
 
 
-
 __device__
- void calculate_each_mode(int i, int mode_i, int length,
-     cuDoubleComplex * hptilde,
-     cuDoubleComplex * hctilde,
+ void calculate_each_mode(int i, ModeContainer mode_val,
      unsigned int ell,
      unsigned int mm,
      PhenomHMStorage *pHM,
@@ -541,15 +538,12 @@ __device__
      PhenDAmpAndPhasePreComp pDPreComp,
      HMPhasePreComp q,
      double amp0,
-     cuDoubleComplex factorp,
-     cuDoubleComplex factorc,
      double Rholm, double Taulm, double t0, double phi0, double *cshift){
          double freq_amp, Mf, beta_term1, beta, beta_term2, HMamp_term1, HMamp_term2;
          double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
          double amp_i, phase_i;
          int status_in_for;
          UsefulPowers powers_of_f;
-         cuDoubleComplex hlm = make_cuDoubleComplex(0.0, 0.0);
          //cuDoubleComplex J = make_cuDoubleComplex(0.0, 1.0);
          int retcode = 0;
 
@@ -613,12 +607,7 @@ __device__
             //HMamp is computed here
             amp_i *= beta * HMamp_term1 / HMamp_term2;
 
-            if (amp_i < 1e-50)
-            {
-                hptilde[mode_i*length + i] = make_cuDoubleComplex(0.0, 0.0); //TODO check += here
-                hctilde[mode_i*length + i] = make_cuDoubleComplex(0.0, 0.0);
-                return;
-            }
+            mode_val.amp[i] = amp_i*amp0;
 
         Mf_wf = 0.0;
         Mf = 0.0;
@@ -660,7 +649,9 @@ __device__
             Mf = freq_geom;
             phase_term1 = - t0 * (Mf - pHM->Mf_ref);
             phase_term2 = phase_i - (mm * phi0);
-            hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
+
+            mode_val.phase[i] = phase_term1 + phase_term2;
+            //hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
 
              //double complexFrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
              /*if (!(hlm))
@@ -670,8 +661,8 @@ __device__
              }
              else
              {*/
-                 hptilde[mode_i*length + i] = cuCmul(cuCmul(factorp, hlm), make_cuDoubleComplex(amp0, 0.0)); //TODO check += here
-                 hctilde[mode_i*length + i] = cuCmul(cuCmul(factorc, hlm), make_cuDoubleComplex(amp0, 0.0));
+                // hptilde[mode_i*length + i] = cuCmul(cuCmul(factorp, hlm), make_cuDoubleComplex(amp0, 0.0)); //TODO check += here
+                // hctilde[mode_i*length + i] = cuCmul(cuCmul(factorc, hlm), make_cuDoubleComplex(amp0, 0.0));
             // }
 
              //IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
@@ -681,30 +672,24 @@ __device__
          //printf("(l, m): (%d, %d)\n", ell, mm);
 }
 
-
 __global__
-void kernel_calculate_all_modes(cuDoubleComplex *hptilde,
-      cuDoubleComplex *hctilde,
-      unsigned int *l_vals,
-      unsigned int *m_vals,
+void kernel_calculate_all_modes(ModeContainer *mode_vals,
       PhenomHMStorage *pHM,
-      double *freqs_geom,
+      double *freqs,
+      double M_tot_sec,
       IMRPhenomDAmplitudeCoefficients *pAmp,
       AmpInsPrefactors *amp_prefactors,
       PhenDAmpAndPhasePreComp *pDPreComp_all,
       HMPhasePreComp *q_all,
       double amp0,
-      cuDoubleComplex *factorp,
-      cuDoubleComplex *factorc,
       int num_modes,
-      int length,
       double t0,
       double phi0,
       double *cshift
         ){
       unsigned int mm, ell;
       double Rholm, Taulm;
-
+      double freq_geom;
       unsigned int mode_i = blockIdx.x;
 
       unsigned int i = blockIdx.y * blockDim.x + threadIdx.x;
@@ -712,15 +697,14 @@ void kernel_calculate_all_modes(cuDoubleComplex *hptilde,
        for (int i = blockIdx.y * blockDim.x + threadIdx.x;
           i < length;
           i += blockDim.x * gridDim.y)*/
-
-      if ((i < length ) && (mode_i < num_modes))  // kernel setup should always make second part true
+      if ((i < pHM->ind_max) && (i >= pHM->ind_min) && (mode_i < num_modes))  // kernel setup should always make second part true
       {
-         ell = l_vals[mode_i];
-         mm = m_vals[mode_i];
+         ell = mode_vals[mode_i].l;
+         mm = mode_vals[mode_i].m;
          Rholm = pHM->Rholm[ell][mm];
          Taulm = pHM->Taulm[ell][mm];
-
-         calculate_each_mode(i, mode_i, length, hptilde, hctilde, ell, mm, pHM, freqs_geom[i], pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, factorp[mode_i], factorc[mode_i], Rholm, Taulm, t0, phi0, cshift);
+         freq_geom = freqs[i]*M_tot_sec;
+         calculate_each_mode(i, mode_vals[mode_i], ell, mm, pHM, freq_geom, pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, Rholm, Taulm, t0, phi0, cshift);
 
       }
   }

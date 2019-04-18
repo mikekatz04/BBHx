@@ -248,5 +248,26 @@ typedef struct tagHMPhasePreComp
     double PhDBAterm;
 } HMPhasePreComp;
 
+typedef struct tagModeContainer{
+    unsigned int l;
+    unsigned int m;
+    int num_modes;
+    int length;
+    int max_length;
+    int to_gpu;
+    int to_interp;
+
+    double *amp;
+    double *phase;
+    double *amp_coeff_1;
+    double *amp_coeff_2;
+    double *amp_coeff_3;
+    double *phase_coeff_1;
+    double *phase_coeff_2;
+    double *phase_coeff_3;
+} ModeContainer;
+
+ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp);
+void cpu_destroy_modes(ModeContainer * mode_vals);
 
 #endif

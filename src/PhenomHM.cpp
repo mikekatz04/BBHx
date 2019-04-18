@@ -818,8 +818,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
  *
  */
  int IMRPhenomHM(
-     std::complex<double> **hptilde, /**< [out] Frequency-domain waveform h+ */
-     std::complex<double> **hctilde, /**< [out] Frequency-domain waveform hx */
+     ModeContainer *mode_vals, /**< [out] Frequency-domain waveform hx */
      double *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
      int f_length,
      double m1_SI,                        /**< mass of companion 1 (kg) */
@@ -831,8 +830,6 @@ double IMRPhenomHMOnePointFiveSpinPN(
      const double phiRef,                 /**< reference orbital phase (rad) */
      const double deltaF,                 /**< Sampling frequency (Hz). To use arbitrary frequency points set deltaF <= 0. */
      double f_ref,                        /**< Reference frequency */
-     unsigned int *l_vals,
-     unsigned int *m_vals,
      int num_modes,
      int to_gpu
 )
@@ -847,15 +844,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
      * so to avoid doubling up on checks alot of the checks are done in
      * IMRPhenomHMGethlmModes.
      */
-    assert (NULL != hptilde); //, PD_EFAULT, "check bad");
-    assert (NULL != hctilde); //, PD_EFAULT, "check bad");
-    assert (*hptilde == NULL); //, PD_EFAULT, "check bad");
-    assert(*hctilde == NULL); //, PD_EFAULT, "check bad");
     assert (distance > 0); //, PD_EDOM, "distance must be positive.\n");
-    *hptilde = (std::complex<double>*)malloc(num_modes*f_length*sizeof(std::complex<double>));
-    *hctilde = (std::complex<double>*)malloc(num_modes*f_length*sizeof(std::complex<double>));
-
-    double *freqs_geom_trans = (double *)malloc(f_length);
 
     // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
     PhenomHMStorage *pHM_trans = (PhenomHMStorage *) malloc(sizeof(PhenomHMStorage));
@@ -863,8 +852,6 @@ double IMRPhenomHMOnePointFiveSpinPN(
     AmpInsPrefactors *amp_prefactors_trans = (AmpInsPrefactors*)malloc(sizeof(AmpInsPrefactors));
     PhenDAmpAndPhasePreComp *pDPreComp_all_trans = (PhenDAmpAndPhasePreComp*)malloc(num_modes*sizeof(PhenDAmpAndPhasePreComp));
     HMPhasePreComp *q_all_trans = (HMPhasePreComp*)malloc(num_modes*sizeof(HMPhasePreComp));
-    std::complex<double> *factorp_trans = (std::complex<double>*)malloc(num_modes*sizeof(std::complex<double>));
-    std::complex<double> *factorc_trans = (std::complex<double>*)malloc(num_modes*sizeof(std::complex<double>));
     double t0;
     double phi0;
     double amp0;
@@ -872,10 +859,8 @@ double IMRPhenomHMOnePointFiveSpinPN(
     /* main: evaluate model at given frequencies */
     retcode = 0;
     retcode = IMRPhenomHMCore(
-        (*hptilde),
-        (*hctilde),
+        mode_vals,
         freqs,
-        freqs_geom_trans,
         f_length,
         m1_SI,
         m2_SI,
@@ -886,8 +871,6 @@ double IMRPhenomHMOnePointFiveSpinPN(
         phiRef,
         deltaF,
         f_ref,
-        l_vals,
-        m_vals,
         num_modes,
         to_gpu,
         pHM_trans,
@@ -895,21 +878,16 @@ double IMRPhenomHMOnePointFiveSpinPN(
         amp_prefactors_trans,
         pDPreComp_all_trans,
         q_all_trans,
-        factorp_trans,
-        factorc_trans,
         &t0,
         &phi0,
         &amp0);
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in IMRPhenomHM.");
 
-    free(freqs_geom_trans);
     free(pHM_trans);
     free(pAmp_trans);
     free(amp_prefactors_trans);
     free(pDPreComp_all_trans);
     free(q_all_trans);
-    free(factorp_trans);
-    free(factorc_trans);
     /* cleanup */
     /* XLALDestroy and XLALFree any pointers. */
 
@@ -924,37 +902,34 @@ double IMRPhenomHMOnePointFiveSpinPN(
  * Inside this function the my bulk of the work is done
  * like the loop over frequencies.
  */
-
-
-
- void host_calculate_all_modes(COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int *l_vals, unsigned int *m_vals, PhenomHMStorage *pHM, RealVector *freqs_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, std::complex<double> *factorp, std::complex<double> *factorc, int num_modes, double t0, double phi0){
+ void host_calculate_all_modes(ModeContainer *mode_vals, PhenomHMStorage *pHM, double *freqs, double M_tot_sec, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, int num_modes, double t0, double phi0){
      unsigned int mm, ell;
      double Rholm, Taulm;
+     double freq_geom;
      for (int mode_i=0; mode_i<num_modes; mode_i++)
      {
-         ell = l_vals[mode_i];
-         mm = m_vals[mode_i];
+         ell = mode_vals[mode_i].l;
+         mm = mode_vals[mode_i].m;
          Rholm = pHM->Rholm[ell][mm];
          Taulm = pHM->Taulm[ell][mm];
          if ((ell==0) && (mm=0))
              continue;
         for (unsigned int i = pHM->ind_min; i < pHM->ind_max; i++)
         {
-            host_calculate_each_mode(i, mode_i, hptilde, hctilde, ell, mm, pHM, freqs_geom->data[i], pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, factorp[mode_i], factorc[mode_i], Rholm, Taulm, t0, phi0);
+            freq_geom = freqs[i]*M_tot_sec;
+            host_calculate_each_mode(i, mode_vals[mode_i], ell, mm, pHM, freq_geom, pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, Rholm, Taulm, t0, phi0);
         }
      }
  }
 
 
- void host_calculate_each_mode(int i, int mode_i, COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, std::complex<double> factorp, std::complex<double> factorc, double Rholm, double Taulm, double t0, double phi0){
+ void host_calculate_each_mode(int i, ModeContainer mode_val, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0){
          double freq_amp, Mf, beta_term1, beta, beta_term2, HMamp_term1, HMamp_term2;
          double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
          double amp_i, phase_i;
          int status_in_for;
          UsefulPowers powers_of_f;
-         std::complex<double> hlm;
          int retcode = 0;
-         std::complex<double> I(0.0, 1.0);
 
           /* loop over only positive m is intentional. negative m added automatically */
           // generate amplitude
@@ -1016,12 +991,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
             //HMamp is computed here
             amp_i *= beta * HMamp_term1 / HMamp_term2;
 
-            if (amp_i < 1e-50)
-            {
-                hptilde->data[mode_i*hptilde->length + i] = 0.0; //TODO check += here
-                hctilde->data[mode_i*hctilde->length + i] = 0.0;
-                return;
-            }
+        mode_val.amp[i] = amp_i*amp0;
 
         Mf_wf = 0.0;
         Mf = 0.0;
@@ -1063,8 +1033,10 @@ double IMRPhenomHMOnePointFiveSpinPN(
             Mf = freq_geom;
             phase_term1 = - t0 * (Mf - pHM->Mf_ref);
             phase_term2 = phase_i - (mm * phi0);
-            hlm = amp_i * std::exp(-I * (phase_term1 + phase_term2));
 
+            mode_val.phase[i] = phase_term1 + phase_term2;
+
+             /*hlm = amp_i * std::exp(-I * (phase_term1 + phase_term2));
              //double complexFrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
              if ((std::real(hlm) == 0.0) && (std::imag(hlm) == 0.0))
              {
@@ -1075,8 +1047,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
              {
                  hptilde->data[mode_i*hptilde->length + i] = factorp * hlm * amp0; //TODO check += here
                  hctilde->data[mode_i*hctilde->length + i] = factorc * hlm * amp0;
-             }
-
+             }                */
              //IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
 
              //if (mode_i == 1)
@@ -1087,10 +1058,8 @@ double IMRPhenomHMOnePointFiveSpinPN(
 
 
 int IMRPhenomHMCore(
-     std::complex<double> *hptilde_trans, /**< [out] Frequency domain h+ GW strain */
-     std::complex<double> *hctilde_trans, /**< [out] Frequency domain hx GW strain */
+    ModeContainer *mode_vals, /**< [out] Frequency domain hx GW strain */
     double *freqs_trans,                      /**< GW frequecny list [Hz] */
-    double *freqs_geom_trans,
     int f_length,
     double m1_SI,                               /**< primary mass [kg] */
     double m2_SI,                               /**< secondary mass [kg] */
@@ -1101,8 +1070,6 @@ int IMRPhenomHMCore(
     const double phiRef,                        /**< orbital phase at f_ref */
     const double deltaF,                        /**< frequency spacing */
     double f_ref,                               /**< reference GW frequency */
-    unsigned int *l_vals,
-    unsigned int *m_vals,
     int num_modes,
     int to_gpu,
     PhenomHMStorage *pHM_trans,
@@ -1110,8 +1077,6 @@ int IMRPhenomHMCore(
     AmpInsPrefactors *amp_prefactors_trans,
     PhenDAmpAndPhasePreComp *pDPreComp_all_trans,
     HMPhasePreComp *q_all_trans,
-    std::complex<double> *factorp_trans,
-    std::complex<double> *factorc_trans,
     double *t0,
     double *phi0,
     double *amp0
@@ -1121,6 +1086,7 @@ int IMRPhenomHMCore(
     long ligotimegps_zero = 0;
     int sym;
 
+    // TODO make this more efficient?
     RealVector *freqs = CreateRealVector(f_length);
     freqs->data = freqs_trans;
 
@@ -1145,7 +1111,7 @@ failed");
     /* setup frequency sequency */
     //RealVector *amps = NULL;
     //RealVector *phases = NULL;
-    RealVector *freqs_geom = NULL; /* freqs is in geometric units */
+    //RealVector *freqs_geom = NULL; /* freqs is in geometric units */
 
 
     /* Two possibilities */
@@ -1191,13 +1157,13 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     }
 
     /* PhenomD functions take geometric frequencies */
-    freqs_geom = CreateRealVector(pHM->npts);
+    /*freqs_geom = CreateRealVector(pHM->npts);
     freqs_geom->data = freqs_geom_trans;
     for (size_t i = 0; i < pHM->npts; i++)
     {
-        freqs_geom->data[i] = PhenomUtilsHztoMf(freqs->data[i], pHM->Mtot); /*1 initalise all phases to zero. */
+        freqs_geom->data[i] = PhenomUtilsHztoMf(freqs->data[i], pHM->Mtot); //1 initalise all phases to zero.
     }
-
+    */
 
     PhenDAmpAndPhasePreComp pDPreComp22;
     retcode = IMRPhenomDSetupAmpAndPhaseCoefficients(
@@ -1258,17 +1224,17 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     HMPhasePreComp * q_all = q_all_trans;
     //PhenDAmpAndPhasePreComp pDPreComp;
     PhenDAmpAndPhasePreComp *pDPreComp_all = pDPreComp_all_trans;
-    std::complex<double> Y, Ymstar;
+    //std::complex<double> Y, Ymstar;
 
-    std::complex<double> * factorp = factorp_trans;
-    std::complex<double> * factorc = factorc_trans;
-    std::complex<double> I(0.0, 1.0);
+    //std::complex<double> * factorp = factorp_trans;
+    //std::complex<double> * factorc = factorc_trans;
+    //std::complex<double> I(0.0, 1.0);
     double Rholm, Taulm;
     unsigned int ell, mm;
-    std::complex<double> minus1l; /* (-1)^l */
+    //std::complex<double> minus1l; /* (-1)^l */
     for (int mode_i=0; mode_i<num_modes; mode_i++){
-        ell = l_vals[mode_i];
-        mm = m_vals[mode_i];
+        ell = mode_vals[mode_i].l;
+        mm = mode_vals[mode_i].m;
 
         //printf("%d, %d\n", ell, mm);
 
@@ -1295,12 +1261,13 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
             assert(0); //ERROR(PD_EDOM, "IMRPhenomDSetupAmpAndPhaseCoefficients failed");
         }
 
+        /*
         if (ell % 2)
             minus1l = -1.0;
         else
             minus1l = 1.0;
 
-        /* We test for hypothetical m=0 modes */
+        // We test for hypothetical m=0 modes
         if (mm == 0)
         {
             sym = 0;
@@ -1308,10 +1275,10 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
         else
         {
             sym = 1;
-        }
+        } */
         //IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
-        if (sym)
-        { /* Equatorial symmetry: add in -m mode */
+        /*if (sym)
+        { // Equatorial symmetry: add in -m mode
             Y = SpinWeightedSphericalHarmonic(inclination, 0.0, -2, ell, mm);
             Ymstar = conj(SpinWeightedSphericalHarmonic(inclination, 0.0, -2, ell, -mm));
             factorp[mode_i] = 0.5 * (Y + minus1l * Ymstar);
@@ -1319,25 +1286,19 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
         }
         else
-        { /* not adding in the -m mode */
+        { // not adding in the -m mode
             Y = SpinWeightedSphericalHarmonic(inclination, 0.0, -2, ell, mm);
             factorp[mode_i] = 0.5 * Y;
             factorc[mode_i] = I * factorp[mode_i];
-        }
+        }*/
 
     }
     pHM->nmodes = num_modes;
 
+    double M_tot_sec = (pHM->m1 + pHM->m2)*MTSUN_SI;
+
     if ((to_gpu == 0) || (to_gpu == 2)){
-        COMPLEX2dArray *hptilde = CreateCOMPLEX2dArray(f_length, num_modes);
-        hptilde->data = hptilde_trans;
-
-        COMPLEX2dArray *hctilde = CreateCOMPLEX2dArray(f_length, num_modes);
-        hctilde->data = hctilde_trans;
-
-        host_calculate_all_modes(hptilde, hctilde, l_vals, m_vals, pHM, freqs_geom, pAmp, *amp_prefactors, pDPreComp_all, q_all, *amp0, factorp, factorc, num_modes, *t0, *phi0);
-        free(hptilde);
-        free(hctilde);
+        host_calculate_all_modes(mode_vals, pHM, freqs_trans, M_tot_sec, pAmp, *amp_prefactors, pDPreComp_all, q_all, *amp0, num_modes, *t0, *phi0);
     }
 
 
@@ -1366,17 +1327,14 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     printf("\n\n\n\n\n\n");
     free(pHMFS);
     //DestroyRealVector(freqs_geom);
-    free(freqs);
-    free(freqs_geom);
-
+    free(freqs); // TODO check this
     return 1;
 }
 
 
 
 int main(){
-    std::complex<double> *hptilde=NULL;
-    std::complex<double> *hctilde=NULL;
+
     int f_length = 1024;
     double *freqs = (double*)malloc(f_length*sizeof(double));
     double m1_SI = 3e7*1.989e30;
@@ -1391,7 +1349,6 @@ int main(){
     int num_modes = 4;
     unsigned int l[num_modes];
     unsigned int m[num_modes];
-    int to_gpu = 0;
 
     m[0] = 2;
     l[0] = 2;
@@ -1402,15 +1359,21 @@ int main(){
     m[3] = 4;
     l[3] = 4;
 
+    int to_gpu = 0;
+    int to_interp = 0;
+    ModeContainer * mode_vals = cpu_create_modes(num_modes, l, m, f_length, to_gpu, to_interp);
     int i;
+    for (i=0; i<num_modes; i++){
+        mode_vals[i].length = f_length;
+    }
+
     for (i=0; i<f_length; i++){
         freqs[i] = 1e-4*(i+1);
         if (i % 100 == 0) printf("%e\n", freqs[i]);
     }
 
 int out = IMRPhenomHM(
-    &hptilde, /**< [out] Frequency-domain waveform h+ */
-    &hctilde, /**< [out] Frequency-domain waveform hx */
+    mode_vals, /**< [out] Frequency-domain waveform hx */
     freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
     f_length,
     m1_SI,                        /**< mass of companion 1 (kg) */
@@ -1422,21 +1385,18 @@ int out = IMRPhenomHM(
     phiRef,                 /**< reference orbital phase (rad) */
     deltaF,                 /**< Sampling frequency (Hz). To use arbitrary frequency points set deltaF <= 0. */
     f_ref,                        /**< Reference frequency */
-    l,
-    m,
     num_modes,
     to_gpu);
 
 int j;
 for (i=0; i<num_modes; i++){
     for (j=0; j<f_length; j++){
-        if (j % 100 == 0) printf("%e, %e, %e, %e, %e\n", freqs[j], std::real(hptilde[i*f_length + j]), std::imag(hptilde[i*f_length + j]), std::real(hctilde[i*f_length + j]), std::imag(hctilde[i*f_length + j]));
+        if (j % 100 == 0) printf("%e, %e, %e\n", freqs[j], mode_vals[i].amp[j], mode_vals[i].phase[j]);
     }
 }
 //printf("%e\n", pHM_trans->m1);
 
-free(hptilde);
-free(hctilde);
+free(mode_vals);
 free(freqs);
 //free(pHM_trans);
 return(0);

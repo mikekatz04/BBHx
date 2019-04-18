@@ -213,8 +213,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
     double X2z);
 
 int IMRPhenomHM(
-    std::complex<double> **hptilde, /**< [out] Frequency-domain waveform h+ */
-    std::complex<double> **hctilde, /**< [out] Frequency-domain waveform hx */
+    ModeContainer *mode_vals, /**< [out] Frequency-domain waveform hx */
     double *freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
     int f_length,
     double m1_SI,                        /**< mass of companion 1 (kg) */
@@ -226,29 +225,23 @@ int IMRPhenomHM(
     const double phiRef,                 /**< reference orbital phase (rad) */
     const double deltaF,                 /**< Sampling frequency (Hz). To use arbitrary frequency points set deltaF <= 0. */
     double f_ref,                        /**< Reference frequency */
-    unsigned int *l_vals,
-    unsigned int *m_vals,
     int num_modes,
     int to_gpu
 );
 
 int IMRPhenomHMCore(
-    std::complex<double> *hptilde_trans,
-    std::complex<double> *hctilde_trans,
-    double *freqs,
-    double *freqs_geom_trans,
+    ModeContainer *mode_vals, /**< [out] Frequency domain hx GW strain */
+    double *freqs_trans,                      /**< GW frequecny list [Hz] */
     int f_length,
-    double m1_SI,
-    double m2_SI,
-    double chi1z,
-    double chi2z,
-    const double distance,
-    const double inclination,
-    const double phiRef,
-    const double deltaF,
-    double f_ref,
-    unsigned int *l_vals,
-    unsigned int *m_vals,
+    double m1_SI,                               /**< primary mass [kg] */
+    double m2_SI,                               /**< secondary mass [kg] */
+    double chi1z,                               /**< aligned spin of primary */
+    double chi2z,                               /**< aligned spin of secondary */
+    const double distance,                      /**< distance [m] */
+    const double inclination,                   /**< inclination angle */
+    const double phiRef,                        /**< orbital phase at f_ref */
+    const double deltaF,                        /**< frequency spacing */
+    double f_ref,                               /**< reference GW frequency */
     int num_modes,
     int to_gpu,
     PhenomHMStorage *pHM_trans,
@@ -256,15 +249,14 @@ int IMRPhenomHMCore(
     AmpInsPrefactors *amp_prefactors_trans,
     PhenDAmpAndPhasePreComp *pDPreComp_all_trans,
     HMPhasePreComp *q_all_trans,
-    std::complex<double> *factorp_trans,
-    std::complex<double> *factorc_trans,
     double *t0,
     double *phi0,
-    double *amp0);
+    double *amp0
+);
 
-void host_calculate_all_modes(COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int *l_vals, unsigned int *m_vals, PhenomHMStorage *pHM, RealVector *freqs_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, std::complex<double> *factorp, std::complex<double> *factorc, int num_modes, double t0, double phi0);
+void host_calculate_all_modes(ModeContainer *mode_vals, PhenomHMStorage *pHM, double *freqs, double M_tot_sec, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, int num_modes, double t0, double phi0);
 
-void host_calculate_each_mode(int i, int mode_i, COMPLEX2dArray *hptilde, COMPLEX2dArray *hctilde, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, std::complex<double> factorp, std::complex<double> factorc, double Rholm, double Taulm, double t0, double phi0);
+void host_calculate_each_mode(int i, ModeContainer mode_val, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0);
 
 int IMRPhenomHMGetRingdownFrequency(
     double *fringdown,

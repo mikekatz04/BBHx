@@ -11,7 +11,7 @@ def test():
     freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 1024), 0.0, 1e-5, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     l_vals = np.array([2, 2, 3, 4, 4, 3], dtype=np.uint32) #
-    m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32) #, 
+    m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32) #,
 
     df = 1e-8
     interp_freq = np.arange(1e-5, 1e-1 + df, df)
@@ -89,7 +89,7 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        gpu_phenomHM.interp_wave(1e-5, 1e-8, int(1e6))
+        gpu_phenomHM.interp_wave(1e-5, 1e-8, int(1e7))
         print('gpu', time.perf_counter() - st)
     gpu_amp, gpu_phase = gpu_phenomHM.gpu_Get_Waveform()
     #pdb.set_trace()

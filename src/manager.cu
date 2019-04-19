@@ -535,7 +535,8 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     }
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());*/
-
+    //TODO need to make this more adaptable (especially for smaller amounts)
+    int di = (int) length_new/100;
     int i = 0;
     double f = f_min;
     while (f < freqs[0]){
@@ -546,37 +547,42 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     int new_end_index;
     int ended = 0;
     int index = 0;
-    for (i; i<length_new; i++){
-        if (f > freqs[f_length-1]){
-            new_end_index = i-1;
-            ended = 1;
-            break;
+    for (int jj=0; jj<100; jj++){
+        for (i; i<di*(jj+1); i++){
+            if (f > freqs[f_length-1]){
+                new_end_index = i-1;
+                ended = 1;
+                break;
+            }
+            f = f_min + df*i;
+            if (f < freqs[index + 1]){
+                h_indices[i] = index;
+            } else{
+                index++;
+                h_indices[i] = index;
+            }
         }
-        f = f_min + df*i;
-        if (f < freqs[index + 1]){
-            h_indices[i] = index;
-        } else{
-            index++;
-            h_indices[i] = index;
-        }
+        if (ended == 0) new_end_index = i;
+        int num_evals = new_end_index - new_start_index + 1;
+        num_blocks = (int) ((num_evals + NUM_THREADS - 1) / NUM_THREADS);
+        dim3 gridDim(num_modes, num_blocks);
+        cudaDeviceSynchronize();
+        gpuErrchk(cudaGetLastError());
+        gpuErrchk(cudaMemcpy(&d_indices[new_start_index], &h_indices[new_start_index], di*sizeof(int), cudaMemcpyHostToDevice));
+        interpolate2<<<gridDim, NUM_THREADS>>>(d_mode_vals,
+            d_out_mode_vals,
+            new_start_index,
+            new_end_index,
+            num_modes,
+            f_min,
+            df,
+            d_indices,
+            d_freqs);
+        if (ended == 1) break;
+        new_start_index = new_end_index;
     }
-    if (ended == 0) new_end_index = i;
-    int num_evals = new_end_index - new_start_index + 1;
-    num_blocks = (int) ((num_evals + NUM_THREADS - 1) / NUM_THREADS);
-    dim3 gridDim(num_modes, num_blocks);
-    gpuErrchk(cudaMemcpy(&d_indices[new_start_index], &h_indices[new_start_index], length_new*sizeof(int), cudaMemcpyHostToDevice));
-    interpolate2<<<gridDim, NUM_THREADS>>>(d_mode_vals,
-        d_out_mode_vals,
-        new_start_index,
-        new_end_index,
-        num_modes,
-        f_min,
-        df,
-        d_indices,
-        d_freqs);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
-
     /*int num_blocks_interp = ceil(length_new + NUM_THREADS -1)/NUM_THREADS;
     dim3 interp_dim(num_modes, num_blocks_interp, f_length);
     int *h_ind_out, *d_ind_out;

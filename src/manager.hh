@@ -58,9 +58,6 @@ class GPUPhenomHM {
   cuDoubleComplex *result;
 
   // Interpolate related stuff
-  double min_f;
-  double max_f;
-  double df;
   int to_interp;
   ModeContainer *out_mode_vals;
   ModeContainer *d_out_mode_vals;
@@ -71,6 +68,9 @@ class GPUPhenomHM {
 
   ModeContainer *mode_vals;
   ModeContainer *d_mode_vals;
+
+  int *h_indices;
+  int *d_indices;
 
 
 public:
@@ -118,7 +118,7 @@ public:
         double deltaF_,
         double f_ref_);
 
-  void interp_wave();
+  void interp_wave(double f_min, double dF, int length_new);
 
   double Likelihood ();
   //gets results back from the gpu, putting them in the supplied memory location

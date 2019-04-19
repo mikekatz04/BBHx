@@ -34,7 +34,7 @@ cdef extern from "src/manager.hh":
                             double)
 
         void add_interp(int)
-        void interp_wave()
+        void interp_wave(double, double, int)
         double Likelihood()
         void Get_Waveform(int, np.float64_t*, np.float64_t*)
         void gpu_Get_Waveform(int, np.float64_t*, np.float64_t*)
@@ -43,6 +43,7 @@ cdef class GPUPhenomHM:
     cdef GPUPhenomHMwrap* g
     cdef int num_modes
     cdef int f_dim
+    cdef int interp_length
 
     def __cinit__(self, max_length,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
@@ -102,11 +103,12 @@ cdef class GPUPhenomHM:
                                 f_ref)
 
     def add_interp(self, interp_length):
+        self.interp_length = interp_length
         self.g.add_interp(interp_length)
         return
 
-    def interp_wave(self):
-        self.g.interp_wave()
+    def interp_wave(self, f_min, df, length_new):
+        self.g.interp_wave(f_min, df, length_new)
         return
 
     def Likelihood(self):
@@ -127,12 +129,12 @@ cdef class GPUPhenomHM:
         return (amp_out, phase_out)
 
     def gpu_Get_Waveform(self):
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.interp_length,), dtype=np.float64)
 
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.interp_length,), dtype=np.float64)
 
-        amp_out = np.zeros((self.num_modes, self.f_dim), dtype=np.float64)
-        phase_out = np.zeros((self.num_modes, self.f_dim), dtype=np.float64)
+        amp_out = np.zeros((self.num_modes, self.interp_length), dtype=np.float64)
+        phase_out = np.zeros((self.num_modes, self.interp_length), dtype=np.float64)
         for mode_i in range(self.num_modes):
             self.g.gpu_Get_Waveform(mode_i, &amp_[0], &phase_[0])
             amp_out[mode_i] = amp_

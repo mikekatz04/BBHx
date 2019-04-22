@@ -11,6 +11,107 @@
 #define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
 using namespace std;
 
+
+__global__ void fill_B(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    if (i >= f_length) return;
+    if (mode_i >= num_modes) return;
+    if (i == f_length - 1){
+        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
+        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
+    } else if (i == 0){
+        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[1] - mode_vals[mode_i].amp[0]);
+        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0]);
+    } else{
+        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i+1] - mode_vals[mode_i].amp[i-1]);
+        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
+    }
+
+
+}
+
+__global__ void set_spline_constants(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    if (i >= f_length-1) return;
+    if (mode_i >= num_modes) return;
+    double D_i, D_ip1, y_i, y_ip1;
+
+    D_i = B[mode_i*f_length + i];
+    D_ip1 = B[mode_i*f_length + i + 1];
+    y_i = mode_vals[mode_i].amp[i];
+    y_ip1 = mode_vals[mode_i].amp[i+1];
+    mode_vals[mode_i].amp_coeff_1[i] = D_i;
+    mode_vals[mode_i].amp_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+    mode_vals[mode_i].amp_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+    D_i = B[(num_modes*f_length) + mode_i*f_length + i];
+    D_ip1 = B[(num_modes*f_length) + mode_i*f_length + i + 1];
+    y_i = mode_vals[mode_i].phase[i];
+    y_ip1 = mode_vals[mode_i].phase[i+1];
+    mode_vals[mode_i].phase_coeff_1[i] = D_i;
+    mode_vals[mode_i].phase_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+    mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+}
+
+__global__ void interpolate(ModeContainer* old_mode_vals, ModeContainer* new_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int old_ind_below, double *old_freqs){
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.x;
+    if (i + ind_min > ind_max) return;
+    if (mode_i >= num_modes) return;
+    int new_index = i + ind_min;
+    double f = f_min + df * new_index;
+    double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+    double x2 = x*x;
+    double x3 = x*x2;
+    double coeff_0, coeff_1, coeff_2, coeff_3;
+    // interp amplitude
+    coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
+    coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
+    coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
+    coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
+
+    new_mode_vals[mode_i].amp[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+    // interp phase
+    coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
+    coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
+    coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
+    coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
+
+    new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+}
+
+__global__ void interpolate2(ModeContainer* old_mode_vals, ModeContainer* new_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs){
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.x;
+    if (i + ind_min > ind_max) return;
+    if (mode_i >= num_modes) return;
+    int new_index = i + ind_min;
+    int old_ind_below = old_inds[i];
+    double f = f_min + df * new_index;
+    double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+    double x2 = x*x;
+    double x3 = x*x2;
+    double coeff_0, coeff_1, coeff_2, coeff_3;
+    // interp amplitude
+    coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
+    coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
+    coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
+    coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
+
+    new_mode_vals[mode_i].amp[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+    // interp phase
+    coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
+    coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
+    coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
+    coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
+
+    new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+}
+
 Interpolate::Interpolate(){
     int pass = 0;
 }

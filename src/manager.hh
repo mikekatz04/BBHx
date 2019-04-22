@@ -65,12 +65,18 @@ class GPUPhenomHM {
   int max_interp_length;
   double *interp_freqs;
   double *d_interp_freqs;
+  double *d_B;
 
   ModeContainer *mode_vals;
   ModeContainer *d_mode_vals;
 
   int *h_indices;
   int *d_indices;
+
+  std::complex<double> *data_stream;
+  cuDoubleComplex *d_data_stream;
+  cuDoubleComplex *d_hI;
+  cuDoubleComplex *d_hII;
 
 
 public:
@@ -90,7 +96,8 @@ public:
       unsigned int *m_vals_,
       int num_modes_,
       int to_gpu_,
-      int to_interp_); // constructor (copies to GPU)
+      int to_interp_,
+      std::complex<double> *data_stream_); // constructor (copies to GPU)
 
   ~GPUPhenomHM(); // destructor
 
@@ -117,10 +124,11 @@ public:
         double phiRef_,
         double deltaF_,
         double f_ref_);
+        
 
   void interp_wave(double f_min, double dF, int length_new);
 
-  double Likelihood ();
+  double Likelihood (int length);
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (int mode_i, double* amp_, double* phase_);
   void gpu_Get_Waveform (int mode_i, double* amp_, double* phase_);

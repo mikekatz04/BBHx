@@ -14,14 +14,15 @@ def test():
     m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32) #,
 
     df = 1e-8
-    interp_freq = np.arange(1e-5, 1e-1 + df, df)
+    interp_freq = 1e-5*np.arange(int(1e7))*1e-8
 
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(1e7)*0.1))
     to_gpu=0
     to_interp = 0
     cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu, to_interp)
+     to_gpu, to_interp, data)
 
     #cpu_phenomHM.add_interp(interp_freq, len(interp_freq))
     for i in range(1):
@@ -49,13 +50,12 @@ def test():
     #    spline = np.interp(interp_freq, freq, amp[:len(freq)])
     #    print('scipy', time.perf_counter() - st)
 
-
     to_gpu=1
     to_interp = 1
     gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu, to_interp)
+     to_gpu, to_interp, data)
 
     #for _ in range(5):
     for i in range(1):
@@ -77,9 +77,10 @@ def test():
     #assert(np.allclose(cpu_phase, gpu_phase))
     #print('CPU MATCHES GPU!!!!')
 
+
     gpu_phenomHM.add_interp(int(1e7))
     for i in range(10):
-        st = time.perf_counter()
+
         gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
@@ -91,6 +92,10 @@ def test():
                      f_ref)
         gpu_phenomHM.interp_wave(1e-5, 1e-8, int(1e7))
         print('gpu', time.perf_counter() - st)
+        st = time.perf_counter()
+
+        like = gpu_phenomHM.Likelihood(int(1e7))
+        print('gpu', time.perf_counter() - st, 'like:', like)
     gpu_amp, gpu_phase = gpu_phenomHM.gpu_Get_Waveform()
     #pdb.set_trace()
 

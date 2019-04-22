@@ -40,6 +40,9 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
         double *amp[num_modes];
         double *phase[num_modes];
 
+        //cuDoubleComplex *hI[num_modes];
+        //cuDoubleComplex *hII[num_modes];
+
         double *amp_coeff_1[num_modes];
         double *amp_coeff_2[num_modes];
         double *amp_coeff_3[num_modes];
@@ -58,6 +61,12 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
 
             cudaMemcpy(&(mode_vals[i].amp), &(amp[i]), sizeof(double *), cudaMemcpyHostToDevice);
             cudaMemcpy(&(mode_vals[i].phase), &(phase[i]), sizeof(double *), cudaMemcpyHostToDevice);
+
+            /*gpuErrchk(cudaMalloc(&hI[i], max_length*sizeof(cuDoubleComplex)));
+            gpuErrchk(cudaMalloc(&hII[i], max_length*sizeof(cuDoubleComplex)));
+
+            cudaMemcpy(&(mode_vals[i].hI), &(hI[i]), sizeof(cuDoubleComplex *), cudaMemcpyHostToDevice);
+            cudaMemcpy(&(mode_vals[i].hII), &(hII[i]), sizeof(cuDoubleComplex *), cudaMemcpyHostToDevice);*/
 
             if (to_interp == 1){
                 gpuErrchk(cudaMalloc(&amp_coeff_1[i], (max_length-1)*sizeof(double)));
@@ -83,6 +92,8 @@ void gpu_destroy_modes(ModeContainer * mode_vals){
     for (int i=0; i<mode_vals[0].num_modes; i++){
         gpuErrchk(cudaFree(mode_vals[i].amp));
         gpuErrchk(cudaFree(mode_vals[i].phase));
+        //gpuErrchk(cudaFree(mode_vals[i].hI));
+        //gpuErrchk(cudaFree(mode_vals[i].hII));
         if (mode_vals[i].to_interp == 1){
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_1));
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_2));
@@ -101,7 +112,8 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
     unsigned int *m_vals_,
     int num_modes_,
     int to_gpu_,
-    int to_interp_){
+    int to_interp_,
+    std::complex<double> *data_stream_){
 
     max_length = max_length_;
     l_vals = l_vals_;
@@ -109,6 +121,7 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
     num_modes = num_modes_;
     to_gpu = to_gpu_;
     to_interp = to_interp_;
+    data_stream = data_stream_;
 
     cudaError_t err;
 
@@ -130,6 +143,9 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
       d_mode_vals = gpu_create_modes(num_modes, l_vals, m_vals, max_length, to_gpu, to_interp);
 
       gpuErrchk(cudaMalloc(&d_freqs, max_length*sizeof(double)));
+
+      gpuErrchk(cudaMalloc(&d_data_stream, max_length*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMemcpy(d_data_stream, data_stream, max_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 
       //gpuErrchk(cudaMalloc(&d_mode_vals, num_modes*sizeof(d_mode_vals)));
       //gpuErrchk(cudaMemcpy(d_mode_vals, mode_vals, num_modes*sizeof(d_mode_vals), cudaMemcpyHostToDevice));
@@ -188,9 +204,14 @@ void GPUPhenomHM::add_interp(int max_interp_length_){
         out_mode_vals = cpu_create_modes(num_modes, m_vals, l_vals, max_interp_length, to_gpu, 0);
     }
     if (to_gpu){
+        gpuErrchk(cudaMalloc(&d_hI, max_interp_length*sizeof(cuDoubleComplex)));
+        gpuErrchk(cudaMalloc(&d_hII, max_interp_length*sizeof(cuDoubleComplex)));
         h_indices = new int[max_interp_length];
         cudaMalloc(&d_indices, max_interp_length*sizeof(int));
         d_out_mode_vals = gpu_create_modes(num_modes, m_vals, l_vals, max_interp_length, to_gpu, 0);
+        //h_B = new double[2*f_length*num_modes];
+        //h_B1 = new double[2*f_length*num_modes];*/
+        gpuErrchk(cudaMalloc(&d_B, 2*max_interp_length_*num_modes*sizeof(double)));
     }
 }
 
@@ -321,105 +342,6 @@ void GPUPhenomHM::cpu_gen_PhenomHM(double *freqs_, int f_length_,
 
 }
 
-__global__ void fill_B(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    if (i >= f_length) return;
-    if (mode_i >= num_modes) return;
-    if (i == f_length - 1){
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
-    } else if (i == 0){
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[1] - mode_vals[mode_i].amp[0]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0]);
-    } else{
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i+1] - mode_vals[mode_i].amp[i-1]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
-    }
-
-
-}
-
-__global__ void set_spline_constants(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    if (i >= f_length-1) return;
-    if (mode_i >= num_modes) return;
-    double D_i, D_ip1, y_i, y_ip1;
-
-    D_i = B[mode_i*f_length + i];
-    D_ip1 = B[mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].amp[i];
-    y_ip1 = mode_vals[mode_i].amp[i+1];
-    mode_vals[mode_i].amp_coeff_1[i] = D_i;
-    mode_vals[mode_i].amp_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-    mode_vals[mode_i].amp_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-    D_i = B[(num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].phase[i];
-    y_ip1 = mode_vals[mode_i].phase[i+1];
-    mode_vals[mode_i].phase_coeff_1[i] = D_i;
-    mode_vals[mode_i].phase_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-    mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-}
-
-__global__ void interpolate(ModeContainer* old_mode_vals, ModeContainer* new_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int old_ind_below, double *old_freqs){
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.x;
-    if (i + ind_min > ind_max) return;
-    if (mode_i >= num_modes) return;
-    int new_index = i + ind_min;
-    double f = f_min + df * new_index;
-    double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-    double x2 = x*x;
-    double x3 = x*x2;
-    double coeff_0, coeff_1, coeff_2, coeff_3;
-    // interp amplitude
-    coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
-
-    new_mode_vals[mode_i].amp[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-    // interp phase
-    coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
-
-    new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-}
-
-__global__ void interpolate2(ModeContainer* old_mode_vals, ModeContainer* new_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs){
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.x;
-    if (i + ind_min > ind_max) return;
-    if (mode_i >= num_modes) return;
-    int new_index = i + ind_min;
-    int old_ind_below = old_inds[i];
-    double f = f_min + df * new_index;
-    double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-    double x2 = x*x;
-    double x3 = x*x2;
-    double coeff_0, coeff_1, coeff_2, coeff_3;
-    // interp amplitude
-    coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
-
-    new_mode_vals[mode_i].amp[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-    // interp phase
-    coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
-
-    new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-}
 
 __global__ void read_out_kernel2(ModeContainer *mode_vals, double *coef0, double *coef1, double *coef2, double *coef3, int mode_i, int length){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -431,12 +353,25 @@ __global__ void read_out_kernel2(ModeContainer *mode_vals, double *coef0, double
     //phase[i] = mode_vals[mode_i].phase[i];
 }
 
+__global__ void debug(ModeContainer *mode_vals, int num_modes, int length){
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.x;
+    if (mode_i >= num_modes) return;
+    if (i >= length) return;
+    double amp = mode_vals[mode_i].amp[i];
+    double phase = mode_vals[mode_i].phase[i];
+    //phase[i] = mode_vals[mode_i].phase[i];
+}
+
 void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     //printf("%e, %e\n", f_min, df);
-    double *d_B;//, *h_B, *h_B1;
-    //h_B = new double[2*f_length*num_modes];
-    //h_B1 = new double[2*f_length*num_modes];*/
-    gpuErrchk(cudaMallocManaged(&d_B, 2*f_length*num_modes*sizeof(double)));
+    /*NUM_THREADS = 256;
+    num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
+    dim3 gridDim(num_modes, num_blocks);
+    printf("blocks %d\n", num_blocks);
+    debug<<<gridDim, NUM_THREADS>>>(d_out_mode_vals, num_modes, length_new);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());*/
 
     dim3 check_dim(num_modes, num_blocks);
     int check_num_threads = 256;
@@ -536,6 +471,11 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());*/
     //TODO need to make this more adaptable (especially for smaller amounts)
+    int break_num = 100;
+    int num_iters = (int)(length_new + break_num - 1)/break_num;
+    int left_over = length_new % num_iters;
+    //cudaStream_t streams[num_iters];
+
     int di = (int) length_new/100;
     int i = 0;
     double f = f_min;
@@ -547,7 +487,9 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     int new_end_index;
     int ended = 0;
     int index = 0;
-    for (int jj=0; jj<100; jj++){
+    for (int jj=0; jj<num_iters; jj++){
+        if (jj<num_iters-1) di = (int)length_new/break_num;
+        else di = left_over;
         for (i; i<di*(jj+1); i++){
             if (f > freqs[f_length-1]){
                 new_end_index = i-1;
@@ -564,10 +506,11 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
         }
         if (ended == 0) new_end_index = i;
         int num_evals = new_end_index - new_start_index + 1;
-        num_blocks = (int) ((num_evals + NUM_THREADS - 1) / NUM_THREADS);
+        int num_blocks = (int) ((num_evals + NUM_THREADS - 1) / NUM_THREADS);
         dim3 gridDim(num_modes, num_blocks);
         cudaDeviceSynchronize();
         gpuErrchk(cudaGetLastError());
+
         gpuErrchk(cudaMemcpy(&d_indices[new_start_index], &h_indices[new_start_index], di*sizeof(int), cudaMemcpyHostToDevice));
         interpolate2<<<gridDim, NUM_THREADS>>>(d_mode_vals,
             d_out_mode_vals,
@@ -608,28 +551,46 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     //delete h_B;
     //delete h_B1;
     //delete h_ind_out;
-    cudaFree(d_B);
     //cudaFree(d_ind_out);
 }
 
-double GPUPhenomHM::Likelihood (){
-/*
-    cuComplex *trans = new cuComplex[max_length];
-    for (int i; i<f_length; i++){
-        trans[i] =
+__device__ __forceinline__ cuDoubleComplex cexp(double amp, double phase){
+    return make_cuDoubleComplex(amp*cos(phase), amp*sin(phase));
+}
+
+__global__ void convert_to_complex(ModeContainer *mode_vals, cuDoubleComplex *h, int num_modes, int length){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= length) return;
+    cuDoubleComplex sum = make_cuDoubleComplex(0.0, 0.0);
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+        sum = cuCadd(sum, cexp(mode_vals[mode_i].amp[i], mode_vals[mode_i].phase[i]));
     }
-    stat = cublasZdotc(handle, f_length,
-            d_hptilde, 1,
-            d_hptilde, 1,
+    h[i] = sum;
+
+}
+
+double GPUPhenomHM::Likelihood (int like_length){
+    //double *amp_trans, *phase_trans;
+    //cudaMalloc(&amp_trans, like_length*sizeof(double));
+    //cudaMemcpy(amp_trans, )
+    //cudaMalloc(&phase_trans, like_length*sizeof(double));
+    int num_blockshere = (int)(like_length + NUM_THREADS -1)/NUM_THREADS;
+    convert_to_complex<<<num_blockshere, NUM_THREADS>>>(d_out_mode_vals, d_hI, num_modes, like_length);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    stat = cublasZdotc(handle, like_length,
+            d_hI, 1,
+            d_data_stream, 1,
             result);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
 
     if (stat != CUBLAS_STATUS_SUCCESS) {
             printf ("CUBLAS initialization failed\n");
             return EXIT_FAILURE;
         }
-    delete trans;
-    return cuCreal(result[0]);*/
-    return 0.0;
+    return cuCreal(result[0]);
+    //return 0.0;
 }
 
 void GPUPhenomHM::Get_Waveform (int mode_i, double* amp_, double* phase_) {
@@ -689,6 +650,9 @@ GPUPhenomHM::~GPUPhenomHM() {
 
   if (to_gpu == 1){
       cudaFree(d_freqs);
+      cudaFree(d_data_stream);
+      cudaFree(d_hI);
+      cudaFree(d_hII);
       gpu_destroy_modes(d_mode_vals);
       cudaFree(d_pHM_trans);
       cudaFree(d_pAmp_trans);
@@ -703,7 +667,8 @@ GPUPhenomHM::~GPUPhenomHM() {
       delete h_indices;
       cudaFree(d_indices);
       cpu_destroy_modes(out_mode_vals);
-      gpu_destroy_modes(d_out_mode_vals);
+      cudaFree(d_B);
+      //gpu_destroy_modes(d_out_mode_vals);
       //delete interp;
   }
 }

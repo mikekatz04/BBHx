@@ -10,7 +10,8 @@ cdef extern from "src/manager.hh":
         np.uint32_t *,
         int,
         int,
-        int)
+        int,
+        np.complex128_t *)
         void cpu_gen_PhenomHM(np.float64_t *, int,
                             double,
                             double,
@@ -35,7 +36,7 @@ cdef extern from "src/manager.hh":
 
         void add_interp(int)
         void interp_wave(double, double, int)
-        double Likelihood()
+        double Likelihood(int)
         void Get_Waveform(int, np.float64_t*, np.float64_t*)
         void gpu_Get_Waveform(int, np.float64_t*, np.float64_t*)
 
@@ -48,13 +49,13 @@ cdef class GPUPhenomHM:
     def __cinit__(self, max_length,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
-     to_gpu, to_interp):
+     to_gpu, to_interp, np.ndarray[ndim=1, dtype=np.complex128_t] data_stream):
         self.num_modes = len(l_vals)
         self.g = new GPUPhenomHMwrap(max_length,
         &l_vals[0],
         &m_vals[0],
         self.num_modes,
-        to_gpu, to_interp)
+        to_gpu, to_interp, &data_stream[0])
 
     def cpu_gen_PhenomHM(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses
@@ -111,8 +112,8 @@ cdef class GPUPhenomHM:
         self.g.interp_wave(f_min, df, length_new)
         return
 
-    def Likelihood(self):
-        return self.g.Likelihood()
+    def Likelihood(self, length):
+        return self.g.Likelihood(length)
 
     def Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim,), dtype=np.float64)

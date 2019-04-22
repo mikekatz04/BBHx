@@ -265,6 +265,7 @@ typedef struct tagModeContainer{
     double *phase_coeff_1;
     double *phase_coeff_2;
     double *phase_coeff_3;
+
 } ModeContainer;
 
 ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp);

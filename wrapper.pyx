@@ -11,7 +11,7 @@ cdef extern from "src/manager.hh":
         int,
         int,
         int,
-        np.complex128_t *)
+        np.complex128_t *, int)
         void cpu_gen_PhenomHM(np.float64_t *, int,
                             double,
                             double,
@@ -38,12 +38,13 @@ cdef extern from "src/manager.hh":
         void interp_wave(double, double, int)
         double Likelihood(int)
         void Get_Waveform(int, np.float64_t*, np.float64_t*)
-        void gpu_Get_Waveform(int, np.float64_t*, np.float64_t*)
+        void gpu_Get_Waveform(np.complex128_t*)
 
 cdef class GPUPhenomHM:
     cdef GPUPhenomHMwrap* g
     cdef int num_modes
     cdef int f_dim
+    cdef int data_length
     cdef int interp_length
 
     def __cinit__(self, max_length,
@@ -51,11 +52,12 @@ cdef class GPUPhenomHM:
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
      to_gpu, to_interp, np.ndarray[ndim=1, dtype=np.complex128_t] data_stream):
         self.num_modes = len(l_vals)
+        self.data_length = len(data_stream)
         self.g = new GPUPhenomHMwrap(max_length,
         &l_vals[0],
         &m_vals[0],
         self.num_modes,
-        to_gpu, to_interp, &data_stream[0])
+        to_gpu, to_interp, &data_stream[0], self.data_length)
 
     def cpu_gen_PhenomHM(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses
@@ -130,15 +132,8 @@ cdef class GPUPhenomHM:
         return (amp_out, phase_out)
 
     def gpu_Get_Waveform(self):
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.interp_length,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hI_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
 
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.interp_length,), dtype=np.float64)
+        self.g.gpu_Get_Waveform(&hI_[0])
 
-        amp_out = np.zeros((self.num_modes, self.interp_length), dtype=np.float64)
-        phase_out = np.zeros((self.num_modes, self.interp_length), dtype=np.float64)
-        for mode_i in range(self.num_modes):
-            self.g.gpu_Get_Waveform(mode_i, &amp_[0], &phase_[0])
-            amp_out[mode_i] = amp_
-            phase_out[mode_i] = phase_
-
-        return (amp_out, phase_out)
+        return hI_.reshape(self.num_modes, self.interp_length)

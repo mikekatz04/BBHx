@@ -124,8 +124,8 @@ ext = Extension('gpuPhenomHM',
         extra_compile_args= {
             'gcc': ['-std=c99'],
             'nvcc': [
-                '-arch=sm_30', '--ptxas-options=-v', '-c',
-                '--compiler-options', "'-fPIC'"]# ,"-G", "-g"] # for debugging
+                '-arch=sm_30', '--default-stream=per-thread', '--ptxas-options=-v', '-c',
+                '--compiler-options', "'-fPIC'" ,"-G", "-g"] # for debugging
             },
             include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'src']
         )

@@ -55,13 +55,13 @@ __global__ void set_spline_constants(ModeContainer *mode_vals, double *B, int f_
     mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
 
-__global__ void interpolate(ModeContainer* old_mode_vals, ModeContainer* new_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int old_ind_below, double *old_freqs){
+__global__ void interpolate(cuDoubleComplex *hI_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length){
     int i = blockIdx.y * blockDim.x + threadIdx.x;
     int mode_i = blockIdx.x;
-    if (i + ind_min > ind_max) return;
+    if (i >= length) return;
     if (mode_i >= num_modes) return;
-    int new_index = i + ind_min;
-    double f = f_min + df * new_index;
+    double f = f_min + df * i;
+    int old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
     double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
     double x2 = x*x;
     double x3 = x*x2;
@@ -72,7 +72,7 @@ __global__ void interpolate(ModeContainer* old_mode_vals, ModeContainer* new_mod
     coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
     coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
 
-    new_mode_vals[mode_i].amp[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+    double amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
     // interp phase
     coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
@@ -80,7 +80,9 @@ __global__ void interpolate(ModeContainer* old_mode_vals, ModeContainer* new_mod
     coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
     coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
-    new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+    double phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+    hI_out[mode_i*length + i] = make_cuDoubleComplex(amp*cos(phase), -1.0*amp*sin(phase));
 }
 
 __global__ void interpolate2(cuDoubleComplex *hI_out,ModeContainer* old_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs, int length){

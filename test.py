@@ -53,15 +53,15 @@ def test():
 
     to_gpu=1
     to_interp = 0
-    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(data),
+    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
      to_gpu, to_interp, data)
 
     #for _ in range(5):
-    for i in range(1):
+    for i in range(10):
         st = time.perf_counter()
-        gpu_phenomHM.gpu_gen_PhenomHM(interp_freq, m1,  # solar masses
+        gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
                      chi2z,
@@ -79,7 +79,7 @@ def test():
     #assert(np.allclose(cpu_amp, gpu_amp))
     #assert(np.allclose(cpu_phase, gpu_phase))
     #print('CPU MATCHES GPU!!!!')
-
+    exit()
 
     to_gpu=1
     to_interp = 1

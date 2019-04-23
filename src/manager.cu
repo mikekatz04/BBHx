@@ -531,7 +531,7 @@ double GPUPhenomHM::Likelihood (int like_length){
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());*/
 
-    GpuVec(d_hI, d_ones, d_hI_out, like_length, num_modes);
+    //GpuVec(d_hI, d_ones, d_hI_out, like_length, num_modes);
     /*cuDoubleComplex alpha = make_cuDoubleComplex(1.0,0.0);
     cuDoubleComplex beta = make_cuDoubleComplex(0.0,0.0);
 
@@ -550,22 +550,28 @@ double GPUPhenomHM::Likelihood (int like_length){
          }*/
      //gpuErrchk(cudaGetLastError());
 
-
+     cuDoubleComplex res_out = make_cuDoubleComplex(0.0, 0.0);
      char * status;
-    stat = cublasZdotc(handle, like_length,
-            d_hI_out, 1,
-            d_data_stream, 1,
-            result);
-    status = _cudaGetErrorEnum(stat);
-     cudaDeviceSynchronize();
-     printf ("%s\n", status);
-     if (stat != CUBLAS_STATUS_SUCCESS) {
-             exit(0);
-         }
+     for (int mode_i=0; mode_i<num_modes; mode_i++){
+         stat = cublasZdotc(handle, like_length,
+                 //d_hI_out, 1,
+                 &d_hI[mode_i*like_length], 1,
+                 d_data_stream, 1,
+                 result);
+         status = _cudaGetErrorEnum(stat);
+          cudaDeviceSynchronize();
+          printf ("%s\n", status);
+          if (stat != CUBLAS_STATUS_SUCCESS) {
+                  exit(0);
+              }
+         res_out = cuCadd(res_out, result[0]);
+     }
+
     //gpuErrchk(cudaGetLastError());
 
 
-    return cuCreal(result[0]);
+    //return cuCreal(result[0]);
+    return cuCreal(res_out);
     //return 0.0;
 }
 

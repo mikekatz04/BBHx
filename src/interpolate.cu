@@ -83,7 +83,7 @@ __global__ void interpolate(ModeContainer* old_mode_vals, ModeContainer* new_mod
     new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 }
 
-__global__ void interpolate2(ModeContainer* old_mode_vals, ModeContainer* new_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs){
+__global__ void interpolate2(cuDoubleComplex *hI_out,ModeContainer* old_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs, int length){
     int i = blockIdx.y * blockDim.x + threadIdx.x;
     int mode_i = blockIdx.x;
     if (i + ind_min > ind_max) return;
@@ -101,7 +101,7 @@ __global__ void interpolate2(ModeContainer* old_mode_vals, ModeContainer* new_mo
     coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
     coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
 
-    new_mode_vals[mode_i].amp[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+    double amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
     // interp phase
     coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
@@ -109,7 +109,9 @@ __global__ void interpolate2(ModeContainer* old_mode_vals, ModeContainer* new_mo
     coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
     coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
-    new_mode_vals[mode_i].phase[new_index] = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+    double phase = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+    hI_out[mode_i*length + new_index] = make_cuDoubleComplex(amp*cos(phase), -1.0*amp*sin(phase));
 }
 
 Interpolate::Interpolate(){

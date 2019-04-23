@@ -14,9 +14,10 @@ def test():
     m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32) #,
 
     df = 1e-8
-    interp_freq = 1e-5*np.arange(int(1e7))*1e-8
 
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(1e7)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(2e7)*0.1))
+
+    interp_freq = 1e-5+np.arange(len(data))*1e-8
     to_gpu=0
     to_interp = 0
     cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
@@ -52,13 +53,13 @@ def test():
 
     to_gpu=1
     to_interp = 0
-    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(interp_freq),
+    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(data),
      l_vals,
      m_vals,
      to_gpu, to_interp, data)
-    """
+
     #for _ in range(5):
-    for i in range(5):
+    for i in range(1):
         st = time.perf_counter()
         gpu_phenomHM.gpu_gen_PhenomHM(interp_freq, m1,  # solar masses
                      m2,  # solar masses
@@ -69,14 +70,16 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
+        like = gpu_phenomHM.Likelihood(len(interp_freq))
         #check = gpu_phenomHM.Likelihood()
-        print('gpu whole', time.perf_counter() - st)#, 'like', check)
+        print('gpu whole', time.perf_counter() - st, 'like', like)
+
     #import pdb; pdb.set_trace()
     #gpu_amp, gpu_phase = gpu_phenomHM.gpu_Get_Waveform()
     #assert(np.allclose(cpu_amp, gpu_amp))
     #assert(np.allclose(cpu_phase, gpu_phase))
     #print('CPU MATCHES GPU!!!!')
-    """
+
 
     to_gpu=1
     to_interp = 1
@@ -85,9 +88,9 @@ def test():
      m_vals,
      to_gpu, to_interp, data)
 
-    gpu_phenomHM.add_interp(int(1e7))
+    gpu_phenomHM.add_interp(len(interp_freq))
     for i in range(10):
-
+        st = time.perf_counter()
         gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
@@ -97,11 +100,11 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        gpu_phenomHM.interp_wave(1e-5, 1e-8, int(1e7))
+        gpu_phenomHM.interp_wave(1e-5, 1e-8, len(interp_freq))
         print('gpu', time.perf_counter() - st)
         st = time.perf_counter()
 
-        like = gpu_phenomHM.Likelihood(int(1e7))
+        like = gpu_phenomHM.Likelihood(len(interp_freq))
         print('gpu', time.perf_counter() - st, 'like:', like)
     gpu_hI = gpu_phenomHM.gpu_Get_Waveform()
     pdb.set_trace()

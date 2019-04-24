@@ -4,12 +4,13 @@ cimport numpy as np
 assert sizeof(int) == sizeof(np.int32_t)
 
 cdef extern from "src/c_manager.h":
-    cdef cppclass PhenomHMwrap "PhenomHM":
-        PhenomHMwrap(np.float64_t *, int,
+    cdef cppclass GPUPhenomHMwrap "GPUPhenomHM":
+        GPUPhenomHMwrap(int,
         np.uint32_t *,
         np.uint32_t *,
         int)
-        void gen_PhenomHM(double,
+        void cpu_gen_PhenomHM(np.float64_t *, int,
+                            double,
                             double,
                             double,
                             double,
@@ -19,25 +20,25 @@ cdef extern from "src/c_manager.h":
                             double,
                             double)
 
-        double Likelihood()
-        void Get_Waveform(np.complex128_t*, np.complex128_t*)
+        void Get_Waveform(int, np.float64_t*, np.float64_t*)
 
-cdef class PhenomHM:
-    cdef PhenomHMwrap* g
+cdef class GPUPhenomHM:
+    cdef GPUPhenomHMwrap* g
     cdef int num_modes
     cdef int f_dim
+    cdef int data_length
+    cdef int interp_length
 
-    def __cinit__(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
+    def __cinit__(self, max_length,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals):
-        self.f_dim = len(freqs)
         self.num_modes = len(l_vals)
-        self.g = new PhenomHMwrap(&freqs[0], self.f_dim,
+        self.g = new GPUPhenomHMwrap(max_length,
         &l_vals[0],
         &m_vals[0],
         self.num_modes)
 
-    def gen_PhenomHM(self,
+    def cpu_gen_PhenomHM(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses
                         m2, #solar masses
                         chi1z,
@@ -48,7 +49,9 @@ cdef class PhenomHM:
                         deltaF,
                         f_ref):
 
-        self.g.gen_PhenomHM(m1, #solar masses
+        self.f_dim = len(freqs)
+        self.g.cpu_gen_PhenomHM(&freqs[0], self.f_dim,
+                                m1, #solar masses
                                 m2, #solar masses
                                 chi1z,
                                 chi2z,
@@ -58,14 +61,16 @@ cdef class PhenomHM:
                                 deltaF,
                                 f_ref)
 
-    def Likelihood(self):
-        return self.g.Likelihood()
-
     def Get_Waveform(self):
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hptilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim,), dtype=np.float64)
 
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hctilde_ = np.zeros(self.f_dim*self.num_modes, dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim,), dtype=np.float64)
 
-        self.g.Get_Waveform(&hptilde_[0], &hctilde_[0])
+        amp_out = np.zeros((self.num_modes, self.f_dim), dtype=np.float64)
+        phase_out = np.zeros((self.num_modes, self.f_dim), dtype=np.float64)
+        for mode_i in range(self.num_modes):
+            self.g.Get_Waveform(mode_i, &amp_[0], &phase_[0])
+            amp_out[mode_i] = amp_
+            phase_out[mode_i] = phase_
 
-        return (hptilde_.reshape(self.num_modes, self.f_dim), hctilde_.reshape(self.num_modes, self.f_dim))
+        return (amp_out, phase_out)

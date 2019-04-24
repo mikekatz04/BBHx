@@ -50,7 +50,7 @@ def test():
     #    st = time.perf_counter()
     #    spline = np.interp(interp_freq, freq, amp[:len(freq)])
     #    print('scipy', time.perf_counter() - st)
-
+    """
     to_gpu=1
     to_interp = 0
     gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
@@ -71,7 +71,7 @@ def test():
                      deltaF,
                      f_ref)
         like = gpu_phenomHM.Likelihood(len(interp_freq))
-        #check = gpu_phenomHM.Likelihood()
+        check = gpu_phenomHM.Likelihood()
         print('gpu whole', time.perf_counter() - st, 'like', like)
 
     #import pdb; pdb.set_trace()
@@ -79,8 +79,7 @@ def test():
     #assert(np.allclose(cpu_amp, gpu_amp))
     #assert(np.allclose(cpu_phase, gpu_phase))
     #print('CPU MATCHES GPU!!!!')
-    exit()
-
+    """
     to_gpu=1
     to_interp = 1
     gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
@@ -89,8 +88,10 @@ def test():
      to_gpu, to_interp, data)
 
     gpu_phenomHM.add_interp(len(interp_freq))
-    for i in range(10):
-        st = time.perf_counter()
+    num = 10000
+    st = time.perf_counter()
+    for i in range(num):
+
         gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
@@ -101,13 +102,11 @@ def test():
                      deltaF,
                      f_ref)
         gpu_phenomHM.interp_wave(1e-5, 1e-8, len(interp_freq))
-        print('gpu', time.perf_counter() - st)
-        st = time.perf_counter()
-
         like = gpu_phenomHM.Likelihood(len(interp_freq))
-        print('gpu', time.perf_counter() - st, 'like:', like)
+        
+    t = time.perf_counter() - st
+    print('gpu per waveform:', t/num)
     gpu_hI = gpu_phenomHM.gpu_Get_Waveform()
-    pdb.set_trace()
 
 
 if __name__ == "__main__":

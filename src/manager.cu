@@ -253,7 +253,6 @@ void GPUPhenomHM::gpu_gen_PhenomHM(double *freqs_, int f_length_,
         deltaF_,
         f_ref_);
 
-        printf("past\n");
     // Initialize inputs
     //gpuErrchk(cudaMemcpy(d_mode_vals, mode_vals, num_modes*sizeof(ModeContainer), cudaMemcpyHostToDevice));
 
@@ -274,7 +273,7 @@ void GPUPhenomHM::gpu_gen_PhenomHM(double *freqs_, int f_length_,
     NUM_THREADS = 256;
     num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_modes, num_blocks);
-    printf("blocks %d\n", num_blocks);
+    //printf("blocks %d\n", num_blocks);
     kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals,
           d_pHM_trans,
           d_freqs,
@@ -396,7 +395,7 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
     dim3 interp_dim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    printf("NUM MODES %d\n", num_modes);
+    //printf("NUM MODES %d\n", num_modes);
     interpolate<<<interp_dim, NUM_THREADS>>>(d_hI, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
@@ -560,7 +559,7 @@ double GPUPhenomHM::Likelihood (int like_length){
                  result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
-          printf ("%s\n", status);
+          //printf ("%s\n", status);
           if (stat != CUBLAS_STATUS_SUCCESS) {
                   exit(0);
               }

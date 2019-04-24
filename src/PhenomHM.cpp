@@ -194,7 +194,7 @@ int init_IMRPhenomHMGet_FrequencyBounds_storage(
                 //"custom frequencies must be increasing.");
         }
 
-        printf("Using custom frequency input.\n");
+        //printf("Using custom frequency input.\n");
         p->f_min = freqs->data[0];
         p->f_max = freqs->data[freqs->length - 1]; /* Last element */
 
@@ -1117,7 +1117,7 @@ failed");
     /* Two possibilities */
     if (pHM->freq_is_uniform == 1)
     { /* 1. uniformly spaced */
-        printf("freq_is_uniform = True\n");
+        //printf("freq_is_uniform = True\n");
 /**
         freqs = CreateRealVector(pHM->npts);
         phases = CreateRealVector(pHM->npts);
@@ -1141,7 +1141,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     }
     else if (pHM->freq_is_uniform == 0)
     { /* 2. arbitrarily space */
-        printf("freq_is_uniform = False\n");
+        //printf("freq_is_uniform = False\n");
         freqs = pHM->freqs; /* This is in Hz */
         //phases = CreateRealVector(freqs->length);
         //amps = CreateRealVector(freqs->length);
@@ -1324,7 +1324,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     //free(pHM);
 
 
-    printf("\n\n\n\n\n\n");
+    //printf("\n\n\n\n\n\n");
     free(pHMFS);
     //DestroyRealVector(freqs_geom);
     free(freqs); // TODO check this

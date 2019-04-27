@@ -333,15 +333,10 @@ void GPUPhenomHM::cpu_interp_wave(double f_min, double df, int length_new){
     host_interpolate(hI, mode_vals, num_modes, f_min, df, d_log10f, freqs, length_new);
 }
 
-void GPUPhenomHM::cpu_LISAresponseFD(double inc, double lam, double beta, double psi){
+void GPUPhenomHM::cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag){
     H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phi0);
-    for (int mode_i=0; mode_i<num_modes; mode_i++){
-        for (int i=0; i<3; i++){
-            for (int j=0; j<3; j++){
-                printf("(%d, %d, %d, %d): %e, %e\n", l_vals[mode_i], m_vals[mode_i], i, j, std::real(H[mode_i*9 + i*3+j]), std::imag(H[mode_i*9 + i*3+j]));
-            }
-        }
-    }
+    double d_log10f = log10(freqs[1]) - log10(freqs[0]);
+    JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, f_length, inc, lam, beta, psi, phi0, tc, tShift, TDItag, 0);
 }
 
 

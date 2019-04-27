@@ -331,7 +331,7 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam,
 
 
 
-void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, double *tm_ds, int num_points, double inc, double lam, double beta, double psi, double phi0, double tc, double tShift, int TDItag, int order_fresnel_stencil){
+void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double tc, double tShift, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     cmplx I(0.0, 1.0);
     double t0 = 0.0;

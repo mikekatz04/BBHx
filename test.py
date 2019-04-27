@@ -14,6 +14,9 @@ def test():
     lam = 0.3
     beta = 0.2
     psi = np.pi/3.
+    tc = 0.9*ct.Julian_year
+    tShift = 0.0
+    TDItag = 2
 
     l_vals = np.array([2, 3, 4, 4, 3], dtype=np.uint32) #
     m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32) #,
@@ -45,7 +48,7 @@ def test():
                      deltaF,
                      f_ref)
         cpu_phenomHM.cpu_interp_wave(1e-5, 1e-8, len(interp_freq))
-        cpu_phenomHM.cpu_LISAresponseFD(inc, lam, beta, psi)
+        cpu_phenomHM.cpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
 
     cpu_hI = cpu_phenomHM.Get_Waveform()
     #import pdb; pdb.set_trace()

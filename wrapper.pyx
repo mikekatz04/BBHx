@@ -37,7 +37,7 @@ cdef extern from "src/manager.hh":
         void add_interp(int)
         void cpu_interp_wave(double, double, int)
         void interp_wave(double, double, int)
-        void cpu_LISAresponseFD(double, double, double, double)
+        void cpu_LISAresponseFD(double, double, double, double, double, double, int)
         double Likelihood(int)
         void Get_Waveform(np.complex128_t*)
         void gpu_Get_Waveform(np.complex128_t*)
@@ -120,8 +120,8 @@ cdef class GPUPhenomHM:
         self.g.cpu_interp_wave(f_min, df, length_new)
         return
 
-    def cpu_LISAresponseFD(self, inc, lam, beta, psi):
-        self.g.cpu_LISAresponseFD(inc, lam, beta, psi)
+    def cpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
+        self.g.cpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
         return
 
     def Likelihood(self, length):

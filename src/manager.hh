@@ -80,13 +80,30 @@ class GPUPhenomHM {
   std::complex<double> *data_stream;
   std::complex<double> *hI;
   std::complex<double> *hII;
+  std::complex<double> *hI_out;
+  std::complex<double> *hII_out;
+  std::complex<double> *X;
+  std::complex<double> *Y;
+  std::complex<double> *Z;
   cuDoubleComplex *d_data_stream;
+  cuDoubleComplex *d_X;
+  cuDoubleComplex *d_Y;
+  cuDoubleComplex *d_Z;
+
   cuDoubleComplex *d_hI;
   cuDoubleComplex *d_hII;
 
   cuDoubleComplex *d_hI_out;
   cuDoubleComplex *d_hII_out;
   cuDoubleComplex *d_ones;
+
+  double inc;
+  double lam;
+  double beta;
+  double psi;
+  double tc;
+  double tShift;
+  int TDItag;
 
 
 public:
@@ -137,11 +154,13 @@ public:
 
 
   void interp_wave(double f_min, double dF, int length_new);
-  void cpu_interp_wave(double f_min, double df, int length_new);
+  void cpu_setup_interp_wave();
+  void cpu_setup_interp_response();
   void cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
+  void cpu_perform_interp(double f_min, double df, int length_new);
   double Likelihood (int length);
   //gets results back from the gpu, putting them in the supplied memory location
-  void Get_Waveform (std::complex<double>* hI_);
+  void Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
   void gpu_Get_Waveform (std::complex<double>* hI_);
 
 };

@@ -35,11 +35,13 @@ cdef extern from "src/manager.hh":
                             double)
 
         void add_interp(int)
-        void cpu_interp_wave(double, double, int)
+        void cpu_setup_interp_wave()
+        void cpu_setup_interp_response()
+        void cpu_perform_interp(double, double, int)
         void interp_wave(double, double, int)
         void cpu_LISAresponseFD(double, double, double, double, double, double, int)
         double Likelihood(int)
-        void Get_Waveform(np.complex128_t*)
+        void Get_Waveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
         void gpu_Get_Waveform(np.complex128_t*)
 
 cdef class GPUPhenomHM:
@@ -116,23 +118,33 @@ cdef class GPUPhenomHM:
         self.g.interp_wave(f_min, df, length_new)
         return
 
-    def cpu_interp_wave(self, f_min, df, length_new):
-        self.g.cpu_interp_wave(f_min, df, length_new)
+    def cpu_setup_interp_wave(self):
+        self.g.cpu_setup_interp_wave()
+        return
+
+    def cpu_setup_interp_response(self):
+        self.g.cpu_setup_interp_response()
         return
 
     def cpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
         self.g.cpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
         return
 
+    def cpu_perform_interp(self, f_min, df, length_new):
+        self.g.cpu_perform_interp(f_min, df, length_new)
+        return
+
     def Likelihood(self, length):
         return self.g.Likelihood(length)
 
     def Get_Waveform(self):
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hI_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
 
-        self.g.Get_Waveform(&hI_[0])
+        self.g.Get_Waveform(&X_[0], &Y_[0], &Z_[0])
 
-        return hI_.reshape(self.num_modes, self.interp_length)
+        return (X_.reshape(self.num_modes, self.interp_length), Y_.reshape(self.num_modes, self.interp_length), Z_.reshape(self.num_modes, self.interp_length))
 
     def gpu_Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] hI_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)

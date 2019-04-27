@@ -350,7 +350,7 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs
             coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
             coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
-            t = 1./(2.*PI)*(coeff_1 + coeff_2*x + coeff_3*x2); // derivative of the spline
+            t = 1./(2.*PI)*(coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2); // derivative of the spline
             transferL_holder transferL = JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);

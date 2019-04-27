@@ -47,11 +47,13 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        cpu_phenomHM.cpu_interp_wave(1e-5, 1e-8, len(interp_freq))
+        cpu_phenomHM.cpu_setup_interp_wave()
         cpu_phenomHM.cpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
+        cpu_phenomHM.cpu_setup_interp_response()
+        cpu_phenomHM.cpu_perform_interp(1e-5, 1e-7, len(interp_freq))
 
-    cpu_hI = cpu_phenomHM.Get_Waveform()
-    #import pdb; pdb.set_trace()
+    cpu_X, cpu_Y, cpu_Z = cpu_phenomHM.Get_Waveform()
+
     #amp = np.abs(cpu_amp).flatten()
     #phase = np.unwrap(np.arctan2(cpu_amp.real, cpu_amp.imag)).flatten()
     #cpu_phenomHM.interp_wave(amp, phase)

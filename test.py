@@ -19,11 +19,13 @@ def test():
 
     interp_freq = 1e-5+np.arange(len(data))*1e-8
     to_gpu=0
-    to_interp = 0
+    to_interp = 1
     cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
      to_gpu, to_interp, data)
+
+    cpu_phenomHM.add_interp(len(interp_freq))
 
     #cpu_phenomHM.add_interp(interp_freq, len(interp_freq))
     for i in range(1):
@@ -37,9 +39,10 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
+        cpu_phenomHM.cpu_interp_wave(1e-5, 1e-8, len(interp_freq))
 
-    cpu_amp, cpu_phase = cpu_phenomHM.Get_Waveform()
-
+    cpu_hI = cpu_phenomHM.Get_Waveform()
+    #import pdb; pdb.set_trace()
     #amp = np.abs(cpu_amp).flatten()
     #phase = np.unwrap(np.arctan2(cpu_amp.real, cpu_amp.imag)).flatten()
     #cpu_phenomHM.interp_wave(amp, phase)
@@ -57,6 +60,7 @@ def test():
      l_vals,
      m_vals,
      to_gpu, to_interp, data)
+
 
     num = 100
     #for _ in range(5):
@@ -91,7 +95,7 @@ def test():
      to_gpu, to_interp, data)
 
     gpu_phenomHM.add_interp(len(interp_freq))
-    num = 10000
+    num = 100
     st = time.perf_counter()
     for i in range(num):
 
@@ -110,6 +114,7 @@ def test():
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
     gpu_hI = gpu_phenomHM.gpu_Get_Waveform()
+    #import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":

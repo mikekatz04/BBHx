@@ -35,9 +35,10 @@ cdef extern from "src/manager.hh":
                             double)
 
         void add_interp(int)
+        void cpu_interp_wave(double, double, int)
         void interp_wave(double, double, int)
         double Likelihood(int)
-        void Get_Waveform(int, np.float64_t*, np.float64_t*)
+        void Get_Waveform(np.complex128_t*)
         void gpu_Get_Waveform(np.complex128_t*)
 
 cdef class GPUPhenomHM:
@@ -114,22 +115,19 @@ cdef class GPUPhenomHM:
         self.g.interp_wave(f_min, df, length_new)
         return
 
+    def cpu_interp_wave(self, f_min, df, length_new):
+        self.g.cpu_interp_wave(f_min, df, length_new)
+        return
+
     def Likelihood(self, length):
         return self.g.Likelihood(length)
 
     def Get_Waveform(self):
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hI_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
 
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim,), dtype=np.float64)
+        self.g.Get_Waveform(&hI_[0])
 
-        amp_out = np.zeros((self.num_modes, self.f_dim), dtype=np.float64)
-        phase_out = np.zeros((self.num_modes, self.f_dim), dtype=np.float64)
-        for mode_i in range(self.num_modes):
-            self.g.Get_Waveform(mode_i, &amp_[0], &phase_[0])
-            amp_out[mode_i] = amp_
-            phase_out[mode_i] = phase_
-
-        return (amp_out, phase_out)
+        return hI_.reshape(self.num_modes, self.interp_length)
 
     def gpu_Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] hI_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)

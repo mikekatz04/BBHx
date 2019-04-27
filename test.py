@@ -58,7 +58,7 @@ def test():
      m_vals,
      to_gpu, to_interp, data)
 
-    num = 10000
+    num = 100
     #for _ in range(5):
     st = time.perf_counter()
     for i in range(num):

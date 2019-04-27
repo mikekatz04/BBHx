@@ -16,6 +16,25 @@
 #define GAMMA     0.577215664901532860606512090082402431
 #define PC_SI 3.085677581491367278913937957796471611e16 /**< Parsec, m */
 
+#define YRSID_SI 31558149.763545600
+
+#define F0 3.168753578687779e-08
+#define Omega0 1.9909865927683788e-07
+
+#define ua 149597870700.
+#define R_SI 149597870700.
+#define AU_SI 149597870700.
+#define aorbit 149597870700.
+
+#define clight 299792458.0
+#define sqrt3 1.7320508075688772
+#define invsqrt3 0.5773502691896258
+#define invsqrt6 0.4082482904638631
+#define sqrt2 1.4142135623730951
+#define L_SI 2.5e9
+#define eorbit 0.004824185218078991
+#define C_SI 299792458.0
+
 #define NMODES_MAX 6
 
 /**
@@ -257,6 +276,8 @@ typedef struct tagModeContainer{
     int to_gpu;
     int to_interp;
 
+    double *freq_amp_phase;
+    double d_log10f_amp_phase;
     double *amp;
     double *phase;
     double *amp_coeff_1;
@@ -265,6 +286,41 @@ typedef struct tagModeContainer{
     double *phase_coeff_1;
     double *phase_coeff_2;
     double *phase_coeff_3;
+
+    double *freq_response;
+    double d_log10f_response;
+
+    double *phaseRdelay;
+    double *phaseRdelay_coeff_1;
+    double *phaseRdelay_coeff_2;
+    double *phaseRdelay_coeff_3;
+
+    double *transferL1_re;
+    double *transferL1_im;
+    double *transferL1_re_coeff_1;
+    double *transferL1_re_coeff_2;
+    double *transferL1_re_coeff_3;
+    double *transferL1_im_coeff_1;
+    double *transferL1_im_coeff_2;
+    double *transferL1_im_coeff_3;
+
+    double *transferL2_re;
+    double *transferL2_im;
+    double *transferL2_re_coeff_1;
+    double *transferL2_re_coeff_2;
+    double *transferL2_re_coeff_3;
+    double *transferL2_im_coeff_1;
+    double *transferL2_im_coeff_2;
+    double *transferL2_im_coeff_3;
+
+    double *transferL3_re;
+    double *transferL3_im;
+    double *transferL3_re_coeff_1;
+    double *transferL3_re_coeff_2;
+    double *transferL3_re_coeff_3;
+    double *transferL3_im_coeff_1;
+    double *transferL3_im_coeff_2;
+    double *transferL3_im_coeff_3;
 
 } ModeContainer;
 

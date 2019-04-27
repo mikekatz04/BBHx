@@ -39,6 +39,7 @@ class GPUPhenomHM {
   int retcode;
   double m1_SI;
   double m2_SI;
+  std::complex<double> *H;
 
   double *d_freqs;
   unsigned int *d_l_vals;
@@ -49,6 +50,7 @@ class GPUPhenomHM {
   PhenDAmpAndPhasePreComp *d_pDPreComp_all_trans;
   HMPhasePreComp *d_q_all_trans;
   double *d_cShift;
+  cuDoubleComplex *d_H;
 
   dim3 gridDim;
   int NUM_THREADS;

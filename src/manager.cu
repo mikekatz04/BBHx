@@ -17,95 +17,11 @@ This class will get translated into python via swig
 #include "cuComplex.h"
 #include "cublas_v2.h"
 #include "interpolate.cu"
+#include "fdresponse.h"
+#include "createGPUHolders.cu"
 
 
 using namespace std;
-
-
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess)
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
-
-
-ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp){
-        ModeContainer * cpu_mode_vals = cpu_create_modes(num_modes,  l_vals, m_vals, max_length, 1, 0);
-        ModeContainer * mode_vals;
-
-        double *amp[num_modes];
-        double *phase[num_modes];
-
-        //cuDoubleComplex *hI[num_modes];
-        //cuDoubleComplex *hII[num_modes];
-
-        double *amp_coeff_1[num_modes];
-        double *amp_coeff_2[num_modes];
-        double *amp_coeff_3[num_modes];
-
-        double *phase_coeff_1[num_modes];
-        double *phase_coeff_2[num_modes];
-        double *phase_coeff_3[num_modes];
-
-
-        gpuErrchk(cudaMalloc(&mode_vals, num_modes*sizeof(ModeContainer)));
-        gpuErrchk(cudaMemcpy(mode_vals, cpu_mode_vals, num_modes*sizeof(ModeContainer), cudaMemcpyHostToDevice));
-
-        for (int i=0; i<num_modes; i++){
-            gpuErrchk(cudaMalloc(&amp[i], max_length*sizeof(double)));
-            gpuErrchk(cudaMalloc(&phase[i], max_length*sizeof(double)));
-
-            gpuErrchk(cudaMemcpy(&(mode_vals[i].amp), &(amp[i]), sizeof(double *), cudaMemcpyHostToDevice));
-            gpuErrchk(cudaMemcpy(&(mode_vals[i].phase), &(phase[i]), sizeof(double *), cudaMemcpyHostToDevice));
-
-            /*gpuErrchk(cudaMalloc(&hI[i], max_length*sizeof(cuDoubleComplex)));
-            gpuErrchk(cudaMalloc(&hII[i], max_length*sizeof(cuDoubleComplex)));
-
-            cudaMemcpy(&(mode_vals[i].hI), &(hI[i]), sizeof(cuDoubleComplex *), cudaMemcpyHostToDevice);
-            cudaMemcpy(&(mode_vals[i].hII), &(hII[i]), sizeof(cuDoubleComplex *), cudaMemcpyHostToDevice);*/
-
-            if (to_interp == 1){
-                gpuErrchk(cudaMalloc(&amp_coeff_1[i], (max_length-1)*sizeof(double)));
-                gpuErrchk(cudaMalloc(&amp_coeff_2[i], (max_length-1)*sizeof(double)));
-                gpuErrchk(cudaMalloc(&amp_coeff_3[i], (max_length-1)*sizeof(double)));
-                gpuErrchk(cudaMalloc(&phase_coeff_1[i], (max_length-1)*sizeof(double)));
-                gpuErrchk(cudaMalloc(&phase_coeff_2[i], (max_length-1)*sizeof(double)));
-                gpuErrchk(cudaMalloc(&phase_coeff_3[i], (max_length-1)*sizeof(double)));
-
-                gpuErrchk(cudaMemcpy(&(mode_vals[i].amp_coeff_1), &(amp_coeff_1[i]), sizeof(double *), cudaMemcpyHostToDevice));
-                gpuErrchk(cudaMemcpy(&(mode_vals[i].amp_coeff_2), &(amp_coeff_2[i]), sizeof(double *), cudaMemcpyHostToDevice));
-                gpuErrchk(cudaMemcpy(&(mode_vals[i].amp_coeff_3), &(amp_coeff_3[i]), sizeof(double *), cudaMemcpyHostToDevice));
-                gpuErrchk(cudaMemcpy(&(mode_vals[i].phase_coeff_1), &(phase_coeff_1[i]), sizeof(double *), cudaMemcpyHostToDevice));
-                gpuErrchk(cudaMemcpy(&(mode_vals[i].phase_coeff_2), &(phase_coeff_2[i]), sizeof(double *), cudaMemcpyHostToDevice));
-                gpuErrchk(cudaMemcpy(&(mode_vals[i].phase_coeff_3), &(phase_coeff_3[i]), sizeof(double *), cudaMemcpyHostToDevice));
-            }
-        }
-
-        return mode_vals;
-}
-
-void gpu_destroy_modes(ModeContainer * mode_vals){
-    for (int i=0; i<mode_vals[0].num_modes; i++){
-        gpuErrchk(cudaFree(mode_vals[i].amp));
-        gpuErrchk(cudaFree(mode_vals[i].phase));
-        //gpuErrchk(cudaFree(mode_vals[i].hI));
-        //gpuErrchk(cudaFree(mode_vals[i].hII));
-        if (mode_vals[i].to_interp == 1){
-            gpuErrchk(cudaFree(mode_vals[i].amp_coeff_1));
-            gpuErrchk(cudaFree(mode_vals[i].amp_coeff_2));
-            gpuErrchk(cudaFree(mode_vals[i].amp_coeff_3));
-            gpuErrchk(cudaFree(mode_vals[i].phase_coeff_1));
-            gpuErrchk(cudaFree(mode_vals[i].phase_coeff_2));
-            gpuErrchk(cudaFree(mode_vals[i].phase_coeff_3));
-        }
-    }
-    gpuErrchk(cudaFree(mode_vals));
-}
-
 
 GPUPhenomHM::GPUPhenomHM (int max_length_,
     unsigned int *l_vals_,

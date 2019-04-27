@@ -39,13 +39,14 @@ cdef extern from "src/manager.hh":
         void gpu_setup_interp_wave()
         void cpu_setup_interp_wave()
 
-        void cpu_setup_interp_response()
-
         void gpu_perform_interp(double, double, int)
         void cpu_perform_interp(double, double, int)
 
         void cpu_LISAresponseFD(double, double, double, double, double, double, int)
         void gpu_LISAresponseFD(double, double, double, double, double, double, int)
+
+        void gpu_setup_interp_response()
+        void cpu_setup_interp_response()
 
         double Likelihood(int)
         void Get_Waveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
@@ -129,16 +130,20 @@ cdef class GPUPhenomHM:
         self.g.cpu_setup_interp_wave()
         return
 
-    def cpu_setup_interp_response(self):
-        self.g.cpu_setup_interp_response()
+    def gpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
+        self.g.gpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
         return
 
     def cpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
         self.g.cpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
         return
 
-    def gpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
-        self.g.gpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
+    def gpu_setup_interp_response(self):
+        self.g.gpu_setup_interp_response()
+        return
+
+    def cpu_setup_interp_response(self):
+        self.g.cpu_setup_interp_response()
         return
 
     def gpu_perform_interp(self, f_min, df, length_new):

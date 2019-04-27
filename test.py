@@ -120,8 +120,8 @@ def test():
                      deltaF,
                      f_ref)
         gpu_phenomHM.gpu_setup_interp_wave()
-        gpu_phenomHM.gpu_setup_interp_wave()
         gpu_phenomHM.gpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
+        gpu_phenomHM.gpu_setup_interp_response()
         gpu_phenomHM.gpu_perform_interp(1e-5, 1e-8, len(interp_freq))
         like = gpu_phenomHM.Likelihood(len(interp_freq))
 

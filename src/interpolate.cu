@@ -62,7 +62,42 @@ void host_fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int
     }
 }
 
-__global__ void fill_B(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+__global__
+void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    if (i >= f_length) return;
+    if (mode_i >= num_modes) return;
+
+            if (i == f_length - 1){
+                B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i] - mode_vals[mode_i].phaseRdelay[i-1]);
+                B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i] - mode_vals[mode_i].transferL1_re[i-1]);
+                B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i] - mode_vals[mode_i].transferL1_im[i-1]);
+                B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i] - mode_vals[mode_i].transferL2_re[i-1]);
+                B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i] - mode_vals[mode_i].transferL2_im[i-1]);
+                B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i] - mode_vals[mode_i].transferL3_re[i-1]);
+                B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i] - mode_vals[mode_i].transferL3_im[i-1]);
+
+            } else if (i == 0){
+                B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[1] - mode_vals[mode_i].phaseRdelay[0]);
+                B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[1] - mode_vals[mode_i].transferL1_re[0]);
+                B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[1] - mode_vals[mode_i].transferL1_im[0]);
+                B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[1] - mode_vals[mode_i].transferL2_re[0]);
+                B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[1] - mode_vals[mode_i].transferL2_im[0]);
+                B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[1] - mode_vals[mode_i].transferL3_re[0]);
+                B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[1] - mode_vals[mode_i].transferL3_im[0]);
+            } else{
+                B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i+1] - mode_vals[mode_i].phaseRdelay[i-1]);
+                B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i+1] - mode_vals[mode_i].transferL1_re[i-1]);
+                B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i+1] - mode_vals[mode_i].transferL1_im[i-1]);
+                B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i+1] - mode_vals[mode_i].transferL2_re[i-1]);
+                B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i+1] - mode_vals[mode_i].transferL2_im[i-1]);
+                B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i+1] - mode_vals[mode_i].transferL3_re[i-1]);
+                B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i+1] - mode_vals[mode_i].transferL3_im[i-1]);
+            }
+}
+
+__global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int mode_i = blockIdx.x;
     int i = blockIdx.y * blockDim.x + threadIdx.x;
     if (i >= f_length) return;
@@ -165,7 +200,72 @@ void host_set_spline_constants_response(ModeContainer *mode_vals, double *B, int
     }
 }
 
-__global__ void set_spline_constants(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+__global__
+void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    double D_i, D_ip1, y_i, y_ip1;
+    int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    if (i >= f_length) return;
+    if (mode_i >= num_modes) return;
+
+            D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(0*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].phaseRdelay[i];
+            y_ip1 = mode_vals[mode_i].phaseRdelay[i+1];
+            mode_vals[mode_i].phaseRdelay_coeff_1[i] = D_i;
+            mode_vals[mode_i].phaseRdelay_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].phaseRdelay_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(1*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(1*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].transferL1_re[i];
+            y_ip1 = mode_vals[mode_i].transferL1_re[i+1];
+            mode_vals[mode_i].transferL1_re_coeff_1[i] = D_i;
+            mode_vals[mode_i].transferL1_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].transferL1_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(2*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(2*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].transferL1_im[i];
+            y_ip1 = mode_vals[mode_i].transferL1_im[i+1];
+            mode_vals[mode_i].transferL1_im_coeff_1[i] = D_i;
+            mode_vals[mode_i].transferL1_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].transferL1_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(3*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(3*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].transferL2_re[i];
+            y_ip1 = mode_vals[mode_i].transferL2_re[i+1];
+            mode_vals[mode_i].transferL2_re_coeff_1[i] = D_i;
+            mode_vals[mode_i].transferL2_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].transferL2_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(4*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(4*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].transferL2_im[i];
+            y_ip1 = mode_vals[mode_i].transferL2_im[i+1];
+            mode_vals[mode_i].transferL2_im_coeff_1[i] = D_i;
+            mode_vals[mode_i].transferL2_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].transferL2_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(5*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(5*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].transferL3_re[i];
+            y_ip1 = mode_vals[mode_i].transferL3_re[i+1];
+            mode_vals[mode_i].transferL3_re_coeff_1[i] = D_i;
+            mode_vals[mode_i].transferL3_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].transferL3_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(6*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(6*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].transferL3_im[i];
+            y_ip1 = mode_vals[mode_i].transferL3_im[i+1];
+            mode_vals[mode_i].transferL3_im_coeff_1[i] = D_i;
+            mode_vals[mode_i].transferL3_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].transferL3_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+}
+
+__global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int mode_i = blockIdx.x;
     int i = blockIdx.y * blockDim.x + threadIdx.x;
     if (i >= f_length-1) return;
@@ -205,7 +305,6 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
             x2 = x*x;
             x3 = x*x2;
-            coeff_0, coeff_1, coeff_2, coeff_3;
             // interp amplitude
             coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
             if (coeff_0 < 1e-50){

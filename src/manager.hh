@@ -156,10 +156,11 @@ public:
   void gpu_setup_interp_wave();
   void cpu_setup_interp_wave();
 
-  void cpu_setup_interp_response();
-
+  void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
   void cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
-   void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
+
+  void gpu_setup_interp_response();
+  void cpu_setup_interp_response();
 
   void gpu_perform_interp(double f_min, double df, int length_new);
   void cpu_perform_interp(double f_min, double df, int length_new);

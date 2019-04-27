@@ -153,11 +153,17 @@ public:
         double f_ref_);
 
 
-  void interp_wave(double f_min, double dF, int length_new);
+  void gpu_setup_interp_wave();
   void cpu_setup_interp_wave();
+
   void cpu_setup_interp_response();
+
   void cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
+   void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
+
+  void gpu_perform_interp(double f_min, double df, int length_new);
   void cpu_perform_interp(double f_min, double df, int length_new);
+
   double Likelihood (int length);
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);

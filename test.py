@@ -64,7 +64,7 @@ def test():
     #    st = time.perf_counter()
     #    spline = np.interp(interp_freq, freq, amp[:len(freq)])
     #    print('scipy', time.perf_counter() - st)
-
+    """
     to_gpu=1
     to_interp = 0
     gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
@@ -91,7 +91,7 @@ def test():
         check = gpu_phenomHM.Likelihood(len(freq))
     t = time.perf_counter() - st
     print('gpu whole:', t/num)
-
+    """
     #import pdb; pdb.set_trace()
     #gpu_amp, gpu_phase = gpu_phenomHM.gpu_Get_Waveform()
     #assert(np.allclose(cpu_amp, gpu_amp))
@@ -119,7 +119,10 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        gpu_phenomHM.interp_wave(1e-5, 1e-8, len(interp_freq))
+        gpu_phenomHM.gpu_setup_interp_wave()
+        gpu_phenomHM.gpu_setup_interp_wave()
+        gpu_phenomHM.gpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
+        gpu_phenomHM.gpu_perform_interp(1e-5, 1e-8, len(interp_freq))
         like = gpu_phenomHM.Likelihood(len(interp_freq))
 
     t = time.perf_counter() - st

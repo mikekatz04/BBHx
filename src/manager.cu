@@ -19,6 +19,7 @@ This class will get translated into python via swig
 #include "interpolate.cu"
 #include "fdresponse.h"
 #include "createGPUHolders.cu"
+#include "kernel_response.cu"
 
 
 using namespace std;
@@ -64,6 +65,9 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
   mode_vals = cpu_create_modes(num_modes, l_vals, m_vals, max_length, to_gpu, to_interp);
 
   if (to_gpu == 1){
+
+      gpuErrchk(cudaMalloc(&d_H, 9*num_modes*sizeof(cuDoubleComplex)));
+
       cuDoubleComplex * ones = new cuDoubleComplex[num_modes];
       for (int i=0; i<(num_modes); i++) ones[i] = make_cuDoubleComplex(1.0, 0.0);
       gpuErrchk(cudaMalloc(&d_ones, num_modes*sizeof(cuDoubleComplex)));
@@ -299,7 +303,7 @@ __global__ void debug(ModeContainer *mode_vals, int num_modes, int length){
     //phase[i] = mode_vals[mode_i].phase[i];
 }
 
-void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
+void GPUPhenomHM::gpu_setup_interp_wave(){
 
     dim3 check_dim(num_modes, num_blocks);
     int check_num_threads = 256;
@@ -316,15 +320,6 @@ void GPUPhenomHM::interp_wave(double f_min, double df, int length_new){
     gpuErrchk(cudaGetLastError());
 
     set_spline_constants<<<check_dim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
-
-    int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
-    dim3 interp_dim(num_modes, num_block_interp);
-    double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    //printf("NUM MODES %d\n", num_modes);
-    interpolate<<<interp_dim, NUM_THREADS>>>(d_hI, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new);
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());
-    //TODO need to make this more adaptable (especially for smaller amounts)
 }
 
 void GPUPhenomHM::cpu_setup_interp_wave(){
@@ -334,11 +329,6 @@ void GPUPhenomHM::cpu_setup_interp_wave(){
 }
 
 //void GPUPhenomHM::cpu_setup_interp_response(double f_min, double df, int length_new)
-void GPUPhenomHM::cpu_setup_interp_response(){
-    host_fill_B_response(mode_vals, B, f_length, num_modes);
-    interp.prep(B, f_length, 7*num_modes, 0);
-    host_set_spline_constants_response(mode_vals, B, f_length, num_modes);
-}
 
 void GPUPhenomHM::cpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double tc_, double tShift_, int TDItag_){
     inc = inc_;
@@ -352,6 +342,45 @@ void GPUPhenomHM::cpu_LISAresponseFD(double inc_, double lam_, double beta_, dou
     H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phi0);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, f_length, inc, lam, beta, psi, phi0, tc, tShift, TDItag, 0);
+}
+
+void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double tc_, double tShift_, int TDItag_){
+    inc = inc_;
+    lam = lam_;
+    beta = beta_;
+    psi = psi_;
+    tc = tc_;
+    tShift = tShift_;
+    TDItag = TDItag_;
+
+    H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phi0);
+    gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+    double d_log10f = log10(freqs[1]) - log10(freqs[0]);
+
+    int num_blocks = std::ceil((f_length + NUM_THREADS - 1)/NUM_THREADS);
+    dim3 gridDim(num_modes, num_blocks);
+
+    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, f_length, inc, lam, beta, psi, phi0, tc, tShift, TDItag, 0);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+}
+
+
+void GPUPhenomHM::cpu_setup_interp_response(){
+    host_fill_B_response(mode_vals, B, f_length, num_modes);
+    interp.prep(B, f_length, 7*num_modes, 0);
+    host_set_spline_constants_response(mode_vals, B, f_length, num_modes);
+}
+
+void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
+    int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
+    dim3 interp_dim(num_modes, num_block_interp);
+    double d_log10f = log10(freqs[1]) - log10(freqs[0]);
+    //printf("NUM MODES %d\n", num_modes);
+    interpolate<<<interp_dim, NUM_THREADS>>>(d_hI, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    //TODO need to make this more adaptable (especially for smaller amounts)
 }
 
 void GPUPhenomHM::cpu_perform_interp(double f_min, double df, int length_new){

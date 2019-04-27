@@ -194,9 +194,9 @@ Gslr_holder EvaluateGslr(double t, double f, cmplx *H, double k[3], int response
     double p3L[3] = {a*e/2*(-sqrt3*c*s + (1 + s*s)), a*e/2*(-c*s + sqrt3*(1 + c*c)), -a*e*sqrt3/2*(-sqrt3*s - c)}; //funcp3L(t)
     double n1[3] = {-1./2*c*s, 1./2*(1 + c*c), sqrt3/2*s}; //funcn1(t)
     double n2[3] = {c*s - sqrt3*(1 + s*s), sqrt3*c*s - (1 + c*c), -sqrt3*s - 3*c}; //funcn2(t)
-    for (int i; i<3; i++) n2[i] = n2[i]*1./4.;
+    for (int i=0; i<3; i++) n2[i] = n2[i]*1./4.;
     double n3[3] = {c*s + sqrt3*(1 + s*s), -sqrt3*c*s - (1 + c*c), -sqrt3*s + 3*c}; //funcn3(t)
-    for (int i; i<3; i++) n3[i] = n3[i]*1./4.;
+    for (int i=0; i<3; i++) n3[i] = n3[i]*1./4.;
     // # Compute intermediate scalar products
     // t scalar case
     double kn1 = dot_product_1d(k, n1);
@@ -333,11 +333,9 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam,
 
 void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double tc, double tShift, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
-    cmplx I(0.0, 1.0);
     double t0 = 0.0;
     double phasetimeshift;
     double f, t, x, x2, coeff_1, coeff_2, coeff_3;
-    cmplx fastPart;
     int old_ind_below;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<num_points; i++){

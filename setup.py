@@ -112,7 +112,7 @@ lib_gsl_dir = "/opt/local/lib"
 include_gsl_dir = "/opt/local/include"
 
 ext = Extension('gpuPhenomHM',
-        sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/manager.cu', 'wrapper.pyx'],
+        sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/fdresponse.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/manager.cu', 'wrapper.pyx'],
         library_dirs = [lib_gsl_dir, CUDA['lib64']],
         libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas"],
         language = 'c++',

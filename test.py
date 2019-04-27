@@ -10,8 +10,13 @@ def test():
     df = 1e-4
     freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 1024), 0.0, 1e-5, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
-    l_vals = np.array([2, 2, 3, 4, 4, 3], dtype=np.uint32) #
-    m_vals = np.array([2, 1, 3, 4, 3, 2], dtype=np.uint32) #,
+    inc = inclination
+    lam = 0.3
+    beta = 0.2
+    psi = np.pi/3.
+
+    l_vals = np.array([2, 3, 4, 4, 3], dtype=np.uint32) #
+    m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32) #,
 
     df = 1e-8
 
@@ -40,6 +45,7 @@ def test():
                      deltaF,
                      f_ref)
         cpu_phenomHM.cpu_interp_wave(1e-5, 1e-8, len(interp_freq))
+        cpu_phenomHM.cpu_LISAresponseFD(inc, lam, beta, psi)
 
     cpu_hI = cpu_phenomHM.Get_Waveform()
     #import pdb; pdb.set_trace()

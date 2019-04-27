@@ -94,7 +94,7 @@ cmplx vec_H_vec_product(double arr1[3], cmplx *H, double arr2[3]){
     return out;
 }
 
-cmplx * prep_H_info(unsigned int l, unsigned int m, double inc, double lam, double beta, double psi, double phi0){
+cmplx * prep_H_info(unsigned int *l_vals, unsigned int *m_vals, int num_modes, double inc, double lam, double beta, double psi, double phi0){
 
     //##### Based on the f-n by Sylvain   #####
     double HSplus[3][3] =
@@ -147,24 +147,32 @@ cmplx * prep_H_info(unsigned int l, unsigned int m, double inc, double lam, doub
     dot_product_2d(Hcross, O1, 3, 3, out2, 3, 3);
 
     cmplx I(0.0, 1.0);
-    cmplx Ylm = SpinWeightedSphericalHarmonic(-2, l, m, inc, phi0);
-    cmplx Yl_m = std::conj(SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0));
-    cmplx Yfactorplus = 1./2 * (Ylm + Yl_m);
-    //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
-    cmplx Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-    //# Yfactorcross = -1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-    //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-    //# The matrix H is now complex
-
-    //# H = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H A_22 exp(i\Psi(f))
-    cmplx *H = new cmplx[9];
+    cmplx Ylm, Yl_m, Yfactorplus, Yfactorcross;
+    int dim = 9*num_modes;
+    cmplx *H = new cmplx[dim];
     cmplx trans1, trans2;
-    for (int i=0; i<3; i++){
-        for (int j=0; j<3; j++){
-            trans1 = Hplus[i][j];
-            trans2 = Hcross[i][j];
-            H[i*3 + j] = (Yfactorplus*trans1+ Yfactorcross*trans2);
-            //printf("(%d, %d): %e, %e\n", i, j, Hplus[i][j], Hcross[i][j]);
+    int m;
+    int l;
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+        l = l_vals[mode_i];
+        m = m_vals[mode_i];
+        Ylm = SpinWeightedSphericalHarmonic(-2, l, m, inc, phi0);
+        Yl_m = std::conj(SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0));
+        Yfactorplus = 1./2 * (Ylm + Yl_m);
+        //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
+        Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
+        //# Yfactorcross = -1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
+        //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
+        //# The matrix H is now complex
+
+        //# H = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H A_22 exp(i\Psi(f))
+        for (int i=0; i<3; i++){
+            for (int j=0; j<3; j++){
+                trans1 = Hplus[i][j];
+                trans2 = Hcross[i][j];
+                H[mode_i*9 + i*3 + j] = (Yfactorplus*trans1+ Yfactorcross*trans2);
+                //printf("(%d, %d): %e, %e\n", i, j, Hplus[i][j], Hcross[i][j]);
+            }
         }
     }
     return &H[0];
@@ -356,22 +364,26 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs
     }
 }
 
-
+/*
 int main(){
-    unsigned int l = 4;
-    unsigned int m = 4;
+    int num_modes = 3;
+    unsigned int l[3] = {2, 3, 4};
+    unsigned int m[3] = {2, 3, 4};
     double lam = 0.5;
     double beta = 0.6;
     double psi = 0.7;
     double phi0 = 0.8;
     double inc = PI/4.;
 
-    cmplx * H = prep_H_info(l, m, inc, lam, beta, psi, phi0);
-    for (int i=0; i<3; i++){
-        for (int j=0; j<3; j++){
-            printf("(%d, %d): %e, %e\n", i, j, std::real(H[i*3+j]), std::imag(H[i*3+j]));
+    cmplx * H = prep_H_info(&l[0], &m[0], num_modes, inc, lam, beta, psi, phi0);
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+        for (int i=0; i<3; i++){
+            for (int j=0; j<3; j++){
+                printf("(%d, %d, %d, %d): %e, %e\n", l[mode_i], m[mode_i], i, j, std::real(H[mode_i*9 + i*3+j]), std::imag(H[mode_i*9 + i*3+j]));
+            }
         }
     }
     delete H;
     return (0);
 }
+*/

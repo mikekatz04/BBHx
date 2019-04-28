@@ -128,6 +128,7 @@ def test():
 
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
+    print(like)
     gpu_hI = gpu_phenomHM.gpu_Get_Waveform()
     #print('2gpu per waveform:', t/num)
     #import pdb; pdb.set_trace()

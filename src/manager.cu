@@ -469,7 +469,33 @@ double GPUPhenomHM::Likelihood (int like_length){
      for (int mode_i=0; mode_i<num_modes; mode_i++){
          stat = cublasZdotc(handle, like_length,
                  //d_hI_out, 1,
-                 &d_hI[mode_i*like_length], 1,
+                 &d_X[mode_i*like_length], 1,
+                 d_data_stream, 1,
+                 result);
+         status = _cudaGetErrorEnum(stat);
+          cudaDeviceSynchronize();
+          //printf ("%s\n", status);
+          if (stat != CUBLAS_STATUS_SUCCESS) {
+                  exit(0);
+              }
+         res_out = cuCadd(res_out, result[0]);
+
+         stat = cublasZdotc(handle, like_length,
+                 //d_hI_out, 1,
+                 &d_Y[mode_i*like_length], 1,
+                 d_data_stream, 1,
+                 result);
+         status = _cudaGetErrorEnum(stat);
+          cudaDeviceSynchronize();
+          //printf ("%s\n", status);
+          if (stat != CUBLAS_STATUS_SUCCESS) {
+                  exit(0);
+              }
+         res_out = cuCadd(res_out, result[0]);
+
+         stat = cublasZdotc(handle, like_length,
+                 //d_hI_out, 1,
+                 &d_Z[mode_i*like_length], 1,
                  d_data_stream, 1,
                  result);
          status = _cudaGetErrorEnum(stat);

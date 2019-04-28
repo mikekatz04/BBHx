@@ -390,35 +390,120 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
     }
 }
 
-__global__ void interpolate(cuDoubleComplex *hI_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length){
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
+__device__
+cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
+{
+   cuDoubleComplex res;
+   double s, c;
+   double e = exp(arg.x);
+   sincos(arg.y, &s, &c);
+   res.x = c * e;
+   res.y = s * e;
+   return res;
+}
+
+
+__global__
+void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift){
     int mode_i = blockIdx.x;
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
     if (i >= length) return;
     if (mode_i >= num_modes) return;
-    double f = f_min + df * i;
-    int old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
-    double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-    double x2 = x*x;
-    double x3 = x*x2;
-    double coeff_0, coeff_1, coeff_2, coeff_3;
-    // interp amplitude
-    coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
+    double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
+    double amp, phase, phaseRdelay, phasetimeshift;
+    double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
+    cuDoubleComplex fastPart;
+    cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
+    int old_ind_below;
 
-    double amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            f = f_min + df * i;
+            old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
+            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+            x2 = x*x;
+            x3 = x*x2;
+            // interp amplitude
+            coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
+            /*if (coeff_0 < 1e-50){
+                X_out[mode_i*length + i] = make_cuDoubleComplex(0.0, 0.0);
+                Y_out[mode_i*length + i] = make_cuDoubleComplex(0.0, 0.0);
+                Z_out[mode_i*length + i] = make_cuDoubleComplex(0.0, 0.0);
+                continue;
+            }*/
+            coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
 
-    // interp phase
-    coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
+            amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-    double phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            // interp phase
+            coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
-    hI_out[mode_i*length + i] = make_cuDoubleComplex(amp*cos(phase), -1.0*amp*sin(phase));
+            phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            coeff_0 = old_mode_vals[mode_i].phaseRdelay[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].phaseRdelay_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].phaseRdelay_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
+
+            phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            phasetimeshift = 2.*PI*(tc+tShift)*f;
+            fastPart = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay + phasetimeshift, 0.0))));
+
+            // X
+            coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].transferL1_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].transferL1_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].transferL1_re_coeff_3[old_ind_below];
+
+            transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            coeff_0 = old_mode_vals[mode_i].transferL1_im[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].transferL1_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].transferL1_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].transferL1_im_coeff_3[old_ind_below];
+
+            transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            //X_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart);
+
+            // Y
+            coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].transferL2_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].transferL2_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].transferL2_re_coeff_3[old_ind_below];
+
+            transferL2_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            coeff_0 = old_mode_vals[mode_i].transferL2_im[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].transferL2_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].transferL2_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].transferL2_im_coeff_3[old_ind_below];
+
+            transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            //Y_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart);
+
+            // Z
+            coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].transferL3_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].transferL3_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].transferL3_re_coeff_3[old_ind_below];
+
+            transferL3_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            coeff_0 = old_mode_vals[mode_i].transferL3_im[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].transferL3_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].transferL3_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].transferL3_im_coeff_3[old_ind_below];
+
+            transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            //Z_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart);
 }
+
 
 __global__ void interpolate2(cuDoubleComplex *hI_out,ModeContainer* old_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs, int length){
     int i = blockIdx.y * blockDim.x + threadIdx.x;

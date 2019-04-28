@@ -8,7 +8,7 @@ import pdb
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 1024), 0.0, 1e-5, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 1024), 0.0, 1e-3, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     inc = inclination
     lam = 0.3
@@ -23,7 +23,7 @@ def test():
 
     df = 1e-8
 
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(2e7)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(4e5)*0.1))
 
     interp_freq = 1e-5+np.arange(len(data))*1e-8
     to_gpu=0

@@ -404,7 +404,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     dim3 interp_dim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     //printf("NUM MODES %d\n", num_modes);
-    interpolate<<<interp_dim, NUM_THREADS>>>(d_hI, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new);
+    interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
     //TODO need to make this more adaptable (especially for smaller amounts)

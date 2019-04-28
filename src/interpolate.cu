@@ -467,7 +467,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            //X_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart);
+            X_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart);
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -484,7 +484,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            //Y_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart);
+            Y_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart);
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -501,7 +501,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            //Z_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart);
+            Z_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart);
 }
 
 

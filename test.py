@@ -23,7 +23,8 @@ def test():
 
     df = 1e-8
 
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(4e5)*0.1))
+    # FIXME core dump from python is happening at 2e5 - 3e5 ish
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(2e7)*0.1))
 
     interp_freq = 1e-5+np.arange(len(data))*1e-8
     to_gpu=0
@@ -128,6 +129,7 @@ def test():
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
     gpu_hI = gpu_phenomHM.gpu_Get_Waveform()
+    #print('2gpu per waveform:', t/num)
     #import pdb; pdb.set_trace()
 
 

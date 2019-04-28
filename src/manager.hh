@@ -168,7 +168,7 @@ public:
   double Likelihood (int length);
   //gets results back from the gpu, putting them in the supplied memory location
   void Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
-  void gpu_Get_Waveform (std::complex<double>* hI_);
+  void gpu_Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
 
 };
 

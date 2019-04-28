@@ -50,7 +50,7 @@ cdef extern from "src/manager.hh":
 
         double Likelihood(int)
         void Get_Waveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
-        void gpu_Get_Waveform(np.complex128_t*)
+        void gpu_Get_Waveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
 cdef class GPUPhenomHM:
     cdef GPUPhenomHMwrap* g
@@ -167,8 +167,10 @@ cdef class GPUPhenomHM:
         return (X_.reshape(self.num_modes, self.interp_length), Y_.reshape(self.num_modes, self.interp_length), Z_.reshape(self.num_modes, self.interp_length))
 
     def gpu_Get_Waveform(self):
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] hI_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)
 
-        self.g.gpu_Get_Waveform(&hI_[0])
+        self.g.gpu_Get_Waveform(&X_[0], &Y_[0], &Z_[0])
 
-        return hI_.reshape(self.num_modes, self.interp_length)
+        return (X_.reshape(self.num_modes, self.interp_length), Y_.reshape(self.num_modes, self.interp_length), Z_.reshape(self.num_modes, self.interp_length))

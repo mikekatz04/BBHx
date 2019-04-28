@@ -407,6 +407,9 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    //gpuErrchk(cudaMemcpy(X, d_X, num_modes*length_new*sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
+    //for (int i=0; i<length_new; i+=1000000)
+    //    printf("%e\n", std::real(X[i]));
     //TODO need to make this more adaptable (especially for smaller amounts)
 }
 
@@ -500,9 +503,11 @@ __global__ void read_out_kernel(ModeContainer *mode_vals, double *amp, double *p
     phase[i] = mode_vals[mode_i].phase[i];
 }
 
-void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* hI_) {
+void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_) {
   assert(to_gpu == 1);
-  gpuErrchk(cudaMemcpy(hI_, d_hI, max_interp_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(X_, d_X, max_interp_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(Y_, d_Y, max_interp_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(Z_, d_Z, max_interp_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
 }
 
 GPUPhenomHM::~GPUPhenomHM() {

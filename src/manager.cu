@@ -80,6 +80,10 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
       gpuErrchk(cudaMalloc(&d_hI_out, data_stream_length*sizeof(cuDoubleComplex)));
       gpuErrchk(cudaMalloc(&d_hII_out, data_stream_length*sizeof(cuDoubleComplex)));
 
+      gpuErrchk(cudaMalloc(&d_X, data_stream_length*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_Y, data_stream_length*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_Z, data_stream_length*sizeof(cuDoubleComplex)));
+
       d_mode_vals = gpu_create_modes(num_modes, l_vals, m_vals, max_length, to_gpu, to_interp);
 
       gpuErrchk(cudaMalloc(&d_freqs, max_length*sizeof(double)));
@@ -400,7 +404,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     dim3 interp_dim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     //printf("NUM MODES %d\n", num_modes);
-    interpolate<<<interp_dim, NUM_THREADS>>>(d_hI, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new);
+    interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
     //TODO need to make this more adaptable (especially for smaller amounts)
@@ -516,6 +520,10 @@ GPUPhenomHM::~GPUPhenomHM() {
 
   if (to_gpu == 1){
       cudaFree(d_ones);
+      cudaFree(d_H);
+      cudaFree(d_X);
+      cudaFree(d_Y);
+      cudaFree(d_Z);
       cudaFree(d_hI);
       cudaFree(d_hII);
       cudaFree(d_hI_out);

@@ -384,9 +384,11 @@ void GPUPhenomHM::gpu_setup_interp_response(){
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
+    printf("1NUM MODES %d\n", num_modes);
     interp.prep(d_B, f_length, 7*num_modes, 1);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    printf("2NUM MODES %d\n", num_modes);
 
     set_spline_constants_response<<<check_dim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
     cudaDeviceSynchronize();
@@ -403,10 +405,12 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
     dim3 interp_dim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    //printf("NUM MODES %d\n", num_modes);
+    printf("NUM MODES %d\n", num_modes);
+
     interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    printf("after NUM MODES %d\n", num_modes);
     //TODO need to make this more adaptable (especially for smaller amounts)
 }
 

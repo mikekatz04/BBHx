@@ -462,7 +462,7 @@ return 0;
 }
 
 
-double GPUPhenomHM::Likelihood (int like_length){
+void GPUPhenomHM::Likelihood (int like_length, double *like_out_){
 
      cuDoubleComplex res_out = make_cuDoubleComplex(0.0, 0.0);
      char * status;
@@ -507,11 +507,12 @@ double GPUPhenomHM::Likelihood (int like_length){
          res_out = cuCadd(res_out, result[0]);
      }
 
+     like_out_[0] = cuCreal(res_out);
     //gpuErrchk(cudaGetLastError());
 
 
     //return cuCreal(result[0]);
-    return cuCreal(res_out);
+    //return cuCreal(res_out);
     //return 0.0;
 }
 

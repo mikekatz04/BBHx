@@ -48,7 +48,7 @@ cdef extern from "src/manager.hh":
         void gpu_setup_interp_response()
         void cpu_setup_interp_response()
 
-        double Likelihood(int)
+        void Likelihood(int, np.float64_t*)
         void Get_Waveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
         void gpu_Get_Waveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
@@ -155,7 +155,9 @@ cdef class GPUPhenomHM:
         return
 
     def Likelihood(self, length):
-        return self.g.Likelihood(length)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] like_out_ = np.zeros((2,), dtype=np.float64)
+        self.g.Likelihood(length, &like_out_[0])
+        return like_out_
 
     def Get_Waveform(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.interp_length*self.num_modes,), dtype=np.complex128)

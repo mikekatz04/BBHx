@@ -58,7 +58,6 @@ class GPUPhenomHM {
 
   cublasHandle_t handle;
   cublasStatus_t stat;
-  cuDoubleComplex *result;
 
   // Interpolate related stuff
   int to_interp;

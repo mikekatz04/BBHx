@@ -121,8 +121,6 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
 
       // for likelihood
       // --------------
-      gpuErrchk(cudaMallocHost((cuDoubleComplex**) &result, sizeof(cuDoubleComplex)));
-
       stat = cublasCreate(&handle);
       if (stat != CUBLAS_STATUS_SUCCESS) {
               printf ("CUBLAS initialization failed\n");
@@ -464,50 +462,87 @@ return 0;
 
 void GPUPhenomHM::Likelihood (int like_length, double *like_out_){
 
-     cuDoubleComplex res_out = make_cuDoubleComplex(0.0, 0.0);
+     double d_h = 0.0;
+     double h_h = 0.0;
      char * status;
+     double res;
+     cuDoubleComplex result;
      for (int mode_i=0; mode_i<num_modes; mode_i++){
          stat = cublasZdotc(handle, like_length,
                  //d_hI_out, 1,
                  &d_X[mode_i*like_length], 1,
                  d_data_stream, 1,
-                 result);
+                 &result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
           //printf ("%s\n", status);
           if (stat != CUBLAS_STATUS_SUCCESS) {
                   exit(0);
               }
-         res_out = cuCadd(res_out, result[0]);
+         d_h += cuCreal(result);
 
          stat = cublasZdotc(handle, like_length,
                  //d_hI_out, 1,
                  &d_Y[mode_i*like_length], 1,
                  d_data_stream, 1,
-                 result);
+                 &result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
           //printf ("%s\n", status);
           if (stat != CUBLAS_STATUS_SUCCESS) {
                   exit(0);
               }
-         res_out = cuCadd(res_out, result[0]);
+         d_h += cuCreal(result);
 
          stat = cublasZdotc(handle, like_length,
                  //d_hI_out, 1,
                  &d_Z[mode_i*like_length], 1,
                  d_data_stream, 1,
-                 result);
+                 &result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
           //printf ("%s\n", status);
           if (stat != CUBLAS_STATUS_SUCCESS) {
                   exit(0);
               }
-         res_out = cuCadd(res_out, result[0]);
+         d_h += cuCreal(result);
      }
 
-     like_out_[0] = cuCreal(res_out);
+     // d_X d_X for h_h
+     stat = cublasDznrm2(handle, num_modes*like_length,
+             d_X, 1, &res);
+     status = _cudaGetErrorEnum(stat);
+      cudaDeviceSynchronize();
+      //printf ("%s\n", status);
+      if (stat != CUBLAS_STATUS_SUCCESS) {
+              exit(0);
+          }
+        h_h += res;
+
+      // d_Y d_Y for h_h
+      stat = cublasDznrm2(handle, num_modes*like_length,
+              d_Y, 1, &res);
+      status = _cudaGetErrorEnum(stat);
+       cudaDeviceSynchronize();
+       //printf ("%s\n", status);
+       if (stat != CUBLAS_STATUS_SUCCESS) {
+               exit(0);
+           }
+         h_h += res;
+
+       // d_Z d_Z for h_h
+       stat = cublasDznrm2(handle, num_modes*like_length,
+               d_Z, 1, &res);
+       status = _cudaGetErrorEnum(stat);
+        cudaDeviceSynchronize();
+        //printf ("%s\n", status);
+        if (stat != CUBLAS_STATUS_SUCCESS) {
+                exit(0);
+            }
+     h_h += res;
+
+     like_out_[0] = d_h;
+     like_out_[1] = h_h;
     //gpuErrchk(cudaGetLastError());
 
 
@@ -565,7 +600,6 @@ GPUPhenomHM::~GPUPhenomHM() {
       cudaFree(d_pDPreComp_all_trans);
       cudaFree(d_q_all_trans);
       cudaFree(d_cShift);
-      cudaFree(result);
       cudaFree(d_X);
       cudaFree(d_Y);
       cudaFree(d_Z);

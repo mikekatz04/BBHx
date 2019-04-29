@@ -4,11 +4,12 @@ import numpy.testing as npt
 from astropy.cosmology import Planck15 as cosmo
 from scipy import constants as ct
 import time
+import tdi
 import pdb
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 1024), 0.0, 1e-3, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 16384), 0.0, 1e-3, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     inc = inclination
     lam = 0.3
@@ -24,15 +25,17 @@ def test():
     df = 1e-8
 
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(7e6)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(65536)*0.1))
 
     interp_freq = 1e-5+np.arange(len(data))*1e-8
+
+    AET_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
     to_gpu=0
     to_interp = 1
     cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu, to_interp, data)
+     to_gpu, to_interp, data, AET_ASDinv)
 
     cpu_phenomHM.add_interp(len(interp_freq))
 
@@ -104,10 +107,10 @@ def test():
     gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu, to_interp, data)
+     to_gpu, to_interp, data, AET_ASDinv)
 
     gpu_phenomHM.add_interp(len(interp_freq))
-    num = 10000
+    num = 1000
     st = time.perf_counter()
     for i in range(num):
 

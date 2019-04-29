@@ -11,7 +11,7 @@ cdef extern from "src/manager.hh":
         int,
         int,
         int,
-        np.complex128_t *, int)
+        np.complex128_t *, int, np.float64_t*)
         void cpu_gen_PhenomHM(np.float64_t *, int,
                             double,
                             double,
@@ -62,14 +62,15 @@ cdef class GPUPhenomHM:
     def __cinit__(self, max_length,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
-     to_gpu, to_interp, np.ndarray[ndim=1, dtype=np.complex128_t] data_stream):
+     to_gpu, to_interp, np.ndarray[ndim=1, dtype=np.complex128_t] data_stream,
+     np.ndarray[ndim=1, dtype=np.float64_t] ASDinv):
         self.num_modes = len(l_vals)
         self.data_length = len(data_stream)
         self.g = new GPUPhenomHMwrap(max_length,
         &l_vals[0],
         &m_vals[0],
         self.num_modes,
-        to_gpu, to_interp, &data_stream[0], self.data_length)
+        to_gpu, to_interp, &data_stream[0], self.data_length, &ASDinv[0])
 
     def cpu_gen_PhenomHM(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses

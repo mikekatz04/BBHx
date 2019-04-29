@@ -290,7 +290,7 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 
 
-void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift){
+void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *ASD_inv){
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
@@ -334,7 +334,7 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             phasetimeshift = 2.*PI*(tc+tShift)*f;
-            fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
+            fastPart = amp*ASD_inv[i] * exp(I*(phase + phaseRdelay + phasetimeshift));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
@@ -404,7 +404,7 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 
 
 __global__
-void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift){
+void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *ASD_inv){
     int mode_i = blockIdx.x;
     int i = blockIdx.y * blockDim.x + threadIdx.x;
     if (i >= length) return;
@@ -450,7 +450,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             phasetimeshift = 2.*PI*(tc+tShift)*f;
-            fastPart = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay + phasetimeshift, 0.0))));
+            fastPart = cuCmul(make_cuDoubleComplex(amp*ASD_inv[i],0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay + phasetimeshift, 0.0))));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];

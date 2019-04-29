@@ -356,14 +356,14 @@ void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, dou
     tShift = tShift_;
     TDItag = TDItag_;
 
-    H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phi0);
+    H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
     int num_blocks = std::ceil((f_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 gridDim(num_modes, num_blocks);
 
-    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, f_length, inc, lam, beta, psi, phi0, tc, tShift, TDItag, 0);
+    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, tc, tShift, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }
@@ -377,9 +377,9 @@ void GPUPhenomHM::cpu_LISAresponseFD(double inc_, double lam_, double beta_, dou
     tShift = tShift_;
     TDItag = TDItag_;
 
-    H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phi0);
+    H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, f_length, inc, lam, beta, psi, phi0, tc, tShift, TDItag, 0);
+    JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, tc, tShift, TDItag, 0);
 }
 
 void GPUPhenomHM::gpu_setup_interp_response(){

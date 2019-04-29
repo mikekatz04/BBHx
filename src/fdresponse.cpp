@@ -237,6 +237,7 @@ Gslr_holder EvaluateGslr(double t, double f, cmplx *H, double k[3], int response
     Gslr_holder Gslr_out;
 
     cmplx commonfac = I * prefactor * factorcexp0;
+
     Gslr_out.G12 = commonfac * n3Hn3 * factorsinc12 * factorcexp12;
     Gslr_out.G21 = commonfac * n3Hn3 * factorsinc21 * factorcexp12;
     Gslr_out.G23 = commonfac * n1Hn1 * factorsinc23 * factorcexp23;
@@ -335,20 +336,44 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     double t0 = 0.0;
     double phasetimeshift;
-    double f, t, x, x2, coeff_1, coeff_2, coeff_3;
+    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_last, dphidf, dphidf_last;
     int old_ind_below;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<num_points; i++){
             f = frqs[i];
             // interpolate for time
-            old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
-            x = f - old_freqs[old_ind_below];
+            /*old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
+            if (old_ind_below >= num_points - 2) old_ind_below = num_points -2;
+            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
             x2 = x*x;
             coeff_1 = mode_vals[mode_i].phase_coeff_1[old_ind_below];
             coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
             coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
             t = 1./(2.*PI)*(coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2); // derivative of the spline
+
+            f_last = frqs[num_points-1];
+            // interpolate for time
+            old_ind_below = floor((log10(f_last) - log10(old_freqs[0]))/d_log10f);
+            if (old_ind_below >= num_points - 1) old_ind_below = num_points -2;
+            x = (f_last - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+            //x = f_last - old_freqs[old_ind_below];
+            x2 = x*x;
+            coeff_1 = mode_vals[mode_i].phase_coeff_1[old_ind_below];
+            coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
+            coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];*
+
+            t_last = 1./(2.*PI)*(coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2); // derivative of the spline*/
+            if (i == 0) dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
+            t = 1./(2.*PI)*(dphidf); // derivative of the spline
+
+            dphidf_last = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            t_last = 1./(2.*PI)*dphidf_last; // derivative of the spline*/
+            Shift = t_last - tc;
+
+            t = t - Shift;
             transferL_holder transferL = JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);

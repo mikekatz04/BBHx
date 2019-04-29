@@ -9,7 +9,9 @@ import pdb
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 16384), 0.0, 1e-3, 1e6, 5e6, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-5, -1, 8192), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+
+    #freq = np.load('freqs.npy')
 
     inc = inclination
     lam = 0.3
@@ -25,9 +27,9 @@ def test():
     df = 1e-8
 
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(65536)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(1e6)*0.1))
 
-    interp_freq = 1e-5+np.arange(len(data))*1e-8
+    interp_freq = 1e-5+np.arange(len(data))*1e-7
 
     AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
     AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
@@ -59,7 +61,7 @@ def test():
         cpu_phenomHM.cpu_perform_interp(1e-5, 1e-7, len(interp_freq))
 
     cpu_X, cpu_Y, cpu_Z = cpu_phenomHM.Get_Waveform()
-
+    np.save('wave_test_cpu', np.asarray([cpu_X, cpu_Y, cpu_Z]))
     #amp = np.abs(cpu_amp).flatten()
     #phase = np.unwrap(np.arctan2(cpu_amp.real, cpu_amp.imag)).flatten()
     #cpu_phenomHM.interp_wave(amp, phase)
@@ -128,13 +130,14 @@ def test():
         gpu_phenomHM.gpu_setup_interp_wave()
         gpu_phenomHM.gpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
         gpu_phenomHM.gpu_setup_interp_response()
-        gpu_phenomHM.gpu_perform_interp(1e-5, 1e-8, len(interp_freq))
+        gpu_phenomHM.gpu_perform_interp(1e-5, 1e-7, len(interp_freq))
         like = gpu_phenomHM.Likelihood(len(interp_freq))
 
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
     print(like)
-    gpu_hI = gpu_phenomHM.gpu_Get_Waveform()
+    gpu_X, gpu_Y, gpu_Z = gpu_phenomHM.gpu_Get_Waveform()
+    np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
     #print('2gpu per waveform:', t/num)
     #import pdb; pdb.set_trace()
 

@@ -30,7 +30,7 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
     int num_modes_,
     int to_gpu_,
     int to_interp_,
-    std::complex<double> *data_stream_, int data_stream_length_, double *ASDinv_){
+    std::complex<double> *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_){
 
     max_length = max_length_;
     l_vals = l_vals_;
@@ -40,7 +40,9 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
     to_interp = to_interp_;
     data_stream = data_stream_;
     data_stream_length = data_stream_length_;
-    ASDinv = ASDinv_;
+    X_ASDinv = X_ASDinv_;
+    Y_ASDinv = Y_ASDinv_;
+    Z_ASDinv = Z_ASDinv_;
 
     cudaError_t err;
 
@@ -92,8 +94,14 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
       gpuErrchk(cudaMalloc(&d_data_stream, data_stream_length*sizeof(cuDoubleComplex)));
       gpuErrchk(cudaMemcpy(d_data_stream, data_stream, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 
-      gpuErrchk(cudaMalloc(&d_ASDinv, data_stream_length*sizeof(double)));
-      gpuErrchk(cudaMemcpy(d_ASDinv, ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+      gpuErrchk(cudaMalloc(&d_X_ASDinv, data_stream_length*sizeof(double)));
+      gpuErrchk(cudaMemcpy(d_X_ASDinv, X_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+
+      gpuErrchk(cudaMalloc(&d_Y_ASDinv, data_stream_length*sizeof(double)));
+      gpuErrchk(cudaMemcpy(d_Y_ASDinv, Y_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+
+      gpuErrchk(cudaMalloc(&d_Z_ASDinv, data_stream_length*sizeof(double)));
+      gpuErrchk(cudaMemcpy(d_Z_ASDinv, Z_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
       //gpuErrchk(cudaMalloc(&d_mode_vals, num_modes*sizeof(d_mode_vals)));
       //gpuErrchk(cudaMemcpy(d_mode_vals, mode_vals, num_modes*sizeof(d_mode_vals), cudaMemcpyHostToDevice));
@@ -406,7 +414,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     dim3 interp_dim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     //printf("NUM MODES %d\n", num_modes);
-    interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift, d_ASDinv);
+    interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
     //gpuErrchk(cudaMemcpy(X, d_X, num_modes*length_new*sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
@@ -417,7 +425,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
 
 void GPUPhenomHM::cpu_perform_interp(double f_min, double df, int length_new){
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    host_interpolate(X, Y, Z, mode_vals, num_modes, f_min, df, d_log10f, freqs, length_new, tc, tShift, ASDinv);
+    host_interpolate(X, Y, Z, mode_vals, num_modes, f_min, df, d_log10f, freqs, length_new, tc, tShift, X_ASDinv, Y_ASDinv, Z_ASDinv);
 }
 
 /*
@@ -607,7 +615,9 @@ GPUPhenomHM::~GPUPhenomHM() {
       cudaFree(d_X);
       cudaFree(d_Y);
       cudaFree(d_Z);
-      cudaFree(d_ASDinv);
+      cudaFree(d_X_ASDinv);
+      cudaFree(d_Y_ASDinv);
+      cudaFree(d_Z_ASDinv);
       cublasDestroy(handle);
   }
   if (to_interp == 1){

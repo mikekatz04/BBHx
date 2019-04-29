@@ -84,13 +84,17 @@ class GPUPhenomHM {
   std::complex<double> *X;
   std::complex<double> *Y;
   std::complex<double> *Z;
-  double *ASDinv;
+  double *X_ASDinv;
+  double *Y_ASDinv;
+  double *Z_ASDinv;
 
   cuDoubleComplex *d_data_stream;
   cuDoubleComplex *d_X;
   cuDoubleComplex *d_Y;
   cuDoubleComplex *d_Z;
-  double *d_ASDinv;
+  double *d_X_ASDinv;
+  double *d_Y_ASDinv;
+  double *d_Z_ASDinv;
 
   cuDoubleComplex *d_hI;
   cuDoubleComplex *d_hII;
@@ -126,7 +130,7 @@ public:
       int num_modes_,
       int to_gpu_,
       int to_interp_,
-      std::complex<double> *data_stream_, int data_stream_length_, double *ASDinv_); // constructor (copies to GPU)
+      std::complex<double> *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
 
   ~GPUPhenomHM(); // destructor
 

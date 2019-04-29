@@ -290,7 +290,7 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 
 
-void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *ASD_inv){
+void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
@@ -334,7 +334,7 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             phasetimeshift = 2.*PI*(tc+tShift)*f;
-            fastPart = amp*ASD_inv[i] * exp(I*(phase + phaseRdelay + phasetimeshift));
+            fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
@@ -351,7 +351,7 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            X_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart);
+            X_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -368,7 +368,7 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Y_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart);
+            Y_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -385,7 +385,7 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Z_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart);
+            Z_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
         }
     }
 }
@@ -404,7 +404,7 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 
 
 __global__
-void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *ASD_inv){
+void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
     int mode_i = blockIdx.x;
     int i = blockIdx.y * blockDim.x + threadIdx.x;
     if (i >= length) return;
@@ -450,7 +450,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             phasetimeshift = 2.*PI*(tc+tShift)*f;
-            fastPart = cuCmul(make_cuDoubleComplex(amp*ASD_inv[i],0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay + phasetimeshift, 0.0))));
+            fastPart = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay + phasetimeshift, 0.0))));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
@@ -467,7 +467,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            X_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart);
+            X_out[mode_i*length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart), make_cuDoubleComplex(X_ASD_inv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -484,7 +484,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Y_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart);
+            Y_out[mode_i*length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart), make_cuDoubleComplex(Y_ASD_inv[i], 0.0));
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -501,7 +501,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Z_out[mode_i*length + i] = cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart);
+            Z_out[mode_i*length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart), make_cuDoubleComplex(Z_ASD_inv[i], 0.0));
 }
 
 

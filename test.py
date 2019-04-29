@@ -29,13 +29,15 @@ def test():
 
     interp_freq = 1e-5+np.arange(len(data))*1e-8
 
-    AET_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
+    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(interp_freq, model='SciRDv1'))
     to_gpu=0
     to_interp = 1
     cpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu, to_interp, data, AET_ASDinv)
+     to_gpu, to_interp, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
     cpu_phenomHM.add_interp(len(interp_freq))
 
@@ -107,7 +109,7 @@ def test():
     gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
      l_vals,
      m_vals,
-     to_gpu, to_interp, data, AET_ASDinv)
+     to_gpu, to_interp, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
     gpu_phenomHM.add_interp(len(interp_freq))
     num = 1000

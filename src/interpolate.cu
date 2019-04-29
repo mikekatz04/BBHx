@@ -577,8 +577,14 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
 
     if (to_gpu == 1){
         Interpolate::gpu_fit_constants(B);
+        cudaFree(d_dl);
+        cudaFree(d_du);
+        cudaFree(d_d);
     }
     else Interpolate::fit_constants(B);
+    delete d;
+    delete dl;
+    delete du;
     //dx_old = x_old[1] - x_old[0];
 }
 

@@ -24,7 +24,7 @@ def test():
     df = 1e-8
 
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(2e7)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(7e6)*0.1))
 
     interp_freq = 1e-5+np.arange(len(data))*1e-8
     to_gpu=0
@@ -107,7 +107,7 @@ def test():
      to_gpu, to_interp, data)
 
     gpu_phenomHM.add_interp(len(interp_freq))
-    num = 100
+    num = 10000
     st = time.perf_counter()
     for i in range(num):
 

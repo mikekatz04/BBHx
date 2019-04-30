@@ -290,18 +290,26 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 
 
-void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int length, double tc, double tShift, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     std::complex<double> fastPart;
     std::complex<double> I(0.0, 1.0);
+    double f_min_limit = old_freqs[0];
+    double f_max_limit = old_freqs[old_length-1];
     int old_ind_below;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<length; i++){
             f = f_min + df * i;
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
+            if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
+                X_out[mode_i*length + i] = 0.0+0.0*I;
+                Y_out[mode_i*length + i] = 0.0+0.0*I;
+                Z_out[mode_i*length + i] = 0.0+0.0*I;
+                continue;
+            }
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
             x2 = x*x;
             x3 = x*x2;
@@ -318,6 +326,12 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
             coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            if (amp < 1e-40){
+                X_out[mode_i*length + i] = 0.0+I*0.0;
+                Y_out[mode_i*length + i] = 0.0+I*0.0;
+                Z_out[mode_i*length + i] = 0.0+I*0.0;
+                continue;
+            }
 
             // interp phase
             coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
@@ -333,7 +347,7 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
             coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            phasetimeshift = 2.*PI*(tc+tShift)*f;
+            phasetimeshift = 2.*PI*(t0+tRef)*f;
             fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
 
             // X
@@ -417,7 +431,6 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
     cuDoubleComplex fastPart;
     cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
     int old_ind_below;
-
             f = f_min + df * i;
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
             if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
@@ -682,19 +695,9 @@ __host__ double Interpolate::cpu_call(double x_new){
     return y_new;
 }
 
-__host__ Interpolate::~Interpolate(){
-    delete dl;
-    delete d;
-    delete du;
 
+__host__ Interpolate::~Interpolate(){
     if (to_gpu == 1){
-        cudaError_t err;
-        err = cudaFree(d_dl);
-        assert(err == 0);
-        err = cudaFree(d_d);
-        assert(err == 0);
-        err = cudaFree(d_du);
-        assert(err == 0);
         cusparseDestroy(handle);
     }
 

@@ -1,3 +1,4 @@
+import sys; sys.settrace
 import gpuPhenomHM
 import numpy as np
 import numpy.testing as npt
@@ -9,7 +10,7 @@ import pdb
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4, 0, 16384), 0.0, 1e-3, 40.0, 30.0, 0.054, 0.024, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 16384), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     #freq = np.load('freqs.npy')
 
@@ -26,10 +27,10 @@ def test():
     l_vals = np.array([2, 3, 4, 4, 3], dtype=np.uint32) #
     m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32) #,
 
-    df = 1e-6
+    df = 1e-5
 
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(5e5)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(1e5)*0.1))
 
     interp_freq = 1e-5+np.arange(len(data))*df
 
@@ -46,10 +47,10 @@ def test():
      to_gpu, to_interp, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
     cpu_phenomHM.add_interp(len(interp_freq))
-
-    #cpu_phenomHM.add_interp(interp_freq, len(interp_freq))
-    for i in range(1):
-        st = time.perf_counter()
+    num = 100
+    st = time.perf_counter()
+    for i in range(num):
+        print(i)
         cpu_phenomHM.cpu_gen_PhenomHM(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
@@ -59,23 +60,27 @@ def test():
                      phiRef,
                      deltaF,
                      f_ref)
-        cpu_phenomHM.cpu_setup_interp_wave()
-        cpu_phenomHM.cpu_LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
-        cpu_phenomHM.cpu_setup_interp_response()
-        cpu_phenomHM.cpu_perform_interp(1e-5, df, len(interp_freq))
+        #cpu_phenomHM.cpu_setup_interp_wave()
+        #cpu_phenomHM.cpu_LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+        #cpu_phenomHM.cpu_setup_interp_response()
+        #cpu_phenomHM.cpu_perform_interp(1e-5, df, len(interp_freq))
 
-    cpu_X, cpu_Y, cpu_Z = cpu_phenomHM.Get_Waveform()
-    np.save('wave_test_cpu', np.asarray([cpu_X, cpu_Y, cpu_Z]))
+    t = time.perf_counter() - st
+    print('gpu per waveform:', t/num)
+    #print(like)
+    #cpu_X, cpu_Y, cpu_Z = cpu_phenomHM.Get_Waveform()
+    #np.save('wave_test_cpu', np.asarray([cpu_X, cpu_Y, cpu_Z]))
     #amp = np.abs(cpu_amp).flatten()
     #phase = np.unwrap(np.arctan2(cpu_amp.real, cpu_amp.imag)).flatten()
     #cpu_phenomHM.interp_wave(amp, phase)
     print('cpu', time.perf_counter() - st)
-    #print(np.sum(np.real(cpu_amp.conj()*cpu_amp)))
     """
+    #print(np.sum(np.real(cpu_amp.conj()*cpu_amp)))
     #for i in range(4):
     #    st = time.perf_counter()
     #    spline = np.interp(interp_freq, freq, amp[:len(freq)])
     #    print('scipy', time.perf_counter() - st)
+
     """
     to_gpu=1
     to_interp = 0

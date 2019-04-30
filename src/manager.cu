@@ -57,8 +57,8 @@ GPUPhenomHM::GPUPhenomHM (int max_length_,
 
     q_all_trans = new HMPhasePreComp[num_modes];
 
-    hI = new std::complex<double>[data_stream_length*num_modes];
-    hII = new std::complex<double>[data_stream_length*num_modes];
+    //hI = new std::complex<double>[data_stream_length*num_modes];
+    //hII = new std::complex<double>[data_stream_length*num_modes];
 
     X = new std::complex<double>[data_stream_length*num_modes];
     Y = new std::complex<double>[data_stream_length*num_modes];
@@ -156,13 +156,13 @@ void GPUPhenomHM::add_interp(int max_interp_length_){
 
     assert(to_interp == 1);
     if (to_gpu == 0){
-        out_mode_vals = cpu_create_modes(num_modes, m_vals, l_vals, max_interp_length, to_gpu, 0);
+        //out_mode_vals = cpu_create_modes(num_modes, m_vals, l_vals, max_interp_length, to_gpu, 0);
         B = new double[7*max_interp_length*num_modes];
     }
     if (to_gpu){
 
-        h_indices = new int[max_interp_length];
-        cudaMalloc(&d_indices, max_interp_length*sizeof(int));
+        //h_indices = new int[max_interp_length];
+        //cudaMalloc(&d_indices, max_interp_length*sizeof(int));
         //d_out_mode_vals = gpu_create_modes(num_modes, m_vals, l_vals, max_interp_length, to_gpu, 0);
         //h_B = new double[2*f_length*num_modes];
         //h_B1 = new double[2*f_length*num_modes];*/
@@ -427,7 +427,8 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
 
 void GPUPhenomHM::cpu_perform_interp(double f_min, double df, int length_new){
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    host_interpolate(X, Y, Z, mode_vals, num_modes, f_min, df, d_log10f, freqs, length_new, t0, tRef, X_ASDinv, Y_ASDinv, Z_ASDinv);
+    host_interpolate(X, Y, Z, mode_vals, num_modes, f_min, df, d_log10f, freqs, f_length, length_new, t0_epoch, tRef, X_ASDinv, Y_ASDinv, Z_ASDinv);
+    //for (int i=0; i<10000; i++) printf("%e, %e, %e, %e, %e, %e\n", std::real(X[i]), std::real(Y[i]), std::real(Z[i]));
 }
 
 /*
@@ -593,11 +594,12 @@ GPUPhenomHM::~GPUPhenomHM() {
   delete pDPreComp_all_trans;
   delete q_all_trans;
   cpu_destroy_modes(mode_vals);
-  delete hI;
-  delete hII;
+  //delete hI;
+ // delete hII;
   delete X;
   delete Y;
   delete Z;
+  delete H;
 
   if (to_gpu == 1){
       cudaFree(d_ones);
@@ -625,12 +627,12 @@ GPUPhenomHM::~GPUPhenomHM() {
   if (to_interp == 1){
       if (to_gpu == 0){
           delete B;
-          cpu_destroy_modes(out_mode_vals);
+          //cpu_destroy_modes(out_mode_vals);
       }
-      delete h_indices;
-      cudaFree(d_indices);
+      //delete h_indices;
+      //cudaFree(d_indices);
       cudaFree(d_B);
-      gpu_destroy_modes(d_out_mode_vals);
+      //gpu_destroy_modes(d_out_mode_vals);
       //delete interp;
   }
 }

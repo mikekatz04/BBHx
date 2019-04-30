@@ -347,14 +347,15 @@ void GPUPhenomHM::cpu_setup_interp_wave(){
 //void GPUPhenomHM::cpu_setup_interp_response(double f_min, double df, int length_new)
 
 
-void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double tc_, double tShift_, int TDItag_){
+void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_, int TDItag_){
     inc = inc_;
     lam = lam_;
     beta = beta_;
     psi = psi_;
-    tc = tc_;
-    tShift = tShift_;
+    t0_epoch = t0_epoch_;
+    tRef = tRef_;
     TDItag = TDItag_;
+    merger_freq = merger_freq_;
 
     H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
@@ -363,23 +364,24 @@ void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, dou
     int num_blocks = std::ceil((f_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 gridDim(num_modes, num_blocks);
 
-    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, tc, tShift, TDItag, 0);
+    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }
 
-void GPUPhenomHM::cpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double tc_, double tShift_, int TDItag_){
+void GPUPhenomHM::cpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_, int TDItag_){
     inc = inc_;
     lam = lam_;
     beta = beta_;
     psi = psi_;
-    tc = tc_;
-    tShift = tShift_;
+    t0_epoch = t0_epoch_;
+    tRef = tRef_;
     TDItag = TDItag_;
+    merger_freq = merger_freq_;
 
     H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, tc, tShift, TDItag, 0);
+    JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
 }
 
 void GPUPhenomHM::gpu_setup_interp_response(){
@@ -414,7 +416,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     dim3 interp_dim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     //printf("NUM MODES %d\n", num_modes);
-    interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, length_new, tc, tShift, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
+    interpolate<<<interp_dim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, f_length, length_new, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
     //gpuErrchk(cudaMemcpy(X, d_X, num_modes*length_new*sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
@@ -425,7 +427,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
 
 void GPUPhenomHM::cpu_perform_interp(double f_min, double df, int length_new){
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    host_interpolate(X, Y, Z, mode_vals, num_modes, f_min, df, d_log10f, freqs, length_new, tc, tShift, X_ASDinv, Y_ASDinv, Z_ASDinv);
+    host_interpolate(X, Y, Z, mode_vals, num_modes, f_min, df, d_log10f, freqs, length_new, t0, tRef, X_ASDinv, Y_ASDinv, Z_ASDinv);
 }
 
 /*

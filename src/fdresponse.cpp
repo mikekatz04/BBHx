@@ -298,7 +298,7 @@ transferL_holder TDICombinationFD(Gslr_holder Gslr, double f, int TDItag, int re
 }
 
 transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
-    t = t + t0*YRSID_SI;
+    //t = t + t0*YRSID_SI;
 
     //funck
     double kvec[3] = {-cos(beta)*cos(lam), -cos(beta)*sin(lam), -sin(beta)};
@@ -332,11 +332,10 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam,
 
 
 
-void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double tc, double tShift, int TDItag, int order_fresnel_stencil){
+void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
-    double t0 = 0.0;
     double phasetimeshift;
-    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_last, dphidf, dphidf_last;
+    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<num_points; i++){
@@ -369,11 +368,14 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs
             else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
             t = 1./(2.*PI)*(dphidf); // derivative of the spline
 
-            dphidf_last = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            t_last = 1./(2.*PI)*dphidf_last; // derivative of the spline*/
-            Shift = t_last - tc;
+            old_ind_below = floor((log10(merger_freq) - log10(old_freqs[0]))/d_log10f);
+            if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
+            dphidf_merger = (mode_vals[mode_i].phase[old_ind_below+1] - mode_vals[mode_i].phase[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]); // TODO: do something more accurate?
+            t_merger = 1./(2.*PI)*dphidf_merger; // derivative of the spline*/
+            Shift = t_merger - (t0 + tRef);
 
             t = t - Shift;
+            //if (t<0.0) printf("mode %d, index %d, time %e\n", mode_i, i, t);
             transferL_holder transferL = JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);

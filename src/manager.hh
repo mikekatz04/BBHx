@@ -107,9 +107,10 @@ class GPUPhenomHM {
   double lam;
   double beta;
   double psi;
-  double tc;
-  double tShift;
+  double t0_epoch;
+  double tRef;
   int TDItag;
+  double merger_freq;
 
 
 public:
@@ -162,8 +163,8 @@ public:
   void gpu_setup_interp_wave();
   void cpu_setup_interp_wave();
 
-  void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
-  void cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double tc, double tShift, int TDItag);
+  void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
+  void cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
 
   void gpu_setup_interp_response();
   void cpu_setup_interp_response();

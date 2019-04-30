@@ -42,8 +42,8 @@ cdef extern from "src/manager.hh":
         void gpu_perform_interp(double, double, int)
         void cpu_perform_interp(double, double, int)
 
-        void cpu_LISAresponseFD(double, double, double, double, double, double, int)
-        void gpu_LISAresponseFD(double, double, double, double, double, double, int)
+        void cpu_LISAresponseFD(double, double, double, double, double, double, double, int)
+        void gpu_LISAresponseFD(double, double, double, double, double, double, double, int)
 
         void gpu_setup_interp_response()
         void cpu_setup_interp_response()
@@ -133,12 +133,12 @@ cdef class GPUPhenomHM:
         self.g.cpu_setup_interp_wave()
         return
 
-    def gpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
-        self.g.gpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
+    def gpu_LISAresponseFD(self, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag):
+        self.g.gpu_LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
         return
 
-    def cpu_LISAresponseFD(self, inc, lam, beta, psi, tc, tShift, TDItag):
-        self.g.cpu_LISAresponseFD(inc, lam, beta, psi, tc, tShift, TDItag)
+    def cpu_LISAresponseFD(self, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag):
+        self.g.cpu_LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
         return
 
     def gpu_setup_interp_response(self):

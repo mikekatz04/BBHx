@@ -406,7 +406,7 @@ void PhenomHM::Likelihood (double *like_out_){
 }
 
 
-void PhenomHM::GetWaveform (cmplx* X_, cmplx* Y_, cmplx* Z_) {
+void PhenomHM::GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_) {
 
   assert(current_status > 4);
   gpuErrchk(cudaMemcpy(X_, d_X, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));

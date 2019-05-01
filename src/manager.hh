@@ -136,7 +136,7 @@ public:
 
   void Likelihood (double *like_out_);
 
-  void GetWaveform (cmplx* X_, cmplx* Y_, cmplx* Z_);
+  void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
 
 };
 

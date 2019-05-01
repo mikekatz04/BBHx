@@ -29,7 +29,7 @@ cdef extern from "src/manager.hh":
         void setup_interp_response()
 
         void Likelihood(np.float64_t*)
-        void GetWaveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
+        void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
 cdef class PhenomHM:
     cdef PhenomHMwrap* g
@@ -92,11 +92,11 @@ cdef class PhenomHM:
         self.g.Likelihood(&like_out_[0])
         return like_out_
 
-    def GetWaveform(self):
+    def GetTDI(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length*self.num_modes,), dtype=np.complex128)
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.data_length*self.num_modes,), dtype=np.complex128)
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.data_length*self.num_modes,), dtype=np.complex128)
 
-        self.g.GetWaveform(&X_[0], &Y_[0], &Z_[0])
+        self.g.GetTDI(&X_[0], &Y_[0], &Z_[0])
 
         return (X_.reshape(self.num_modes, self.data_length), Y_.reshape(self.num_modes, self.data_length), Z_.reshape(self.num_modes, self.data_length))

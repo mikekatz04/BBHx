@@ -59,7 +59,7 @@
  */
 #define PHI_fJoin_INS 0.018
 
-typedef cmplx cmplx;
+typedef std::complex<double> cmplx;
 
 typedef struct tagRealVector {
     double* data;

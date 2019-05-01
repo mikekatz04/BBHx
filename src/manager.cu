@@ -80,10 +80,6 @@ PhenomHM::PhenomHM (int max_length_init_,
   gpuErrchk(cudaMalloc(&d_Z_ASDinv, data_stream_length*sizeof(double)));
   gpuErrchk(cudaMemcpy(d_Z_ASDinv, Z_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-  //gpuErrchk(cudaMalloc(&d_mode_vals, num_modes*sizeof(d_mode_vals)));
-  //gpuErrchk(cudaMemcpy(d_mode_vals, mode_vals, num_modes*sizeof(d_mode_vals), cudaMemcpyHostToDevice));
-
-  // DECLARE ALL THE  NECESSARY STRUCTS
   gpuErrchk(cudaMalloc(&d_pHM_trans, sizeof(PhenomHMStorage)));
 
   gpuErrchk(cudaMalloc(&d_pAmp_trans, sizeof(IMRPhenomDAmplitudeCoefficients)));
@@ -128,7 +124,7 @@ PhenomHM::PhenomHM (int max_length_init_,
 }
 
 
-void PhenomHM::gen_amp_phase(double *freqs_, int f_length_,
+void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     double m1_, //solar masses
     double m2_, //solar masses
     double chi1z_,
@@ -136,12 +132,11 @@ void PhenomHM::gen_amp_phase(double *freqs_, int f_length_,
     double distance_,
     double inclination_,
     double phiRef_,
-    double deltaF_,
     double f_ref_){
 
     assert(to_gpu == 1);
 
-    PhenomHM::gen_amp_phase_prep(freqs_, f_length_,
+    PhenomHM::gen_amp_phase_prep(freqs_, current_length_,
         m1_, //solar masses
         m2_, //solar masses
         chi1z_,
@@ -149,10 +144,9 @@ void PhenomHM::gen_amp_phase(double *freqs_, int f_length_,
         distance_,
         inclination_,
         phiRef_,
-        deltaF_,
         f_ref_);
 
-    gpuErrchk(cudaMemcpy(d_freqs, freqs, f_length*sizeof(double), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_freqs, freqs, current_length*sizeof(double), cudaMemcpyHostToDevice));
 
     gpuErrchk(cudaMemcpy(d_pHM_trans, pHM_trans, sizeof(PhenomHMStorage), cudaMemcpyHostToDevice));
 
@@ -167,7 +161,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int f_length_,
     double M_tot_sec = (m1+m2)*MTSUN_SI;
     /* main: evaluate model at given frequencies */
     NUM_THREADS = 256;
-    num_blocks = std::ceil((f_length + NUM_THREADS -1)/NUM_THREADS);
+    num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_modes, num_blocks);
     //printf("blocks %d\n", num_blocks);
     kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals,
@@ -189,7 +183,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int f_length_,
 
 }
 
-void PhenomHM::gen_amp_phase_prep(double *freqs_, int f_length_,
+void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
     double m1_, //solar masses
     double m2_, //solar masses
     double chi1z_,
@@ -197,11 +191,13 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int f_length_,
     double distance_,
     double inclination_,
     double phiRef_,
-    double deltaF_,
     double f_ref_){
 
+    // for phenomHM internal calls
+    deltaF = -1.0;
+
     freqs = freqs_;
-    f_length = f_length_;
+    current_length = current_length_;
     m1 = m1_; //solar masses
     m2 = m2_; //solar masses
     chi1z = chi1z_;
@@ -209,11 +205,10 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int f_length_,
     distance = distance_;
     inclination = inclination_;
     phiRef = phiRef_;
-    deltaF = deltaF_;
     f_ref = f_ref_;
 
     for (int i=0; i<num_modes; i++){
-        mode_vals[i].length = f_length;
+        mode_vals[i].length = current_length;
     }
 
     m1_SI = m1*MSUN_SI;
@@ -224,7 +219,7 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int f_length_,
     retcode = IMRPhenomHMCore(
         mode_vals,
         freqs,
-        f_length,
+        current_length,
         m1_SI,
         m2_SI,
         chi1z,
@@ -253,15 +248,15 @@ void PhenomHM::setup_interp_wave(){
 
     dim3 waveInterpDim(num_modes, num_blocks);
 
-    fill_B_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
+    fill_B_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    interp.prep(d_B, f_length, 2*num_modes, 1);
+    interp.prep(d_B, current_length, 2*num_modes, 1);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    set_spline_constants_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
+    set_spline_constants_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }
@@ -280,10 +275,10 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    int num_blocks = std::ceil((f_length + NUM_THREADS - 1)/NUM_THREADS);
+    int num_blocks = std::ceil((current_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 gridDim(num_modes, num_blocks);
 
-    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, f_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
+    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }
@@ -292,15 +287,15 @@ void PhenomHM::setup_interp_response(){
 
     dim3 responseInterpDim(num_modes, num_blocks);
 
-    fill_B_response<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
+    fill_B_response<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    interp.prep(d_B, f_length, 7*num_modes, 1);
+    interp.prep(d_B, current_length, 7*num_modes, 1);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    set_spline_constants_response<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, f_length, num_modes);
+    set_spline_constants_response<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }
@@ -310,7 +305,7 @@ void PhenomHM::perform_interp(double f_min, double df, int length_new){
     dim3 mainInterpDim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, f_length, length_new, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, current_length, length_new, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }

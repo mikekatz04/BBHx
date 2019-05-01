@@ -53,7 +53,6 @@ def test():
                      distance,
                      inclination,
                      phiRef,
-                     deltaF,
                      f_ref)
         phenomHM.setup_interp_wave()
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)

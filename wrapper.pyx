@@ -19,7 +19,6 @@ cdef extern from "src/manager.hh":
                             double,
                             double,
                             double,
-                            double,
                             double)
 
         void setup_interp_wave()
@@ -62,7 +61,6 @@ cdef class PhenomHM:
                         distance,
                         inclination,
                         phiRef,
-                        deltaF,
                         f_ref):
 
         self.f_dim = len(freqs)
@@ -74,7 +72,6 @@ cdef class PhenomHM:
                                 distance,
                                 inclination,
                                 phiRef,
-                                deltaF,
                                 f_ref)
 
     def setup_interp_wave(self):

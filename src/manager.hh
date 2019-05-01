@@ -4,8 +4,6 @@
 #include <complex>
 #include "cuComplex.h"
 #include "cublas_v2.h"
-#include "assert.h"
-#include "tester.hh"
 #include "PhenomHM.h"
 #include "interpolate.hh"
 
@@ -14,7 +12,7 @@ class PhenomHM {
   int max_length_init;
   int data_stream_length;
   double *freqs;
-  int f_length;
+  int current_length;
   double m1; //solar masses
   double m2; //solar masses
   double chi1z;
@@ -110,7 +108,7 @@ public:
 
   ~PhenomHM(); // destructor
 
-    void gen_amp_phase(double *freqs_, int f_length_,
+    void gen_amp_phase(double *freqs_, int current_length_,
         double m1_, //solar masses
         double m2_, //solar masses
         double chi1z_,
@@ -118,10 +116,9 @@ public:
         double distance_,
         double inclination_,
         double phiRef_,
-        double deltaF_,
         double f_ref_);
 
-    void gen_amp_phase_prep(double *freqs_, int f_length_,
+    void gen_amp_phase_prep(double *freqs_, int current_length_,
             double m1_, //solar masses
             double m2_, //solar masses
             double chi1z_,
@@ -129,7 +126,6 @@ public:
             double distance_,
             double inclination_,
             double phiRef_,
-            double deltaF_,
             double f_ref_);
 
   void setup_interp_wave();

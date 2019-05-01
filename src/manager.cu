@@ -179,6 +179,8 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
      cudaDeviceSynchronize();
      gpuErrchk(cudaGetLastError());
 
+     // ensure calls are run in correct order
+     current_status = 1;
 }
 
 void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
@@ -235,12 +237,12 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
         &phi0,
         &amp0);
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
-
 }
 
 
 void PhenomHM::setup_interp_wave(){
 
+    assert(current_status >= 1);
     dim3 waveInterpDim(num_modes, num_blocks);
 
     fill_B_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
@@ -254,6 +256,8 @@ void PhenomHM::setup_interp_wave(){
     set_spline_constants_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    if (current_status == 1) current_status = 2;
 }
 
 void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_, int TDItag_){
@@ -266,6 +270,8 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     TDItag = TDItag_;
     merger_freq = merger_freq_;
 
+    assert(current_status >= 2);
+
     H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
@@ -276,9 +282,13 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    if (current_status == 2) current_status = 3;
 }
 
 void PhenomHM::setup_interp_response(){
+
+    assert(current_status >= 3);
 
     dim3 responseInterpDim(num_modes, num_blocks);
 
@@ -293,9 +303,12 @@ void PhenomHM::setup_interp_response(){
     set_spline_constants_response<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    if (current_status == 3) current_status = 4;
 }
 
 void PhenomHM::perform_interp(double f_min, double df, int length_new){
+    assert(current_status >= 4);
     int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
     dim3 mainInterpDim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
@@ -303,10 +316,13 @@ void PhenomHM::perform_interp(double f_min, double df, int length_new){
     interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, current_length, length_new, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    if (current_status == 4) current_status = 5;
 }
 
 void PhenomHM::Likelihood (int like_length, double *like_out_){
 
+     assert(current_status == 5);
      double d_h = 0.0;
      double h_h = 0.0;
      char * status;
@@ -389,7 +405,8 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
 
 
 void PhenomHM::GetWaveform (cmplx* X_, cmplx* Y_, cmplx* Z_) {
-  assert(to_gpu == 1);
+
+  assert(current_status > 4);
   gpuErrchk(cudaMemcpy(X_, d_X, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaMemcpy(Y_, d_Y, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaMemcpy(Z_, d_Z, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));

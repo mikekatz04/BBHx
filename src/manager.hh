@@ -9,6 +9,7 @@
 
 class PhenomHM {
   // pointer to the GPU memory where the array is stored
+  int current_status;
   int max_length_init;
   int data_stream_length;
   double *freqs;

@@ -576,7 +576,7 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     delete[] d;
     delete[] dl;
     delete[] du;
-    //dx_old = x_old[1] - x_old[0];
+
 }
 
 __host__ void Interpolate::gpu_fit_constants(double *B){
@@ -613,52 +613,6 @@ __host__ void Interpolate::fit_constants(double *B){
     for (int i=0; i<m; i++) B[i] = D[i];
     delete[] D;
     delete[] w;
-    /*for (i=0;i<N-1; i++){
-        coeff_1[i] = D[i];
-        coeff_2[i] = 3.0*(y_old[i+1] - y_old[i]) - 2.0*D[i] - D[i+1];
-        coeff_3[i] = 2.0*(y_old[i] - y_old[i+1]) + D[i] + D[i+1];
-    }*/
-}
-
-__host__ void Interpolate::transferToDevice(){
-    cudaMemcpy(dev_coeff_1, coeff_1, (N-1)*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_coeff_2, coeff_2, (N-1)*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_coeff_3, coeff_3, (N-1)*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_x_old, x_old, (N)*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_y_old, y_old, (N)*sizeof(double), cudaMemcpyHostToDevice);
-}
-
-__device__ double Interpolate::call(double x_new){
-    int index;
-    if ((x_new > dev_x_old[0]) && (x_new < dev_x_old[N-1])){
-        index = (int)floor(x_new/dx_old);
-    } else if (x_new <= dev_x_old[0]){
-        index = 0;
-    } else {
-        index = N-1;
-    }
-    double x = x_new - dev_x_old[index];
-    double x2 = x*x;
-    double x3 = x2*x;
-    double y_new = dev_y_old[index] + dev_coeff_1[index]*x + dev_coeff_2[index]*x2 + dev_coeff_3[index]*x3;
-    return y_new;
-}
-
-__host__ double Interpolate::cpu_call(double x_new){
-    int index;
-    if ((x_new > x_old[0]) && (x_new < x_old[N-1])){
-        index = (int)floor(x_new/dx_old);
-    } else if (x_new <= x_old[0]){
-        index = 0;
-    } else {
-        index = N-1;
-    }
-
-    double x = x_new - x_old[index];
-    double x2 = x*x;
-    double x3 = x2*x;
-    double y_new = y_old[index] + coeff_1[index]*x + coeff_2[index]*x2 + coeff_3[index]*x3;
-    return y_new;
 }
 
 __host__ Interpolate::~Interpolate(){

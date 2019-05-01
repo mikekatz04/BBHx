@@ -377,7 +377,7 @@ void PhenomHM::Likelihood (double *like_out_){
       if (stat != CUBLAS_STATUS_SUCCESS) {
               exit(0);
           }
-        h_h += res;
+        h_h += res*res; //TODO: MAKE SURE THIS IS RIGHT
 
       // d_Y d_Y for h_h
       stat = cublasDznrm2(handle, num_modes*data_stream_length,
@@ -388,7 +388,7 @@ void PhenomHM::Likelihood (double *like_out_){
        if (stat != CUBLAS_STATUS_SUCCESS) {
                exit(0);
            }
-         h_h += res;
+         h_h += res*res;
 
        // d_Z d_Z for h_h
        stat = cublasDznrm2(handle, num_modes*data_stream_length,
@@ -399,7 +399,7 @@ void PhenomHM::Likelihood (double *like_out_){
         if (stat != CUBLAS_STATUS_SUCCESS) {
                 exit(0);
             }
-     h_h += res;
+     h_h += res*res;
 
      like_out_[0] = d_h;
      like_out_[1] = h_h;

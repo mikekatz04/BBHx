@@ -24,7 +24,7 @@ This class will get translated into python via swig
 
 using namespace std;
 
-GPUPhenomHM::GPUPhenomHM (int max_length_init_,
+PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
@@ -129,7 +129,7 @@ GPUPhenomHM::GPUPhenomHM (int max_length_init_,
 }
 
 
-void GPUPhenomHM::gpu_gen_PhenomHM(double *freqs_, int f_length_,
+void PhenomHM::gen_amp_phase(double *freqs_, int f_length_,
     double m1_, //solar masses
     double m2_, //solar masses
     double chi1z_,
@@ -142,7 +142,7 @@ void GPUPhenomHM::gpu_gen_PhenomHM(double *freqs_, int f_length_,
 
     assert(to_gpu == 1);
 
-    GPUPhenomHM::cpu_gen_PhenomHM(freqs_, f_length_,
+    PhenomHM::gen_amp_phase_prep(freqs_, f_length_,
         m1_, //solar masses
         m2_, //solar masses
         chi1z_,
@@ -190,7 +190,7 @@ void GPUPhenomHM::gpu_gen_PhenomHM(double *freqs_, int f_length_,
 
 }
 
-void GPUPhenomHM::cpu_gen_PhenomHM(double *freqs_, int f_length_,
+void PhenomHM::gen_amp_phase_prep(double *freqs_, int f_length_,
     double m1_, //solar masses
     double m2_, //solar masses
     double chi1z_,
@@ -250,7 +250,7 @@ void GPUPhenomHM::cpu_gen_PhenomHM(double *freqs_, int f_length_,
 }
 
 
-void GPUPhenomHM::gpu_setup_interp_wave(){
+void PhenomHM::setup_interp_wave(){
 
     dim3 waveInterpDim(num_modes, num_blocks);
 
@@ -267,7 +267,7 @@ void GPUPhenomHM::gpu_setup_interp_wave(){
     gpuErrchk(cudaGetLastError());
 }
 
-void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_, int TDItag_){
+void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_, int TDItag_){
     inc = inc_;
     lam = lam_;
     beta = beta_;
@@ -289,7 +289,7 @@ void GPUPhenomHM::gpu_LISAresponseFD(double inc_, double lam_, double beta_, dou
     gpuErrchk(cudaGetLastError());
 }
 
-void GPUPhenomHM::gpu_setup_interp_response(){
+void PhenomHM::setup_interp_response(){
 
     dim3 responseInterpDim(num_modes, num_blocks);
 
@@ -306,7 +306,7 @@ void GPUPhenomHM::gpu_setup_interp_response(){
     gpuErrchk(cudaGetLastError());
 }
 
-void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
+void PhenomHM::perform_interp(double f_min, double df, int length_new){
     int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
     dim3 mainInterpDim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
@@ -316,7 +316,7 @@ void GPUPhenomHM::gpu_perform_interp(double f_min, double df, int length_new){
     gpuErrchk(cudaGetLastError());
 }
 
-void GPUPhenomHM::Likelihood (int like_length, double *like_out_){
+void PhenomHM::Likelihood (int like_length, double *like_out_){
 
      double d_h = 0.0;
      double h_h = 0.0;
@@ -399,14 +399,14 @@ void GPUPhenomHM::Likelihood (int like_length, double *like_out_){
 }
 
 
-void GPUPhenomHM::gpu_Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_) {
+void PhenomHM::GetWaveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_) {
   assert(to_gpu == 1);
   gpuErrchk(cudaMemcpy(X_, d_X, data_stream_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaMemcpy(Y_, d_Y, data_stream_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaMemcpy(Z_, d_Z, data_stream_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
 }
 
-GPUPhenomHM::~GPUPhenomHM() {
+PhenomHM::~PhenomHM() {
   delete pHM_trans;
   delete pAmp_trans;
   delete amp_prefactors_trans;

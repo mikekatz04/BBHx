@@ -9,7 +9,7 @@
 #include "PhenomHM.h"
 #include "interpolate.hh"
 
-class GPUPhenomHM {
+class PhenomHM {
   // pointer to the GPU memory where the array is stored
   int max_length_init;
   int data_stream_length;
@@ -102,15 +102,15 @@ public:
        %apply (int* ARGOUT_ARRAY1, int DIM1) {(int* myarray, int length)}
    */
 
-  GPUPhenomHM(int max_length_init_,
+  PhenomHM(int max_length_init_,
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
       std::complex<double> *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
 
-  ~GPUPhenomHM(); // destructor
+  ~PhenomHM(); // destructor
 
-    void gpu_gen_PhenomHM(double *freqs_, int f_length_,
+    void gen_amp_phase(double *freqs_, int f_length_,
         double m1_, //solar masses
         double m2_, //solar masses
         double chi1z_,
@@ -121,7 +121,7 @@ public:
         double deltaF_,
         double f_ref_);
 
-    void cpu_gen_PhenomHM(double *freqs_, int f_length_,
+    void gen_amp_phase_prep(double *freqs_, int f_length_,
             double m1_, //solar masses
             double m2_, //solar masses
             double chi1z_,
@@ -132,17 +132,17 @@ public:
             double deltaF_,
             double f_ref_);
 
-  void gpu_setup_interp_wave();
+  void setup_interp_wave();
 
-  void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
+  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
 
-  void gpu_setup_interp_response();
+  void setup_interp_response();
 
-  void gpu_perform_interp(double f_min, double df, int length_new);
+  void perform_interp(double f_min, double df, int length_new);
 
   void Likelihood (int length, double *like_out_);
 
-  void gpu_Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
+  void GetWaveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
 
 };
 

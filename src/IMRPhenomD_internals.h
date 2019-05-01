@@ -160,7 +160,7 @@ of this waveform.
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct tagCOMPLEX16FrequencySeries {
-    cmplx*data;
+    cmplx *data;
     char *name;
     long epoch;
     double f0;
@@ -436,8 +436,8 @@ typedef struct tagCOMPLEX2dArray {
     size_t      num_modes;
 } COMPLEX2dArray;
 
-cmplxcpolar(double r, double th);
-cmplxcrect(double re, double im);
+cmplx cpolar(double r, double th);
+cmplx crect(double re, double im);
 
 COMPLEX2dArray *CreateCOMPLEX2dArray(
     size_t length,

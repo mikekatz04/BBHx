@@ -160,7 +160,7 @@ of this waveform.
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct tagCOMPLEX16FrequencySeries {
-    std::complex<double>*data;
+    cmplx*data;
     char *name;
     long epoch;
     double f0;
@@ -431,13 +431,13 @@ void ERROR(ERROR_type e, const char *errstr);
 void PRINT_WARNING(const char *warnstr);*/
 
 typedef struct tagCOMPLEX2dArray {
-    std::complex<double>*    data;
+    cmplx*    data;
     size_t      length;
     size_t      num_modes;
 } COMPLEX2dArray;
 
-std::complex<double>cpolar(double r, double th);
-std::complex<double>crect(double re, double im);
+cmplxcpolar(double r, double th);
+cmplxcrect(double re, double im);
 
 COMPLEX2dArray *CreateCOMPLEX2dArray(
     size_t length,
@@ -486,7 +486,7 @@ double PhenomUtilsFDamp0(
  *
  * Currently only supports s=-2, l=2,3,4,5,6,7,8 modes.
  */
-std::complex<double> SpinWeightedSphericalHarmonic(
+cmplx SpinWeightedSphericalHarmonic(
                                    double theta,  /**< polar angle (rad) */
                                    double phi,    /**< azimuthal angle (rad) */
                                    int s,        /**< spin weight */

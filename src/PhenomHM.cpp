@@ -108,7 +108,7 @@ int IMRPhenomHMGetRingdownFrequency(
     double finalspin)
 {
     const double inv2Pi = 0.5 / PI;
-    std::complex<double> ZZ;
+    cmplx ZZ;
     ZZ = SimRingdownCW_CW07102016(SimRingdownCW_KAPPA(finalspin, ell, mm), ell, mm, 0);
     const double Mf_RD_tmp = inv2Pi * std::real(ZZ); /* GW ringdown frequency, converted from angular frequency */
     *fringdown = Mf_RD_tmp / finalmass;         /* scale by predicted final mass */
@@ -694,7 +694,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
     // LLondon 2017
 
     // Define effective intinsic parameters
-    std::complex<double> Hlm = 0;
+    cmplx Hlm = 0;
     double M_INPUT = M1 + M2;
     M1 = M1 / (M_INPUT);
     M2 = M2 / (M_INPUT);
@@ -704,7 +704,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
     double Xs = 0.5 * (X1z + X2z);
     double Xa = 0.5 * (X1z - X2z);
     double ans = 0;
-    std::complex<double> I(0.0, 1.0);
+    cmplx I(0.0, 1.0);
 
     // Define PN parameter and realed powers
     double v = pow(M * 2.0 * PI * fM / m, 1.0 / 3.0);
@@ -1224,14 +1224,14 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     HMPhasePreComp * q_all = q_all_trans;
     //PhenDAmpAndPhasePreComp pDPreComp;
     PhenDAmpAndPhasePreComp *pDPreComp_all = pDPreComp_all_trans;
-    //std::complex<double> Y, Ymstar;
+    //cmplx Y, Ymstar;
 
-    //std::complex<double> * factorp = factorp_trans;
-    //std::complex<double> * factorc = factorc_trans;
-    //std::complex<double> I(0.0, 1.0);
+    //cmplx * factorp = factorp_trans;
+    //cmplx * factorc = factorc_trans;
+    //cmplx I(0.0, 1.0);
     double Rholm, Taulm;
     unsigned int ell, mm;
-    //std::complex<double> minus1l; /* (-1)^l */
+    //cmplx minus1l; /* (-1)^l */
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         ell = mode_vals[mode_i].l;
         mm = mode_vals[mode_i].m;

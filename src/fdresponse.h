@@ -4,7 +4,7 @@
 #include <complex>
 #include "globalPhenomHM.h"
 
-typedef std::complex<double> cmplx;
+typedef cmplx cmplx;
 
 typedef struct tagGslr_holder{
     cmplx G21;

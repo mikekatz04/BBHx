@@ -62,7 +62,7 @@ double SimRingdownCW_KAPPA(double jf, int l, int m)
 * Dimensionless QNM Frequencies: Note that name encodes date of writing
 */
 /*TODO: Make the function arg comments compatible with doxygen*/
-std::complex<double> SimRingdownCW_CW07102016(double kappa, /* Domain mapping for  remnant BH's spin (Dimensionless) */
+cmplx SimRingdownCW_CW07102016(double kappa, /* Domain mapping for  remnant BH's spin (Dimensionless) */
                                         int l,        /* Polar eigenvalue */
                                         int input_m,  /* Azimuthal eigenvalue*/
                                         int n)
@@ -77,10 +77,10 @@ std::complex<double> SimRingdownCW_CW07102016(double kappa, /* Domain mapping fo
     int m = abs(input_m);
 
     /**/
-    std::complex<double> j = I;
+    cmplx j = I;
 
     /* Initialize the answer*/
-    std::complex<double> ans;
+    cmplx ans;
 
     /* Use If-Else ladder to determine which mode function to evaluate*/
     if (2 == l && 2 == m && 0 == n)

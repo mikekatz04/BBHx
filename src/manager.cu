@@ -1,14 +1,13 @@
 /*
 This is the central piece of code. This file implements a class
-(interface in gpuadder.hh) that takes data in on the cpu side, copies
-it to the gpu, and exposes functions (increment and retreive) that let
+that takes data in on the cpu side, copies
+it to the gpu, and exposes functions that let
 you perform actions with the GPU
 
-This class will get translated into python via swig
+This class will get translated into python via cython
 */
 
 #include <kernel.cu>
-//#include <reduction.cu>
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>
@@ -28,7 +27,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
-    std::complex<double> *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_){
+    cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -399,11 +398,11 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
 }
 
 
-void PhenomHM::GetWaveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_) {
+void PhenomHM::GetWaveform (cmplx* X_, cmplx* Y_, cmplx* Z_) {
   assert(to_gpu == 1);
-  gpuErrchk(cudaMemcpy(X_, d_X, data_stream_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(Y_, d_Y, data_stream_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(Z_, d_Z, data_stream_length*num_modes*sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(X_, d_X, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(Y_, d_Y, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(Z_, d_Z, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
 }
 
 PhenomHM::~PhenomHM() {

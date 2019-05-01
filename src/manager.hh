@@ -39,7 +39,7 @@ class PhenomHM {
   int retcode;
   double m1_SI;
   double m2_SI;
-  std::complex<double> *H;
+  cmplx *H;
 
   double *d_freqs;
   unsigned int *d_l_vals;
@@ -66,7 +66,7 @@ class PhenomHM {
   ModeContainer *mode_vals;
   ModeContainer *d_mode_vals;
 
-  std::complex<double> *data_stream;
+  cmplx *data_stream;
 
   double *X_ASDinv;
   double *Y_ASDinv;
@@ -106,7 +106,7 @@ public:
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
-      std::complex<double> *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
+      cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 
@@ -142,7 +142,7 @@ public:
 
   void Likelihood (int length, double *like_out_);
 
-  void GetWaveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
+  void GetWaveform (cmplx* X_, cmplx* Y_, cmplx* Z_);
 
 };
 

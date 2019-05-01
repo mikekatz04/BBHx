@@ -141,11 +141,11 @@ COMPLEX16FrequencySeries *CreateCOMPLEX16FrequencySeries(
     fs->deltaF = deltaF;
 
     fs->length = length;
-    fs->data = (std::complex<double> *)malloc(sizeof(std::complex<double>) * length);
+    fs->data = (cmplx *)malloc(sizeof(cmplx) * length);
     if (fs->data == NULL)
         assert(0); //ERROR(PD_ENOMEM, "Failed to allocated data array.");
 
-    memset(fs->data, 0, sizeof(std::complex<double>) * length);
+    memset(fs->data, 0, sizeof(cmplx) * length);
     return fs;
 }
 
@@ -154,7 +154,7 @@ COMPLEX16FrequencySeries *ResizeCOMPLEX16FrequencySeries(COMPLEX16FrequencySerie
     free(fs->data);
 
     fs->length = length;
-    fs->data = (std::complex<double> *)malloc(sizeof(std::complex<double>) * length);
+    fs->data = (cmplx *)malloc(sizeof(cmplx) * length);
     if (fs->data == NULL)
         assert(0); //ERROR(PD_ENOMEM, "Failed to allocated data array.");
 
@@ -1631,11 +1631,11 @@ double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, do
 }
 
 
-std::complex<double> crect(double re, double im){
+cmplx crect(double re, double im){
     return (re + I*im);
 }
 
-std::complex<double> cpolar(double r, double th){
+cmplx cpolar(double r, double th){
      return (r * std::exp(crect(0, th)));
 }
 
@@ -1646,14 +1646,14 @@ COMPLEX2dArray *CreateCOMPLEX2dArray(
     COMPLEX2dArray* tmp = malloc(sizeof(COMPLEX2dArray));
     tmp->length = length;
     tmp->num_modes = num_modes;
-    size_t size = sizeof(std::complex<double>)*num_modes*length;
+    size_t size = sizeof(cmplx)*num_modes*length;
     tmp->data = malloc(size);
 
     assert(tmp->data != NULL);
         //ERROR(PD_ENOMEM, "Failed to allocated data array.");
 
     memset(tmp->data, 0, sizeof(size));
-    //memset(tmp->data, 0, sizeof(std::complex<double>)*(num_modes * length));
+    //memset(tmp->data, 0, sizeof(cmplx)*(num_modes * length));
     return tmp;
 }
 
@@ -1711,7 +1711,7 @@ double PhenomUtilsFDamp0(
  *
  * Currently only supports s=-2, l=2,3,4,5,6,7,8 modes.
  */
-std::complex<double> SpinWeightedSphericalHarmonic(
+cmplx SpinWeightedSphericalHarmonic(
                                    double theta,  /**< polar angle (rad) */
                                    double phi,    /**< azimuthal angle (rad) */
                                    int s,        /**< spin weight */
@@ -1720,7 +1720,7 @@ std::complex<double> SpinWeightedSphericalHarmonic(
     )
 {
   double fac;
-  std::complex<double> ans;
+  cmplx ans;
 
   /* sanity checks ... */
   if ( l < abs(s) )

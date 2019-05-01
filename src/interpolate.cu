@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include <assert.h>
 #include <cusparse_v2.h>
+#include "globalPhenomHM.h"
 
 #define ERR_NE(X,Y) do { if ((X) != (Y)) { \
                              fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
@@ -290,13 +291,13 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 
 
-void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, std::complex<double> *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    std::complex<double> fastPart;
-    std::complex<double> I(0.0, 1.0);
+    cmplx fastPart;
+    cmplx I(0.0, 1.0);
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
     int old_ind_below;
@@ -316,9 +317,9 @@ void host_interpolate(std::complex<double> *X_out, std::complex<double> *Y_out, 
             // interp amplitude
             coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
             if (coeff_0 < 1e-50){
-                X_out[mode_i*length + i] = std::complex<double>(0.0, 0.0);
-                Y_out[mode_i*length + i] = std::complex<double>(0.0, 0.0);
-                Z_out[mode_i*length + i] = std::complex<double>(0.0, 0.0);
+                X_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                Y_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                Z_out[mode_i*length + i] = cmplx(0.0, 0.0);
                 continue;
             }
             coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];

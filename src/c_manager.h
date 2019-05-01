@@ -46,7 +46,7 @@ class GPUPhenomHM {
 
   int *h_indices;
 
-  std::complex<double> *data_stream;
+  cmplx *data_stream;
 
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header

@@ -386,7 +386,7 @@ int IMRPhenomDGenerateFD_internal(
   int status_in_for = 1;
   /* Now generate the waveform */
   size_t i;
-  std::complex<double> I(0.0, 1.0);
+  cmplx I(0.0, 1.0);
   #pragma omp parallel for
   for (i = ind_min; i < ind_max; i++)
   {

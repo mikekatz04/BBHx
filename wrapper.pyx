@@ -30,6 +30,7 @@ cdef extern from "src/manager.hh":
 
         void Likelihood(np.float64_t*)
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
+        void GetAmpPhase(np.float64_t*, np.float64_t*)
 
 cdef class PhenomHM:
     cdef PhenomHMwrap* g
@@ -100,3 +101,11 @@ cdef class PhenomHM:
         self.g.GetTDI(&X_[0], &Y_[0], &Z_[0])
 
         return (X_.reshape(self.num_modes, self.data_length), Y_.reshape(self.num_modes, self.data_length), Z_.reshape(self.num_modes, self.data_length))
+
+    def GetAmpPhase(self):
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim*self.num_modes,), dtype=np.float64)
+
+        self.g.GetAmpPhase(&amp_[0], &phase_[0])
+
+        return (amp_.reshape(self.num_modes, self.f_dim), phase_.reshape(self.num_modes, self.f_dim))

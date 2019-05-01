@@ -11,7 +11,6 @@ ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
             mode_vals[i].to_gpu = to_gpu;
             mode_vals[i].to_interp = to_interp;
 
-            if (mode_vals[i].to_gpu == 0){
                 mode_vals[i].amp = new double[max_length];
                 mode_vals[i].phase = new double[max_length];
                 mode_vals[i].freq_amp_phase = new double[max_length];
@@ -30,7 +29,7 @@ ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
                 mode_vals[i].transferL3_re = new double[max_length];
                 mode_vals[i].transferL3_im = new double[max_length];
 
-
+            if (mode_vals[i].to_gpu == 0){
                 if (mode_vals[i].to_interp == 1){
                     mode_vals[i].amp_coeff_1 = new double[max_length -1];
                     mode_vals[i].amp_coeff_2 = new double[max_length -1];

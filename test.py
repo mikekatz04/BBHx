@@ -42,7 +42,7 @@ def test():
      l_vals,
      m_vals, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
-    num = 1000
+    num = 100
     st = time.perf_counter()
     for i in range(num):
 
@@ -63,6 +63,7 @@ def test():
     print('gpu per waveform:', t/num)
     print(like)
     gpu_X, gpu_Y, gpu_Z = phenomHM.GetTDI()
+    gpu_amp, gpu_phase = phenomHM.GetAmpPhase()
     np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
     #print('2gpu per waveform:', t/num)
     import pdb; pdb.set_trace()

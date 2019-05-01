@@ -138,6 +138,7 @@ public:
 
   void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
 
+  void GetAmpPhase(double* amp_, double* phase_);
 };
 
 

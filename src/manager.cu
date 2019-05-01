@@ -405,7 +405,6 @@ void PhenomHM::Likelihood (double *like_out_){
      like_out_[1] = h_h;
 }
 
-
 void PhenomHM::GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_) {
 
   assert(current_status > 4);
@@ -413,6 +412,34 @@ void PhenomHM::GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_) {
   gpuErrchk(cudaMemcpy(Y_, d_Y, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
   gpuErrchk(cudaMemcpy(Z_, d_Z, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
 }
+
+__global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
+    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.x;
+    if (i >= length) return;
+    if (mode_i >= num_modes) return;
+    amp[mode_i*length + i] = mode_vals[mode_i].amp[i];
+    phase[mode_i*length + i] = mode_vals[mode_i].phase[i];
+}
+
+void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
+  assert(current_status > 1);
+  double *amp, *phase;
+  gpuErrchk(cudaMalloc(&amp, num_modes*current_length*sizeof(double)));
+  gpuErrchk(cudaMalloc(&phase, num_modes*current_length*sizeof(double)));
+
+  dim3 readOutDim(num_modes, num_blocks);
+  read_out_amp_phase<<<readOutDim, NUM_THREADS>>>(d_mode_vals, amp, phase, num_modes, current_length);
+  cudaDeviceSynchronize();
+  gpuErrchk(cudaGetLastError());
+
+  gpuErrchk(cudaMemcpy(amp_, amp, num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(phase_, phase, num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+
+  gpuErrchk( cudaFree(amp));
+  gpuErrchk(cudaFree(phase));
+}
+
 
 PhenomHM::~PhenomHM() {
   delete pHM_trans;
@@ -423,21 +450,21 @@ PhenomHM::~PhenomHM() {
   cpu_destroy_modes(mode_vals);
   delete[] H;
 
-  cudaFree(d_freqs);
-  cudaFree(d_data_stream);
+  gpuErrchk(cudaFree(d_freqs));
+  gpuErrchk(cudaFree(d_data_stream));
   gpu_destroy_modes(d_mode_vals);
-  cudaFree(d_pHM_trans);
-  cudaFree(d_pAmp_trans);
-  cudaFree(d_amp_prefactors_trans);
-  cudaFree(d_pDPreComp_all_trans);
-  cudaFree(d_q_all_trans);
-  cudaFree(d_cShift);
-  cudaFree(d_X);
-  cudaFree(d_Y);
-  cudaFree(d_Z);
-  cudaFree(d_X_ASDinv);
-  cudaFree(d_Y_ASDinv);
-  cudaFree(d_Z_ASDinv);
+  gpuErrchk(cudaFree(d_pHM_trans));
+  gpuErrchk(cudaFree(d_pAmp_trans));
+  gpuErrchk(cudaFree(d_amp_prefactors_trans));
+  gpuErrchk(cudaFree(d_pDPreComp_all_trans));
+  gpuErrchk(cudaFree(d_q_all_trans));
+  gpuErrchk(cudaFree(d_cShift));
+  gpuErrchk(cudaFree(d_X));
+  gpuErrchk(cudaFree(d_Y));
+  gpuErrchk(cudaFree(d_Z));
+  gpuErrchk(cudaFree(d_X_ASDinv));
+  gpuErrchk(cudaFree(d_Y_ASDinv));
+  gpuErrchk(cudaFree(d_Z_ASDinv));
   cublasDestroy(handle);
-  cudaFree(d_B);
+  gpuErrchk(cudaFree(d_B));
 }

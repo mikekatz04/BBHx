@@ -531,38 +531,6 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
             Z_out[mode_i*length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart), make_cuDoubleComplex(Z_ASD_inv[i], 0.0));
 }
 
-
-__global__ void interpolate2(cuDoubleComplex *hI_out,ModeContainer* old_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs, int length){
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.y;
-    if (i + ind_min > ind_max) return;
-    if (mode_i >= num_modes) return;
-    int new_index = i + ind_min;
-    int old_ind_below = old_inds[i];
-    double f = f_min + df * new_index;
-    double x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-    double x2 = x*x;
-    double x3 = x*x2;
-    double coeff_0, coeff_1, coeff_2, coeff_3;
-    // interp amplitude
-    coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
-
-    double amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-    // interp phase
-    coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
-    coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
-    coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
-    coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
-
-    double phase = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-    hI_out[mode_i*length + new_index] = make_cuDoubleComplex(amp*cos(phase), -1.0*amp*sin(phase));
-}
-
 Interpolate::Interpolate(){
     int pass = 0;
 }
@@ -587,31 +555,27 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
         du[i] = 1.0;
         d[i] = 4.0;
     }
-    if (to_gpu == 1){
-        err = cudaMalloc(&d_dl, m*sizeof(double));
-        assert(err == 0);
-        err = cudaMalloc(&d_d, m*sizeof(double));
-        assert(err == 0);
-        err = cudaMalloc(&d_du, m*sizeof(double));
-        assert(err == 0);
-        err = cudaMemcpy(d_dl, dl, m*sizeof(double), cudaMemcpyHostToDevice);
-        assert(err == 0);
-        err = cudaMemcpy(d_d, d, m*sizeof(double), cudaMemcpyHostToDevice);
-        assert(err == 0);
-        err = cudaMemcpy(d_du, du, m*sizeof(double), cudaMemcpyHostToDevice);
-        assert(err == 0);
-    }
 
-    if (to_gpu == 1){
-        Interpolate::gpu_fit_constants(B);
-        cudaFree(d_dl);
-        cudaFree(d_du);
-        cudaFree(d_d);
-    }
-    else Interpolate::fit_constants(B);
-    delete d;
-    delete dl;
-    delete du;
+    err = cudaMalloc(&d_dl, m*sizeof(double));
+    assert(err == 0);
+    err = cudaMalloc(&d_d, m*sizeof(double));
+    assert(err == 0);
+    err = cudaMalloc(&d_du, m*sizeof(double));
+    assert(err == 0);
+    err = cudaMemcpy(d_dl, dl, m*sizeof(double), cudaMemcpyHostToDevice);
+    assert(err == 0);
+    err = cudaMemcpy(d_d, d, m*sizeof(double), cudaMemcpyHostToDevice);
+    assert(err == 0);
+    err = cudaMemcpy(d_du, du, m*sizeof(double), cudaMemcpyHostToDevice);
+    assert(err == 0);
+
+    Interpolate::gpu_fit_constants(B);
+    cudaFree(d_dl);
+    cudaFree(d_du);
+    cudaFree(d_d);
+    delete[] d;
+    delete[] dl;
+    delete[] du;
     //dx_old = x_old[1] - x_old[0];
 }
 
@@ -626,6 +590,7 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
     CUSPARSE_CALL( cusparseCreate(&handle) );
     cusparseStatus_t status = cusparseDgtsv(handle, m, n, d_dl, d_d, d_du, B, m);
     if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
+    cusparseDestroy(handle);
 }
 
 __host__ void Interpolate::fit_constants(double *B){
@@ -646,8 +611,8 @@ __host__ void Interpolate::fit_constants(double *B){
     }
 
     for (int i=0; i<m; i++) B[i] = D[i];
-    delete D;
-    delete w;
+    delete[] D;
+    delete[] w;
     /*for (i=0;i<N-1; i++){
         coeff_1[i] = D[i];
         coeff_2[i] = 3.0*(y_old[i+1] - y_old[i]) - 2.0*D[i] - D[i+1];
@@ -697,8 +662,4 @@ __host__ double Interpolate::cpu_call(double x_new){
 }
 
 __host__ Interpolate::~Interpolate(){
-    if (to_gpu == 1){
-        cusparseDestroy(handle);
-    }
-
 }

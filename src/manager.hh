@@ -11,7 +11,7 @@
 
 class GPUPhenomHM {
   // pointer to the GPU memory where the array is stored
-  int max_length;
+  int max_length_init;
   int data_stream_length;
   double *freqs;
   int f_length;
@@ -60,30 +60,14 @@ class GPUPhenomHM {
   cublasStatus_t stat;
 
   // Interpolate related stuff
-  int to_interp;
-  ModeContainer *out_mode_vals;
-  ModeContainer *d_out_mode_vals;
   Interpolate interp;
-  int max_interp_length;
-  double *interp_freqs;
-  double *d_interp_freqs;
   double *d_B;
-  double *B;
 
   ModeContainer *mode_vals;
   ModeContainer *d_mode_vals;
 
-  int *h_indices;
-  int *d_indices;
-
   std::complex<double> *data_stream;
-  std::complex<double> *hI;
-  std::complex<double> *hII;
-  std::complex<double> *hI_out;
-  std::complex<double> *hII_out;
-  std::complex<double> *X;
-  std::complex<double> *Y;
-  std::complex<double> *Z;
+
   double *X_ASDinv;
   double *Y_ASDinv;
   double *Z_ASDinv;
@@ -95,13 +79,6 @@ class GPUPhenomHM {
   double *d_X_ASDinv;
   double *d_Y_ASDinv;
   double *d_Z_ASDinv;
-
-  cuDoubleComplex *d_hI;
-  cuDoubleComplex *d_hII;
-
-  cuDoubleComplex *d_hI_out;
-  cuDoubleComplex *d_hII_out;
-  cuDoubleComplex *d_ones;
 
   double inc;
   double lam;
@@ -125,28 +102,13 @@ public:
        %apply (int* ARGOUT_ARRAY1, int DIM1) {(int* myarray, int length)}
    */
 
-  GPUPhenomHM(int max_length_,
+  GPUPhenomHM(int max_length_init_,
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
-      int to_gpu_,
-      int to_interp_,
       std::complex<double> *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
 
   ~GPUPhenomHM(); // destructor
-
-  void add_interp(int max_interp_length_);
-
-  void cpu_gen_PhenomHM(double *freqs_, int f_length_,
-      double m1_, //solar masses
-      double m2_, //solar masses
-      double chi1z_,
-      double chi2z_,
-      double distance_,
-      double inclination_,
-      double phiRef_,
-      double deltaF_,
-      double f_ref_);
 
     void gpu_gen_PhenomHM(double *freqs_, int f_length_,
         double m1_, //solar masses
@@ -159,22 +121,27 @@ public:
         double deltaF_,
         double f_ref_);
 
+    void cpu_gen_PhenomHM(double *freqs_, int f_length_,
+            double m1_, //solar masses
+            double m2_, //solar masses
+            double chi1z_,
+            double chi2z_,
+            double distance_,
+            double inclination_,
+            double phiRef_,
+            double deltaF_,
+            double f_ref_);
 
   void gpu_setup_interp_wave();
-  void cpu_setup_interp_wave();
 
   void gpu_LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
-  void cpu_LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
 
   void gpu_setup_interp_response();
-  void cpu_setup_interp_response();
 
   void gpu_perform_interp(double f_min, double df, int length_new);
-  void cpu_perform_interp(double f_min, double df, int length_new);
 
   void Likelihood (int length, double *like_out_);
-  //gets results back from the gpu, putting them in the supplied memory location
-  void Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
+
   void gpu_Get_Waveform (std::complex<double>* X_, std::complex<double>* Y_, std::complex<double>* Z_);
 
 };

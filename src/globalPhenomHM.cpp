@@ -73,56 +73,56 @@ ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
 void cpu_destroy_modes(ModeContainer * mode_vals){
     if (mode_vals[0].to_gpu == 0){
         for (int i=0; i<mode_vals[0].num_modes; i++){
-            delete mode_vals[i].amp;
-            delete mode_vals[i].phase;
-            delete mode_vals[i].freq_amp_phase;
+            delete[] mode_vals[i].amp;
+            delete[] mode_vals[i].phase;
+            delete[] mode_vals[i].freq_amp_phase;
 
-            delete mode_vals[i].freq_response;
-            delete mode_vals[i].phaseRdelay;
+            delete[] mode_vals[i].freq_response;
+            delete[] mode_vals[i].phaseRdelay;
 
-            delete mode_vals[i].transferL1_re;
-            delete mode_vals[i].transferL1_im;
+            delete[] mode_vals[i].transferL1_re;
+            delete[] mode_vals[i].transferL1_im;
 
-            delete mode_vals[i].transferL2_re;
-            delete mode_vals[i].transferL2_im;
+            delete[] mode_vals[i].transferL2_re;
+            delete[] mode_vals[i].transferL2_im;
 
-            delete mode_vals[i].transferL3_re;
-            delete mode_vals[i].transferL3_im;
+            delete[] mode_vals[i].transferL3_re;
+            delete[] mode_vals[i].transferL3_im;
 
             if (mode_vals[i].to_interp == 1){
-                delete mode_vals[i].amp_coeff_1;
-                delete mode_vals[i].amp_coeff_2;
-                delete mode_vals[i].amp_coeff_3;
-                delete mode_vals[i].phase_coeff_1;
-                delete mode_vals[i].phase_coeff_2;
-                delete mode_vals[i].phase_coeff_3;
+                delete[] mode_vals[i].amp_coeff_1;
+                delete[] mode_vals[i].amp_coeff_2;
+                delete[] mode_vals[i].amp_coeff_3;
+                delete[] mode_vals[i].phase_coeff_1;
+                delete[] mode_vals[i].phase_coeff_2;
+                delete[] mode_vals[i].phase_coeff_3;
 
-                delete mode_vals[i].transferL1_re_coeff_1;
-                delete mode_vals[i].transferL1_re_coeff_2;
-                delete mode_vals[i].transferL1_re_coeff_3;
-                delete mode_vals[i].transferL1_im_coeff_1;
-                delete mode_vals[i].transferL1_im_coeff_2;
-                delete mode_vals[i].transferL1_im_coeff_3;
+                delete[] mode_vals[i].transferL1_re_coeff_1;
+                delete[] mode_vals[i].transferL1_re_coeff_2;
+                delete[] mode_vals[i].transferL1_re_coeff_3;
+                delete[] mode_vals[i].transferL1_im_coeff_1;
+                delete[] mode_vals[i].transferL1_im_coeff_2;
+                delete[] mode_vals[i].transferL1_im_coeff_3;
 
-                delete mode_vals[i].transferL2_re_coeff_1;
-                delete mode_vals[i].transferL2_re_coeff_2;
-                delete mode_vals[i].transferL2_re_coeff_3;
-                delete mode_vals[i].transferL2_im_coeff_1;
-                delete mode_vals[i].transferL2_im_coeff_2;
-                delete mode_vals[i].transferL2_im_coeff_3;
+                delete[] mode_vals[i].transferL2_re_coeff_1;
+                delete[] mode_vals[i].transferL2_re_coeff_2;
+                delete[] mode_vals[i].transferL2_re_coeff_3;
+                delete[] mode_vals[i].transferL2_im_coeff_1;
+                delete[] mode_vals[i].transferL2_im_coeff_2;
+                delete[] mode_vals[i].transferL2_im_coeff_3;
 
-                delete mode_vals[i].transferL3_re_coeff_1;
-                delete mode_vals[i].transferL3_re_coeff_2;
-                delete mode_vals[i].transferL3_re_coeff_3;
-                delete mode_vals[i].transferL3_im_coeff_1;
-                delete mode_vals[i].transferL3_im_coeff_2;
-                delete mode_vals[i].transferL3_im_coeff_3;
+                delete[] mode_vals[i].transferL3_re_coeff_1;
+                delete[] mode_vals[i].transferL3_re_coeff_2;
+                delete[] mode_vals[i].transferL3_re_coeff_3;
+                delete[] mode_vals[i].transferL3_im_coeff_1;
+                delete[] mode_vals[i].transferL3_im_coeff_2;
+                delete[] mode_vals[i].transferL3_im_coeff_3;
 
-                delete mode_vals[i].phaseRdelay_coeff_1;
-                delete mode_vals[i].phaseRdelay_coeff_2;
-                delete mode_vals[i].phaseRdelay_coeff_3;
+                delete[] mode_vals[i].phaseRdelay_coeff_1;
+                delete[] mode_vals[i].phaseRdelay_coeff_2;
+                delete[] mode_vals[i].phaseRdelay_coeff_3;
             }
         }
     }
-    delete mode_vals;
+    delete[] mode_vals;
 }

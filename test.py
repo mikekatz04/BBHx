@@ -38,6 +38,37 @@ def test():
     AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
     T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(interp_freq, model='SciRDv1'))
 
+    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
+     l_vals,
+     m_vals, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
+
+    num = 1000
+    st = time.perf_counter()
+    for i in range(num):
+
+        gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
+                     m2,  # solar masses
+                     chi1z,
+                     chi2z,
+                     distance,
+                     inclination,
+                     phiRef,
+                     deltaF,
+                     f_ref)
+        gpu_phenomHM.gpu_setup_interp_wave()
+        gpu_phenomHM.gpu_LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+        gpu_phenomHM.gpu_setup_interp_response()
+        gpu_phenomHM.gpu_perform_interp(1e-5, df, len(interp_freq))
+        like = gpu_phenomHM.Likelihood(len(interp_freq))
+
+    t = time.perf_counter() - st
+    print('gpu per waveform:', t/num)
+    print(like)
+    gpu_X, gpu_Y, gpu_Z = gpu_phenomHM.gpu_Get_Waveform()
+    np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
+    #print('2gpu per waveform:', t/num)
+    import pdb; pdb.set_trace()
+
     """
     to_gpu=0
     to_interp = 1
@@ -114,41 +145,6 @@ def test():
     #assert(np.allclose(cpu_amp, gpu_amp))
     #assert(np.allclose(cpu_phase, gpu_phase))
     #print('CPU MATCHES GPU!!!!')
-
-    to_gpu=1
-    to_interp = 1
-    gpu_phenomHM = gpuPhenomHM.GPUPhenomHM(len(freq),
-     l_vals,
-     m_vals,
-     to_gpu, to_interp, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
-
-    gpu_phenomHM.add_interp(len(interp_freq))
-    num = 1000
-    st = time.perf_counter()
-    for i in range(num):
-
-        gpu_phenomHM.gpu_gen_PhenomHM(freq, m1,  # solar masses
-                     m2,  # solar masses
-                     chi1z,
-                     chi2z,
-                     distance,
-                     inclination,
-                     phiRef,
-                     deltaF,
-                     f_ref)
-        gpu_phenomHM.gpu_setup_interp_wave()
-        gpu_phenomHM.gpu_LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
-        gpu_phenomHM.gpu_setup_interp_response()
-        gpu_phenomHM.gpu_perform_interp(1e-5, df, len(interp_freq))
-        like = gpu_phenomHM.Likelihood(len(interp_freq))
-
-    t = time.perf_counter() - st
-    print('gpu per waveform:', t/num)
-    print(like)
-    gpu_X, gpu_Y, gpu_Z = gpu_phenomHM.gpu_Get_Waveform()
-    np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
-    #print('2gpu per waveform:', t/num)
-    import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":

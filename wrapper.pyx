@@ -18,7 +18,6 @@ cdef extern from "src/manager.hh":
                             double,
                             double,
                             double,
-                            double,
                             double)
 
         void setup_interp_wave()
@@ -59,7 +58,6 @@ cdef class PhenomHM:
                         chi1z,
                         chi2z,
                         distance,
-                        inclination,
                         phiRef,
                         f_ref):
 
@@ -70,7 +68,6 @@ cdef class PhenomHM:
                                 chi1z,
                                 chi2z,
                                 distance,
-                                inclination,
                                 phiRef,
                                 f_ref)
 

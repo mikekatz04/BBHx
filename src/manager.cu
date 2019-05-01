@@ -130,7 +130,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     double chi1z_,
     double chi2z_,
     double distance_,
-    double inclination_,
     double phiRef_,
     double f_ref_){
 
@@ -142,7 +141,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
         chi1z_,
         chi2z_,
         distance_,
-        inclination_,
         phiRef_,
         f_ref_);
 
@@ -189,7 +187,6 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
     double chi1z_,
     double chi2z_,
     double distance_,
-    double inclination_,
     double phiRef_,
     double f_ref_){
 
@@ -203,7 +200,6 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
     chi1z = chi1z_;
     chi2z = chi2z_;
     distance = distance_;
-    inclination = inclination_;
     phiRef = phiRef_;
     f_ref = f_ref_;
 
@@ -225,7 +221,6 @@ void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
         chi1z,
         chi2z,
         distance,
-        inclination,
         phiRef,
         deltaF,
         f_ref,

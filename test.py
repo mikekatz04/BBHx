@@ -51,7 +51,6 @@ def test():
                      chi1z,
                      chi2z,
                      distance,
-                     inclination,
                      phiRef,
                      f_ref)
         phenomHM.setup_interp_wave()

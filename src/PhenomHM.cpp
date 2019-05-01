@@ -826,7 +826,6 @@ double IMRPhenomHMOnePointFiveSpinPN(
      double chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
      double chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
      const double distance,               /**< distance of source (m) */
-     const double inclination,            /**< inclination of source (rad) */
      const double phiRef,                 /**< reference orbital phase (rad) */
      const double deltaF,                 /**< Sampling frequency (Hz). To use arbitrary frequency points set deltaF <= 0. */
      double f_ref,                        /**< Reference frequency */
@@ -867,7 +866,6 @@ double IMRPhenomHMOnePointFiveSpinPN(
         chi1z,
         chi2z,
         distance,
-        inclination,
         phiRef,
         deltaF,
         f_ref,
@@ -1066,7 +1064,6 @@ int IMRPhenomHMCore(
     double chi1z,                               /**< aligned spin of primary */
     double chi2z,                               /**< aligned spin of secondary */
     const double distance,                      /**< distance [m] */
-    const double inclination,                   /**< inclination angle */
     const double phiRef,                        /**< orbital phase at f_ref */
     const double deltaF,                        /**< frequency spacing */
     double f_ref,                               /**< reference GW frequency */
@@ -1222,21 +1219,16 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
     //HMPhasePreComp q;
     HMPhasePreComp * q_all = q_all_trans;
-    //PhenDAmpAndPhasePreComp pDPreComp;
-    PhenDAmpAndPhasePreComp *pDPreComp_all = pDPreComp_all_trans;
-    //cmplx Y, Ymstar;
 
-    //cmplx * factorp = factorp_trans;
-    //cmplx * factorc = factorc_trans;
-    //cmplx I(0.0, 1.0);
+    PhenDAmpAndPhasePreComp *pDPreComp_all = pDPreComp_all_trans;
+
     double Rholm, Taulm;
     unsigned int ell, mm;
-    //cmplx minus1l; /* (-1)^l */
+
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         ell = mode_vals[mode_i].l;
         mm = mode_vals[mode_i].m;
 
-        //printf("%d, %d\n", ell, mm);
 
         retcode = 0;
         retcode = IMRPhenomHMPhasePreComp(&q_all[mode_i], ell, mm, pHM);
@@ -1260,38 +1252,6 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
             printf("IMRPhenomDSetupAmpAndPhaseCoefficients failed\n");
             assert(0); //ERROR(PD_EDOM, "IMRPhenomDSetupAmpAndPhaseCoefficients failed");
         }
-
-        /*
-        if (ell % 2)
-            minus1l = -1.0;
-        else
-            minus1l = 1.0;
-
-        // We test for hypothetical m=0 modes
-        if (mm == 0)
-        {
-            sym = 0;
-        }
-        else
-        {
-            sym = 1;
-        } */
-        //IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
-        /*if (sym)
-        { // Equatorial symmetry: add in -m mode
-            Y = SpinWeightedSphericalHarmonic(inclination, 0.0, -2, ell, mm);
-            Ymstar = conj(SpinWeightedSphericalHarmonic(inclination, 0.0, -2, ell, -mm));
-            factorp[mode_i] = 0.5 * (Y + minus1l * Ymstar);
-            factorc[mode_i] = I * 0.5 * (Y - minus1l * Ymstar);
-
-        }
-        else
-        { // not adding in the -m mode
-            Y = SpinWeightedSphericalHarmonic(inclination, 0.0, -2, ell, mm);
-            factorp[mode_i] = 0.5 * Y;
-            factorc[mode_i] = I * factorp[mode_i];
-        }*/
-
     }
     pHM->nmodes = num_modes;
 
@@ -1342,7 +1302,6 @@ int main(){
     double chi1z = 0.8;
     double chi2z = 0.8;
     double distance = 1.0e9*3.086e16;
-    double inclination = 1.343;
     double phiRef = 0.0;
     double f_ref = 1e-4;
     double deltaF = -1.0;
@@ -1381,7 +1340,6 @@ int out = IMRPhenomHM(
     chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
     chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
     distance,               /**< distance of source (m) */
-    inclination,            /**< inclination of source (rad) */
     phiRef,                 /**< reference orbital phase (rad) */
     deltaF,                 /**< Sampling frequency (Hz). To use arbitrary frequency points set deltaF <= 0. */
     f_ref,                        /**< Reference frequency */

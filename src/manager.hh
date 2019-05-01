@@ -18,7 +18,6 @@ class PhenomHM {
   double chi1z;
   double chi2z;
   double distance;
-  double inclination;
   double phiRef;
   double deltaF;
   double f_ref;
@@ -114,7 +113,6 @@ public:
         double chi1z_,
         double chi2z_,
         double distance_,
-        double inclination_,
         double phiRef_,
         double f_ref_);
 
@@ -124,7 +122,6 @@ public:
             double chi1z_,
             double chi2z_,
             double distance_,
-            double inclination_,
             double phiRef_,
             double f_ref_);
 

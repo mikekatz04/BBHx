@@ -30,7 +30,7 @@ double dot_product_1d(double arr1[3], double arr2[3]);
 
 cmplx vec_H_vec_product(double arr1[3], cmplx *H, double arr2[3]);
 
-cmplx * prep_H_info(unsigned int *l_vals, unsigned int *m_vals, int num_modes, double inc, double lam, double beta, double psi, double phi0);
+void prep_H_info(cmplx *H_mat, unsigned int *l_vals, unsigned int *m_vals, int num_modes, double inc, double lam, double beta, double psi, double phi0);
 
 Gslr_holder EvaluateGslr(double t, double f, cmplx *H, double k[3], int response);
 

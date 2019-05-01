@@ -80,21 +80,21 @@ double dot_product_1d(double arr1[3], double arr2[3]){
     return out;
 }
 
-cmplx vec_H_vec_product(double arr1[3], cmplx *H, double arr2[3]){
+cmplx vec_H_vec_product(double arr1[3], cmplx *H_mat, double arr2[3]){
     cmplx I(0.0, 1.0);
     cmplx out(0.0, 0.0);
     cmplx trans;
     for (int i=0; i<3; i++){
         trans = 0.0 * I*0.0;
         for (int j=0; j<3; j++){
-            trans += H[i*3 + j]*arr2[j];
+            trans += H_mat[i*3 + j]*arr2[j];
         }
         out += arr1[i]*trans;
     }
     return out;
 }
 
-cmplx * prep_H_info(unsigned int *l_vals, unsigned int *m_vals, int num_modes, double inc, double lam, double beta, double psi, double phi0){
+void prep_H_info(cmplx *H_mat, unsigned int *l_vals, unsigned int *m_vals, int num_modes, double inc, double lam, double beta, double psi, double phi0){
 
     //##### Based on the f-n by Sylvain   #####
     double HSplus[3][3] =
@@ -148,8 +148,7 @@ cmplx * prep_H_info(unsigned int *l_vals, unsigned int *m_vals, int num_modes, d
 
     cmplx I(0.0, 1.0);
     cmplx Ylm, Yl_m, Yfactorplus, Yfactorcross;
-    int dim = 9*num_modes;
-    cmplx *H = new cmplx[dim];
+
     cmplx trans1, trans2;
     int m;
     int l;
@@ -163,25 +162,25 @@ cmplx * prep_H_info(unsigned int *l_vals, unsigned int *m_vals, int num_modes, d
         Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
         //# Yfactorcross = -1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
         //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-        //# The matrix H is now complex
+        //# The matrix H_mat is now complex
 
-        //# H = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H A_22 exp(i\Psi(f))
+        //# H_mat = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H_mat A_22 exp(i\Psi(f))
         for (int i=0; i<3; i++){
             for (int j=0; j<3; j++){
                 trans1 = Hplus[i][j];
                 trans2 = Hcross[i][j];
-                H[mode_i*9 + i*3 + j] = (Yfactorplus*trans1+ Yfactorcross*trans2);
+                H_mat[mode_i*9 + i*3 + j] = (Yfactorplus*trans1+ Yfactorcross*trans2);
                 //printf("(%d, %d): %e, %e\n", i, j, Hplus[i][j], Hcross[i][j]);
             }
         }
     }
-    return &H[0];
+
 }
 
 /* # Single-link response
 # 'full' does include the orbital-delay term, 'constellation' does not
 # t can be a scalar or a 1D vector */
-Gslr_holder EvaluateGslr(double t, double f, cmplx *H, double k[3], int response){
+Gslr_holder EvaluateGslr(double t, double f, cmplx *H_mat, double k[3], int response){
     // response == 1 is full ,, response anything else is constellation
     //# Trajectories, p0 used only for the full response
     cmplx I(0.0, 1.0);
@@ -203,9 +202,9 @@ Gslr_holder EvaluateGslr(double t, double f, cmplx *H, double k[3], int response
     double kn2 = dot_product_1d(k, n2);
     double kn3 = dot_product_1d(k, n3);
 
-    cmplx n1Hn1 = vec_H_vec_product(n1, H, n1); //np.dot(n1, np.dot(H, n1))
-    cmplx n2Hn2 = vec_H_vec_product(n2, H, n2); //np.dot(n2, np.dot(H, n2))
-    cmplx n3Hn3 = vec_H_vec_product(n3, H, n3); //np.dot(n3, np.dot(H, n3))
+    cmplx n1Hn1 = vec_H_vec_product(n1, H_mat, n1); //np.dot(n1, np.dot(H_mat, n1))
+    cmplx n2Hn2 = vec_H_vec_product(n2, H_mat, n2); //np.dot(n2, np.dot(H_mat, n2))
+    cmplx n3Hn3 = vec_H_vec_product(n3, H_mat, n3); //np.dot(n3, np.dot(H_mat, n3))
 
     double p1L_plus_p2L[3] = {p1L[0]+p2L[0], p1L[1]+p2L[1], p1L[2]+p2L[2]};
     double p2L_plus_p3L[3] = {p2L[0]+p3L[0], p2L[1]+p3L[1], p2L[2]+p3L[2]};
@@ -297,7 +296,7 @@ transferL_holder TDICombinationFD(Gslr_holder Gslr, double f, int TDItag, int re
     }
 }
 
-transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
+transferL_holder JustLISAFDresponseTDI(cmplx *H_mat, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
     //t = t + t0*YRSID_SI;
 
     //funck
@@ -313,7 +312,7 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam,
     double phaseRdelay = 2.*PI/clight *f*kR;
 
     // going to assume order_fresnel_stencil == 0 for now
-    Gslr_holder Gslr = EvaluateGslr(t, f, H, kvec, 1); // assumes full response
+    Gslr_holder Gslr = EvaluateGslr(t, f, H_mat, kvec, 1); // assumes full response
     Gslr_holder Tslr; // use same struct because its the same setup
     cmplx I(0.0, 1.0);
 
@@ -332,7 +331,7 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam,
 
 
 
-void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
+void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     double phasetimeshift;
     double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
@@ -376,7 +375,7 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs
 
             t = t - Shift;
             //if (t<0.0) printf("mode %d, index %d, time %e\n", mode_i, i, t);
-            transferL_holder transferL = JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
+            transferL_holder transferL = JustLISAFDresponseTDI(&H_mat[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = std::imag(transferL.transferL1);
@@ -400,15 +399,15 @@ int main(){
     double phi0 = 0.8;
     double inc = PI/4.;
 
-    cmplx * H = prep_H_info(&l[0], &m[0], num_modes, inc, lam, beta, psi, phi0);
+    cmplx * H_mat = prep_H_info(&l[0], &m[0], num_modes, inc, lam, beta, psi, phi0);
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<3; i++){
             for (int j=0; j<3; j++){
-                printf("(%d, %d, %d, %d): %e, %e\n", l[mode_i], m[mode_i], i, j, std::real(H[mode_i*9 + i*3+j]), std::imag(H[mode_i*9 + i*3+j]));
+                printf("(%d, %d, %d, %d): %e, %e\n", l[mode_i], m[mode_i], i, j, std::real(H_mat[mode_i*9 + i*3+j]), std::imag(H_mat[mode_i*9 + i*3+j]));
             }
         }
     }
-    delete H;
+    delete H_mat;
     return (0);
 }
 */

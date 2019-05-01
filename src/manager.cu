@@ -121,6 +121,8 @@ PhenomHM::PhenomHM (int max_length_init_,
 
   //double amp0_;
   amp0 = 0.0;
+
+  H = new cmplx[9*num_modes];
 }
 
 
@@ -273,7 +275,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
 
     assert(current_status >= 2);
 
-    H = prep_H_info(l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
+    prep_H_info(H, l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 

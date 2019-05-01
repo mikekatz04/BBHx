@@ -57,7 +57,7 @@ def test():
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
         phenomHM.setup_interp_response()
         phenomHM.perform_interp(1e-5, df, len(interp_freq))
-        like = phenomHM.Likelihood(len(interp_freq))
+        like = phenomHM.Likelihood()
 
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)

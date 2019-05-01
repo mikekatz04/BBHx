@@ -28,7 +28,7 @@ cdef extern from "src/manager.hh":
 
         void setup_interp_response()
 
-        void Likelihood(int, np.float64_t*)
+        void Likelihood(np.float64_t*)
         void GetWaveform(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
 cdef class PhenomHM:
@@ -87,9 +87,9 @@ cdef class PhenomHM:
         self.g.perform_interp(f_min, df, length_new)
         return
 
-    def Likelihood(self, length):
+    def Likelihood(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] like_out_ = np.zeros((2,), dtype=np.float64)
-        self.g.Likelihood(length, &like_out_[0])
+        self.g.Likelihood(&like_out_[0])
         return like_out_
 
     def GetWaveform(self):

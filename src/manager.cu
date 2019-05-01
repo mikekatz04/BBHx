@@ -134,6 +134,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     double f_ref_){
 
     assert(to_gpu == 1);
+    assert(current_length_ <= max_length_init);
 
     PhenomHM::gen_amp_phase_prep(freqs_, current_length_,
         m1_, //solar masses
@@ -143,6 +144,16 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
         distance_,
         phiRef_,
         f_ref_);
+
+    freqs = freqs_;
+    current_length = current_length_;
+    m1 = m1_; //solar masses
+    m2 = m2_; //solar masses
+    chi1z = chi1z_;
+    chi2z = chi2z_;
+    distance = distance_;
+    phiRef = phiRef_;
+    f_ref = f_ref_;
 
     gpuErrchk(cudaMemcpy(d_freqs, freqs, current_length*sizeof(double), cudaMemcpyHostToDevice));
 
@@ -183,27 +194,17 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
      current_status = 1;
 }
 
-void PhenomHM::gen_amp_phase_prep(double *freqs_, int current_length_,
-    double m1_, //solar masses
-    double m2_, //solar masses
-    double chi1z_,
-    double chi2z_,
-    double distance_,
-    double phiRef_,
-    double f_ref_){
+void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
+    double m1, //solar masses
+    double m2, //solar masses
+    double chi1z,
+    double chi2z,
+    double distance,
+    double phiRef,
+    double f_ref){
 
     // for phenomHM internal calls
     deltaF = -1.0;
-
-    freqs = freqs_;
-    current_length = current_length_;
-    m1 = m1_; //solar masses
-    m2 = m2_; //solar masses
-    chi1z = chi1z_;
-    chi2z = chi2z_;
-    distance = distance_;
-    phiRef = phiRef_;
-    f_ref = f_ref_;
 
     for (int i=0; i<num_modes; i++){
         mode_vals[i].length = current_length;
@@ -309,6 +310,7 @@ void PhenomHM::setup_interp_response(){
 
 void PhenomHM::perform_interp(double f_min, double df, int length_new){
     assert(current_status >= 4);
+    assert(length_new == data_stream_length);
     int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
     dim3 mainInterpDim(num_modes, num_block_interp);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
@@ -320,7 +322,7 @@ void PhenomHM::perform_interp(double f_min, double df, int length_new){
     if (current_status == 4) current_status = 5;
 }
 
-void PhenomHM::Likelihood (int like_length, double *like_out_){
+void PhenomHM::Likelihood (double *like_out_){
 
      assert(current_status == 5);
      double d_h = 0.0;
@@ -329,8 +331,8 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
      double res;
      cuDoubleComplex result;
      for (int mode_i=0; mode_i<num_modes; mode_i++){
-         stat = cublasZdotc(handle, like_length,
-                 &d_X[mode_i*like_length], 1,
+         stat = cublasZdotc(handle, data_stream_length,
+                 &d_X[mode_i*data_stream_length], 1,
                  d_data_stream, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -341,8 +343,8 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
               }
          d_h += cuCreal(result);
 
-         stat = cublasZdotc(handle, like_length,
-                 &d_Y[mode_i*like_length], 1,
+         stat = cublasZdotc(handle, data_stream_length,
+                 &d_Y[mode_i*data_stream_length], 1,
                  d_data_stream, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -353,8 +355,8 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
               }
          d_h += cuCreal(result);
 
-         stat = cublasZdotc(handle, like_length,
-                 &d_Z[mode_i*like_length], 1,
+         stat = cublasZdotc(handle, data_stream_length,
+                 &d_Z[mode_i*data_stream_length], 1,
                  d_data_stream, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -367,7 +369,7 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
      }
 
      // d_X d_X for h_h
-     stat = cublasDznrm2(handle, num_modes*like_length,
+     stat = cublasDznrm2(handle, num_modes*data_stream_length,
              d_X, 1, &res);
      status = _cudaGetErrorEnum(stat);
       cudaDeviceSynchronize();
@@ -378,7 +380,7 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
         h_h += res;
 
       // d_Y d_Y for h_h
-      stat = cublasDznrm2(handle, num_modes*like_length,
+      stat = cublasDznrm2(handle, num_modes*data_stream_length,
               d_Y, 1, &res);
       status = _cudaGetErrorEnum(stat);
        cudaDeviceSynchronize();
@@ -389,7 +391,7 @@ void PhenomHM::Likelihood (int like_length, double *like_out_){
          h_h += res;
 
        // d_Z d_Z for h_h
-       stat = cublasDznrm2(handle, num_modes*like_length,
+       stat = cublasDznrm2(handle, num_modes*data_stream_length,
                d_Z, 1, &res);
        status = _cudaGetErrorEnum(stat);
         cudaDeviceSynchronize();

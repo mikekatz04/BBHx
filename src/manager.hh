@@ -134,7 +134,7 @@ public:
 
   void perform_interp(double f_min, double df, int length_new);
 
-  void Likelihood (int length, double *like_out_);
+  void Likelihood (double *like_out_);
 
   void GetWaveform (cmplx* X_, cmplx* Y_, cmplx* Z_);
 

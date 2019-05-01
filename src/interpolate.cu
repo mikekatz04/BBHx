@@ -65,8 +65,8 @@ void host_fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int
 
 __global__
 void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= f_length) return;
     if (mode_i >= num_modes) return;
 
@@ -99,8 +99,8 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
 }
 
 __global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= f_length) return;
     if (mode_i >= num_modes) return;
     if (i == f_length - 1){
@@ -204,8 +204,8 @@ void host_set_spline_constants_response(ModeContainer *mode_vals, double *B, int
 __global__
 void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     double D_i, D_ip1, y_i, y_ip1;
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= f_length) return;
     if (mode_i >= num_modes) return;
 
@@ -267,8 +267,8 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
 }
 
 __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= f_length-1) return;
     if (mode_i >= num_modes) return;
     double D_i, D_ip1, y_i, y_ip1;
@@ -420,8 +420,8 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 
 __global__
 void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
-    int mode_i = blockIdx.x;
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= length) return;
     if (mode_i >= num_modes) return;
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
@@ -533,8 +533,8 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
 
 __global__ void interpolate2(cuDoubleComplex *hI_out,ModeContainer* old_mode_vals, int ind_min, int ind_max, int num_modes, double f_min, double df, int *old_inds, double *old_freqs, int length){
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.x;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
     if (i + ind_min > ind_max) return;
     if (mode_i >= num_modes) return;
     int new_index = i + ind_min;
@@ -696,91 +696,9 @@ __host__ double Interpolate::cpu_call(double x_new){
     return y_new;
 }
 
-
 __host__ Interpolate::~Interpolate(){
     if (to_gpu == 1){
         cusparseDestroy(handle);
     }
 
 }
-
-__global__ void run_interp(double *x_new, double *y_new, int num, Interpolate interp){
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= num) return;
-
-    y_new[i] = interp.call(x_new[i]);
-}
-
-__global__ void wave_interpolate(double *f_new, double *amp_new, double *phase_new, int num_modes, int length, Interpolate *interp_all){
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    if (i >= length) return;
-    int mode_i = blockIdx.x;
-    if (mode_i >= num_modes) return;
-    //Interpolate amp_interp = interp_all[mode_i];
-    //Interpolate phase_interp = interp_all[num_modes + mode_i];
-    amp_new[num_modes*length + i] = interp_all[mode_i].call(f_new[i]);
-    phase_new[num_modes*length + i] = interp_all[num_modes + mode_i].call(f_new[i]);
-}
-
-/*
-int main(){
-    cudaError_t err;
-    int num = 100;
-    double *x = new double[num];
-    double *y = new double[num];
-
-    for (int i=0; i<num; i++){
-        x[i] = (double) i+1.0;
-        y[i] = x[i] * x[i] * x[i];
-    }
-
-    Interpolate interp;
-    interp.prep(x, y, num);
-    int new_num = 200;
-    double *x_new = new double[new_num];
-    double *y_new = new double[new_num];
-
-    double dx = (x[num-1] - x[0])/(new_num + 1);
-    for (int i=0; i<new_num; i++){
-        x_new[i] = (i+1)*dx;
-        y_new[i] = interp.cpu_call(x_new[i]);
-        //y_new[i] = 0.0;
-        printf("%lf, %lf\n", x_new[i], y_new[i]);
-    }
-
-    double *d_x_new, *d_y_new, *y_check;
-    err = cudaMalloc(&d_x_new, new_num*sizeof(double));
-    assert(err == 0);
-    err = cudaMalloc(&d_y_new, new_num*sizeof(double));
-    assert(err == 0);
-    y_check = new double[new_num];
-
-    err = cudaMemcpy(d_x_new, x_new, new_num*sizeof(double), cudaMemcpyHostToDevice);
-    assert(err == 0);
-    interp.transferToDevice();
-    int NUM_THREADS = 256;
-    int num_blocks = (new_num + NUM_THREADS -1)/NUM_THREADS;
-    run_interp<<<num_blocks, NUM_THREADS>>>(d_x_new, d_y_new, new_num, interp);
-    cudaDeviceSynchronize();
-
-    err = cudaMemcpy(y_check, d_y_new, new_num*sizeof(double), cudaMemcpyDeviceToHost);
-    assert(err == 0);
-    for (int i=0; i<new_num; i++){
-        //y_new[i] = 0.0;
-        if (y_check[i] != y_new[i]) printf("%lf, %lf\n", y_new[i], y_check[i]);
-    }
-
-    //interp.Interpolate;
-    err = cudaFree(d_x_new);
-    assert(err == 0);
-    err = cudaFree(d_y_new);
-    assert(err == 0);
-    delete x;
-    delete y;
-    delete x_new;
-    delete y_new;
-    delete y_check;
-
-    printf("check\n");
-    return(0);
-}*/

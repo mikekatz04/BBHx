@@ -171,7 +171,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     /* main: evaluate model at given frequencies */
     NUM_THREADS = 256;
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
-    dim3 gridDim(num_modes, num_blocks);
+    dim3 gridDim(num_blocks, num_modes);
     //printf("blocks %d\n", num_blocks);
     kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals,
           d_pHM_trans,
@@ -244,7 +244,7 @@ void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
 void PhenomHM::setup_interp_wave(){
 
     assert(current_status >= 1);
-    dim3 waveInterpDim(num_modes, num_blocks);
+    dim3 waveInterpDim(num_blocks, num_modes);
 
     fill_B_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
@@ -278,7 +278,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
     int num_blocks = std::ceil((current_length + NUM_THREADS - 1)/NUM_THREADS);
-    dim3 gridDim(num_modes, num_blocks);
+    dim3 gridDim(num_blocks, num_modes);
 
     kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
@@ -291,7 +291,7 @@ void PhenomHM::setup_interp_response(){
 
     assert(current_status >= 3);
 
-    dim3 responseInterpDim(num_modes, num_blocks);
+    dim3 responseInterpDim(num_blocks, num_modes);
 
     fill_B_response<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
@@ -312,7 +312,7 @@ void PhenomHM::perform_interp(double f_min, double df, int length_new){
     assert(current_status >= 4);
     assert(length_new == data_stream_length);
     int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
-    dim3 mainInterpDim(num_modes, num_block_interp);
+    dim3 mainInterpDim(num_block_interp, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
     interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, current_length, length_new, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
@@ -414,8 +414,8 @@ void PhenomHM::GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_) {
 }
 
 __global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
-    int i = blockIdx.y * blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.x;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
     if (i >= length) return;
     if (mode_i >= num_modes) return;
     amp[mode_i*length + i] = mode_vals[mode_i].amp[i];
@@ -428,7 +428,7 @@ void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
   gpuErrchk(cudaMalloc(&amp, num_modes*current_length*sizeof(double)));
   gpuErrchk(cudaMalloc(&phase, num_modes*current_length*sizeof(double)));
 
-  dim3 readOutDim(num_modes, num_blocks);
+  dim3 readOutDim(num_blocks, num_modes);
   read_out_amp_phase<<<readOutDim, NUM_THREADS>>>(d_mode_vals, amp, phase, num_modes, current_length);
   cudaDeviceSynchronize();
   gpuErrchk(cudaGetLastError());

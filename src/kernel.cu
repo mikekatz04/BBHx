@@ -690,9 +690,9 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
       unsigned int mm, ell;
       double Rholm, Taulm;
       double freq_geom;
-      unsigned int mode_i = blockIdx.x;
+      unsigned int mode_i = blockIdx.y;
 
-      unsigned int i = blockIdx.y * blockDim.x + threadIdx.x;
+      unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
       /* if (mode_i >= num_modes) return;
        for (int i = blockIdx.y * blockDim.x + threadIdx.x;
           i < length;

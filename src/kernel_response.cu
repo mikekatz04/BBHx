@@ -242,8 +242,8 @@ d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double 
 __global__
 void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
-    int i = blockIdx.y*blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.x;
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
     if (i>=num_points) return;
     if (mode_i >= num_modes) return;
     double phasetimeshift;

@@ -27,12 +27,14 @@ PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
+    double *data_freqs_,
     cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
     m_vals = m_vals_;
     num_modes = num_modes_;
+    data_freqs = data_freqs_;
     data_stream = data_stream_;
     data_stream_length = data_stream_length_;
     X_ASDinv = X_ASDinv_;
@@ -67,6 +69,9 @@ PhenomHM::PhenomHM (int max_length_init_,
   d_mode_vals = gpu_create_modes(num_modes, l_vals, m_vals, max_length_init, to_gpu, 1);
 
   gpuErrchk(cudaMalloc(&d_freqs, max_length_init*sizeof(double)));
+
+  gpuErrchk(cudaMalloc(&d_data_freqs, data_stream_length*sizeof(double)));
+  gpuErrchk(cudaMemcpy(d_data_freqs, data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
   gpuErrchk(cudaMalloc(&d_data_stream, data_stream_length*sizeof(cuDoubleComplex)));
   gpuErrchk(cudaMemcpy(d_data_stream, data_stream, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
@@ -453,6 +458,7 @@ PhenomHM::~PhenomHM() {
   delete[] H;
 
   gpuErrchk(cudaFree(d_freqs));
+  gpuErrchk(cudaFree(d_data_freqs));
   gpuErrchk(cudaFree(d_data_stream));
   gpu_destroy_modes(d_mode_vals);
   gpuErrchk(cudaFree(d_pHM_trans));

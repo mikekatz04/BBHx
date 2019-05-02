@@ -8,7 +8,7 @@ cdef extern from "src/manager.hh":
         PhenomHMwrap(int,
         np.uint32_t *,
         np.uint32_t *,
-        int,
+        int, np.float64_t*,
         np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*)
 
         void gen_amp_phase(np.float64_t *, int,
@@ -41,6 +41,7 @@ cdef class PhenomHM:
     def __cinit__(self, max_length_init,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
+     np.ndarray[ndim=1, dtype=np.float64_t] data_freqs,
      np.ndarray[ndim=1, dtype=np.complex128_t] data_stream,
      np.ndarray[ndim=1, dtype=np.float64_t] X_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] Y_ASDinv,
@@ -50,7 +51,7 @@ cdef class PhenomHM:
         self.g = new PhenomHMwrap(max_length_init,
         &l_vals[0],
         &m_vals[0],
-        self.num_modes,
+        self.num_modes, &data_freqs[0],
         &data_stream[0], self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0])
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,

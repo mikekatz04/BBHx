@@ -64,6 +64,8 @@ class PhenomHM {
   ModeContainer *mode_vals;
   ModeContainer *d_mode_vals;
 
+  double *data_freqs;
+  double *d_data_freqs;
   cmplx *data_stream;
 
   double *X_ASDinv;
@@ -104,6 +106,7 @@ public:
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
+      double *data_freqs_,
       cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor

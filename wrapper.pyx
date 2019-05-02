@@ -9,7 +9,7 @@ cdef extern from "src/manager.hh":
         np.uint32_t *,
         np.uint32_t *,
         int, np.float64_t*,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*)
+        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int)
 
         void gen_amp_phase(np.float64_t *, int,
                             double,
@@ -24,7 +24,7 @@ cdef extern from "src/manager.hh":
 
         void perform_interp()
 
-        void LISAresponseFD(double, double, double, double, double, double, double, int)
+        void LISAresponseFD(double, double, double, double, double, double, double)
 
         void setup_interp_response()
 
@@ -45,14 +45,15 @@ cdef class PhenomHM:
      np.ndarray[ndim=1, dtype=np.complex128_t] data_stream,
      np.ndarray[ndim=1, dtype=np.float64_t] X_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] Y_ASDinv,
-     np.ndarray[ndim=1, dtype=np.float64_t] Z_ASDinv):
+     np.ndarray[ndim=1, dtype=np.float64_t] Z_ASDinv,
+     TDItag):
         self.num_modes = len(l_vals)
         self.data_length = len(data_stream)
         self.g = new PhenomHMwrap(max_length_init,
         &l_vals[0],
         &m_vals[0],
         self.num_modes, &data_freqs[0],
-        &data_stream[0], self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0])
+        &data_stream[0], self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0], TDItag)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses
@@ -77,8 +78,8 @@ cdef class PhenomHM:
         self.g.setup_interp_wave()
         return
 
-    def LISAresponseFD(self, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag):
-        self.g.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+    def LISAresponseFD(self, inc, lam, beta, psi, t0, tRef, merger_freq):
+        self.g.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         return
 
     def setup_interp_response(self):
@@ -118,7 +119,7 @@ cdef class PhenomHM:
                         chi2z,
                         distance,
                         phiRef,
-                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag):
+                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq):
         self.gen_amp_phase(freqs,
                             m1, #solar masses
                             m2, #solar masses
@@ -128,7 +129,7 @@ cdef class PhenomHM:
                             phiRef,
                             f_ref)
         self.setup_interp_wave()
-        self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+        self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         self.setup_interp_response()
         self.perform_interp()
         return self.Likelihood()

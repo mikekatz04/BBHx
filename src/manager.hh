@@ -108,7 +108,7 @@ public:
       unsigned int *m_vals_,
       int num_modes_,
       double *data_freqs_,
-      cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_); // constructor (copies to GPU)
+      cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 
@@ -132,7 +132,7 @@ public:
 
   void setup_interp_wave();
 
-  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq, int TDItag);
+  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq);
 
   void setup_interp_response();
 

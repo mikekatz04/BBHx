@@ -28,20 +28,24 @@ PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *m_vals_,
     int num_modes_,
     double *data_freqs_,
-    cmplx *data_stream_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_){
+    cmplx *data_channel1_,
+    cmplx *data_channel2_,
+    cmplx *data_channel3_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
     m_vals = m_vals_;
     num_modes = num_modes_;
     data_freqs = data_freqs_;
-    data_stream = data_stream_;
     data_stream_length = data_stream_length_;
     channel1_ASDinv = channel1_ASDinv_;
     channel2_ASDinv = channel2_ASDinv_;
     channel3_ASDinv = channel3_ASDinv_;
-    TDItag = TDItag_;
+    data_channel1 = data_channel1_;
+    data_channel2 = data_channel2_;
+    data_channel3 = data_channel3_;
 
+    TDItag = TDItag_;
     to_gpu = 1;
 
     cudaError_t err;
@@ -74,8 +78,15 @@ PhenomHM::PhenomHM (int max_length_init_,
   gpuErrchk(cudaMalloc(&d_data_freqs, data_stream_length*sizeof(double)));
   gpuErrchk(cudaMemcpy(d_data_freqs, data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-  gpuErrchk(cudaMalloc(&d_data_stream, data_stream_length*sizeof(cuDoubleComplex)));
-  gpuErrchk(cudaMemcpy(d_data_stream, data_stream, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMalloc(&d_data_channel1, data_stream_length*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMemcpy(d_data_channel1, data_channel1, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
+  gpuErrchk(cudaMalloc(&d_data_channel2, data_stream_length*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMemcpy(d_data_channel2, data_channel2, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
+  gpuErrchk(cudaMalloc(&d_data_channel3, data_stream_length*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMemcpy(d_data_channel3, data_channel3, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
 
   gpuErrchk(cudaMalloc(&d_channel1_ASDinv, data_stream_length*sizeof(double)));
   gpuErrchk(cudaMemcpy(d_channel1_ASDinv, channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
@@ -339,7 +350,7 @@ void PhenomHM::Likelihood (double *like_out_){
      for (int mode_i=0; mode_i<num_modes; mode_i++){
          stat = cublasZdotc(handle, data_stream_length,
                  &d_template_channel1[mode_i*data_stream_length], 1,
-                 d_data_stream, 1,
+                 d_data_channel1, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
@@ -351,7 +362,7 @@ void PhenomHM::Likelihood (double *like_out_){
 
          stat = cublasZdotc(handle, data_stream_length,
                  &d_template_channel2[mode_i*data_stream_length], 1,
-                 d_data_stream, 1,
+                 d_data_channel2, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
@@ -363,7 +374,7 @@ void PhenomHM::Likelihood (double *like_out_){
 
          stat = cublasZdotc(handle, data_stream_length,
                  &d_template_channel3[mode_i*data_stream_length], 1,
-                 d_data_stream, 1,
+                 d_data_channel3, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
           cudaDeviceSynchronize();
@@ -458,7 +469,6 @@ PhenomHM::~PhenomHM() {
 
   gpuErrchk(cudaFree(d_freqs));
   gpuErrchk(cudaFree(d_data_freqs));
-  gpuErrchk(cudaFree(d_data_stream));
   gpu_destroy_modes(d_mode_vals);
   gpuErrchk(cudaFree(d_pHM_trans));
   gpuErrchk(cudaFree(d_pAmp_trans));
@@ -466,9 +476,15 @@ PhenomHM::~PhenomHM() {
   gpuErrchk(cudaFree(d_pDPreComp_all_trans));
   gpuErrchk(cudaFree(d_q_all_trans));
   gpuErrchk(cudaFree(d_cShift));
+
+  gpuErrchk(cudaFree(d_data_channel1));
+  gpuErrchk(cudaFree(d_data_channel2));
+  gpuErrchk(cudaFree(d_data_channel3));
+
   gpuErrchk(cudaFree(d_template_channel1));
   gpuErrchk(cudaFree(d_template_channel2));
   gpuErrchk(cudaFree(d_template_channel3));
+
   gpuErrchk(cudaFree(d_channel1_ASDinv));
   gpuErrchk(cudaFree(d_channel2_ASDinv));
   gpuErrchk(cudaFree(d_channel3_ASDinv));

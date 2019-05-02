@@ -67,13 +67,18 @@ class PhenomHM {
 
   double *data_freqs;
   double *d_data_freqs;
-  cmplx *data_stream;
+  cmplx *data_channel1;
+  cmplx *data_channel2;
+  cmplx *data_channel3;
 
   double *channel1_ASDinv;
   double *channel2_ASDinv;
   double *channel3_ASDinv;
 
-  cuDoubleComplex *d_data_stream;
+  cuDoubleComplex *d_data_channel1;
+  cuDoubleComplex *d_data_channel2;
+  cuDoubleComplex *d_data_channel3;
+
   cuDoubleComplex *d_template_channel1;
   cuDoubleComplex *d_template_channel2;
   cuDoubleComplex *d_template_channel3;
@@ -108,7 +113,9 @@ public:
       unsigned int *m_vals_,
       int num_modes_,
       double *data_freqs_,
-      cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag); // constructor (copies to GPU)
+      cmplx *data_channel1_,
+      cmplx *data_channel2_,
+      cmplx *data_channel3_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 

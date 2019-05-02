@@ -56,7 +56,7 @@ PhenomHM::PhenomHM (int max_length_init_,
 
     q_all_trans = new HMPhasePreComp[num_modes];
 
-  gpuErrchk(cudaMalloc(&d_B, 7*data_stream_length_*num_modes*sizeof(double)));
+  gpuErrchk(cudaMalloc(&d_B, 8*data_stream_length_*num_modes*sizeof(double)));
 
   mode_vals = cpu_create_modes(num_modes, l_vals, m_vals, max_length_init, to_gpu, 1);
 
@@ -268,6 +268,14 @@ void PhenomHM::setup_interp_wave(){
     if (current_status == 1) current_status = 2;
 }
 
+__global__ void read_out_kernel(ModeContainer *mode_vals, double *t, int num_modes, int length){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    if (mode_i >= num_modes) return;
+    if (i >= length) return;
+    t[mode_i*length + i] = mode_vals[mode_i].time_freq_corr[i];
+}
+
 void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_, int TDItag_){
     inc = inc_;
     lam = lam_;
@@ -290,6 +298,17 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    double *d_t;
+    gpuErrchk(cudaMallocManaged(&d_t, num_modes*current_length*sizeof(double)));
+    read_out_kernel<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_t, num_modes, current_length);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+        for (int i=0; i<current_length; i++) printf("(%d, %d) %e\n", mode_i, i, d_t[mode_i*current_length+i]);
+    }
+    gpuErrchk(cudaFree(d_t));
 
     if (current_status == 2) current_status = 3;
 }

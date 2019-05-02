@@ -14,8 +14,7 @@ ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
                 mode_vals[i].amp = new double[max_length];
                 mode_vals[i].phase = new double[max_length];
                 mode_vals[i].freq_amp_phase = new double[max_length];
-
-
+                mode_vals[i].time_freq_corr = new double[max_length];
 
                 mode_vals[i].freq_response = new double[max_length];
                 mode_vals[i].phaseRdelay = new double[max_length];
@@ -37,6 +36,10 @@ ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
                     mode_vals[i].phase_coeff_1 = new double[max_length -1];
                     mode_vals[i].phase_coeff_2 = new double[max_length -1];
                     mode_vals[i].phase_coeff_3 = new double[max_length -1];
+
+                    mode_vals[i].time_freq_coeff_1 = new double[max_length -1];
+                    mode_vals[i].time_freq_coeff_2 = new double[max_length -1];
+                    mode_vals[i].time_freq_coeff_3 = new double[max_length -1];
 
                     mode_vals[i].transferL1_re_coeff_1 = new double[max_length -1];
                     mode_vals[i].transferL1_re_coeff_2 = new double[max_length -1];
@@ -75,6 +78,7 @@ void cpu_destroy_modes(ModeContainer * mode_vals){
             delete[] mode_vals[i].amp;
             delete[] mode_vals[i].phase;
             delete[] mode_vals[i].freq_amp_phase;
+            delete[] mode_vals[i].time_freq_corr;
 
             delete[] mode_vals[i].freq_response;
             delete[] mode_vals[i].phaseRdelay;
@@ -95,6 +99,9 @@ void cpu_destroy_modes(ModeContainer * mode_vals){
                 delete[] mode_vals[i].phase_coeff_1;
                 delete[] mode_vals[i].phase_coeff_2;
                 delete[] mode_vals[i].phase_coeff_3;
+                delete[] mode_vals[i].time_freq_coeff_1;
+                delete[] mode_vals[i].time_freq_coeff_2;
+                delete[] mode_vals[i].time_freq_coeff_3;
 
                 delete[] mode_vals[i].transferL1_re_coeff_1;
                 delete[] mode_vals[i].transferL1_re_coeff_2;

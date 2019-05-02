@@ -12,7 +12,7 @@ except ImportError:
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 1024), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 8192), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     #freq = np.load('freqs.npy')
 
@@ -45,7 +45,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
-    num = 1000
+    num = 1
     st = time.perf_counter()
     for i in range(num):
 

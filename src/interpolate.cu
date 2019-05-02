@@ -78,6 +78,7 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
                 B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i] - mode_vals[mode_i].transferL2_im[i-1]);
                 B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i] - mode_vals[mode_i].transferL3_re[i-1]);
                 B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i] - mode_vals[mode_i].transferL3_im[i-1]);
+                B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i] - mode_vals[mode_i].time_freq_corr[i-1]);
 
             } else if (i == 0){
                 B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[1] - mode_vals[mode_i].phaseRdelay[0]);
@@ -87,6 +88,7 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
                 B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[1] - mode_vals[mode_i].transferL2_im[0]);
                 B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[1] - mode_vals[mode_i].transferL3_re[0]);
                 B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[1] - mode_vals[mode_i].transferL3_im[0]);
+                B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[1] - mode_vals[mode_i].time_freq_corr[0]);
             } else{
                 B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i+1] - mode_vals[mode_i].phaseRdelay[i-1]);
                 B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i+1] - mode_vals[mode_i].transferL1_re[i-1]);
@@ -95,6 +97,7 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
                 B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i+1] - mode_vals[mode_i].transferL2_im[i-1]);
                 B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i+1] - mode_vals[mode_i].transferL3_re[i-1]);
                 B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i+1] - mode_vals[mode_i].transferL3_im[i-1]);
+                B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i+1] - mode_vals[mode_i].time_freq_corr[i-1]);
             }
 }
 
@@ -264,6 +267,14 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
             mode_vals[mode_i].transferL3_im_coeff_1[i] = D_i;
             mode_vals[mode_i].transferL3_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
             mode_vals[mode_i].transferL3_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+            D_i = B[(7*num_modes*f_length) + mode_i*f_length + i];
+            D_ip1 = B[(7*num_modes*f_length) + mode_i*f_length + i + 1];
+            y_i = mode_vals[mode_i].time_freq_corr[i];
+            y_ip1 = mode_vals[mode_i].time_freq_corr[i+1];
+            mode_vals[mode_i].time_freq_coeff_1[i] = D_i;
+            mode_vals[mode_i].time_freq_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+            mode_vals[mode_i].time_freq_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
 
 __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
@@ -425,7 +436,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
     if (i >= data_length) return;
     if (mode_i >= num_modes) return;
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double amp, phase, phaseRdelay, phasetimeshift;
+    double time_start, amp, phase, phaseRdelay, phasetimeshift;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
@@ -443,6 +454,20 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
             x2 = x*x;
             x3 = x*x2;
+            // interp time frequency to remove less than 0.0
+            coeff_0 = old_mode_vals[mode_i].time_freq_corr[old_ind_below];
+            coeff_1 = old_mode_vals[mode_i].time_freq_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[mode_i].time_freq_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
+
+            time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            if (time_start <= 0.0) {
+                X_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                Y_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                Z_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                return;
+            }
+
             // interp amplitude
             coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
             coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];

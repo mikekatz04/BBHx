@@ -290,6 +290,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
 
             d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
+            mode_vals[mode_i].time_freq_corr[i] = t;
             mode_vals[mode_i].transferL1_re[i] = cuCreal(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = cuCimag(transferL.transferL1);
             mode_vals[mode_i].transferL2_re[i] = cuCreal(transferL.transferL2);

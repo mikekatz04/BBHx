@@ -281,12 +281,17 @@ typedef struct tagModeContainer{
     double d_log10f_amp_phase;
     double *amp;
     double *phase;
+    double *time_freq_corr;
     double *amp_coeff_1;
     double *amp_coeff_2;
     double *amp_coeff_3;
     double *phase_coeff_1;
     double *phase_coeff_2;
     double *phase_coeff_3;
+
+    double *time_freq_coeff_1;
+    double *time_freq_coeff_2;
+    double *time_freq_coeff_3;
 
     double *freq_response;
     double d_log10f_response;

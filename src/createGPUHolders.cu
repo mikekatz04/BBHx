@@ -23,6 +23,7 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
         double *amp[num_modes];
         double *phase[num_modes];
         double *freq_amp_phase[num_modes];
+        double *time_freq_corr[num_modes];
 
         double *amp_coeff_1[num_modes];
         double *amp_coeff_2[num_modes];
@@ -31,6 +32,10 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
         double *phase_coeff_1[num_modes];
         double *phase_coeff_2[num_modes];
         double *phase_coeff_3[num_modes];
+
+        double *time_freq_coeff_1[num_modes];
+        double *time_freq_coeff_2[num_modes];
+        double *time_freq_coeff_3[num_modes];
 
         double *freq_response[num_modes];
 
@@ -76,10 +81,12 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
             gpuErrchk(cudaMalloc(&amp[i], max_length*sizeof(double)));
             gpuErrchk(cudaMalloc(&phase[i], max_length*sizeof(double)));
             gpuErrchk(cudaMalloc(&freq_amp_phase[i], max_length*sizeof(double)));
+            gpuErrchk(cudaMalloc(&time_freq_corr[i], max_length*sizeof(double)));
 
             gpuErrchk(cudaMemcpy(&(mode_vals[i].amp), &(amp[i]), sizeof(double *), cudaMemcpyHostToDevice));
             gpuErrchk(cudaMemcpy(&(mode_vals[i].phase), &(phase[i]), sizeof(double *), cudaMemcpyHostToDevice));
             gpuErrchk(cudaMemcpy(&(mode_vals[i].freq_amp_phase), &(freq_amp_phase[i]), sizeof(double *), cudaMemcpyHostToDevice));
+            gpuErrchk(cudaMemcpy(&(mode_vals[i].time_freq_corr), &(time_freq_corr[i]), sizeof(double *), cudaMemcpyHostToDevice));
 
             // response
 
@@ -111,12 +118,21 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
                 gpuErrchk(cudaMalloc(&phase_coeff_2[i], (max_length-1)*sizeof(double)));
                 gpuErrchk(cudaMalloc(&phase_coeff_3[i], (max_length-1)*sizeof(double)));
 
+                gpuErrchk(cudaMalloc(&time_freq_coeff_1[i], (max_length-1)*sizeof(double)));
+                gpuErrchk(cudaMalloc(&time_freq_coeff_2[i], (max_length-1)*sizeof(double)));
+                gpuErrchk(cudaMalloc(&time_freq_coeff_3[i], (max_length-1)*sizeof(double)));
+
                 gpuErrchk(cudaMemcpy(&(mode_vals[i].amp_coeff_1), &(amp_coeff_1[i]), sizeof(double *), cudaMemcpyHostToDevice));
                 gpuErrchk(cudaMemcpy(&(mode_vals[i].amp_coeff_2), &(amp_coeff_2[i]), sizeof(double *), cudaMemcpyHostToDevice));
                 gpuErrchk(cudaMemcpy(&(mode_vals[i].amp_coeff_3), &(amp_coeff_3[i]), sizeof(double *), cudaMemcpyHostToDevice));
+
                 gpuErrchk(cudaMemcpy(&(mode_vals[i].phase_coeff_1), &(phase_coeff_1[i]), sizeof(double *), cudaMemcpyHostToDevice));
                 gpuErrchk(cudaMemcpy(&(mode_vals[i].phase_coeff_2), &(phase_coeff_2[i]), sizeof(double *), cudaMemcpyHostToDevice));
                 gpuErrchk(cudaMemcpy(&(mode_vals[i].phase_coeff_3), &(phase_coeff_3[i]), sizeof(double *), cudaMemcpyHostToDevice));
+
+                gpuErrchk(cudaMemcpy(&(mode_vals[i].time_freq_coeff_1), &(time_freq_coeff_1[i]), sizeof(double *), cudaMemcpyHostToDevice));
+                gpuErrchk(cudaMemcpy(&(mode_vals[i].time_freq_coeff_2), &(time_freq_coeff_2[i]), sizeof(double *), cudaMemcpyHostToDevice));
+                gpuErrchk(cudaMemcpy(&(mode_vals[i].time_freq_coeff_3), &(time_freq_coeff_3[i]), sizeof(double *), cudaMemcpyHostToDevice));
 
                 // response
                 // transferL1
@@ -183,6 +199,7 @@ void gpu_destroy_modes(ModeContainer * mode_vals){
         gpuErrchk(cudaFree(mode_vals[i].amp));
         gpuErrchk(cudaFree(mode_vals[i].phase));
         gpuErrchk(cudaFree(mode_vals[i].freq_amp_phase));
+        gpuErrchk(cudaFree(mode_vals[i].time_freq_corr));
 
         gpuErrchk(cudaFree(mode_vals[i].freq_response));
         gpuErrchk(cudaFree(mode_vals[i].transferL1_re));
@@ -199,9 +216,14 @@ void gpu_destroy_modes(ModeContainer * mode_vals){
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_1));
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_2));
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_3));
+
             gpuErrchk(cudaFree(mode_vals[i].phase_coeff_1));
             gpuErrchk(cudaFree(mode_vals[i].phase_coeff_2));
             gpuErrchk(cudaFree(mode_vals[i].phase_coeff_3));
+
+            gpuErrchk(cudaFree(mode_vals[i].time_freq_coeff_1));
+            gpuErrchk(cudaFree(mode_vals[i].time_freq_coeff_2));
+            gpuErrchk(cudaFree(mode_vals[i].time_freq_coeff_3));
 
             // transferL1
             gpuErrchk(cudaFree(mode_vals[i].transferL1_re_coeff_1));

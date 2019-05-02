@@ -40,6 +40,7 @@ class PhenomHM {
   cmplx *H;
 
   double *d_freqs;
+  double *d_time_freq_corr;
   unsigned int *d_l_vals;
   unsigned int *d_m_vals;
   PhenomHMStorage *d_pHM_trans;

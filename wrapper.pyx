@@ -126,7 +126,7 @@ cdef class PhenomHM:
                         chi2z,
                         distance,
                         phiRef,
-                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq):
+                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, return_amp_phase=False, return_TDI=False):
         self.gen_amp_phase(freqs,
                             m1, #solar masses
                             m2, #solar masses
@@ -135,8 +135,16 @@ cdef class PhenomHM:
                             distance,
                             phiRef,
                             f_ref)
+
+        if return_amp_phase:
+            return self.GetAmpPhase()
+
         self.setup_interp_wave()
         self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         self.setup_interp_response()
         self.perform_interp()
+
+        if return_TDI:
+            return self.GetTDI()
+
         return self.Likelihood()

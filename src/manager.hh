@@ -135,7 +135,7 @@ public:
 
   void setup_interp_response();
 
-  void perform_interp(double f_min, double df, int length_new);
+  void perform_interp();
 
   void Likelihood (double *like_out_);
 

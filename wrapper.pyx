@@ -22,7 +22,7 @@ cdef extern from "src/manager.hh":
 
         void setup_interp_wave()
 
-        void perform_interp(double, double, int)
+        void perform_interp()
 
         void LISAresponseFD(double, double, double, double, double, double, double, int)
 
@@ -85,8 +85,8 @@ cdef class PhenomHM:
         self.g.setup_interp_response()
         return
 
-    def perform_interp(self, f_min, df, length_new):
-        self.g.perform_interp(f_min, df, length_new)
+    def perform_interp(self):
+        self.g.perform_interp()
         return
 
     def Likelihood(self):
@@ -118,7 +118,7 @@ cdef class PhenomHM:
                         chi2z,
                         distance,
                         phiRef,
-                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag, f_min, df, length_new):
+                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag):
         self.gen_amp_phase(freqs,
                             m1, #solar masses
                             m2, #solar masses
@@ -130,5 +130,5 @@ cdef class PhenomHM:
         self.setup_interp_wave()
         self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
         self.setup_interp_response()
-        self.perform_interp(f_min, df, length_new)
+        self.perform_interp()
         return self.Likelihood()

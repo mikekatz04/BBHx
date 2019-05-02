@@ -1,5 +1,3 @@
-import sys; sys.settrace
-import gpuPhenomHM
 import numpy as np
 import numpy.testing as npt
 from astropy.cosmology import Planck15 as cosmo
@@ -7,10 +5,14 @@ from scipy import constants as ct
 import time
 import tdi
 import pdb
+try:
+    import gpuPhenomHM as PhenomHM
+except ImportError:
+    import PhenomHM
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 16384), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 1024), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     #freq = np.load('freqs.npy')
 
@@ -28,21 +30,22 @@ def test():
     m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32) #,
 
     df = 1e-5
-
+    data_length = int(1e6)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
-    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(1e5)*0.1))
+    data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
-    interp_freq = 1e-5+np.arange(len(data))*df
+    data_freqs = np.fft.rfftfreq(data_length, d=0.1)
+    data_freqs[0] = 1e-8
 
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(interp_freq, model='SciRDv1'))
-    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(interp_freq, model='SciRDv1'))
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))
+    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))
 
-    phenomHM = gpuPhenomHM.PhenomHM(len(freq),
+    phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
+     m_vals, data_freqs, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
-    num = 100
+    num = 1000
     st = time.perf_counter()
     for i in range(num):
 
@@ -53,12 +56,28 @@ def test():
                      distance,
                      phiRef,
                      f_ref)
+
         phenomHM.setup_interp_wave()
+
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+
         phenomHM.setup_interp_response()
-        phenomHM.perform_interp(1e-5, df, len(interp_freq))
+
+        phenomHM.perform_interp()
+
         like = phenomHM.Likelihood()
 
+        like2 = phenomHM.WaveformThroughLikelihood(freq, m1,  # solar masses
+                     m2,  # solar masses
+                     chi1z,
+                     chi2z,
+                     distance,
+                     phiRef,
+                     f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+
+        assert(all(like == like2))
+        if i % 100 == 0:
+            print(i)
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
     print(like)

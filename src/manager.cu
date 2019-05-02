@@ -315,14 +315,13 @@ void PhenomHM::setup_interp_response(){
     if (current_status == 3) current_status = 4;
 }
 
-void PhenomHM::perform_interp(double f_min, double df, int length_new){
+void PhenomHM::perform_interp(){
     assert(current_status >= 4);
-    assert(length_new == data_stream_length);
-    int num_block_interp = std::ceil((length_new + NUM_THREADS - 1)/NUM_THREADS);
+    int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 mainInterpDim(num_block_interp, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, f_min, df, d_log10f, d_freqs, current_length, length_new, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 

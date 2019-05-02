@@ -69,17 +69,17 @@ class PhenomHM {
   double *d_data_freqs;
   cmplx *data_stream;
 
-  double *X_ASDinv;
-  double *Y_ASDinv;
-  double *Z_ASDinv;
+  double *channel1_ASDinv;
+  double *channel2_ASDinv;
+  double *channel3_ASDinv;
 
   cuDoubleComplex *d_data_stream;
-  cuDoubleComplex *d_X;
-  cuDoubleComplex *d_Y;
-  cuDoubleComplex *d_Z;
-  double *d_X_ASDinv;
-  double *d_Y_ASDinv;
-  double *d_Z_ASDinv;
+  cuDoubleComplex *d_template_channel1;
+  cuDoubleComplex *d_template_channel2;
+  cuDoubleComplex *d_template_channel3;
+  double *d_channel1_ASDinv;
+  double *d_channel2_ASDinv;
+  double *d_channel3_ASDinv;
 
   double inc;
   double lam;

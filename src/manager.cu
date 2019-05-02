@@ -28,7 +28,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *m_vals_,
     int num_modes_,
     double *data_freqs_,
-    cmplx *data_stream_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag_){
+    cmplx *data_stream_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -37,9 +37,9 @@ PhenomHM::PhenomHM (int max_length_init_,
     data_freqs = data_freqs_;
     data_stream = data_stream_;
     data_stream_length = data_stream_length_;
-    X_ASDinv = X_ASDinv_;
-    Y_ASDinv = Y_ASDinv_;
-    Z_ASDinv = Z_ASDinv_;
+    channel1_ASDinv = channel1_ASDinv_;
+    channel2_ASDinv = channel2_ASDinv_;
+    channel3_ASDinv = channel3_ASDinv_;
     TDItag = TDItag_;
 
     to_gpu = 1;
@@ -63,9 +63,9 @@ PhenomHM::PhenomHM (int max_length_init_,
 
   gpuErrchk(cudaMalloc(&d_H, 9*num_modes*sizeof(cuDoubleComplex)));
 
-  gpuErrchk(cudaMalloc(&d_X, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
-  gpuErrchk(cudaMalloc(&d_Y, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
-  gpuErrchk(cudaMalloc(&d_Z, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMalloc(&d_template_channel1, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMalloc(&d_template_channel2, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMalloc(&d_template_channel3, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
 
   d_mode_vals = gpu_create_modes(num_modes, l_vals, m_vals, max_length_init, to_gpu, 1);
 
@@ -77,14 +77,14 @@ PhenomHM::PhenomHM (int max_length_init_,
   gpuErrchk(cudaMalloc(&d_data_stream, data_stream_length*sizeof(cuDoubleComplex)));
   gpuErrchk(cudaMemcpy(d_data_stream, data_stream, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 
-  gpuErrchk(cudaMalloc(&d_X_ASDinv, data_stream_length*sizeof(double)));
-  gpuErrchk(cudaMemcpy(d_X_ASDinv, X_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMalloc(&d_channel1_ASDinv, data_stream_length*sizeof(double)));
+  gpuErrchk(cudaMemcpy(d_channel1_ASDinv, channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-  gpuErrchk(cudaMalloc(&d_Y_ASDinv, data_stream_length*sizeof(double)));
-  gpuErrchk(cudaMemcpy(d_Y_ASDinv, Y_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMalloc(&d_channel2_ASDinv, data_stream_length*sizeof(double)));
+  gpuErrchk(cudaMemcpy(d_channel2_ASDinv, channel2_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-  gpuErrchk(cudaMalloc(&d_Z_ASDinv, data_stream_length*sizeof(double)));
-  gpuErrchk(cudaMemcpy(d_Z_ASDinv, Z_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+  gpuErrchk(cudaMalloc(&d_channel3_ASDinv, data_stream_length*sizeof(double)));
+  gpuErrchk(cudaMemcpy(d_channel3_ASDinv, channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
   gpuErrchk(cudaMalloc(&d_pHM_trans, sizeof(PhenomHMStorage)));
 
@@ -321,7 +321,7 @@ void PhenomHM::perform_interp(){
     dim3 mainInterpDim(num_block_interp, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_X, d_Y, d_Z, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef, d_X_ASDinv, d_Y_ASDinv, d_Z_ASDinv);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
@@ -338,7 +338,7 @@ void PhenomHM::Likelihood (double *like_out_){
      cuDoubleComplex result;
      for (int mode_i=0; mode_i<num_modes; mode_i++){
          stat = cublasZdotc(handle, data_stream_length,
-                 &d_X[mode_i*data_stream_length], 1,
+                 &d_template_channel1[mode_i*data_stream_length], 1,
                  d_data_stream, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -350,7 +350,7 @@ void PhenomHM::Likelihood (double *like_out_){
          d_h += cuCreal(result);
 
          stat = cublasZdotc(handle, data_stream_length,
-                 &d_Y[mode_i*data_stream_length], 1,
+                 &d_template_channel2[mode_i*data_stream_length], 1,
                  d_data_stream, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -362,7 +362,7 @@ void PhenomHM::Likelihood (double *like_out_){
          d_h += cuCreal(result);
 
          stat = cublasZdotc(handle, data_stream_length,
-                 &d_Z[mode_i*data_stream_length], 1,
+                 &d_template_channel3[mode_i*data_stream_length], 1,
                  d_data_stream, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -374,9 +374,9 @@ void PhenomHM::Likelihood (double *like_out_){
          d_h += cuCreal(result);
      }
 
-     // d_X d_X for h_h
+     // d_template_channel1 d_template_channel1 for h_h
      stat = cublasDznrm2(handle, num_modes*data_stream_length,
-             d_X, 1, &res);
+             d_template_channel1, 1, &res);
      status = _cudaGetErrorEnum(stat);
       cudaDeviceSynchronize();
 
@@ -385,9 +385,9 @@ void PhenomHM::Likelihood (double *like_out_){
           }
         h_h += res*res; //TODO: MAKE SURE THIS IS RIGHT
 
-      // d_Y d_Y for h_h
+      // d_template_channel2 d_template_channel2 for h_h
       stat = cublasDznrm2(handle, num_modes*data_stream_length,
-              d_Y, 1, &res);
+              d_template_channel2, 1, &res);
       status = _cudaGetErrorEnum(stat);
        cudaDeviceSynchronize();
 
@@ -396,9 +396,9 @@ void PhenomHM::Likelihood (double *like_out_){
            }
          h_h += res*res;
 
-       // d_Z d_Z for h_h
+       // d_template_channel3 d_template_channel3 for h_h
        stat = cublasDznrm2(handle, num_modes*data_stream_length,
-               d_Z, 1, &res);
+               d_template_channel3, 1, &res);
        status = _cudaGetErrorEnum(stat);
         cudaDeviceSynchronize();
 
@@ -411,12 +411,12 @@ void PhenomHM::Likelihood (double *like_out_){
      like_out_[1] = h_h;
 }
 
-void PhenomHM::GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_) {
+void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 
   assert(current_status > 4);
-  gpuErrchk(cudaMemcpy(X_, d_X, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(Y_, d_Y, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(Z_, d_Z, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(channel1_, d_template_channel1, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(channel2_, d_template_channel2, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(channel3_, d_template_channel3, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
 }
 
 __global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
@@ -466,12 +466,12 @@ PhenomHM::~PhenomHM() {
   gpuErrchk(cudaFree(d_pDPreComp_all_trans));
   gpuErrchk(cudaFree(d_q_all_trans));
   gpuErrchk(cudaFree(d_cShift));
-  gpuErrchk(cudaFree(d_X));
-  gpuErrchk(cudaFree(d_Y));
-  gpuErrchk(cudaFree(d_Z));
-  gpuErrchk(cudaFree(d_X_ASDinv));
-  gpuErrchk(cudaFree(d_Y_ASDinv));
-  gpuErrchk(cudaFree(d_Z_ASDinv));
+  gpuErrchk(cudaFree(d_template_channel1));
+  gpuErrchk(cudaFree(d_template_channel2));
+  gpuErrchk(cudaFree(d_template_channel3));
+  gpuErrchk(cudaFree(d_channel1_ASDinv));
+  gpuErrchk(cudaFree(d_channel2_ASDinv));
+  gpuErrchk(cudaFree(d_channel3_ASDinv));
   cublasDestroy(handle);
   gpuErrchk(cudaFree(d_B));
 }

@@ -302,7 +302,7 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 
 
-void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv){
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
@@ -317,9 +317,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             f = f_min + df * i;
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
             if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
-                X_out[mode_i*length + i] = 0.0+0.0*I;
-                Y_out[mode_i*length + i] = 0.0+0.0*I;
-                Z_out[mode_i*length + i] = 0.0+0.0*I;
+                channel1_out[mode_i*length + i] = 0.0+0.0*I;
+                channel2_out[mode_i*length + i] = 0.0+0.0*I;
+                channel3_out[mode_i*length + i] = 0.0+0.0*I;
                 continue;
             }
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
@@ -328,9 +328,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             // interp amplitude
             coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
             if (coeff_0 < 1e-50){
-                X_out[mode_i*length + i] = cmplx(0.0, 0.0);
-                Y_out[mode_i*length + i] = cmplx(0.0, 0.0);
-                Z_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                channel1_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                channel2_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                channel3_out[mode_i*length + i] = cmplx(0.0, 0.0);
                 continue;
             }
             coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
@@ -339,9 +339,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             if (amp < 1e-40){
-                X_out[mode_i*length + i] = 0.0+I*0.0;
-                Y_out[mode_i*length + i] = 0.0+I*0.0;
-                Z_out[mode_i*length + i] = 0.0+I*0.0;
+                channel1_out[mode_i*length + i] = 0.0+I*0.0;
+                channel2_out[mode_i*length + i] = 0.0+I*0.0;
+                channel3_out[mode_i*length + i] = 0.0+I*0.0;
                 continue;
             }
 
@@ -377,7 +377,7 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            X_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
+            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * channel1_ASDinv[i]);
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -394,7 +394,7 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Y_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
+            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * channel2_ASDinv[i]);
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -411,7 +411,7 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Z_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
+            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * channel3_ASDinv[i]);
         }
     }
 }
@@ -430,7 +430,7 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 
 
 __global__
-void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex *Z_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv){
     int mode_i = blockIdx.y;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= data_length) return;
@@ -446,9 +446,9 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
             f = data_freqs[i];
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
             if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
-                X_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-                Y_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-                Z_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel1_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel2_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel3_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
                 return;
             }
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
@@ -462,9 +462,9 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             if (time_start <= 0.0) {
-                X_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-                Y_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-                Z_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel1_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel2_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel3_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
                 return;
             }
 
@@ -476,9 +476,9 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             if (amp < 1e-40){
-                X_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-                Y_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-                Z_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel1_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel2_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+                channel3_out[mode_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
                 return;
             }
             // interp phase
@@ -513,7 +513,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            X_out[mode_i*data_length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart), make_cuDoubleComplex(X_ASD_inv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
+            channel1_out[mode_i*data_length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart), make_cuDoubleComplex(channel1_ASDinv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -530,7 +530,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Y_out[mode_i*data_length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart), make_cuDoubleComplex(Y_ASD_inv[i], 0.0));
+            channel2_out[mode_i*data_length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart), make_cuDoubleComplex(channel2_ASDinv[i], 0.0));
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -547,7 +547,7 @@ void interpolate(cuDoubleComplex *X_out, cuDoubleComplex *Y_out, cuDoubleComplex
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            Z_out[mode_i*data_length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart), make_cuDoubleComplex(Z_ASD_inv[i], 0.0));
+            channel3_out[mode_i*data_length + i] = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart), make_cuDoubleComplex(channel3_ASDinv[i], 0.0));
 }
 
 Interpolate::Interpolate(){

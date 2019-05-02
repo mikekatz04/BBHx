@@ -109,3 +109,25 @@ cdef class PhenomHM:
         self.g.GetAmpPhase(&amp_[0], &phase_[0])
 
         return (amp_.reshape(self.num_modes, self.f_dim), phase_.reshape(self.num_modes, self.f_dim))
+
+    def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
+                        m1, #solar masses
+                        m2, #solar masses
+                        chi1z,
+                        chi2z,
+                        distance,
+                        phiRef,
+                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag, f_min, df, length_new):
+        self.gen_amp_phase(freqs,
+                            m1, #solar masses
+                            m2, #solar masses
+                            chi1z,
+                            chi2z,
+                            distance,
+                            phiRef,
+                            f_ref)
+        self.setup_interp_wave()
+        self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+        self.setup_interp_response()
+        self.perform_interp(f_min, df, length_new)
+        return self.Likelihood()

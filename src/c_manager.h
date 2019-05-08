@@ -2,24 +2,23 @@
 #define __MANAGER_H__
 #include "globalPhenomHM.h"
 #include <complex>
-#include "assert.h"
 #include "PhenomHM.h"
 
-class GPUPhenomHM {
+class PhenomHM {
   // pointer to the GPU memory where the array is stored
-  int max_length;
+  int current_status;
+  int max_length_init;
   int data_stream_length;
   double *freqs;
-  int f_length;
+  int current_length;
   double m1; //solar masses
   double m2; //solar masses
   double chi1z;
   double chi2z;
   double distance;
-  double inclination;
   double phiRef;
   double deltaF;
-  double f_ref;
+  double fRef;
   unsigned int *l_vals;
   unsigned int *m_vals;
   int num_modes;
@@ -35,18 +34,34 @@ class GPUPhenomHM {
   int retcode;
   double m1_SI;
   double m2_SI;
+  cmplx *H;
+
+  double *cShift;
 
   // Interpolate related stuff
-  int to_interp;
-  ModeContainer *out_mode_vals;
-  int max_interp_length;
-  double *interp_freqs;
+  //Interpolate interp;
+
 
   ModeContainer *mode_vals;
 
-  int *h_indices;
+  double *data_freqs;
+  cmplx *data_channel1;
+  cmplx *data_channel2;
+  cmplx *data_channel3;
 
-  cmplx *data_stream;
+  double *channel1_ASDinv;
+  double *channel2_ASDinv;
+  double *channel3_ASDinv;
+
+  double inc;
+  double lam;
+  double beta;
+  double psi;
+  double t0_epoch;
+  double tRef;
+  int TDItag;
+  double merger_freq;
+
 
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
@@ -60,27 +75,41 @@ public:
        %apply (int* ARGOUT_ARRAY1, int DIM1) {(int* myarray, int length)}
    */
 
-  GPUPhenomHM(int max_length_,
+  PhenomHM(int max_length_init_,
       unsigned int *l_vals_,
       unsigned int *m_vals_,
-      int num_modes_); // constructor (copies to GPU)
+      int num_modes_,
+      double *data_freqs_,
+      cmplx *data_channel1_,
+      cmplx *data_channel2_,
+      cmplx *data_channel3_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag); // constructor (copies to GPU)
 
-  ~GPUPhenomHM(); // destructor
+  ~PhenomHM(); // destructor
 
-  void cpu_gen_PhenomHM(double *freqs_, int f_length_,
-      double m1_, //solar masses
-      double m2_, //solar masses
-      double chi1z_,
-      double chi2z_,
-      double distance_,
-      double inclination_,
-      double phiRef_,
-      double deltaF_,
-      double f_ref_);
+    void gen_amp_phase(double *freqs_, int current_length_,
+            double m1_, //solar masses
+            double m2_, //solar masses
+            double chi1z_,
+            double chi2z_,
+            double distance_,
+            double phiRef_,
+            double fRef_);
 
-  //gets results back from the gpu, putting them in the supplied memory location
-  void Get_Waveform (int mode_i, double* amp_, double* phase_);
+  void GetAmpPhase(double* amp_, double* phase_);
+/*
+  void setup_interp_wave();
 
+  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq);
+
+  void setup_interp_response();
+
+  void perform_interp();
+
+  void Likelihood (double *like_out_);
+
+  void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
+
+  void GetAmpPhase(double* amp_, double* phase_);*/
 };
 
 

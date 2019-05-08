@@ -19,7 +19,7 @@ This class will get translated into python via cython
 #include "fdresponse.h"
 #include "createGPUHolders.cu"
 #include "kernel_response.cu"
-
+// TODO: CUTOFF PHASE WHEN IT STARTS TO GO BACK UP!!!
 
 using namespace std;
 
@@ -418,8 +418,8 @@ void PhenomHM::Likelihood (double *like_out_){
             }
      h_h += res*res;
 
-     like_out_[0] = d_h;
-     like_out_[1] = h_h;
+     like_out_[0] = 4*d_h;
+     like_out_[1] = 4*h_h;
 }
 
 void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {

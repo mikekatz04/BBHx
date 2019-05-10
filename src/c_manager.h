@@ -3,6 +3,7 @@
 #include "globalPhenomHM.h"
 #include <complex>
 #include "PhenomHM.h"
+#include "c_interpolate.h"
 
 class PhenomHM {
   // pointer to the GPU memory where the array is stored
@@ -36,6 +37,8 @@ class PhenomHM {
   double m2_SI;
   cmplx *H_mat;
 
+  Interpolate interp;
+
   double *cShift;
 
   // Interpolate related stuff
@@ -49,6 +52,10 @@ class PhenomHM {
   cmplx *data_channel2;
   cmplx *data_channel3;
 
+  cmplx *template_channel1;
+  cmplx *template_channel2;
+  cmplx *template_channel3;
+
   double *channel1_ASDinv;
   double *channel2_ASDinv;
   double *channel3_ASDinv;
@@ -61,6 +68,8 @@ class PhenomHM {
   double tRef;
   int TDItag;
   double merger_freq;
+
+  double *B;
 
 
 public:
@@ -95,7 +104,13 @@ public:
             double phiRef_,
             double fRef_);
 
+  void setup_interp_wave();
+
   void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq);
+
+  void setup_interp_response();
+
+  void perform_interp();
 
   void GetAmpPhase(double* amp_, double* phase_);
 

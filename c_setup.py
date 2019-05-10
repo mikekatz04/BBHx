@@ -16,7 +16,7 @@ lib_gsl_dir = "/opt/local/lib"
 include_gsl_dir = "/opt/local/include"
 
 extensions=[Extension('PhenomHM',
-        sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/fdresponse.cpp', 'src/c_manager.cpp', 'PhenomHM.pyx'],
+        sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/fdresponse.cpp', 'src/c_interpolate.cpp', 'src/c_manager.cpp', 'PhenomHM.pyx'],
         library_dirs = [lib_gsl_dir],
         libraries = ["gsl", "gslcblas"],
         language = 'c++',

@@ -21,8 +21,11 @@ cdef extern from "src/c_manager.h":
                             double,
                             double)
 
+        void setup_interp_wave()
         void GetAmpPhase(np.float64_t*, np.float64_t*)
         void LISAresponseFD(double, double, double, double, double, double, double)
+        void setup_interp_response()
+        void perform_interp()
         void Combine()
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
@@ -77,8 +80,17 @@ cdef class PhenomHM:
                                 phiRef,
                                 f_ref)
 
+    def setup_interp_wave(self):
+        self.g.setup_interp_wave()
+
     def LISAresponseFD(self, inc, lam, beta, psi, t0_epoch, tRef, merger_freq):
         self.g.LISAresponseFD(inc, lam, beta, psi, t0_epoch, tRef, merger_freq)
+
+    def setup_interp_response(self):
+        self.g.setup_interp_response()
+
+    def perform_interp(self):
+        self.g.perform_interp()
 
     def Combine(self):
         self.g.Combine()

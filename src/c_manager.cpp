@@ -13,6 +13,7 @@ This class will get translated into python via cython
 #include "globalPhenomHM.h"
 #include <complex>
 #include "fdresponse.h"
+#include "c_interpolate.h"
 
 using namespace std;
 
@@ -66,9 +67,11 @@ PhenomHM::PhenomHM (int max_length_init_,
 
     H_mat = new cmplx[num_modes*9];
 
-    data_channel1 = new cmplx[num_modes*data_stream_length];
-    data_channel2 = new cmplx[num_modes*data_stream_length];
-    data_channel3 = new cmplx[num_modes*data_stream_length];
+    template_channel1 = new cmplx[num_modes*data_stream_length];
+    template_channel2 = new cmplx[num_modes*data_stream_length];
+    template_channel3 = new cmplx[num_modes*data_stream_length];
+
+    B = new double[8*data_stream_length*num_modes];
 
   //double t0_;
   t0 = 0.0;
@@ -137,15 +140,41 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
 }
 
-void PhenomHM::LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq){
+void PhenomHM::setup_interp_wave(){
+    host_fill_B_wave(mode_vals, B, current_length, num_modes);
+    interp.prep(B, current_length, 2*num_modes, 0);
+    host_set_spline_constants_wave(mode_vals, B, current_length, num_modes);
+}
+
+void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_){
+    inc = inc_;
+    lam = lam_;
+    beta = beta_;
+    psi = psi_;
+    t0_epoch = t0_epoch_;
+    tRef = tRef_;
+    merger_freq = merger_freq_;
     int order_fresnel_stencil = 0;
     prep_H_info(H_mat, l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     JustLISAFDresponseTDI_wrap(mode_vals, H_mat, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, order_fresnel_stencil);
 }
 
+void PhenomHM::setup_interp_response(){
+    host_fill_B_response(mode_vals, B, current_length, num_modes);
+    interp.prep(B, current_length, 8*num_modes, 0);
+    host_set_spline_constants_response(mode_vals, B, current_length, num_modes);
+}
 
-void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+
+void PhenomHM::perform_interp(){
+    double d_log10f = log10(freqs[1]) - log10(freqs[0]);
+    host_interpolate(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
+}
+
+
+
+void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
     double f, t, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
@@ -159,9 +188,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
         for (int i=0; i<length; i++){
             t = old_mode_vals[mode_i].time_freq_corr[i];
             if (t < 0.0){
-                X_out[mode_i*length + i] = 0.0+I*0.0;
-                Y_out[mode_i*length + i] = 0.0+I*0.0;
-                Z_out[mode_i*length + i] = 0.0+I*0.0;
+                channel1_out[mode_i*length + i] = 0.0+I*0.0;
+                channel2_out[mode_i*length + i] = 0.0+I*0.0;
+                channel3_out[mode_i*length + i] = 0.0+I*0.0;
                 continue;
             }
 
@@ -169,9 +198,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             /*f = f_min + df * i;
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
             if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
-                X_out[mode_i*length + i] = 0.0+0.0*I;
-                Y_out[mode_i*length + i] = 0.0+0.0*I;
-                Z_out[mode_i*length + i] = 0.0+0.0*I;
+                channel1_out[mode_i*length + i] = 0.0+0.0*I;
+                channel2_out[mode_i*length + i] = 0.0+0.0*I;
+                channel3_out[mode_i*length + i] = 0.0+0.0*I;
                 continue;
             }
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
@@ -180,9 +209,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             // interp amplitude
             coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
             if (coeff_0 < 1e-50){
-                X_out[mode_i*length + i] = cmplx(0.0, 0.0);
-                Y_out[mode_i*length + i] = cmplx(0.0, 0.0);
-                Z_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                channel1_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                channel2_out[mode_i*length + i] = cmplx(0.0, 0.0);
+                channel3_out[mode_i*length + i] = cmplx(0.0, 0.0);
                 continue;
             }
             coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
@@ -192,9 +221,9 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);*/
             amp = old_mode_vals[mode_i].amp[i];
             if (amp < 1e-40){
-                X_out[mode_i*length + i] = 0.0+I*0.0;
-                Y_out[mode_i*length + i] = 0.0+I*0.0;
-                Z_out[mode_i*length + i] = 0.0+I*0.0;
+                channel1_out[mode_i*length + i] = 0.0+I*0.0;
+                channel2_out[mode_i*length + i] = 0.0+I*0.0;
+                channel3_out[mode_i*length + i] = 0.0+I*0.0;
                 continue;
             }
 
@@ -237,7 +266,7 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             transferL1_re = old_mode_vals[mode_i].transferL1_re[i];
             transferL1_im = old_mode_vals[mode_i].transferL1_im[i];
 
-            X_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
+            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
 
             // Y
             /*coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -257,7 +286,7 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             transferL2_re = old_mode_vals[mode_i].transferL2_re[i];
             transferL2_im = old_mode_vals[mode_i].transferL2_im[i];
 
-            Y_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
+            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
 
             // Z
             /*coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -276,20 +305,21 @@ void host_interpolate(cmplx *X_out, cmplx *Y_out, cmplx *Z_out, ModeContainer* o
             transferL3_re = old_mode_vals[mode_i].transferL3_re[i];
             transferL3_im = old_mode_vals[mode_i].transferL3_im[i];
 
-            Z_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
+            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
         }
     }
 }
 
+
 void PhenomHM::Combine(){
     double d_log10f = log10(data_freqs[1]) - log10(data_freqs[0]);
-    host_interpolate(data_channel1, data_channel2, data_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
+    host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
 }
 
-void PhenomHM::GetTDI(cmplx *data_channel1_, cmplx *data_channel2_, cmplx *data_channel3_){
-    memcpy(data_channel1_, data_channel1, num_modes*data_stream_length*sizeof(cmplx));
-    memcpy(data_channel2_, data_channel2, num_modes*data_stream_length*sizeof(cmplx));
-    memcpy(data_channel3_, data_channel3, num_modes*data_stream_length*sizeof(cmplx));
+void PhenomHM::GetTDI(cmplx *template_channel1_, cmplx *template_channel2_, cmplx *template_channel3_){
+    memcpy(template_channel1_, template_channel1, num_modes*data_stream_length*sizeof(cmplx));
+    memcpy(template_channel2_, template_channel2, num_modes*data_stream_length*sizeof(cmplx));
+    memcpy(template_channel3_, template_channel3, num_modes*data_stream_length*sizeof(cmplx));
 }
 
 void PhenomHM::GetAmpPhase(double* amp_, double* phase_){
@@ -310,7 +340,8 @@ PhenomHM::~PhenomHM() {
   delete[] cShift;
   cpu_destroy_modes(mode_vals);
   delete[] H_mat;
-  delete[] data_channel1;
-  delete[] data_channel2;
-  delete[] data_channel3;
+  delete[] template_channel1;
+  delete[] template_channel2;
+  delete[] template_channel3;
+  delete[] B;
 }

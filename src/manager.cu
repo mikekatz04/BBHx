@@ -383,8 +383,47 @@ void PhenomHM::Likelihood (double *like_out_){
                   exit(0);
               }
          d_h += cuCreal(result);
+
+         for (int mode_j=0; mode_j<num_modes; mode_j++){
+             stat = cublasZdotc(handle, data_stream_length,
+                     &d_template_channel1[mode_i*data_stream_length], 1,
+                     &d_template_channel1[mode_j*data_stream_length], 1,
+                     &result);
+             status = _cudaGetErrorEnum(stat);
+              cudaDeviceSynchronize();
+
+              if (stat != CUBLAS_STATUS_SUCCESS) {
+                      exit(0);
+                  }
+             h_h += cuCreal(result);
+
+             stat = cublasZdotc(handle, data_stream_length,
+                     &d_template_channel2[mode_i*data_stream_length], 1,
+                     &d_template_channel2[mode_j*data_stream_length], 1,
+                     &result);
+             status = _cudaGetErrorEnum(stat);
+              cudaDeviceSynchronize();
+
+              if (stat != CUBLAS_STATUS_SUCCESS) {
+                      exit(0);
+                  }
+             h_h += cuCreal(result);
+
+             stat = cublasZdotc(handle, data_stream_length,
+                     &d_template_channel3[mode_i*data_stream_length], 1,
+                     &d_template_channel3[mode_j*data_stream_length], 1,
+                     &result);
+             status = _cudaGetErrorEnum(stat);
+              cudaDeviceSynchronize();
+
+              if (stat != CUBLAS_STATUS_SUCCESS) {
+                      exit(0);
+                  }
+             h_h += cuCreal(result);
+         }
      }
 
+     /*
      // d_template_channel1 d_template_channel1 for h_h
      stat = cublasDznrm2(handle, num_modes*data_stream_length,
              d_template_channel1, 1, &res);
@@ -416,7 +455,7 @@ void PhenomHM::Likelihood (double *like_out_){
         if (stat != CUBLAS_STATUS_SUCCESS) {
                 exit(0);
             }
-     h_h += res*res;
+     h_h += res*res;*/
 
      like_out_[0] = 4*d_h;
      like_out_[1] = 4*h_h;

@@ -315,7 +315,7 @@ void PhenomHM::setup_interp_response(){
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    interp.prep(d_B, current_length, 7*num_modes, 1);
+    interp.prep(d_B, current_length, 8*num_modes, 1);  // TODO check the 8?
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 

@@ -23,6 +23,9 @@ class PhenomHMLikelihood:
             'data_stream_whitened': True,
             'data_params': {},
             'log_scaled_likelihood': True,
+            'eps': 1e-7,
+            'test_inds': None,
+            'num_params': 12,
         }
 
         for prop, default in prop_defaults.items():
@@ -32,6 +35,9 @@ class PhenomHMLikelihood:
         self.max_length_init = max_length_init
         self.l_vals, self.m_vals = l_vals, m_vals
         self.data_freqs, self.data_stream = data_freqs, data_stream
+
+        if self.test_inds is None:
+            self.test_inds = np.arange(self.num_params)
 
         if self.TDItag not in ['AET', 'XYZ']:
             raise ValueError('TDItag must be AET or XYZ.')
@@ -83,7 +89,7 @@ class PhenomHMLikelihood:
                           self.channel1_ASDinv, self.channel2_ASDinv, self.channel3_ASDinv,
                           self.TDItag_in)
 
-    def __call__(self, m1, m2, a1, a2, distance,
+    def NLL(self, m1, m2, a1, a2, distance,
                  phiRef, fRef, inc, lam, beta,
                  psi, tRef, freqs=None, return_amp_phase=False, return_TDI=False):
 
@@ -96,7 +102,7 @@ class PhenomHMLikelihood:
             lower_freq = self.min_dimensionless_freq/Msec
             freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), self.max_length_init)
 
-        return self.generator.WaveformThroughLikelihood(freqs,
+        out = self.generator.WaveformThroughLikelihood(freqs,
                                               m1, m2,  # solar masses
                                               a1, a2,
                                               distance, phiRef, fRef,
@@ -104,6 +110,66 @@ class PhenomHMLikelihood:
                                               self.t0, tRef, merger_freq,
                                               return_amp_phase=return_amp_phase,
                                               return_TDI=return_TDI)
+
+        if return_amp_phase or return_TDI:
+            return out
+
+        d_h, h_h = out
+        return self.d_d + h_h - 2*d_h
+
+    def getNLL(self, x):
+        ln_m1, ln_m2, a1, a2, ln_distance, phiRef, fRef, inc, lam, beta, psi, tRef = x
+        distance = np.exp(ln_distance)*1e6*ct.parsec  # Mpc to meters
+        #mT = np.exp(ln_mT)
+        #m1 = mT/(1+mr)
+        #m2 = mT*mr/(1+mr)
+        m1 = np.exp(ln_m1)
+        m2 = np.exp(ln_m2)
+
+        return self.NLL(m1, m2, a1, a2, distance,
+                            phiRef, fRef, inc, lam, beta,
+                            psi, tRef)
+
+    def gradNLL(self, x):
+        grad = np.zeros_like(self.test_inds, dtype=x.dtype)
+        for j, i in enumerate(self.test_inds):
+            # different for ln dist
+            if i == 4:
+                grad[j] = -1*self.getNLL(x_trans)
+
+            x_trans = x.copy()
+            x_real = x[i]
+            x_trans[i] = (1.0 - self.eps)*x_real
+            like_down = self.getNLL(x_trans)
+            #x_trans.tofile(self.likelihood_file, sep='\t', format='%e')
+            #self.likelihood_file.write('{}\t{}\n'.format())
+
+            x_trans[i] = (1.0 + self.eps)*x_real
+            like_up = self.getNLL(x_trans)
+
+            grad[j] = (like_up - like_down)/(2*self.eps*x_real)
+
+        return grad
+
+    def get_Mij(self, x):
+        Mij = np.zeros_like(self.test_inds, dtype=x.dtype)
+        for j, i in enumerate(self.test_inds):
+            # different for ln dist
+            if i == 4:
+                Mij[j] = self.getNLL(x)
+
+            f_x = self.getNLL(x)
+            x_trans = x.copy()
+            x_real = x[i]
+            x_trans[i] = (1.0 - 2*self.eps)*x_real  # 2 is from second order central difference
+            like_down = self.getNLL(x_trans)
+
+            x_trans[i] = (1.0 + 2*self.eps)*x_real  # 2 is from second order central difference
+            like_up = self.getNLL(x_trans)
+
+            Mij[j] = (like_up - 2*f_x + like_down)/(4*(self.eps*x_real)**2)
+        print('finished Mij')
+        return Mij
 
 
 def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, fmin=None, fmax=None, **kwargs):
@@ -197,7 +263,7 @@ if __name__ == "__main__":
         'tRef': 3600.0,
     }
 
-    a1_test = np.linspace(-np.pi, np.pi-0.000001, 10000)
+    a1_test = np.linspace(-np.pi/2, np.pi/2-0.000001, 10000)
 
 
     arr = np.asarray([getattr(test, 'data_channel{}'.format(i+1)) for i in range(3)])
@@ -206,9 +272,8 @@ if __name__ == "__main__":
     test_params = data_params
     nll = []
     for a1 in a1_test:
-        test_params['lam'] = a1
-        d_h, h_h = test(**test_params)
-        neg_log_likelihood = test.d_d + h_h - 2*d_h
+        test_params['inc'] = a1
+        neg_log_likelihood = test.NLL(**test_params)
         nll.append(neg_log_likelihood)
 
     np.save('nll_test', np.asarray(nll))

@@ -22,6 +22,9 @@ cdef extern from "src/c_manager.h":
                             double)
 
         void GetAmpPhase(np.float64_t*, np.float64_t*)
+        void LISAresponseFD(double, double, double, double, double, double, double)
+        void Combine()
+        void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
 cdef class PhenomHM:
     cdef PhenomHMwrap* g
@@ -74,6 +77,13 @@ cdef class PhenomHM:
                                 phiRef,
                                 f_ref)
 
+    def LISAresponseFD(self, inc, lam, beta, psi, t0_epoch, tRef, merger_freq):
+        self.g.LISAresponseFD(inc, lam, beta, psi, t0_epoch, tRef, merger_freq)
+
+    def Combine(self):
+        self.g.Combine()
+        return
+
     def GetAmpPhase(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_
         cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_
@@ -83,3 +93,18 @@ cdef class PhenomHM:
 
         self.g.GetAmpPhase(&amp_[0], &phase_[0])
         return (amp_.reshape(self.num_modes, self.current_length), phase_.reshape(self.num_modes, self.current_length))
+
+    def GetTDI(self):
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] data_channel1_
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] data_channel2_
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] data_channel3_
+
+        data_channel1_ = np.zeros((self.num_modes*self.data_length,), dtype=np.complex128)
+        data_channel2_ = np.zeros((self.num_modes*self.data_length,), dtype=np.complex128)
+        data_channel3_ = np.zeros((self.num_modes*self.data_length,), dtype=np.complex128)
+
+        self.g.GetTDI(&data_channel1_[0], &data_channel2_[0], &data_channel3_[0])
+
+        return (data_channel1_.reshape(self.num_modes, self.data_length),
+                data_channel2_.reshape(self.num_modes, self.data_length),
+                data_channel3_.reshape(self.num_modes, self.data_length))

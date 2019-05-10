@@ -15,8 +15,8 @@ except AttributeError:
 lib_gsl_dir = "/opt/local/lib"
 include_gsl_dir = "/opt/local/include"
 
-extensions=[Extension('GPUPhenomHM',
-        sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/c_manager.cpp', 'GPUPhenomHM.pyx'],
+extensions=[Extension('PhenomHM',
+        sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/fdresponse.cpp', 'src/c_manager.cpp', 'PhenomHM.pyx'],
         library_dirs = [lib_gsl_dir],
         libraries = ["gsl", "gslcblas"],
         language = 'c++',
@@ -32,7 +32,7 @@ extensions=[Extension('GPUPhenomHM',
 from Cython.Build import cythonize
 extensions = cythonize(extensions, gdb_debug=True)
 
-setup(name = 'GPUPhenomHM',
+setup(name = 'PhenomHM',
       # Random metadata. there's more you can supply
       author = 'Robert McGibbon',
       version = '0.1',

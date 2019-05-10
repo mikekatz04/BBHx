@@ -34,7 +34,7 @@ class PhenomHM {
   int retcode;
   double m1_SI;
   double m2_SI;
-  cmplx *H;
+  cmplx *H_mat;
 
   double *cShift;
 
@@ -95,7 +95,13 @@ public:
             double phiRef_,
             double fRef_);
 
+  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq);
+
   void GetAmpPhase(double* amp_, double* phase_);
+
+  void Combine();
+
+  void GetTDI(cmplx *data_channel1_, cmplx *data_channel2_, cmplx *data_channel3_);
 /*
   void setup_interp_wave();
 

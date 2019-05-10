@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include "fdresponse.h"
 
-
 using namespace std;
 
 typedef struct tagd_Gslr_holder{

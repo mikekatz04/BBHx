@@ -377,6 +377,7 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *
             //if (t<0.0) printf("mode %d, index %d, time %e\n", mode_i, i, t);
             transferL_holder transferL = JustLISAFDresponseTDI(&H_mat[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
+            mode_vals[mode_i].time_freq_corr[i] = t;
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = std::imag(transferL.transferL1);
             mode_vals[mode_i].transferL2_re[i] = std::real(transferL.transferL2);

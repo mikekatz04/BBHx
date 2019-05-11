@@ -50,7 +50,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
 
-    num = 100
+    num = 10000
     st = time.perf_counter()
     for i in range(num):
         """phenomHM.gen_amp_phase(freq, m1,  # solar masses

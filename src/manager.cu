@@ -67,9 +67,9 @@ PhenomHM::PhenomHM (int max_length_init_,
 
   gpuErrchk(cudaMalloc(&d_H, 9*num_modes*sizeof(cuDoubleComplex)));
 
-  gpuErrchk(cudaMalloc(&d_template_channel1, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
-  gpuErrchk(cudaMalloc(&d_template_channel2, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
-  gpuErrchk(cudaMalloc(&d_template_channel3, data_stream_length*num_modes*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMalloc(&d_template_channel1, data_stream_length*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMalloc(&d_template_channel2, data_stream_length*sizeof(cuDoubleComplex)));
+  gpuErrchk(cudaMalloc(&d_template_channel3, data_stream_length*sizeof(cuDoubleComplex)));
 
   d_mode_vals = gpu_create_modes(num_modes, l_vals, m_vals, max_length_init, to_gpu, 1);
 
@@ -329,7 +329,7 @@ void PhenomHM::setup_interp_response(){
 void PhenomHM::perform_interp(){
     assert(current_status >= 4);
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
-    dim3 mainInterpDim(num_block_interp, num_modes);
+    dim3 mainInterpDim(num_block_interp);//, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
     interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv);
@@ -347,9 +347,9 @@ void PhenomHM::Likelihood (double *like_out_){
      char * status;
      double res;
      cuDoubleComplex result;
-     for (int mode_i=0; mode_i<num_modes; mode_i++){
+
          stat = cublasZdotc(handle, data_stream_length,
-                 &d_template_channel1[mode_i*data_stream_length], 1,
+                 d_template_channel1, 1,
                  d_data_channel1, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -361,7 +361,7 @@ void PhenomHM::Likelihood (double *like_out_){
          d_h += cuCreal(result);
 
          stat = cublasZdotc(handle, data_stream_length,
-                 &d_template_channel2[mode_i*data_stream_length], 1,
+                 d_template_channel2, 1,
                  d_data_channel2, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -373,7 +373,7 @@ void PhenomHM::Likelihood (double *like_out_){
          d_h += cuCreal(result);
 
          stat = cublasZdotc(handle, data_stream_length,
-                 &d_template_channel3[mode_i*data_stream_length], 1,
+                 d_template_channel3, 1,
                  d_data_channel3, 1,
                  &result);
          status = _cudaGetErrorEnum(stat);
@@ -384,10 +384,9 @@ void PhenomHM::Likelihood (double *like_out_){
               }
          d_h += cuCreal(result);
 
-         for (int mode_j=0; mode_j<num_modes; mode_j++){
-             stat = cublasZdotc(handle, data_stream_length,
-                     &d_template_channel1[mode_i*data_stream_length], 1,
-                     &d_template_channel1[mode_j*data_stream_length], 1,
+        stat = cublasZdotc(handle, data_stream_length,
+                     d_template_channel1, 1,
+                     d_template_channel1, 1,
                      &result);
              status = _cudaGetErrorEnum(stat);
               cudaDeviceSynchronize();
@@ -398,8 +397,8 @@ void PhenomHM::Likelihood (double *like_out_){
              h_h += cuCreal(result);
 
              stat = cublasZdotc(handle, data_stream_length,
-                     &d_template_channel2[mode_i*data_stream_length], 1,
-                     &d_template_channel2[mode_j*data_stream_length], 1,
+                     d_template_channel2, 1,
+                     d_template_channel2, 1,
                      &result);
              status = _cudaGetErrorEnum(stat);
               cudaDeviceSynchronize();
@@ -410,8 +409,8 @@ void PhenomHM::Likelihood (double *like_out_){
              h_h += cuCreal(result);
 
              stat = cublasZdotc(handle, data_stream_length,
-                     &d_template_channel3[mode_i*data_stream_length], 1,
-                     &d_template_channel3[mode_j*data_stream_length], 1,
+                     d_template_channel3, 1,
+                     d_template_channel3, 1,
                      &result);
              status = _cudaGetErrorEnum(stat);
               cudaDeviceSynchronize();
@@ -420,8 +419,6 @@ void PhenomHM::Likelihood (double *like_out_){
                       exit(0);
                   }
              h_h += cuCreal(result);
-         }
-     }
 
      /*
      // d_template_channel1 d_template_channel1 for h_h

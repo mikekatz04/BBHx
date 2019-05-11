@@ -142,16 +142,62 @@ def cuda_install():
 
           # Inject our custom trigger
           cmdclass = {'build_ext': custom_build_ext},
+          py_modules=['phenomhm'],
 
           # Since the package has c code, the egg cannot be zipped
           zip_safe = False)
 
+def cpp_install():
+    # Obtain the numpy include directory. This logic works across numpy versions.
+    try:
+        numpy_include = numpy.get_include()
+    except AttributeError:
+        numpy_include = numpy.get_numpy_include()
+
+    lib_gsl_dir = "/opt/local/lib"
+    include_gsl_dir = "/opt/local/include"
+
+    extensions=[Extension('PhenomHM',
+            sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/fdresponse.cpp', 'src/c_interpolate.cpp', 'src/c_manager.cpp', 'PhenomHM.pyx'],
+            library_dirs = [lib_gsl_dir],
+            libraries = ["gsl", "gslcblas"],
+            language = 'c++',
+            #sruntime_library_dirs = [CUDA['lib64']],
+            # This syntax is specific to this build system
+            # we're only going to use certain compiler args with nvcc
+            # and not with gcc the implementation of this trick is in
+            # customize_compiler()
+            extra_compile_args= ["-O3"],
+                include_dirs = [numpy_include, include_gsl_dir, 'src']
+            )]
+
+    from Cython.Build import cythonize
+    extensions = cythonize(extensions, gdb_debug=True)
+
+    setup(name = 'PhenomHM',
+          # Random metadata. there's more you can supply
+          author = 'Robert McGibbon',
+          version = '0.1',
+
+          ext_modules=extensions,
+
+
+          # Since the package has c code, the egg cannot be zipped
+          zip_safe = False)
+
+
+print_strings = []
 try:
-    print('ATTEMPTING CUDA INSTALL')
+    print_strings.append('ATTEMPTED CUDA INSTALL')
     cuda_install()
-    print('INSTALLED FOR CUDA')
+    print_strings.append('INSTALLED FOR CUDA: gpuPhenomHM')
 except OSError:
-    print('COULD NOT FIND CUDA ON PATH.'
-          + 'The nvcc binary could not be located in your $PATH.'
-          + 'Either add it to your path, or set $CUDAHOME')
-    pass
+    print_strings.append('COULD NOT FIND CUDA ON PATH.'
+                         + 'The nvcc binary could not be located in your $PATH. '
+                         + 'Either add it to your path, or set $CUDAHOME')
+
+cpp_install()
+print_strings.append('INSTALLED C++ VERSION: PhenomHM')
+print('\n')
+for string in print_strings:
+    print(string)

@@ -262,7 +262,6 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             time_start = time_coeff_0 + (time_coeff_1*x) + (time_coeff_2*x2) + (time_coeff_3*x3);
 
-            if (i<5) printf("%e, %e, %e, %d\n", f, time_start, time_coeff_0, old_ind_below);
             if (time_start <= 0.0) {
                 channel1_out[mode_i*length + i] = 0.0+0.0*I;
                 channel2_out[mode_i*length + i] = 0.0+0.0*I;

@@ -12,7 +12,7 @@ except ImportError:
 
 def test():
     df = 1e-5
-    data_length = int(32000)
+    data_length = int(2e5)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
@@ -50,10 +50,10 @@ def test():
      l_vals,
      m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
 
-    num = 1
+    num = 100
     st = time.perf_counter()
     for i in range(num):
-        phenomHM.gen_amp_phase(freq, m1,  # solar masses
+        """phenomHM.gen_amp_phase(freq, m1,  # solar masses
                      m2,  # solar masses
                      chi1z,
                      chi2z,
@@ -65,6 +65,14 @@ def test():
         phenomHM.setup_interp_wave()
         phenomHM.setup_interp_response()
         phenomHM.perform_interp()
+        like = phenomHM.Likelihood()"""
+        like2 = phenomHM.WaveformThroughLikelihood(freq, m1,  # solar masses
+                     m2,  # solar masses
+                     chi1z,
+                     chi2z,
+                     distance,
+                     phiRef,
+                     f_ref, inc, lam, beta, psi, t0, tRef, merger_freq)
         """
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
 
@@ -94,7 +102,7 @@ def test():
     #np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
     #print('2gpu per waveform:', t/num)
     #import pdb; pdb.set_trace()
-
+    """
     import matplotlib.pyplot as plt
     for ampi in amp:
         plt.loglog(freq, ampi)
@@ -128,7 +136,7 @@ def test():
         d_h_t = np.asarray([np.dot(data.conj(), chani) for chani in chan])
         d_h = np.sum(d_h_t).real
         d_h_all += d_h
-
+    """
     pdb.set_trace()
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ cdef extern from "src/c_manager.h":
         void LISAresponseFD(double, double, double, double, double, double, double)
         void setup_interp_response()
         void perform_interp()
+        void Likelihood(np.float64_t*)
         void Combine()
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
 
@@ -96,6 +97,11 @@ cdef class PhenomHM:
         self.g.Combine()
         return
 
+    def Likelihood(self):
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] like_out_ = np.zeros((2,), dtype=np.float64)
+        self.g.Likelihood(&like_out_[0])
+        return like_out_
+
     def GetAmpPhase(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_
         cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_
@@ -120,3 +126,33 @@ cdef class PhenomHM:
         return (data_channel1_.reshape(self.num_modes, self.data_length),
                 data_channel2_.reshape(self.num_modes, self.data_length),
                 data_channel3_.reshape(self.num_modes, self.data_length))
+
+    def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
+                        m1, #solar masses
+                        m2, #solar masses
+                        chi1z,
+                        chi2z,
+                        distance,
+                        phiRef,
+                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, return_amp_phase=False, return_TDI=False):
+        self.gen_amp_phase(freqs,
+                            m1, #solar masses
+                            m2, #solar masses
+                            chi1z,
+                            chi2z,
+                            distance,
+                            phiRef,
+                            f_ref)
+
+        if return_amp_phase:
+            return self.GetAmpPhase()
+
+        self.setup_interp_wave()
+        self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
+        self.setup_interp_response()
+        self.perform_interp()
+
+        if return_TDI:
+            return self.GetTDI()
+
+        return self.Likelihood()

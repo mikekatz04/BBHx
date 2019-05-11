@@ -12,7 +12,7 @@ except ImportError:
 
 def test():
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 8192), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, 2048), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     #freq = np.load('freqs.npy')
 
@@ -30,7 +30,7 @@ def test():
     m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32) #,
 
     df = 1e-5
-    data_length = int(1e6)
+    data_length = int(2e5)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
@@ -43,9 +43,9 @@ def test():
 
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data_freqs, data, AE_ASDinv, AE_ASDinv, T_ASDinv)
+     m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
 
-    num = 1
+    num = 1000
     st = time.perf_counter()
     for i in range(num):
 
@@ -59,7 +59,7 @@ def test():
 
         phenomHM.setup_interp_wave()
 
-        phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+        phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
 
         phenomHM.setup_interp_response()
 
@@ -73,11 +73,10 @@ def test():
                      chi2z,
                      distance,
                      phiRef,
-                     f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, TDItag)
+                     f_ref, inc, lam, beta, psi, t0, tRef, merger_freq)
 
         assert(all(like == like2))
-        if i % 100 == 0:
-            print(i)
+
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
     print(like)

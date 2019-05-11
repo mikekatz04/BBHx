@@ -112,6 +112,8 @@ public:
 
   void perform_interp();
 
+  void Likelihood (double *like_out_);
+
   void GetAmpPhase(double* amp_, double* phase_);
 
   void Combine();

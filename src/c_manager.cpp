@@ -316,6 +316,48 @@ void PhenomHM::Combine(){
     host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
 }
 
+cmplx complex_dot(cmplx *arr1, cmplx *arr2, int n){
+    cmplx I(0.0, 1.0);
+    cmplx sum = 0.0 + 0.0*I;
+    for (int i=0; i<n; i++){
+        sum += std::conj(arr1[i])*arr2[i];
+    }
+    return sum;
+}
+
+void PhenomHM::Likelihood (double *like_out_){
+
+     assert(current_status == 5);
+     double d_h = 0.0;
+     double h_h = 0.0;
+     cmplx res, result;
+
+     for (int mode_i=0; mode_i<num_modes; mode_i++){
+         result = complex_dot(&template_channel1[mode_i*data_stream_length], data_channel1, data_stream_length);
+         d_h += result.real();
+
+         result = complex_dot(&template_channel2[mode_i*data_stream_length], data_channel2, data_stream_length);
+         d_h += result.real();
+
+         result = complex_dot(&template_channel3[mode_i*data_stream_length], data_channel3, data_stream_length);
+         d_h += result.real();
+
+         for (int mode_j=0; mode_j<num_modes; mode_j++){
+             res = complex_dot(&template_channel1[mode_i*data_stream_length], &template_channel1[mode_j*data_stream_length], data_stream_length);
+             h_h += res.real();
+
+             res = complex_dot(&template_channel2[mode_i*data_stream_length], &template_channel2[mode_j*data_stream_length], data_stream_length);
+             h_h += res.real();
+
+             res = complex_dot(&template_channel3[mode_i*data_stream_length], &template_channel3[mode_j*data_stream_length], data_stream_length);
+             h_h += res.real();
+         }
+     }
+
+     like_out_[0] = 4*d_h;
+     like_out_[1] = 4*h_h;
+}
+
 void PhenomHM::GetTDI(cmplx *template_channel1_, cmplx *template_channel2_, cmplx *template_channel3_){
     memcpy(template_channel1_, template_channel1, num_modes*data_stream_length*sizeof(cmplx));
     memcpy(template_channel2_, template_channel2, num_modes*data_stream_length*sizeof(cmplx));

@@ -159,7 +159,154 @@ void host_set_spline_constants_response(ModeContainer *mode_vals, double *b_mat,
         }
     }
 }
+void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
+    double f, time_start, x, x2, x3;
+    double time_coeff_0, time_coeff_1, time_coeff_2, time_coeff_3;
+    double amp_coeff_0, amp_coeff_1, amp_coeff_2, amp_coeff_3;
+    double phase_coeff_0, phase_coeff_1, phase_coeff_2, phase_coeff_3;
+    double phase_delay_coeff_0, phase_delay_coeff_1, phase_delay_coeff_2, phase_delay_coeff_3;
+    double l1_re_coeff_0, l1_re_coeff_1, l1_re_coeff_2, l1_re_coeff_3;
+    double l1_im_coeff_0, l1_im_coeff_1, l1_im_coeff_2, l1_im_coeff_3;
+    double l2_re_coeff_0, l2_re_coeff_1, l2_re_coeff_2, l2_re_coeff_3;
+    double l2_im_coeff_0, l2_im_coeff_1, l2_im_coeff_2, l2_im_coeff_3;
+    double l3_re_coeff_0, l3_re_coeff_1, l3_re_coeff_2, l3_re_coeff_3;
+    double l3_im_coeff_0, l3_im_coeff_1, l3_im_coeff_2, l3_im_coeff_3;
+
+    double amp, phase, phaseRdelay, phasetimeshift;
+    double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
+    cmplx fastPart;
+    cmplx I(0.0, 1.0);
+    double f_min_limit = old_freqs[0];
+    double f_max_limit = old_freqs[old_length-1];
+    int old_ind_below;
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+        old_ind_below = -1;
+        while (data_freqs[0] > old_freqs[old_ind_below+2]){
+            old_ind_below++;
+        }
+        for (int i=0; i<length; i++){
+            f = data_freqs[i];
+            if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
+                channel1_out[mode_i*length + i] = 0.0+0.0*I;
+                channel2_out[mode_i*length + i] = 0.0+0.0*I;
+                channel3_out[mode_i*length + i] = 0.0+0.0*I;
+                continue;
+            }
+            if (f >= old_freqs[old_ind_below+1]){
+                old_ind_below += 1;
+                if (old_ind_below == old_length -1){
+                    channel1_out[mode_i*length + i] = 0.0+0.0*I;
+                    channel2_out[mode_i*length + i] = 0.0+0.0*I;
+                    channel3_out[mode_i*length + i] = 0.0+0.0*I;
+                    continue;
+                }
+                time_coeff_0 = old_mode_vals[mode_i].time_freq_corr[old_ind_below];
+                time_coeff_1 = old_mode_vals[mode_i].time_freq_coeff_1[old_ind_below];
+                time_coeff_2 = old_mode_vals[mode_i].time_freq_coeff_2[old_ind_below];
+                time_coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
+
+                // interp amplitude
+                amp_coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
+                amp_coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
+                amp_coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
+                amp_coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
+
+                phase_coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
+                phase_coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
+                phase_coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
+                phase_coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
+
+                phase_delay_coeff_0 = old_mode_vals[mode_i].phaseRdelay[old_ind_below];
+                phase_delay_coeff_1 = old_mode_vals[mode_i].phaseRdelay_coeff_1[old_ind_below];
+                phase_delay_coeff_2 = old_mode_vals[mode_i].phaseRdelay_coeff_2[old_ind_below];
+                phase_delay_coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
+
+                // X
+                l1_re_coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
+                l1_re_coeff_1 = old_mode_vals[mode_i].transferL1_re_coeff_1[old_ind_below];
+                l1_re_coeff_2 = old_mode_vals[mode_i].transferL1_re_coeff_2[old_ind_below];
+                l1_re_coeff_3 = old_mode_vals[mode_i].transferL1_re_coeff_3[old_ind_below];
+
+                l1_im_coeff_0 = old_mode_vals[mode_i].transferL1_im[old_ind_below];
+                l1_im_coeff_1 = old_mode_vals[mode_i].transferL1_im_coeff_1[old_ind_below];
+                l1_im_coeff_2 = old_mode_vals[mode_i].transferL1_im_coeff_2[old_ind_below];
+                l1_im_coeff_3 = old_mode_vals[mode_i].transferL1_im_coeff_3[old_ind_below];
+
+                // Y
+                l2_re_coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
+                l2_re_coeff_1 = old_mode_vals[mode_i].transferL2_re_coeff_1[old_ind_below];
+                l2_re_coeff_2 = old_mode_vals[mode_i].transferL2_re_coeff_2[old_ind_below];
+                l2_re_coeff_3 = old_mode_vals[mode_i].transferL2_re_coeff_3[old_ind_below];
+
+                l2_im_coeff_0 = old_mode_vals[mode_i].transferL2_im[old_ind_below];
+                l2_im_coeff_1 = old_mode_vals[mode_i].transferL2_im_coeff_1[old_ind_below];
+                l2_im_coeff_2 = old_mode_vals[mode_i].transferL2_im_coeff_2[old_ind_below];
+                l2_im_coeff_3 = old_mode_vals[mode_i].transferL2_im_coeff_3[old_ind_below];
+
+                // Z
+                l3_re_coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
+                l3_re_coeff_1 = old_mode_vals[mode_i].transferL3_re_coeff_1[old_ind_below];
+                l3_re_coeff_2 = old_mode_vals[mode_i].transferL3_re_coeff_2[old_ind_below];
+                l3_re_coeff_3 = old_mode_vals[mode_i].transferL3_re_coeff_3[old_ind_below];
+
+                l3_im_coeff_0 = old_mode_vals[mode_i].transferL3_im[old_ind_below];
+                l3_im_coeff_1 = old_mode_vals[mode_i].transferL3_im_coeff_1[old_ind_below];
+                l3_im_coeff_2 = old_mode_vals[mode_i].transferL3_im_coeff_2[old_ind_below];
+                l3_im_coeff_3 = old_mode_vals[mode_i].transferL3_im_coeff_3[old_ind_below];
+            };
+
+            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+            x2 = x*x;
+            x3 = x*x2;
+
+            time_start = time_coeff_0 + (time_coeff_1*x) + (time_coeff_2*x2) + (time_coeff_3*x3);
+
+            if (i<5) printf("%e, %e, %e, %d\n", f, time_start, time_coeff_0, old_ind_below);
+            if (time_start <= 0.0) {
+                channel1_out[mode_i*length + i] = 0.0+0.0*I;
+                channel2_out[mode_i*length + i] = 0.0+0.0*I;
+                channel3_out[mode_i*length + i] = 0.0+0.0*I;
+                continue;
+            }
+
+            amp = amp_coeff_0 + (amp_coeff_1*x) + (amp_coeff_2*x2) + (amp_coeff_3*x3);
+            if (amp < 1e-40){
+                channel1_out[mode_i*length + i] = 0.0+I*0.0;
+                channel2_out[mode_i*length + i] = 0.0+I*0.0;
+                channel3_out[mode_i*length + i] = 0.0+I*0.0;
+                continue;
+            }
+
+            // interp phase
+            phase  = phase_coeff_0 + (phase_coeff_1*x) + (phase_coeff_2*x2) + (phase_coeff_3*x3);
+
+            phaseRdelay  = phase_delay_coeff_0 + (phase_delay_coeff_1*x) + (phase_delay_coeff_2*x2) + (phase_delay_coeff_3*x3);
+            phasetimeshift = 2.*PI*(t0+tRef)*f;
+            fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
+
+            transferL1_re  = l1_re_coeff_0 + (l1_re_coeff_1*x) + (l1_re_coeff_2*x2) + (l1_re_coeff_3*x3);
+
+            transferL1_im  = l1_im_coeff_0 + (l1_im_coeff_1*x) + (l1_im_coeff_2*x2) + (l1_im_coeff_3*x3);
+
+            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
+
+            transferL2_re  = l2_re_coeff_0 + (l2_re_coeff_1*x) + (l2_re_coeff_2*x2) + (l2_re_coeff_3*x3);
+
+            transferL2_im  = l2_im_coeff_0 + (l2_im_coeff_1*x) + (l2_im_coeff_2*x2) + (l2_im_coeff_3*x3);
+
+            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
+
+            transferL3_re  = l3_re_coeff_0 + (l3_re_coeff_1*x) + (l3_re_coeff_2*x2) + (l3_re_coeff_3*x3);
+
+            transferL3_im  = l3_im_coeff_0 + (l3_im_coeff_1*x) + (l3_im_coeff_2*x2) + (l3_im_coeff_3*x3);
+
+            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
+        }
+    }
+}
+
+/*
 void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
     double f, time_start, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
@@ -191,6 +338,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
             coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
 
             time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            if (i<5) printf("%e, %e, %e, %d\n", f, time_start, coeff_0, old_ind_below);
             if (time_start <= 0.0) {
                 channel1_out[mode_i*length + i] = 0.0+0.0*I;
                 channel2_out[mode_i*length + i] = 0.0+0.0*I;
@@ -229,7 +377,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
             phasetimeshift = 2.*PI*(t0+tRef)*f;
             fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
 
-            if (i %1000==0) printf("%e, %e, %e, %e, %e, %e\n", f, amp, phase, t0, tRef, phasetimeshift);
+            //if (i %1000==0) printf("%e, %e, %e, %e, %e, %e\n", f, amp, phase, t0, tRef, phasetimeshift);
 
 
             // X
@@ -284,7 +432,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
             channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
         }
     }
-}
+}*/
 
 Interpolate::Interpolate(){
     int pass = 0;

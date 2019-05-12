@@ -11,11 +11,12 @@ except ImportError:
 MTSUN = 1.989e30*ct.G/ct.c**3
 
 
-class PhenomHMLikelihood:
-    def __init__(self, max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, **kwargs):
+class PhenomHM:
+    def __init__(self, max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, key_order, **kwargs):
         """
         data_stream (dict): keys X, Y, Z or A, E, T
         """
+        super().__init__(key_order)
         prop_defaults = {
             'TDItag': 'AET',  # AET or XYZ
             'max_dimensionless_freq': 0.1,
@@ -23,9 +24,14 @@ class PhenomHMLikelihood:
             'data_stream_whitened': True,
             'data_params': {},
             'log_scaled_likelihood': True,
-            'eps': 1e-7,
+            'eps': 1e-6,
             'test_inds': None,
             'num_params': 12,
+            'num_data_points': int(2**19),
+            'num_generate_points': int(2**18),
+            'df': None,
+            'fmin': None,
+            'fmax': None
         }
 
         for prop, default in prop_defaults.items():
@@ -115,64 +121,30 @@ class PhenomHMLikelihood:
             return out
 
         d_h, h_h = out
+
         return self.d_d + h_h - 2*d_h
-
-    def getNLL(self, x):
-        ln_m1, ln_m2, a1, a2, ln_distance, phiRef, fRef, inc, lam, beta, psi, tRef = x
-        distance = np.exp(ln_distance)*1e6*ct.parsec  # Mpc to meters
-        #mT = np.exp(ln_mT)
-        #m1 = mT/(1+mr)
-        #m2 = mT*mr/(1+mr)
-        m1 = np.exp(ln_m1)
-        m2 = np.exp(ln_m2)
-
-        return self.NLL(m1, m2, a1, a2, distance,
-                            phiRef, fRef, inc, lam, beta,
-                            psi, tRef)
-
-    def gradNLL(self, x):
-        grad = np.zeros_like(self.test_inds, dtype=x.dtype)
-        for j, i in enumerate(self.test_inds):
-            # different for ln dist
-            if i == 4:
-                grad[j] = -1*self.getNLL(x_trans)
-
-            x_trans = x.copy()
-            x_real = x[i]
-            x_trans[i] = (1.0 - self.eps)*x_real
-            like_down = self.getNLL(x_trans)
-            #x_trans.tofile(self.likelihood_file, sep='\t', format='%e')
-            #self.likelihood_file.write('{}\t{}\n'.format())
-
-            x_trans[i] = (1.0 + self.eps)*x_real
-            like_up = self.getNLL(x_trans)
-
-            grad[j] = (like_up - like_down)/(2*self.eps*x_real)
-
-        return grad
-
-    def get_Mij(self, x):
-        Mij = np.zeros_like(self.test_inds, dtype=x.dtype)
-        for j, i in enumerate(self.test_inds):
-            # different for ln dist
-            if i == 4:
-                Mij[j] = self.getNLL(x)
-
-            f_x = self.getNLL(x)
-            x_trans = x.copy()
-            x_real = x[i]
-            x_trans[i] = (1.0 - 2*self.eps)*x_real  # 2 is from second order central difference
-            like_down = self.getNLL(x_trans)
-
-            x_trans[i] = (1.0 + 2*self.eps)*x_real  # 2 is from second order central difference
-            like_up = self.getNLL(x_trans)
-
-            Mij[j] = (like_up - 2*f_x + like_down)/(4*(self.eps*x_real)**2)
-        print('finished Mij')
-        return Mij
 
 
 def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, fmin=None, fmax=None, **kwargs):
+    key_list = list(waveform_params.keys())
+    converter = Converter(key_list)
+
+    vals = np.array([waveform_params[key] for key in key_list])
+    vals = converter.convert(vals)
+
+    waveform_params = {key: vals[i] for i, key in enumerate(key_list)}
+
+    if 'ln_m1' in waveform_params:
+        waveform_params['m1'] = waveform_params['ln_m1']
+        waveform_params['m2'] = waveform_params['ln_m2']
+    if 'ln_mT' in waveform_params:
+        # has been converted
+        waveform_params['m1'] = waveform_params['ln_mT']
+        waveform_params['m2'] = waveform_params['mr']
+
+    waveform_params['distance'] = waveform_params['ln_distance']
+    waveform_params['tRef'] = waveform_params['ln_tRef']
+
     if data_freqs is None:
         m1 = waveform_params['m1']
         m2 = waveform_params['m2']
@@ -228,25 +200,27 @@ if __name__ == "__main__":
     data_stream = None
     t0 = 1.0*ct.Julian_year
 
+    key_order = ['m1', 'm2', 'a1', 'a2', 'distance', 'fRef', 'phiRef', 'inc', 'lam', 'beta', 'psi', 'tRef']
+
     kwargs = {}
     data_params = {
-        'm1': 5e5,
-        'm2': 1e5,
+        'ln_m1': np.log(5e5),
+        'ln_m2': np.log(1e5),
         'a1': 0.8,
         'a2': 0.8,
-        'distance': cosmo.luminosity_distance(3.0).value*1e6*ct.parsec,
+        'ln_distance': np.log(cosmo.luminosity_distance(3.0).value*1e6*ct.parsec),
         'fRef': 1e-3,
         'phiRef': 0.0,
         'inc': np.pi/3.,
         'lam': np.pi/4.,
         'beta': np.pi/5.,
         'psi': np.pi/6.,
-        'tRef': 3600.0,
+        'ln_tRef': np.log(3600.0),
     }
 
     kwargs['data_params'] = data_params.copy()
 
-    test = PhenomHMLikelihood(max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, **kwargs)
+    test = PhenomHMLikelihood(max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, key_order, **kwargs)
 
     test_params = {
         'm1': 4.96e5,
@@ -263,18 +237,19 @@ if __name__ == "__main__":
         'tRef': 3600.0,
     }
 
-    a1_test = np.linspace(-np.pi/2, np.pi/2-0.000001, 10000)
+    a1_test = np.linspace(-np.pi/2, np.pi/2-0.000001, 100)
 
 
     arr = np.asarray([getattr(test, 'data_channel{}'.format(i+1)) for i in range(3)])
     d_d = 4*np.sum(arr.conj()*arr).real
 
-    test_params = data_params
+    #test_params = data_params
     nll = []
     for a1 in a1_test:
         test_params['inc'] = a1
         neg_log_likelihood = test.NLL(**test_params)
         nll.append(neg_log_likelihood)
+        print(a1)
 
     np.save('nll_test', np.asarray(nll))
     pdb.set_trace()

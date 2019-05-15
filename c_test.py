@@ -5,10 +5,12 @@ from scipy import constants as ct
 import time
 import tdi
 import pdb
+
 try:
     import gpuPhenomHM as PhenomHM
 except ImportError:
     import PhenomHM
+
 
 def test():
     df = 1e-5
@@ -17,7 +19,7 @@ def test():
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, int(4096)), 0.0, 1e-3, 1e5, 5e5, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, int(4096)), 0.0, 1e-3, 35714285.7142857, 14285714.2857143, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     #freq = np.load('freqs.npy')
 
@@ -42,9 +44,9 @@ def test():
     deltaF = np.zeros_like(data_freqs)
     deltaF[1:] = np.diff(data_freqs)
     deltaF[0] = deltaF[1]
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
-    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))#*np.sqrt(deltaF)
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))#*np.sqrt(deltaF)
+    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))#*np.sqrt(deltaF)
 
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import constants as ct
+from .utils.convert import Converter
 
 import tdi
 
@@ -11,15 +12,14 @@ except ImportError:
 MTSUN = 1.989e30*ct.G/ct.c**3
 
 
-class PhenomHM:
+class pyPhenomHM(Converter):
     def __init__(self, max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, key_order, **kwargs):
         """
         data_stream (dict): keys X, Y, Z or A, E, T
         """
-        super().__init__(key_order)
         prop_defaults = {
             'TDItag': 'AET',  # AET or XYZ
-            'max_dimensionless_freq': 0.1,
+            'max_dimensionless_freq': 0.5,
             'min_dimensionless_freq': 1e-4,
             'data_stream_whitened': True,
             'data_params': {},
@@ -30,12 +30,12 @@ class PhenomHM:
             'num_data_points': int(2**19),
             'num_generate_points': int(2**18),
             'df': None,
-            'fmin': None,
-            'fmax': None
         }
 
         for prop, default in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))
+
+        self.converter = Converter(key_order)
 
         self.t0 = t0
         self.max_length_init = max_length_init
@@ -125,7 +125,7 @@ class PhenomHM:
         return self.d_d + h_h - 2*d_h
 
 
-def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, fmin=None, fmax=None, **kwargs):
+def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, min_dimensionless_freq=1e-4, max_dimensionless_freq=1.0, **kwargs):
     key_list = list(waveform_params.keys())
     converter = Converter(key_list)
 
@@ -149,8 +149,8 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         m1 = waveform_params['m1']
         m2 = waveform_params['m2']
         Msec = (m1+m2)*MTSUN
-        upper_freq = 0.1/Msec
-        lower_freq = 1e-4/Msec
+        upper_freq = max_dimensionless_freq/Msec
+        lower_freq = min_dimensionless_freq/Msec
         merger_freq = 0.018/Msec
         if df is None:
             data_freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), num_data_points)
@@ -185,71 +185,8 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
 
     channel1, channel2, channel3 = phenomHM.GetTDI()
 
-    channel1, channel2, channel3 = channel1.sum(axis=0), channel2.sum(axis=0), channel3.sum(axis=0)
+    if channel1.ndim > 1:
+        channel1, channel2, channel3 = channel1.sum(axis=0), channel2.sum(axis=0), channel3.sum(axis=0)
+
     data_stream = {TDItag[0]: channel1, TDItag[1]: channel2, TDItag[2]: channel3}
     return data_freqs, data_stream
-
-
-if __name__ == "__main__":
-    import pdb
-    from astropy.cosmology import Planck15 as cosmo
-    max_length_init = int(2**12)
-    l_vals = np.array([2, 3, 4, 4, 3], dtype=np.uint32)
-    m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32)
-    data_freqs = None
-    data_stream = None
-    t0 = 1.0*ct.Julian_year
-
-    key_order = ['m1', 'm2', 'a1', 'a2', 'distance', 'fRef', 'phiRef', 'inc', 'lam', 'beta', 'psi', 'tRef']
-
-    kwargs = {}
-    data_params = {
-        'ln_m1': np.log(5e5),
-        'ln_m2': np.log(1e5),
-        'a1': 0.8,
-        'a2': 0.8,
-        'ln_distance': np.log(cosmo.luminosity_distance(3.0).value*1e6*ct.parsec),
-        'fRef': 1e-3,
-        'phiRef': 0.0,
-        'inc': np.pi/3.,
-        'lam': np.pi/4.,
-        'beta': np.pi/5.,
-        'psi': np.pi/6.,
-        'ln_tRef': np.log(3600.0),
-    }
-
-    kwargs['data_params'] = data_params.copy()
-
-    test = PhenomHMLikelihood(max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, key_order, **kwargs)
-
-    test_params = {
-        'm1': 4.96e5,
-        'm2': 1e5,
-        'a1': 0.2,
-        'a2': 0.,
-        'distance': cosmo.luminosity_distance(3.0).value*1e6*ct.parsec,
-        'fRef': 1e-3,
-        'phiRef': 0.0,
-        'inc': np.pi/3.,
-        'lam': np.pi/4.,
-        'beta': np.pi/5.,
-        'psi': np.pi/6.,
-        'tRef': 3600.0,
-    }
-
-    a1_test = np.linspace(-np.pi/2, np.pi/2-0.000001, 100)
-
-
-    arr = np.asarray([getattr(test, 'data_channel{}'.format(i+1)) for i in range(3)])
-    d_d = 4*np.sum(arr.conj()*arr).real
-
-    #test_params = data_params
-    nll = []
-    for a1 in a1_test:
-        test_params['inc'] = a1
-        neg_log_likelihood = test.NLL(**test_params)
-        nll.append(neg_log_likelihood)
-        print(a1)
-
-    np.save('nll_test', np.asarray(nll))
-    pdb.set_trace()

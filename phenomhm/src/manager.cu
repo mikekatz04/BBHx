@@ -461,9 +461,9 @@ void PhenomHM::Likelihood (double *like_out_){
 void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 
   assert(current_status > 4);
-  gpuErrchk(cudaMemcpy(channel1_, d_template_channel1, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(channel2_, d_template_channel2, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(channel3_, d_template_channel3, data_stream_length*num_modes*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(channel1_, d_template_channel1, data_stream_length*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(channel2_, d_template_channel2, data_stream_length*sizeof(cmplx), cudaMemcpyDeviceToHost));
+  gpuErrchk(cudaMemcpy(channel3_, d_template_channel3, data_stream_length*sizeof(cmplx), cudaMemcpyDeviceToHost));
 }
 
 __global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){

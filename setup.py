@@ -113,7 +113,7 @@ def cuda_install():
     include_gsl_dir = "/opt/local/include"
 
     ext = Extension('gpuPhenomHM',
-            sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/fdresponse.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/manager.cu', 'wrapper.pyx'],
+            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/manager.cu', 'phenomhm/wrapper.pyx'],
             library_dirs = [lib_gsl_dir, CUDA['lib64']],
             libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas"],
             language = 'c++',
@@ -128,7 +128,7 @@ def cuda_install():
                     '-arch=sm_30', '--default-stream=per-thread', '--ptxas-options=-v', '-c',
                     '--compiler-options', "'-fPIC'" ]#,"-G", "-g"] # for debugging
                 },
-                include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'src']
+                include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'phenomhm/src']
             )
 
 
@@ -142,7 +142,6 @@ def cuda_install():
 
           # Inject our custom trigger
           cmdclass = {'build_ext': custom_build_ext},
-          py_modules=['phenomhm'],
 
           # Since the package has c code, the egg cannot be zipped
           zip_safe = False)
@@ -158,7 +157,7 @@ def cpp_install():
     include_gsl_dir = "/opt/local/include"
 
     extensions=[Extension('PhenomHM',
-            sources = ['src/globalPhenomHM.cpp', 'src/RingdownCW.cpp', 'src/IMRPhenomD_internals.cpp', 'src/IMRPhenomD.cpp', 'src/PhenomHM.cpp', 'src/fdresponse.cpp', 'src/c_interpolate.cpp', 'src/c_manager.cpp', 'PhenomHM.pyx'],
+            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/c_interpolate.cpp', 'phenomhm/src/c_manager.cpp', 'phenomhm/PhenomHM.pyx'],
             library_dirs = [lib_gsl_dir],
             libraries = ["gsl", "gslcblas"],
             language = 'c++',
@@ -168,7 +167,7 @@ def cpp_install():
             # and not with gcc the implementation of this trick is in
             # customize_compiler()
             extra_compile_args= ["-O3"],
-                include_dirs = [numpy_include, include_gsl_dir, 'src']
+                include_dirs = [numpy_include, include_gsl_dir, 'phenomhm/src']
             )]
 
     from Cython.Build import cythonize
@@ -180,7 +179,19 @@ def cpp_install():
           version = '0.1',
 
           ext_modules=extensions,
+          packages=['phenomhm', 'phenomhm.utils'],
+           py_modules=['phenomhm.phenomhm'],
 
+          # Since the package has c code, the egg cannot be zipped
+          zip_safe = False)
+
+def wrapper_install():
+    setup(name = 'phenomhm',
+          # Random metadata. there's more you can supply
+          author = 'Robert McGibbon',
+          version = '0.1',
+          packages=['phenomhm', 'phenomhm.utils'],
+           py_modules=['phenomhm.phenomhm'],
 
           # Since the package has c code, the egg cannot be zipped
           zip_safe = False)
@@ -198,6 +209,9 @@ except OSError:
 
 cpp_install()
 print_strings.append('INSTALLED C++ VERSION: PhenomHM')
+
+wrapper_install()
+print_strings.append('INSTALLED WRAPPER: phenomhm.py')
 print('\n')
 for string in print_strings:
     print(string)

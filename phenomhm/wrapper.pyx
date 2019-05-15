@@ -103,13 +103,13 @@ cdef class PhenomHM:
         return like_out_
 
     def GetTDI(self):
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length*self.num_modes,), dtype=np.complex128)
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.data_length*self.num_modes,), dtype=np.complex128)
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.data_length*self.num_modes,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.data_length,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.data_length,), dtype=np.complex128)
 
         self.g.GetTDI(&X_[0], &Y_[0], &Z_[0])
 
-        return (X_.reshape(self.num_modes, self.data_length), Y_.reshape(self.num_modes, self.data_length), Z_.reshape(self.num_modes, self.data_length))
+        return (X_, Y_, Z_)
 
     def GetAmpPhase(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes,), dtype=np.float64)

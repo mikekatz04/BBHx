@@ -9,6 +9,8 @@ try:
 except ImportError:
     from PhenomHM import PhenomHM
 
+import time
+
 MTSUN = 1.989e30*ct.G/ct.c**3
 
 

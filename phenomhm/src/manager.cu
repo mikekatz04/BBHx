@@ -191,7 +191,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     NUM_THREADS = 256;
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes);
-    //printf("blocks %d\n", num_blocks);
     kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals,
           d_pHM_trans,
           d_freqs,
@@ -298,6 +297,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     int num_blocks = std::ceil((current_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes);
 
+    //printf("inc %lf, beta %lf, lam %lf, psi %lf, phiRef %e, t0_epoch %lf, tRef %lf\n", inc, beta, lam, psi, phiRef, t0_epoch, tRef);
     kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());

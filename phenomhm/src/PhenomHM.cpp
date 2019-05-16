@@ -1257,7 +1257,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
     double M_tot_sec = (pHM->m1 + pHM->m2)*MTSUN_SI;
 
-    if ((to_gpu == 0) || (to_gpu == 2)){
+    if (to_gpu == 0){
         host_calculate_all_modes(mode_vals, pHM, freqs_trans, M_tot_sec, pAmp, *amp_prefactors, pDPreComp_all, q_all, *amp0, num_modes, *t0, *phi0);
     }
 

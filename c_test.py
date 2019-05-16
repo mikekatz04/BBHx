@@ -14,12 +14,12 @@ except ImportError:
 
 def test():
     df = 1e-5
-    data_length = int(2e5)
+    data_length = int(1.2e5)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, int(4096)), 0.0, 1e-3, 35714285.7142857, 14285714.2857143, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-4.3, 0, int(4096)), 1.65, 1e-3, 35714285.7142857, 14285714.2857143, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
 
     #freq = np.load('freqs.npy')
 
@@ -52,7 +52,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
 
-    num = 10000
+    num = 1000
     st = time.perf_counter()
     for i in range(num):
         """phenomHM.gen_amp_phase(freq, m1,  # solar masses

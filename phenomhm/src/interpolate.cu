@@ -4,6 +4,16 @@
 #include <cusparse_v2.h>
 #include "globalPhenomHM.h"
 
+#define gpuErrchk_here(ans) { gpuAssert_here((ans), __FILE__, __LINE__); }
+inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 #define ERR_NE(X,Y) do { if ((X) != (Y)) { \
                              fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
                              exit(-1);}} while(0)
@@ -565,16 +575,51 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 Interpolate::Interpolate(){
     int pass = 0;
 }
+
+__host__
+void Interpolate::alloc_arrays(int max_length_init){
+    dl = new double[max_length_init];
+    d = new double[max_length_init];
+    du = new double[max_length_init];
+
+    err = cudaMalloc(&d_dl, max_length_init*sizeof(double));
+    assert(err == 0);
+    err = cudaMalloc(&d_d, max_length_init*sizeof(double));
+    assert(err == 0);
+    err = cudaMalloc(&d_du, max_length_init*sizeof(double));
+    assert(err == 0);
+}
+
+__global__
+void setup_d_vals(double *dl, double *d, double *du, int current_length){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= current_length) return;
+    if (i == 0){
+        dl[0] = 0.0;
+        d[0] = 2.0;
+        du[0] = 1.0;
+    } else if (i == current_length - 1){
+        dl[current_length-1] = 1.0;
+        d[current_length-1] = 2.0;
+        du[current_length-1] = 0.0;
+    } else{
+        dl[i] = 1.0;
+        d[i] = 4.0;
+        du[i] = 1.0;
+    }
+}
+
 void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     m = m_;
     n = n_;
     to_gpu = to_gpu_;
+    int NUM_THREADS = 256;
 
-    dl = new double[m];
+    /*dl = new double[m];
     d = new double[m];
-    du = new double[m];
+    du = new double[m];*/
 
-    dl[0] = 0.0;
+    /*dl[0] = 0.0;
     d[0] = 2.0;
     du[0] = 1.0;
     d[m-1] = 2.0;
@@ -585,29 +630,26 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
         dl[i] = 1.0;
         du[i] = 1.0;
         d[i] = 4.0;
-    }
+    }*/
 
-    err = cudaMalloc(&d_dl, m*sizeof(double));
+    /*err = cudaMalloc(&d_dl, m*sizeof(double));
     assert(err == 0);
     err = cudaMalloc(&d_d, m*sizeof(double));
     assert(err == 0);
     err = cudaMalloc(&d_du, m*sizeof(double));
-    assert(err == 0);
-    err = cudaMemcpy(d_dl, dl, m*sizeof(double), cudaMemcpyHostToDevice);
+    assert(err == 0);*/
+
+    /*err = cudaMemcpy(d_dl, dl, m*sizeof(double), cudaMemcpyHostToDevice);
     assert(err == 0);
     err = cudaMemcpy(d_d, d, m*sizeof(double), cudaMemcpyHostToDevice);
     assert(err == 0);
     err = cudaMemcpy(d_du, du, m*sizeof(double), cudaMemcpyHostToDevice);
-    assert(err == 0);
-
+    assert(err == 0);*/
+    int num_blocks = std::ceil((m + NUM_THREADS -1)/NUM_THREADS);
+    setup_d_vals<<<num_blocks, NUM_THREADS>>>(d_dl, d_d, d_du, m);
+    cudaDeviceSynchronize();
+    gpuErrchk_here(cudaGetLastError());
     Interpolate::gpu_fit_constants(B);
-    cudaFree(d_dl);
-    cudaFree(d_du);
-    cudaFree(d_d);
-    delete[] d;
-    delete[] dl;
-    delete[] du;
-
 }
 
 __host__ void Interpolate::gpu_fit_constants(double *B){
@@ -622,6 +664,12 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
     cusparseStatus_t status = cusparseDgtsv(handle, m, n, d_dl, d_d, d_du, B, m);
     if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
     cusparseDestroy(handle);
+    /*    cudaFree(d_dl);
+        cudaFree(d_du);
+        cudaFree(d_d);
+        delete[] d;
+        delete[] dl;
+        delete[] du;*/
 }
 
 __host__ void Interpolate::fit_constants(double *B){
@@ -647,4 +695,10 @@ __host__ void Interpolate::fit_constants(double *B){
 }
 
 __host__ Interpolate::~Interpolate(){
+    cudaFree(d_dl);
+    cudaFree(d_du);
+    cudaFree(d_d);
+    delete[] d;
+    delete[] dl;
+    delete[] du;
 }

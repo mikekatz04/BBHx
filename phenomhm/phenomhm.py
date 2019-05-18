@@ -146,6 +146,7 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
 
     waveform_params['distance'] = waveform_params['ln_distance']
     waveform_params['tRef'] = waveform_params['ln_tRef']
+    waveform_params['fRef'] = waveform_params['ln_fRef']
 
     if data_freqs is None:
         m1 = waveform_params['m1']

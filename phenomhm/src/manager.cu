@@ -140,6 +140,8 @@ PhenomHM::PhenomHM (int max_length_init_,
   amp0 = 0.0;
 
   H = new cmplx[9*num_modes];
+
+  interp.alloc_arrays(max_length_init);
 }
 
 

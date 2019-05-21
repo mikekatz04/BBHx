@@ -300,7 +300,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     dim3 gridDim(num_blocks, num_modes);
 
     //printf("inc %lf, beta %lf, lam %lf, psi %lf, phiRef %e, t0_epoch %lf, tRef %lf\n", inc, beta, lam, psi, phiRef, t0_epoch, tRef);
-    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
+    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0, d_pHM_trans);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 

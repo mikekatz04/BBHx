@@ -239,15 +239,15 @@ d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double 
 
 
 __global__
-void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
+void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil, PhenomHMStorage *pHM){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
     if (i>=num_points) return;
     if (mode_i >= num_modes) return;
     double phasetimeshift;
-    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
-    int old_ind_below;
+    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger, merger_freq_lm;
+    int old_ind_below, ell, mm;
 
             f = frqs[i];
             // interpolate for time
@@ -279,11 +279,16 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
             t = 1./(2.*PI)*(dphidf); // derivative of the spline
 
-            old_ind_below = floor((log10(merger_freq) - log10(old_freqs[0]))/d_log10f);
+            ell = mode_vals[mode_i].l;
+            mm = mode_vals[mode_i].m;
+
+            // Shift merger frequency for each mode to get accurate tRef
+            merger_freq_lm = merger_freq * (pHM->PhenomHMfring[ell][mm]/pHM->PhenomHMfring[2][2]);
+            old_ind_below = floor((log10(merger_freq_lm) - log10(old_freqs[0]))/d_log10f);
             if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
             dphidf_merger = (mode_vals[mode_i].phase[old_ind_below+1] - mode_vals[mode_i].phase[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]); // TODO: do something more accurate?
             t_merger = 1./(2.*PI)*dphidf_merger; // derivative of the spline*/
-            Shift = t_merger - (t0 + tRef);
+            Shift = t_merger - (t0 + tRef); // TODO: think about if this is accurate for each mode
 
             t = t - Shift;
 

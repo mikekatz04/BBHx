@@ -156,6 +156,7 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         upper_freq = max_dimensionless_freq/Msec
         lower_freq = min_dimensionless_freq/Msec
         merger_freq = 0.018/Msec
+        waveform_params['fRef'] = merger_freq
         if df is None:
             data_freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), num_data_points)
         else:

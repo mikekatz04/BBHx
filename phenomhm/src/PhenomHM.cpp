@@ -1183,7 +1183,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     (l,m)=(2,2) mode.
     phi0 is the correction we need to add to each mode. */
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
-    *phi0 = 0.5 * phi_22_at_f_ref + phiRef;
+    *phi0 = 0.5 * (phi_22_at_f_ref + phiRef); // TODO: check this, I think it should be half of phiRef as well
 
     *t0 = IMRPhenomDComputet0(
     pHM->eta, pHM->chi1z, pHM->chi2z,

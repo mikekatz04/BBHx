@@ -104,6 +104,7 @@ class pyPhenomHM(Converter):
         Msec = (m1+m2)*MTSUN
         # merger frequency for 22 mode amplitude in phenomD
         merger_freq = 0.018/Msec
+        fRef = merger_freq
 
         if freqs is None:
             upper_freq = self.max_dimensionless_freq/Msec

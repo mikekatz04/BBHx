@@ -53,7 +53,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
 
-    num = 1
+    num = 1000
     st = time.perf_counter()
     for i in range(num):
         """phenomHM.gen_amp_phase(freq, m1,  # solar masses
@@ -63,9 +63,9 @@ def test():
                      distance,
                      phiRef,
                      f_ref)
-        phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         #phenomHM.Combine()
         phenomHM.setup_interp_wave()
+        phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         phenomHM.setup_interp_response()
         phenomHM.perform_interp()
         like = phenomHM.Likelihood()"""
@@ -140,7 +140,7 @@ def test():
         d_h = np.sum(d_h_t).real
         d_h_all += d_h
     """
-    
+    """
     A_out, E_out, T_out = [], [], []
     for i in [2, 3, 4]:
         phenomHM = PhenomHM.PhenomHM(len(freq),
@@ -157,7 +157,7 @@ def test():
         E_out.append(E)
         T_out.append(T)
     np.save('TDI', np.array([A_out, E_out, T_out]))
-
+    """
     pdb.set_trace()
 
 if __name__ == "__main__":

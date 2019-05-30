@@ -98,7 +98,7 @@ class pyPhenomHM(Converter):
                           self.TDItag_in)
 
     def NLL(self, m1, m2, a1, a2, distance,
-                 phiRef, fRef, inc, lam, beta,
+                 phiRef, inc, lam, beta,
                  psi, tRef, freqs=None, return_amp_phase=False, return_TDI=False):
 
         Msec = (m1+m2)*MTSUN
@@ -147,7 +147,6 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
 
     waveform_params['distance'] = waveform_params['ln_distance']
     waveform_params['tRef'] = waveform_params['ln_tRef']
-    waveform_params['fRef'] = waveform_params['ln_fRef']
 
     if data_freqs is None:
         m1 = waveform_params['m1']

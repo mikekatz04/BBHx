@@ -209,11 +209,11 @@ extern RealVector* CreateRealVector(
 ){
     RealVector* v = (RealVector*)malloc(sizeof(RealVector));
     v->length = length;
-    v->data = (double*) malloc(sizeof(double) * length);
-    if (v->data == NULL)
-        assert(0); //ERROR(PD_ENOMEM, "Failed to allocated one of the data arrays.");
+    //v->data = (double*) malloc(sizeof(double) * length);
+    //if (v->data == NULL)
+    //    assert(0); //ERROR(PD_ENOMEM, "Failed to allocated one of the data arrays.");
 
-    memset(v->data, 0, sizeof(double) * length);
+    //memset(v->data, 0, sizeof(double) * length);
     return v;
 }
 

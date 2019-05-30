@@ -578,9 +578,9 @@ Interpolate::Interpolate(){
 
 __host__
 void Interpolate::alloc_arrays(int max_length_init){
-    dl = new double[max_length_init];
-    d = new double[max_length_init];
-    du = new double[max_length_init];
+    //dl = new double[max_length_init];
+    //d = new double[max_length_init];
+    //du = new double[max_length_init];
 
     err = cudaMalloc(&d_dl, max_length_init*sizeof(double));
     assert(err == 0);
@@ -698,7 +698,7 @@ __host__ Interpolate::~Interpolate(){
     cudaFree(d_dl);
     cudaFree(d_du);
     cudaFree(d_d);
-    delete[] d;
-    delete[] dl;
-    delete[] du;
+    //delete[] d;
+    //delete[] dl;
+    //delete[] du;
 }

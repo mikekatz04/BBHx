@@ -187,12 +187,12 @@ int init_IMRPhenomHMGet_FrequencyBounds_storage(
     else if (p->freq_is_uniform == 0)
     { /* This case we possibly use irregularly spaced frequencies */
         /* Check that the frequencies are always increasing */
-        for (unsigned int i = 0; i < freqs->length - 1; i++)
+        /*for (unsigned int i = 0; i < freqs->length - 1; i++)
         {
             assert (freqs->data[i] - freqs->data[i + 1] < 0.) ; //,
                 //PD_EFUNC,
                 //"custom frequencies must be increasing.");
-        }
+        }*/
 
         //printf("Using custom frequency input.\n");
         p->f_min = freqs->data[0];
@@ -1265,14 +1265,14 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     /* Two possibilities */
     if (pHM->freq_is_uniform == 1)
     { /* 1. uniformly spaced */
-        DestroyRealVector(freqs);
+        //DestroyRealVector(freqs);
         //DestroyRealVector(amps);
         //DestroyRealVector(phases);
 
     }
     else if (pHM->freq_is_uniform == 0)
     { /* 2. arbitrarily space */
-
+        //DestroyRealVector(freqs);
         //DestroyRealVector(amps);
         //DestroyRealVector(phases);
     }
@@ -1285,6 +1285,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
 
     //printf("\n\n\n\n\n\n");
+    //DestroyRealVector(freqs);
     free(pHMFS);
     //DestroyRealVector(freqs_geom);
     free(freqs); // TODO check this

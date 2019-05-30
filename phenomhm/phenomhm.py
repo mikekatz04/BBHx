@@ -32,12 +32,13 @@ class pyPhenomHM(Converter):
             'num_data_points': int(2**19),
             'num_generate_points': int(2**18),
             'df': None,
+            'tLtoSSB': True,
         }
 
         for prop, default in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))
 
-        self.converter = Converter(key_order)
+        self.converter = Converter(key_order, tLtoSSB=self.tLtoSSB)
 
         self.t0 = t0
         self.max_length_init = max_length_init
@@ -56,6 +57,7 @@ class pyPhenomHM(Converter):
                                  + 'user must supply data_params kwarg as'
                                  + 'dict with params for data stream.')
             kwargs['data_params']['t0'] = t0
+
             self.data_freqs, self.data_stream = (create_data_set(l_vals,  m_vals, t0,
                                 self.data_params, data_freqs=data_freqs, **kwargs))
             self.data_stream_whitened = False
@@ -130,9 +132,10 @@ class pyPhenomHM(Converter):
 
 def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, min_dimensionless_freq=1e-4, max_dimensionless_freq=1.0, **kwargs):
     key_list = list(waveform_params.keys())
-    converter = Converter(key_list)
+    converter = Converter(key_list, **kwargs)
 
     vals = np.array([waveform_params[key] for key in key_list])
+
     vals = converter.convert(vals)
 
     waveform_params = {key: vals[i] for i, key in enumerate(key_list)}

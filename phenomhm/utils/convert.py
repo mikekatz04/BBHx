@@ -8,7 +8,6 @@ class Converter:
     def __init__(self, key_order, **kwargs):
 
         self.conversions = []
-
         if 'ln_mT' in key_order and 'mr' in key_order:
             # replace ln_mT and mr with m1 and m2 respectively
             self.ind_ln_mT = key_order.index('ln_mT')
@@ -41,6 +40,14 @@ class Converter:
         if 'ln_fRef' in key_order:
             self.ind_ln_fRef = key_order.index('ln_fRef')
             self.conversions.append(self.ln_fRef)
+
+        if 'tLtoSSB' in kwargs:
+            if kwargs['tLtoSSB']:
+                self.ind_ln_tRef = key_order.index('ln_tRef')
+                self.ind_lam = key_order.index('lam')
+                self.ind_beta = key_order.index('beta')
+                self.ind_psi = key_order.index('psi')
+                self.conversions.append(self.LISA_to_SSB)
 
     def ln_m1(self, x):
         x[self.ind_ln_m1] = np.exp(x[self.ind_ln_m1])
@@ -82,6 +89,55 @@ class Converter:
         x[self.ind_ln_tRef] = np.exp(x[self.ind_ln_tRef])
         return x
 
+    def LISA_to_SSB(self, x):
+        """
+            # from Sylvan
+            int ConvertLframeParamsToSSBframe(
+              double* tSSB,
+              double* lambdaSSB,
+              double* betaSSB,
+              double* psiSSB,
+              const tL,
+              const lambdaL,
+              const betaL,
+              const psiL,
+              const LISAconstellation *variant)
+            {
+        """
+
+        ConstOmega = 1.99098659277e-7
+        ConstPhi0 = 0.0
+        tL = x[self.ind_ln_tRef]
+        lambdaL = x[self.ind_lam]
+        betaL = x[self.ind_beta]
+        psiL = x[self.ind_psi]
+        coszeta = np.cos(np.pi/3.)
+        sinzeta = np.sin(np.pi/3.)
+        coslambdaL = np.cos(lambdaL)
+        sinlambdaL = np.sin(lambdaL)
+        cosbetaL = np.cos(betaL)
+        sinbetaL = np.sin(betaL)
+        cospsiL = np.cos(psiL)
+        sinpsiL = np.sin(psiL)
+        lambdaSSB_approx = 0.
+        betaSSB_approx = 0.
+        # Initially, approximate alpha using tL instead of tSSB - then iterate */
+        tSSB_approx = tL
+        for k in range(3):
+            alpha = ConstOmega * tSSB_approx + ConstPhi0
+            cosalpha = np.cos(alpha)
+            sinalpha = np.sin(alpha)
+            lambdaSSB_approx = np.arctan2(cosalpha*cosalpha*cosbetaL*sinlambdaL -sinalpha*sinbetaL*sinzeta + cosbetaL*coszeta*sinalpha*sinalpha*sinlambdaL -cosalpha*cosbetaL*coslambdaL*sinalpha + cosalpha*cosbetaL*coszeta*coslambdaL*sinalpha, cosbetaL*coslambdaL*sinalpha*sinalpha -cosalpha*sinbetaL*sinzeta + cosalpha*cosalpha*cosbetaL*coszeta*coslambdaL -cosalpha*cosbetaL*sinalpha*sinlambdaL + cosalpha*cosbetaL*coszeta*sinalpha*sinlambdaL)
+            betaSSB_approx = np.arcsin(coszeta*sinbetaL + cosalpha*cosbetaL*coslambdaL*sinzeta + cosbetaL*sinalpha*sinzeta*sinlambdaL)
+            tSSB_approx = tSSBfromLframe(tL, lambdaSSB_approx, betaSSB_approx)
+
+        x[self.ind_ln_tRef] = tSSB_approx
+        x[self.ind_lam] = lambdaSSB_approx
+        x[self.ind_beta] = betaSSB_approx
+        #  /* Polarization */
+        x[self.ind_psi] = modpi(psiL + np.arctan2(cosalpha*sinzeta*sinlambdaL -coslambdaL*sinalpha*sinzeta, cosbetaL*coszeta -cosalpha*coslambdaL*sinbetaL*sinzeta -sinalpha*sinbetaL*sinzeta*sinlambdaL))
+        return x
+
     def ln_fRef(self, x):
         x[self.ind_ln_fRef] = np.exp(x[self.ind_ln_fRef])
         return x
@@ -90,6 +146,23 @@ class Converter:
         for func in self.conversions:
             x = func(x)
         return x
+
+
+def modpi(phase):
+    # from sylvan
+    return phase - np.floor(phase / np.pi) * np.pi
+
+
+# Compute Solar System Barycenter time tSSB from retarded time at the center of the LISA constellation tL */
+# NOTE: depends on the sky position given in SSB parameters */
+def tSSBfromLframe(tL, lambdaSSB, betaSSB):
+    ConstOmega = 1.99098659277e-7
+    ConstPhi0 = 0.0
+    OrbitR = 1.4959787066e11  # AU_SI
+    C_SI = 299792458.
+    phase = ConstOmega*tL + ConstPhi0 - lambdaSSB
+    RoC = OrbitR/C_SI
+    return tL + RoC*np.cos(betaSSB)*np.cos(phase) - 1./2*ConstOmega*pow(RoC*np.cos(betaSSB), 2)*np.sin(2.*phase)
 
 
 class Recycler:

@@ -192,7 +192,6 @@ class Recycler:
 
     def inc(self, x):
         if x[self.ind_inc] < -np.pi/2. or x[self.ind_inc] > np.pi/2.:
-            import pdb; pdb.set_trace()
             if x[self.ind_inc] < -np.pi/2:
                 factor = 1.
             else:
@@ -219,7 +218,6 @@ class Recycler:
 
     def phiRef(self, x):
         if x[self.ind_phiRef] < 0.0 or x[self.ind_phiRef] > 2*np.pi:
-            import pdb; pdb.set_trace()
             x[self.ind_phiRef] = x[self.ind_phiRef] % (2.*np.pi)
         return x
 

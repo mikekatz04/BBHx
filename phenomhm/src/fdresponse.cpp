@@ -297,7 +297,7 @@ transferL_holder TDICombinationFD(Gslr_holder Gslr, double f, int TDItag, int re
 }
 
 transferL_holder JustLISAFDresponseTDI(cmplx *H_mat, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
-    //t = t + t0*YRSID_SI;
+    t = t + t0*YRSID_SI;
 
     //funck
     double kvec[3] = {-cos(beta)*cos(lam), -cos(beta)*sin(lam), -sin(beta)};
@@ -338,46 +338,21 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *
     int old_ind_below;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<num_points; i++){
+
             f = frqs[i];
-            // interpolate for time
-            /*old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
-            if (old_ind_below >= num_points - 2) old_ind_below = num_points -2;
-            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-            x2 = x*x;
-            coeff_1 = mode_vals[mode_i].phase_coeff_1[old_ind_below];
-            coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
-            coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
-            t = 1./(2.*PI)*(coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2); // derivative of the spline
+            // Right now, it assumes same points for initial sampling of the response and the waveform
+            // linear term in cubic spline is the first derivative of phase at each node point
+            dphidf = mode_vals[mode_i].phase_coeff_1[i];
 
-            f_last = frqs[num_points-1];
-            // interpolate for time
-            old_ind_below = floor((log10(f_last) - log10(old_freqs[0]))/d_log10f);
-            if (old_ind_below >= num_points - 1) old_ind_below = num_points -2;
-            x = (f_last - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-            //x = f_last - old_freqs[old_ind_below];
-            x2 = x*x;
-            coeff_1 = mode_vals[mode_i].phase_coeff_1[old_ind_below];
-            coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
-            coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];*
+            t = 1./(2.0*PI)*dphidf + tRef;
 
-            t_last = 1./(2.*PI)*(coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2); // derivative of the spline*/
-            if (i == 0) dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
-            t = 1./(2.*PI)*(dphidf); // derivative of the spline
-
-            old_ind_below = floor((log10(merger_freq) - log10(old_freqs[0]))/d_log10f);
-            if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
-            dphidf_merger = (mode_vals[mode_i].phase[old_ind_below+1] - mode_vals[mode_i].phase[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]); // TODO: do something more accurate?
-            t_merger = 1./(2.*PI)*dphidf_merger; // derivative of the spline*/
-            Shift = t_merger - (t0 + tRef);
-
-            t = t - Shift;
+            // adjust phase values stored in mode vals to reflect the tRef shift
+            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef;
             //if (t<0.0) printf("mode %d, index %d, time %e\n", mode_i, i, t);
             transferL_holder transferL = JustLISAFDresponseTDI(&H_mat[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
-            mode_vals[mode_i].time_freq_corr[i] = t;
+            mode_vals[mode_i].time_freq_corr[i] = t + t0;
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = std::imag(transferL.transferL1);
             mode_vals[mode_i].transferL2_re[i] = std::real(transferL.transferL2);
@@ -388,6 +363,7 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *
         }
     }
 }
+
 
 /*
 int main(){

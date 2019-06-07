@@ -250,6 +250,29 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
     int old_ind_below;
 
             f = frqs[i];
+
+            // Right now, it assumes same points for initial sampling of the response and the waveform
+            // linear term in cubic spline is the first derivative of phase at each node point
+            dphidf = mode_vals[mode_i].phase_coeff_1[i];
+
+            t = 1./(2.0*PI)*dphidf + tRef;
+
+            // adjust phase values stored in mode vals to reflect the tRef shift
+            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef;
+
+            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
+
+            mode_vals[mode_i].time_freq_corr[i] = t + t0;
+            mode_vals[mode_i].transferL1_re[i] = cuCreal(transferL.transferL1);
+            mode_vals[mode_i].transferL1_im[i] = cuCimag(transferL.transferL1);
+            mode_vals[mode_i].transferL2_re[i] = cuCreal(transferL.transferL2);
+            mode_vals[mode_i].transferL2_im[i] = cuCimag(transferL.transferL2);
+            mode_vals[mode_i].transferL3_re[i] = cuCreal(transferL.transferL3);
+            mode_vals[mode_i].transferL3_im[i] = cuCimag(transferL.transferL3);
+            mode_vals[mode_i].phaseRdelay[i] = transferL.phaseRdelay;
+}
+
+
             // interpolate for time
             /*old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
             if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
@@ -272,7 +295,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];
 
             t_last = 1./(2.*PI)*(coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2); // derivative of the spline
-            Shift = t_last - tc;*/
+            Shift = t_last - tc;
 
             if (i == 0) dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
             else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
@@ -285,18 +308,17 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             t_merger = -1./(2.*PI)*dphidf_merger; // derivative of the spline*/
             Shift = t_merger - (t0 + tRef); // TODO: think about if this is accurate for each mode
 
-            t = t - Shift; // TODO: check
+            t = t - Shift; // TODO: check */
 
-            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
-            mode_vals[mode_i].time_freq_corr[i] = t;
-            mode_vals[mode_i].transferL1_re[i] = cuCreal(transferL.transferL1);
-            mode_vals[mode_i].transferL1_im[i] = cuCimag(transferL.transferL1);
-            mode_vals[mode_i].transferL2_re[i] = cuCreal(transferL.transferL2);
-            mode_vals[mode_i].transferL2_im[i] = cuCimag(transferL.transferL2);
-            mode_vals[mode_i].transferL3_re[i] = cuCreal(transferL.transferL3);
-            mode_vals[mode_i].transferL3_im[i] = cuCimag(transferL.transferL3);
-            mode_vals[mode_i].phaseRdelay[i] = transferL.phaseRdelay;
+
+__global__
+void shift_to_tRef(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double tRef){
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    if (i>=num_points) return;
+    if (mode_i >= num_modes) return;
+    mode_vals[mode_i].phase[i] = mode_vals[mode_i].phase[i] + 2.0*PI*frqs[i]*tRef;
 }
 
 /*

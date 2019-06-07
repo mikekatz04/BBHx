@@ -173,9 +173,9 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
     double l3_re_coeff_0, l3_re_coeff_1, l3_re_coeff_2, l3_re_coeff_3;
     double l3_im_coeff_0, l3_im_coeff_1, l3_im_coeff_2, l3_im_coeff_3;
 
-    double amp, phase, phaseRdelay, phasetimeshift;
+    double amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    cmplx fastPart;
+    cmplx ampphasefactor;
     cmplx I(0.0, 1.0);
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
@@ -281,26 +281,25 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
             phase  = phase_coeff_0 + (phase_coeff_1*x) + (phase_coeff_2*x2) + (phase_coeff_3*x3);
 
             phaseRdelay  = phase_delay_coeff_0 + (phase_delay_coeff_1*x) + (phase_delay_coeff_2*x2) + (phase_delay_coeff_3*x3);
-            phasetimeshift = 2.*PI*(t0+tRef)*f;
-            fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
+            ampphasefactor = amp * exp(I*(phase + phaseRdelay));
 
             transferL1_re  = l1_re_coeff_0 + (l1_re_coeff_1*x) + (l1_re_coeff_2*x2) + (l1_re_coeff_3*x3);
 
             transferL1_im  = l1_im_coeff_0 + (l1_im_coeff_1*x) + (l1_im_coeff_2*x2) + (l1_im_coeff_3*x3);
 
-            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
+            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * ampphasefactor * X_ASD_inv[i]);
 
             transferL2_re  = l2_re_coeff_0 + (l2_re_coeff_1*x) + (l2_re_coeff_2*x2) + (l2_re_coeff_3*x3);
 
             transferL2_im  = l2_im_coeff_0 + (l2_im_coeff_1*x) + (l2_im_coeff_2*x2) + (l2_im_coeff_3*x3);
 
-            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
+            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * ampphasefactor * Y_ASD_inv[i]);
 
             transferL3_re  = l3_re_coeff_0 + (l3_re_coeff_1*x) + (l3_re_coeff_2*x2) + (l3_re_coeff_3*x3);
 
             transferL3_im  = l3_im_coeff_0 + (l3_im_coeff_1*x) + (l3_im_coeff_2*x2) + (l3_im_coeff_3*x3);
 
-            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
+            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * ampphasefactor * Z_ASD_inv[i]);
         }
     }
 }
@@ -311,7 +310,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
     double f, time_start, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    cmplx fastPart;
+    cmplx ampphasefactor;
     cmplx I(0.0, 1.0);
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
@@ -374,7 +373,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             phasetimeshift = 2.*PI*(t0+tRef)*f;
-            fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
+            ampphasefactor = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
 
             //if (i %1000==0) printf("%e, %e, %e, %e, %e, %e\n", f, amp, phase, t0, tRef, phasetimeshift);
 
@@ -394,7 +393,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * X_ASD_inv[i]);
+            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * ampphasefactor * X_ASD_inv[i]);
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -411,7 +410,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * Y_ASD_inv[i]);
+            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * ampphasefactor * Y_ASD_inv[i]);
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -428,7 +427,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * Z_ASD_inv[i]);
+            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * ampphasefactor * Z_ASD_inv[i]);
         }
     }
 }*/

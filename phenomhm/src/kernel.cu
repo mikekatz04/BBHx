@@ -650,7 +650,7 @@ __device__
             phase_term1 = - t0 * (Mf - pHM->Mf_ref);
             phase_term2 = phase_i - (mm * phi0);
 
-            mode_val.phase[i] = -1.0*(phase_term1 + phase_term2);
+            mode_val.phase[i] = (phase_term1 + phase_term2);
 
             //hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
 

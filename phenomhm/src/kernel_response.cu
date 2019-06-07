@@ -305,7 +305,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             old_ind_below = floor((log10(merger_freq) - log10(old_freqs[0]))/d_log10f);
             if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
             dphidf_merger = (mode_vals[mode_i].phase[old_ind_below+1] - mode_vals[mode_i].phase[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]); // TODO: do something more accurate?
-            t_merger = -1./(2.*PI)*dphidf_merger; // derivative of the spline*/
+            t_merger = -1./(2.*PI)*dphidf_merger; // derivative of the spline
             Shift = t_merger - (t0 + tRef); // TODO: think about if this is accurate for each mode
 
             t = t - Shift; // TODO: check */

@@ -214,10 +214,11 @@ int init_IMRPhenomHMGet_FrequencyBounds_storage(
     /* Fix default behaviour for f_ref */
     /* If f_ref = 0. then set f_ref = f_min */
     p->f_ref = f_ref_in;
-    if (p->f_ref == 0.)
+    //mkatz correction: want to set f_ref to f_peak of 22 mode (do it in other function)
+    /*if (p->f_ref == 0.)
     {
         p->f_ref = p->f_min;
-    }
+    }*/
 
     return 1;
 }
@@ -1177,13 +1178,19 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
         assert(0); //ERROR(PD_EDOM, "error");
     }
 
+    if (pHM->f_ref == 0.0){
+        pHM->f_ref = pDPreComp22.pAmp.fmaxCalc;
+        pHM->Mf_ref = PhenomUtilsHztoMf(pHM->f_ref, pHM->Mtot);
+    }
+
     /* compute the reference phase shift need to align the waveform so that
      the phase is equal to phiRef at the reference frequency f_ref. */
     /* the phase shift is computed by evaluating the phase of the
     (l,m)=(2,2) mode.
     phi0 is the correction we need to add to each mode. */
+    double phiRef_to_zero = 0.0;
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
-    *phi0 = 0.5 * (phi_22_at_f_ref + phiRef); // TODO: check this, I think it should be half of phiRef as well
+    *phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
 
     *t0 = IMRPhenomDComputet0(
     pHM->eta, pHM->chi1z, pHM->chi2z,

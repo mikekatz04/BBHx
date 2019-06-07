@@ -316,11 +316,32 @@ void PhenomHM::Combine(){
     host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
 }
 
-cmplx complex_dot(cmplx *arr1, cmplx *arr2, int n){
+cmplx complex_dot_d_h(cmplx *arr1, cmplx *arr2, int n, int num_modes){
+    // arr1 template arr2 data
     cmplx I(0.0, 1.0);
     cmplx sum = 0.0 + 0.0*I;
+    cmplx temp_sum = 0.0 + 0.0*I;
     for (int i=0; i<n; i++){
-        sum += std::conj(arr1[i])*arr2[i];
+        temp_sum = 0.0 + 0.0*I;
+        for (int mode_i=0; mode_i<num_modes; mode_i++){
+            temp_sum += arr1[mode_i*n + i];
+        }
+        sum += std::conj(arr2[i])*temp_sum;
+    }
+    return sum;
+}
+
+cmplx complex_dot_h_h(cmplx *arr1, cmplx *arr2, int n, int num_modes){
+    // arr1 template arr2 template
+    cmplx I(0.0, 1.0);
+    cmplx sum = 0.0 + 0.0*I;
+    cmplx temp_sum = 0.0 + 0.0*I;
+    for (int i=0; i<n; i++){
+        temp_sum = 0.0 + 0.0*I;
+        for (int mode_i=0; mode_i<num_modes; mode_i++){
+            temp_sum += arr1[mode_i*n + i];
+        }
+        sum += std::conj(temp_sum)*temp_sum;
     }
     return sum;
 }
@@ -332,27 +353,23 @@ void PhenomHM::Likelihood (double *like_out_){
      double h_h = 0.0;
      cmplx res, result;
 
-     for (int mode_i=0; mode_i<num_modes; mode_i++){
-         result = complex_dot(&template_channel1[mode_i*data_stream_length], data_channel1, data_stream_length);
-         d_h += result.real();
+     result = complex_dot_d_h(template_channel1, data_channel1, data_stream_length, num_modes);
+     d_h += result.real();
 
-         result = complex_dot(&template_channel2[mode_i*data_stream_length], data_channel2, data_stream_length);
-         d_h += result.real();
+     result = complex_dot_d_h(template_channel2, data_channel2, data_stream_length, num_modes);
+     d_h += result.real();
 
-         result = complex_dot(&template_channel3[mode_i*data_stream_length], data_channel3, data_stream_length);
-         d_h += result.real();
+     result = complex_dot_d_h(template_channel3, data_channel3, data_stream_length, num_modes);
+     d_h += result.real();
 
-         for (int mode_j=0; mode_j<num_modes; mode_j++){
-             res = complex_dot(&template_channel1[mode_i*data_stream_length], &template_channel1[mode_j*data_stream_length], data_stream_length);
-             h_h += res.real();
+     result = complex_dot_h_h(template_channel1, template_channel1, data_stream_length, num_modes);
+     h_h += result.real();
 
-             res = complex_dot(&template_channel2[mode_i*data_stream_length], &template_channel2[mode_j*data_stream_length], data_stream_length);
-             h_h += res.real();
+     result = complex_dot_h_h(template_channel2, template_channel2, data_stream_length, num_modes);
+     h_h += result.real();
 
-             res = complex_dot(&template_channel3[mode_i*data_stream_length], &template_channel3[mode_j*data_stream_length], data_stream_length);
-             h_h += res.real();
-         }
-     }
+     result = complex_dot_h_h(template_channel3, template_channel3, data_stream_length, num_modes);
+     h_h += result.real();
 
      like_out_[0] = 4*d_h;
      like_out_[1] = 4*h_h;

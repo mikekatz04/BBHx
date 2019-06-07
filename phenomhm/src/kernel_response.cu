@@ -246,16 +246,50 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
     if (i>=num_points) return;
     if (mode_i >= num_modes) return;
     double phasetimeshift;
-    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
+    double phi_up, phi;
+    double f, t, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
 
             f = frqs[i];
 
+            if (i == 0) dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
+
+
+            /*old_ind_below = i;
+            if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
+            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+            x2 = x*x;
+            x3 = x2*x;
+            coeff_0 = mode_vals[mode_i].phase[old_ind_below];
+            coeff_1 = mode_vals[mode_i].phase_coeff_1[old_ind_below];
+            coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
+            coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];
+
+            phi = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
+
+            x = (f + 1e-6 - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+            phi_up = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
+
+            dphidf = (phi_up - phi)/1e-6;*/
+
+
+            /*dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);*/
+
+
             // Right now, it assumes same points for initial sampling of the response and the waveform
             // linear term in cubic spline is the first derivative of phase at each node point
-            dphidf = mode_vals[mode_i].phase_coeff_1[i];
+
+            //dphidf = mode_vals[mode_i].phase_coeff_1[i];
 
             t = 1./(2.0*PI)*dphidf + tRef;
+            //# if __CUDA_ARCH__>=200
+            //    printf("%d, %d, %e, %.18e, %e \n", mode_i, i, t, t+t0, f);
+
+            //#endif
 
             // adjust phase values stored in mode vals to reflect the tRef shift
             mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef;
@@ -310,16 +344,6 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
 
             t = t - Shift; // TODO: check */
 
-
-
-__global__
-void shift_to_tRef(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double tRef){
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
-    int mode_i = blockIdx.y;
-    if (i>=num_points) return;
-    if (mode_i >= num_modes) return;
-    mode_vals[mode_i].phase[i] = mode_vals[mode_i].phase[i] + 2.0*PI*frqs[i]*tRef;
-}
 
 /*
 int main(){

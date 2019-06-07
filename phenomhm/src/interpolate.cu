@@ -315,9 +315,9 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double f_min, double df, double d_log10f, double *old_freqs, int old_length, int length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv){
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double amp, phase, phaseRdelay, phasetimeshift;
+    double amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    cmplx fastPart;
+    cmplx ampphasefactor;
     cmplx I(0.0, 1.0);
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
@@ -369,8 +369,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
             coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            phasetimeshift = 2.*PI*(t0+tRef)*f;
-            fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
+            ampphasefactor = amp * exp(I*(phase + phaseRdelay));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
@@ -387,7 +386,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * fastPart * channel1_ASDinv[i]);
+            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * ampphasefactor * channel1_ASDinv[i]);
 
             // Y
             coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
@@ -404,7 +403,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * fastPart * channel2_ASDinv[i]);
+            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * ampphasefactor * channel2_ASDinv[i]);
 
             // Z
             coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
@@ -421,7 +420,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * fastPart * channel3_ASDinv[i]);
+            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * ampphasefactor * channel3_ASDinv[i]);
         }
     }
 }
@@ -446,11 +445,11 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
     if (i >= data_length) return;
     //if (mode_i >= num_modes) return;
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double time_start, amp, phase, phaseRdelay, phasetimeshift;
+    double time_start, amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
-    cuDoubleComplex fastPart;
+    cuDoubleComplex ampphasefactor;
     cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
     int old_ind_below;
     cuDoubleComplex trans_complex;
@@ -511,8 +510,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            phasetimeshift = 2.*PI*(t0+tRef)*f;
-            fastPart = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay + phasetimeshift, 0.0))));
+            ampphasefactor = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay, 0.0))));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
@@ -529,7 +527,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), fastPart), make_cuDoubleComplex(channel1_ASDinv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
+            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), ampphasefactor), make_cuDoubleComplex(channel1_ASDinv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             channel1_out[i] = cuCadd(channel1_out[i], trans_complex);
             // Y
@@ -547,7 +545,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), fastPart), make_cuDoubleComplex(channel2_ASDinv[i], 0.0));
+            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), ampphasefactor), make_cuDoubleComplex(channel2_ASDinv[i], 0.0));
 
             channel2_out[i] = cuCadd(channel2_out[i], trans_complex);
 
@@ -566,7 +564,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), fastPart), make_cuDoubleComplex(channel3_ASDinv[i], 0.0));
+            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), ampphasefactor), make_cuDoubleComplex(channel3_ASDinv[i], 0.0));
 
             channel3_out[i] = cuCadd(channel3_out[i], trans_complex);
     }

@@ -285,7 +285,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
 
             //dphidf = mode_vals[mode_i].phase_coeff_1[i];
 
-            t = 1./(2.0*PI)*dphidf; // + tRef;
+            t = 1./(2.0*PI)*dphidf + tRef;
             /*# if __CUDA_ARCH__>=200
             if (i == 200)
                 printf("%e, %e \n", tRef, t);

@@ -35,8 +35,8 @@ def test():
     f_ref = 0.0
     TDItag = 2
 
-    l_vals = np.array([2, 3, 4, 2], dtype=np.uint32) #
-    m_vals = np.array([2, 3, 4, 1], dtype=np.uint32) #,
+    l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32) #
+    m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32) #,
 
     key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
 

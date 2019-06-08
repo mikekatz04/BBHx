@@ -139,8 +139,8 @@ cdef class PhenomHM:
         if return_amp_phase:
             return self.GetAmpPhase()
 
-        self.setup_interp_wave()
         self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
+        self.setup_interp_wave()
         self.setup_interp_response()
         self.perform_interp()
 

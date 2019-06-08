@@ -263,7 +263,7 @@ void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
 
 void PhenomHM::setup_interp_wave(){
 
-    assert(current_status >= 1);
+    assert(current_status >= 2);
     dim3 waveInterpDim(num_blocks, num_modes);
 
     fill_B_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
@@ -278,7 +278,7 @@ void PhenomHM::setup_interp_wave(){
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    if (current_status == 1) current_status = 2;
+    if (current_status == 2) current_status = 3;
 }
 
 void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_){
@@ -290,7 +290,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     tRef = tRef_;
     merger_freq = merger_freq_;
 
-    assert(current_status >= 2);
+    assert(current_status >= 1);
 
     prep_H_info(H, l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
@@ -304,7 +304,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    if (current_status == 2) current_status = 3;
+    if (current_status == 1) current_status = 2;
 }
 
 void PhenomHM::setup_interp_response(){

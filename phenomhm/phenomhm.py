@@ -185,8 +185,8 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
                  waveform_params['phiRef'],
                  waveform_params['fRef'])
 
-    phenomHM.setup_interp_wave()
     phenomHM.LISAresponseFD(waveform_params['inc'], waveform_params['lam'], waveform_params['beta'], waveform_params['psi'], waveform_params['t0'], waveform_params['tRef'], merger_freq)
+    phenomHM.setup_interp_wave()
     phenomHM.setup_interp_response()
     phenomHM.perform_interp()
 

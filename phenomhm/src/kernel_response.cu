@@ -285,18 +285,19 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
 
             //dphidf = mode_vals[mode_i].phase_coeff_1[i];
 
-            t = 1./(2.0*PI)*dphidf + tRef;
-            //# if __CUDA_ARCH__>=200
-            //    printf("%d, %d, %e, %.18e, %e \n", mode_i, i, t, t+t0, f);
+            t = 1./(2.0*PI)*dphidf; // + tRef;
+            /*# if __CUDA_ARCH__>=200
+            if (i == 200)
+                printf("%e, %e \n", tRef, t);
 
-            //#endif
+            #endif*/
 
             // adjust phase values stored in mode vals to reflect the tRef shift
             mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef;
 
             d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
 
-            mode_vals[mode_i].time_freq_corr[i] = t + t0;
+            mode_vals[mode_i].time_freq_corr[i] = t + t0*YRSID_SI;
             mode_vals[mode_i].transferL1_re[i] = cuCreal(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = cuCimag(transferL.transferL1);
             mode_vals[mode_i].transferL2_re[i] = cuCreal(transferL.transferL2);

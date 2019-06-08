@@ -5,6 +5,7 @@ from scipy import constants as ct
 import time
 import tdi
 import pdb
+from phenomhm.utils.convert import Converter
 
 try:
     import gpuPhenomHM as PhenomHM
@@ -19,23 +20,33 @@ def test():
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
     df = 1e-4
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF, inclination = np.logspace(-6, 0, int(2**11)), 1.65, 1e-3, 35714285.7142857, 14285714.2857143, 0.8, 0.8, cosmo.luminosity_distance(3.0).value*1e6*ct.parsec, -1.0, np.pi/3.
+    q = 1/3.00000000e+00
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**11)), 1.654545, 1e-3, 2.00000000e+06/(1+q), 4e6*q/(1+q), 0.0, 0.0,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
 
-    inc = inclination
-    lam = 0.3
-    beta = 0.2
-    psi = np.pi/3.
-    t0 = 0.9*ct.Julian_year
-    tRef = 5.0*60.0  # minutes to seconds
+    inc = np.pi - 1.04719755
+    lam = -2.43647481e-02
+    beta = -6.24341583e-01
+    psi = np.pi - 2.02958790e+00
+    t0 = 1.0
+    tRef = 0.0 # minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
-    f_ref = merger_freq
+    f_ref = 0.0
     TDItag = 2
 
-    l_vals = np.array([2, 3, 4, 4, 3], dtype=np.uint32) #
-    m_vals = np.array([2, 3, 4, 3, 2], dtype=np.uint32) #,
+    l_vals = np.array([2, 3, 4, 2], dtype=np.uint32) #
+    m_vals = np.array([2, 3, 4, 1], dtype=np.uint32) #,
 
+    key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
+
+    converter = Converter(key_order, tLtoSSB=True)
+
+    array = np.array([inc, lam, beta, psi, np.log(tRef)])
+
+    print('init:', inc, lam, beta, psi, tRef)
+
+    inc, lam, beta, psi, tRef = converter.convert(array)
 
 
     #data_freqs = np.fft.rfftfreq(data_length, d=0.1)
@@ -45,15 +56,15 @@ def test():
     deltaF = np.zeros_like(data_freqs)
     deltaF[1:] = np.diff(data_freqs)
     deltaF[0] = deltaF[1]
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))#*np.sqrt(deltaF)
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))#*np.sqrt(deltaF)
-    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))#*np.sqrt(deltaF)
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
+    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
 
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
      m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
 
-    num = 1000
+    num = 10
     st = time.perf_counter()
     for i in range(num):
         """phenomHM.gen_amp_phase(freq, m1,  # solar masses
@@ -69,13 +80,9 @@ def test():
         phenomHM.setup_interp_response()
         phenomHM.perform_interp()
         like = phenomHM.Likelihood()"""
-        like2 = phenomHM.WaveformThroughLikelihood(freq, m1,  # solar masses
-                     m2,  # solar masses
-                     chi1z,
-                     chi2z,
-                     distance,
-                     phiRef,
-                     f_ref, inc, lam, beta, psi, t0, tRef, merger_freq)
+
+        like2 = phenomHM.WaveformThroughLikelihood(freq, m1, m2,  chi1z, chi2z, distance, phiRef,f_ref, inc, lam, beta, psi, t0, tRef, merger_freq)
+        print(like2)
         """
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
 
@@ -156,8 +163,8 @@ def test():
         A_out.append(A)
         E_out.append(E)
         T_out.append(T)
-    np.save('TDI', np.array([A_out, E_out, T_out]))
     """
+    np.save('TDI', np.array([A, E, T]))
     pdb.set_trace()
 
 if __name__ == "__main__":

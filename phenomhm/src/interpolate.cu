@@ -475,13 +475,13 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
 
             time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            if (time_start <= 0.0) {
+            /*if (time_start <= 0.0) {
                 //channel1_out[mode_i*data_length + i] = cuCadd(channel1_out[mode_i*data_length + i], make_cuDoubleComplex(0.0, 0.0));
                 //channel2_out[mode_i*data_length + i] = cuCadd(channel1_out[mode_i*data_length + i], make_cuDoubleComplex(0.0, 0.0));
                 //channel3_out[mode_i*data_length + i] = cuCadd(channel1_out[mode_i*data_length + i], make_cuDoubleComplex(0.0, 0.0));
                 //return;
                 continue;
-            }
+            }*/
 
             // interp amplitude
             coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
@@ -510,7 +510,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            ampphasefactor = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(cuCmul(I,make_cuDoubleComplex(phase + phaseRdelay, 0.0))));
+            ampphasefactor = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(make_cuDoubleComplex(0.0, phase + phaseRdelay)));
 
             // X
             coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];

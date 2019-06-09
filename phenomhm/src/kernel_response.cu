@@ -239,7 +239,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double 
 
 
 __global__
-void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
+void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef_wave_frame, double tRef_sampling_frame, double merger_freq, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
@@ -247,7 +247,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
     if (mode_i >= num_modes) return;
     double phasetimeshift;
     double phi_up, phi;
-    double f, t, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
+    double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
 
             f = frqs[i];
@@ -285,7 +285,8 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
 
             //dphidf = mode_vals[mode_i].phase_coeff_1[i];
 
-            t = 1./(2.0*PI)*dphidf + tRef;
+            t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+            t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
             /*# if __CUDA_ARCH__>=200
             if (i == 200)
                 printf("%e, %e \n", tRef, t);
@@ -293,11 +294,11 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             #endif*/
 
             // adjust phase values stored in mode vals to reflect the tRef shift
-            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef;
+            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef_wave_frame;
 
-            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
+            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 
-            mode_vals[mode_i].time_freq_corr[i] = t + t0*YRSID_SI;
+            mode_vals[mode_i].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it should be okay at long enough times.
             mode_vals[mode_i].transferL1_re[i] = cuCreal(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = cuCimag(transferL.transferL1);
             mode_vals[mode_i].transferL2_re[i] = cuCreal(transferL.transferL2);

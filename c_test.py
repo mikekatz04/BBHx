@@ -25,10 +25,10 @@ def test():
 
     #freq = np.load('freqs.npy')
 
-    inc =  - 1.04719755
-    lam = -2.43647481e-02
+    inc =  np.pi - 1.04719755
+    lam = 2.43647481e-02
     beta = -6.24341583e-01
-    psi = 5*np.pi/4.
+    psi = np.pi - 3*np.pi/4.
     t0 = 1.0
     tRef = 10.0# minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
@@ -44,13 +44,14 @@ def test():
 
     converter = Converter(key_order, tLtoSSB=True)
 
+    tRef_sampling_frame = tRef
     array = np.array([inc, lam, beta, psi, np.log(tRef)])
 
     array = recycler.recycle(array)
     array = converter.convert(array)
-    inc, lam, beta, psi, tRef = array
+    inc, lam, beta, psi, tRef_wave_frame = array
 
-    print('init:', inc, lam, beta, psi, tRef)
+    print('init:', inc, lam, beta, psi, tRef_wave_frame)
 
 
     #data_freqs = np.fft.rfftfreq(data_length, d=0.1)
@@ -85,7 +86,7 @@ def test():
         phenomHM.perform_interp()
         like = phenomHM.Likelihood()"""
 
-        like2 = phenomHM.WaveformThroughLikelihood(freq, m1, m2,  chi1z, chi2z, distance, phiRef,f_ref, inc, lam, beta, psi, t0, tRef, merger_freq)
+        like2 = phenomHM.WaveformThroughLikelihood(freq, m1, m2,  chi1z, chi2z, distance, phiRef,f_ref, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq)
         print(like2)
         """
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)

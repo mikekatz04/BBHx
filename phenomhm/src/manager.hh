@@ -91,7 +91,8 @@ class PhenomHM {
   double beta;
   double psi;
   double t0_epoch;
-  double tRef;
+  double tRef_wave_frame;
+  double tRef_sampling_frame;
   int TDItag;
   double merger_freq;
 
@@ -139,7 +140,7 @@ public:
 
   void setup_interp_wave();
 
-  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq);
+  void LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq_);
 
   void setup_interp_response();
 

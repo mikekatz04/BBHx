@@ -102,7 +102,7 @@ class pyPhenomHM(Converter):
 
     def NLL(self, m1, m2, a1, a2, distance,
                  phiRef, inc, lam, beta,
-                 psi, tRef, freqs=None, return_amp_phase=False, return_TDI=False):
+                 psi, tRef_wave_frame, tRef_sampling_frame, freqs=None, return_amp_phase=False, return_TDI=False):
 
         Msec = (m1+m2)*MTSUN
         # merger frequency for 22 mode amplitude in phenomD
@@ -119,7 +119,7 @@ class pyPhenomHM(Converter):
                                               a1, a2,
                                               distance, phiRef, fRef,
                                               inc, lam, beta, psi,
-                                              self.t0, tRef, merger_freq,
+                                              self.t0, tRef_wave_frame, tRef_sampling_frame, merger_freq,
                                               return_amp_phase=return_amp_phase,
                                               return_TDI=return_TDI)
 
@@ -138,10 +138,14 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
 
     vals = np.array([waveform_params[key] for key in key_list])
 
+    tRef_sampling_frame = np.exp(vals[10])
+
     vals = recycler.recycle(vals)
     vals = converter.convert(vals)
 
     waveform_params = {key: vals[i] for i, key in enumerate(key_list)}
+
+    waveform_params['tRef_sampling_frame'] = tRef_sampling_frame
 
     if 'ln_m1' in waveform_params:
         waveform_params['m1'] = waveform_params['ln_m1']
@@ -152,7 +156,7 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         waveform_params['m2'] = waveform_params['mr']
 
     waveform_params['distance'] = waveform_params['ln_distance']
-    waveform_params['tRef'] = waveform_params['ln_tRef']
+    waveform_params['tRef_wave_frame'] = waveform_params['ln_tRef']
 
     if data_freqs is None:
         m1 = waveform_params['m1']
@@ -188,7 +192,7 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
                  waveform_params['phiRef'],
                  waveform_params['fRef'])
 
-    phenomHM.LISAresponseFD(waveform_params['inc'], waveform_params['lam'], waveform_params['beta'], waveform_params['psi'], waveform_params['t0'], waveform_params['tRef'], merger_freq)
+    phenomHM.LISAresponseFD(waveform_params['inc'], waveform_params['lam'], waveform_params['beta'], waveform_params['psi'], waveform_params['t0'], waveform_params['tRef_wave_frame'], waveform_params['tRef_sampling_frame'], merger_freq)
     phenomHM.setup_interp_wave()
     phenomHM.setup_interp_response()
     phenomHM.perform_interp()

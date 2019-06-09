@@ -281,13 +281,14 @@ void PhenomHM::setup_interp_wave(){
     if (current_status == 2) current_status = 3;
 }
 
-void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_){
+void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq_){
     inc = inc_;
     lam = lam_;
     beta = beta_;
     psi = psi_;
     t0_epoch = t0_epoch_;
-    tRef = tRef_;
+    tRef_wave_frame = tRef_wave_frame_;
+    tRef_sampling_frame = tRef_sampling_frame_;
     merger_freq = merger_freq_;
 
     assert(current_status >= 1);
@@ -300,7 +301,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     dim3 gridDim(num_blocks, num_modes);
 
     //printf("inc %lf, beta %lf, lam %lf, psi %lf, phiRef %e, t0_epoch %lf, tRef %lf\n", inc, beta, lam, psi, phiRef, t0_epoch, tRef);
-    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, 0);
+    kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
@@ -334,7 +335,7 @@ void PhenomHM::perform_interp(){
     dim3 mainInterpDim(num_block_interp);//, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 

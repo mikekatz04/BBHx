@@ -5,7 +5,7 @@ from scipy import constants as ct
 import time
 import tdi
 import pdb
-from phenomhm.utils.convert import Converter
+from phenomhm.utils.convert import Converter, Recycler
 
 try:
     import gpuPhenomHM as PhenomHM
@@ -25,12 +25,12 @@ def test():
 
     #freq = np.load('freqs.npy')
 
-    inc = np.pi - 1.04719755
+    inc =  - 1.04719755
     lam = -2.43647481e-02
     beta = -6.24341583e-01
-    psi = np.pi - 2.02958790e+00
+    psi = 5*np.pi/4.
     t0 = 1.0
-    tRef = 0.0 # minutes to seconds
+    tRef = 10.0# minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
     f_ref = 0.0
     TDItag = 2
@@ -40,13 +40,17 @@ def test():
 
     key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
 
+    recycler = Recycler(key_order)
+
     converter = Converter(key_order, tLtoSSB=True)
 
     array = np.array([inc, lam, beta, psi, np.log(tRef)])
 
-    print('init:', inc, lam, beta, psi, tRef)
+    array = recycler.recycle(array)
+    array = converter.convert(array)
+    inc, lam, beta, psi, tRef = array
 
-    inc, lam, beta, psi, tRef = converter.convert(array)
+    print('init:', inc, lam, beta, psi, tRef)
 
 
     #data_freqs = np.fft.rfftfreq(data_length, d=0.1)

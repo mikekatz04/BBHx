@@ -138,10 +138,6 @@ class Converter:
         x[self.ind_psi] = modpi(psiL + np.arctan2(cosalpha*sinzeta*sinlambdaL -coslambdaL*sinalpha*sinzeta, cosbetaL*coszeta -cosalpha*coslambdaL*sinbetaL*sinzeta -sinalpha*sinbetaL*sinzeta*sinlambdaL))
         return x
 
-    def ln_fRef(self, x):
-        x[self.ind_ln_fRef] = np.exp(x[self.ind_ln_fRef])
-        return x
-
     def convert(self, x):
         for func in self.conversions:
             x = func(x)
@@ -167,10 +163,9 @@ def tSSBfromLframe(tL, lambdaSSB, betaSSB):
 
 class Recycler:
 
-    def __init__(self, test_inds, key_order, **kwargs):
+    def __init__(self, key_order, **kwargs):
 
         # Setup of recycler
-        key_order = [key_order[ind] for ind in test_inds]
         self.recycles = []
         if 'inc' in key_order:
             self.ind_inc = key_order.index('inc')
@@ -191,12 +186,12 @@ class Recycler:
             self.recycles.append(self.psi)
 
     def inc(self, x):
-        if x[self.ind_inc] < -np.pi/2. or x[self.ind_inc] > np.pi/2.:
-            if x[self.ind_inc] < -np.pi/2:
+        if x[self.ind_inc] < 0. or x[self.ind_inc] > np.pi:
+            if x[self.ind_inc] < 0.0:
                 factor = 1.
             else:
                 factor = -1.
-            while (x[self.ind_inc] > np.pi/2 or x[self.ind_inc] < -np.pi/2):
+            while (x[self.ind_inc] > np.pi or x[self.ind_inc] < 0.0):
                 x[self.ind_inc] += factor*np.pi
 
         return x
@@ -222,8 +217,14 @@ class Recycler:
         return x
 
     def psi(self, x):
-        if x[self.ind_psi] < 0.0 or x[self.ind_psi] > 2*np.pi:
-            x[self.ind_psi] = x[self.ind_psi] % (2.*np.pi)
+        if x[self.ind_psi] < 0. or x[self.ind_psi] > np.pi:
+            if x[self.ind_psi] < 0.0:
+                factor = 1.
+            else:
+                factor = -1.
+            while (x[self.ind_psi] > np.pi or x[self.ind_psi] < 0.0):
+                x[self.ind_psi] += factor*np.pi
+
         return x
 
     def recycle(self, x):

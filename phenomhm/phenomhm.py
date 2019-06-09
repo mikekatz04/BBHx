@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import constants as ct
-from .utils.convert import Converter
+from .utils.convert import Converter, Recycler
 
 import tdi
 
@@ -39,6 +39,7 @@ class pyPhenomHM(Converter):
             setattr(self, prop, kwargs.get(prop, default))
 
         self.converter = Converter(key_order, tLtoSSB=self.tLtoSSB)
+        self.recycler = Recycler(key_order, tLtoSSB=self.tLtoSSB)
 
         self.t0 = t0
         self.max_length_init = max_length_init
@@ -133,9 +134,11 @@ class pyPhenomHM(Converter):
 def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, min_dimensionless_freq=1e-4, max_dimensionless_freq=1.0, **kwargs):
     key_list = list(waveform_params.keys())
     converter = Converter(key_list, **kwargs)
+    recycler = Recycler(key_list, **kwargs)
 
     vals = np.array([waveform_params[key] for key in key_list])
 
+    vals = recycler.recycle(vals)
     vals = converter.convert(vals)
 
     waveform_params = {key: vals[i] for i, key in enumerate(key_list)}

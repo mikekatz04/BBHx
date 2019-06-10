@@ -15,23 +15,24 @@ except ImportError:
 
 def test():
     df = 1e-5
-    data_length = int(1.2e5)
+    data_length = int(2* int(2**17))
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
     df = 1e-4
     q = 1/3.00000000e+00
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**11)), 1.654545, 1e-3, 2.00000000e+06/(1+q), 4e6*q/(1+q), 0.0, 0.0,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 1.654545, 1e-3, 2.00000000e+06/(1+q), 2.00000000e+06*q/(1+q), 0.0, 0.0,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
 
-    inc =  np.pi - 1.04719755
-    lam = 2.43647481e-02
-    beta = -6.24341583e-01
-    psi = np.pi - 3*np.pi/4.
+    inc =  1.04719755
+    lam = -2.43647481e-02
+    beta =  6.24341583e-01
+    psi = 2.02958790e+00
     t0 = 1.0
-    tRef = 10.0# minutes to seconds
+    tRef = 5.02462348e+01# minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
+    Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
     f_ref = 0.0
     TDItag = 2
 
@@ -44,7 +45,7 @@ def test():
 
     converter = Converter(key_order, tLtoSSB=True)
 
-    tRef_sampling_frame = tRef
+    tRef_sampling_frame = 50.2462348
     array = np.array([inc, lam, beta, psi, np.log(tRef)])
 
     array = recycler.recycle(array)
@@ -53,10 +54,19 @@ def test():
 
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
 
+    m1, m2, a1, a2, distance, phiRef, inc, lam, beta, psi, tRef_wave_frame = np.array([ 1.50000000e+06,  5.00000000e+05,  0.00000000e+00,  0.00000000e+00,
+        1.12918211e+27,  4.14364406e+00,  1.04719755e+00, -2.94775421e+00,
+        1.46800073e+00,  2.23667294e+00,  4.72267398e-08])
+    print('should be 492820.8889363843')
 
     #data_freqs = np.fft.rfftfreq(data_length, d=0.1)
     #data_freqs[0] = 1e-8
-    data_freqs = np.logspace(-6, -1, len(data))
+    Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
+    upper_freq = 0.6/Msec
+    lower_freq = 1e-4/Msec
+    freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), int(2**12))
+    data_freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), int(2**17))
+    data = data[:int(2**17)]
 
     deltaF = np.zeros_like(data_freqs)
     deltaF[1:] = np.diff(data_freqs)
@@ -65,11 +75,12 @@ def test():
     AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
     T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
 
+    t_obs_dur = 0.5
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag)
+     m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur)
 
-    num = 10
+    num = 1
     st = time.perf_counter()
     for i in range(num):
         """phenomHM.gen_amp_phase(freq, m1,  # solar masses

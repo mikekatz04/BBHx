@@ -439,7 +439,7 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 
 
 __global__
-void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv){
+void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur){
     //int mode_i = blockIdx.y;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= data_length) return;
@@ -456,6 +456,12 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
     channel1_out[i] = make_cuDoubleComplex(0.0, 0.0);
     channel2_out[i] = make_cuDoubleComplex(0.0, 0.0);
     channel3_out[i] = make_cuDoubleComplex(0.0, 0.0);
+    double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
+    /*# if __CUDA_ARCH__>=200
+    if (i == 200)
+        printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_dur, t_break);
+
+    #endif*/
     for (int mode_i=0; mode_i<num_modes; mode_i++){
             f = data_freqs[i];
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
@@ -475,7 +481,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
 
             time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            if (time_start <= 0.0) {
+            if (time_start < t_break) {
                 //channel1_out[mode_i*data_length + i] = cuCadd(channel1_out[mode_i*data_length + i], make_cuDoubleComplex(0.0, 0.0));
                 //channel2_out[mode_i*data_length + i] = cuCadd(channel1_out[mode_i*data_length + i], make_cuDoubleComplex(0.0, 0.0));
                 //channel3_out[mode_i*data_length + i] = cuCadd(channel1_out[mode_i*data_length + i], make_cuDoubleComplex(0.0, 0.0));

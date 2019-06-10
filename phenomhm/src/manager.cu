@@ -30,7 +30,10 @@ PhenomHM::PhenomHM (int max_length_init_,
     double *data_freqs_,
     cmplx *data_channel1_,
     cmplx *data_channel2_,
-    cmplx *data_channel3_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_){
+    cmplx *data_channel3_, int data_stream_length_,
+    double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_,
+    int TDItag_,
+    double t_obs_dur_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -46,6 +49,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     data_channel3 = data_channel3_;
 
     TDItag = TDItag_;
+    t_obs_dur = t_obs_dur_;
     to_gpu = 1;
 
     cudaError_t err;
@@ -175,6 +179,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     distance = distance_;
     phiRef = phiRef_;
     f_ref = f_ref_;
+    //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
 
     gpuErrchk(cudaMemcpy(d_freqs, freqs, current_length*sizeof(double), cudaMemcpyHostToDevice));
 
@@ -291,6 +296,8 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     tRef_sampling_frame = tRef_sampling_frame_;
     merger_freq = merger_freq_;
 
+    //printf("extrinsic: %e, %e, %e, %e, %e, %e, %e\n", inc, lam, beta, psi, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq);
+
     assert(current_status >= 1);
 
     prep_H_info(H, l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
@@ -335,7 +342,7 @@ void PhenomHM::perform_interp(){
     dim3 mainInterpDim(num_block_interp);//, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv, t_obs_dur);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
@@ -362,6 +369,7 @@ void PhenomHM::Likelihood (double *like_out_){
                   exit(0);
               }
          d_h += cuCreal(result);
+         //printf("channel1 d_h: %e\n", cuCreal(result));
 
          stat = cublasZdotc(handle, data_stream_length,
                  d_template_channel2, 1,
@@ -374,6 +382,7 @@ void PhenomHM::Likelihood (double *like_out_){
                   exit(0);
               }
          d_h += cuCreal(result);
+         //printf("channel2 d_h: %e\n", cuCreal(result));
 
          stat = cublasZdotc(handle, data_stream_length,
                  d_template_channel3, 1,
@@ -386,6 +395,7 @@ void PhenomHM::Likelihood (double *like_out_){
                   exit(0);
               }
          d_h += cuCreal(result);
+         //printf("channel3 d_h: %e\n", cuCreal(result));
 
         stat = cublasZdotc(handle, data_stream_length,
                      d_template_channel1, 1,
@@ -398,6 +408,7 @@ void PhenomHM::Likelihood (double *like_out_){
                       exit(0);
                   }
              h_h += cuCreal(result);
+             //printf("channel1 h_h: %e\n", cuCreal(result));
 
              stat = cublasZdotc(handle, data_stream_length,
                      d_template_channel2, 1,
@@ -410,6 +421,7 @@ void PhenomHM::Likelihood (double *like_out_){
                       exit(0);
                   }
              h_h += cuCreal(result);
+             //printf("channel2 h_h: %e\n", cuCreal(result));
 
              stat = cublasZdotc(handle, data_stream_length,
                      d_template_channel3, 1,
@@ -422,6 +434,7 @@ void PhenomHM::Likelihood (double *like_out_){
                       exit(0);
                   }
              h_h += cuCreal(result);
+             //printf("channel3 h_h: %e\n", cuCreal(result));
 
      /*
      // d_template_channel1 d_template_channel1 for h_h

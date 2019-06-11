@@ -17,7 +17,7 @@ cmplx SpinWeightedSphericalHarmonic(int s, int l, int m, double theta, double ph
     else if ((l==2) && (m==2)) fac =  sqrt( 5.0 / ( 64.0 * PI ) ) * ( 1.0 + cos( theta ))*( 1.0 + cos( theta ));
     // l=3
     else if ((l==3) && (m==-3)) fac =  sqrt(21.0/(2.0*PI))*cos(theta/2.0)*pow(sin(theta/2.0),5.0);
-    else if ((l==3) && (m==-2)) fac =  sqrt(7.0/4.0*PI)*(2.0 + 3.0*cos(theta))*pow(sin(theta/2.0),4.0);
+    else if ((l==3) && (m==-2)) fac =  sqrt(7.0/(4.0*PI))*(2.0 + 3.0*cos(theta))*pow(sin(theta/2.0),4.0);
     else if ((l==3) && (m==-1)) fac =  sqrt(35.0/(2.0*PI))*(sin(theta) + 4.0*sin(2.0*theta) - 3.0*sin(3.0*theta))/32.0;
     else if ((l==3) && (m==0)) fac =  (sqrt(105.0/(2.0*PI))*cos(theta)*pow(sin(theta),2.0))/4.0;
     else if ((l==3) && (m==1)) fac =  -sqrt(35.0/(2.0*PI))*(sin(theta) - 4.0*sin(2.0*theta) - 3.0*sin(3.0*theta))/32.0;
@@ -156,7 +156,7 @@ void prep_H_info(cmplx *H_mat, unsigned int *l_vals, unsigned int *m_vals, int n
         l = l_vals[mode_i];
         m = m_vals[mode_i];
         Ylm = SpinWeightedSphericalHarmonic(-2, l, m, inc, phi0);
-        Yl_m = std::conj(SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0));
+        Yl_m = SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0);
         Yfactorplus = 1./2 * (Ylm + Yl_m);
         //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
         Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end

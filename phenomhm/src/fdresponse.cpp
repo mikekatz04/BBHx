@@ -156,7 +156,7 @@ void prep_H_info(cmplx *H_mat, unsigned int *l_vals, unsigned int *m_vals, int n
         l = l_vals[mode_i];
         m = m_vals[mode_i];
         Ylm = SpinWeightedSphericalHarmonic(-2, l, m, inc, phi0);
-        Yl_m = SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0);
+        Yl_m = pow(-1.0, l)*std::conj(SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0));
         Yfactorplus = 1./2 * (Ylm + Yl_m);
         //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
         Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end

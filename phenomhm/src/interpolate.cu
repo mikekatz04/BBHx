@@ -533,6 +533,11 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
+            /*# if __CUDA_ARCH__>=200
+            if (i % 10000 == 0)
+                printf("phases: %d, %e, %e, %e, %e, %e, %e \n", mode_i, f, cuCreal(ampphasefactor), cuCimag(ampphasefactor),transferL1_re, transferL1_im, channel1_ASDinv[i]);
+
+            #endif*/
             trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), ampphasefactor), make_cuDoubleComplex(channel1_ASDinv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             channel1_out[i] = cuCadd(channel1_out[i], trans_complex);
@@ -665,7 +670,7 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
     for (int i=0; i<2*f_length*num_modes; i++) printf("%e\n", h_B[i]);
     h_B = new double[2*f_length*num_modes];*/
     CUSPARSE_CALL( cusparseCreate(&handle) );
-    cusparseStatus_t status = cusparseDgtsv(handle, m, n, d_dl, d_d, d_du, B, m);
+    cusparseStatus_t status = cusparseDgtsv_nopivot(handle, m, n, d_dl, d_d, d_du, B, m);
     if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
     cusparseDestroy(handle);
     /*    cudaFree(d_dl);

@@ -113,7 +113,7 @@ def cuda_install():
     include_gsl_dir = "/opt/local/include"
 
     ext = Extension('gpuPhenomHM',
-            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/manager.cu', 'phenomhm/wrapper.pyx'],
+            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/manager.cu', 'phenomhm/gpuPhenomHM.pyx'],
             library_dirs = [lib_gsl_dir, CUDA['lib64']],
             libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas"],
             language = 'c++',
@@ -139,6 +139,37 @@ def cuda_install():
           version = '0.1',
 
           ext_modules = [ext],
+
+          # Inject our custom trigger
+          cmdclass = {'build_ext': custom_build_ext},
+
+          # Since the package has c code, the egg cannot be zipped
+          zip_safe = False)
+
+    extD = Extension('gpuPhenomD',
+            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/D_manager.cu', 'phenomhm/gpuPhenomD.pyx'],
+            library_dirs = [lib_gsl_dir, CUDA['lib64']],
+            libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas"],
+            language = 'c++',
+            runtime_library_dirs = [CUDA['lib64']],
+            # This syntax is specific to this build system
+            # we're only going to use certain compiler args with nvcc
+            # and not with gcc the implementation of this trick is in
+            # customize_compiler()
+            extra_compile_args= {
+                'gcc': ['-std=c99'], # '-g'],
+                'nvcc': [
+                    '-arch=sm_70', '--default-stream=per-thread', '--ptxas-options=-v', '-c',
+                    '--compiler-options', "'-fPIC'" ]#,"-G", "-g"] # for debugging
+                },
+                include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'phenomhm/src']
+            )
+    setup(name = 'gpuPhenomD',
+          # Random metadata. there's more you can supply
+          author = 'Robert McGibbon',
+          version = '0.1',
+
+          ext_modules = [extD],
 
           # Inject our custom trigger
           cmdclass = {'build_ext': custom_build_ext},

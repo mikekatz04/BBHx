@@ -673,6 +673,7 @@ __device__
          //printf("(l, m): (%d, %d)\n", ell, mm);
 }
 
+
 __global__
 void kernel_calculate_all_modes(ModeContainer *mode_vals,
       PhenomHMStorage *pHM,
@@ -709,3 +710,75 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 
       }
   }
+
+
+  __device__
+  void calculate_each_mode_PhenomD(int i, ModeContainer mode_val,
+       double freq_geom,
+       PhenDAmpAndPhasePreComp pDPreComp,
+       double amp0, double t0, double phi0, double *cshift, double Mf_ref){
+           double Rholm=1.0, Taulm=1.0;
+           double phase_term1, phase_term2;
+           double amp, phase;
+           int status_in_for;
+           UsefulPowers powers_of_f;
+           //cuDoubleComplex J = make_cuDoubleComplex(0.0, 1.0);
+           int retcode = 0;
+
+           double Mf = freq_geom;
+
+           status_in_for = d_init_useful_powers(&powers_of_f, Mf);
+                /*if (PD_SUCCESS != status_in_for)
+                {
+                  //printf("init_useful_powers failed for Mf, status_in_for=%d", status_in_for);
+                  retcode = status_in_for;
+                  //exit(0);
+                }
+                else
+                {*/
+          amp = d_IMRPhenDAmplitude(Mf, &pDPreComp.pAmp, &powers_of_f, &pDPreComp.amp_prefactors);
+               // }
+
+               mode_val.amp[i] = amp*amp0;
+
+              /* Add complex phase shift depending on 'm' mode */
+              phase = d_IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm);
+
+              Mf = freq_geom;
+              phase_term1 = - t0 * (Mf - Mf_ref);
+              phase_term2 = phase - (2 * phi0);
+
+              mode_val.phase[i] = (phase_term1 + phase_term2);
+
+  }
+
+
+
+  __global__
+  void kernel_calculate_all_modes_PhenomD(ModeContainer *mode_vals,
+        double *freqs,
+        double M_tot_sec,
+        PhenDAmpAndPhasePreComp *pDPreComp_all,
+        double amp0,
+        int num_modes,
+        double t0,
+        double phi0,
+        double *cshift,
+        int num_points
+          ){
+        double freq_geom;
+        double Mf_ref;
+
+        unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+        /* if (mode_i >= num_modes) return;
+         for (int i = blockIdx.y * blockDim.x + threadIdx.x;
+            i < length;
+            i += blockDim.x * gridDim.y)*/
+        if (i < num_points) // kernel setup should always make second part true
+        {
+           freq_geom = freqs[i]*M_tot_sec;
+           Mf_ref = pDPreComp_all[0].pAmp.fmaxCalc*M_tot_sec;
+           calculate_each_mode_PhenomD(i, mode_vals[0], freq_geom, pDPreComp_all[0], amp0, t0, phi0, cshift, Mf_ref);
+
+        }
+    }

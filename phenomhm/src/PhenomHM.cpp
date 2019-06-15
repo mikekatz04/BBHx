@@ -1179,8 +1179,9 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     }
 
     if (pHM->f_ref == 0.0){
-        pHM->f_ref = pDPreComp22.pAmp.fmaxCalc;
-        pHM->Mf_ref = PhenomUtilsHztoMf(pHM->f_ref, pHM->Mtot);
+        pHM->Mf_ref = pDPreComp22.pAmp.fmaxCalc;
+        pHM->f_ref = PhenomUtilsMftoHz(pHM->Mf_ref, pHM->Mtot);
+        //printf("%e, %e\n", pHM->f_ref, pHM->Mf_ref);
     }
 
     /* compute the reference phase shift need to align the waveform so that

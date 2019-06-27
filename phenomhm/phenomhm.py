@@ -212,15 +212,15 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
     if add_noise is not None:
         if TDItag == 'AET':
             # assumes gaussian noise
-            noise_channel1 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel2 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel3 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_T(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel1 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel2 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel3 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_T(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
 
         else:
             # assumes gaussian noise
-            noise_channel1 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel2 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel3 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel1 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel2 = nnp.abs(np.random.normal(0.0, p.sqrt(1./2.*tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel3 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
 
     generate_freqs = np.logspace(np.log10(data_freqs.min()), np.log10(data_freqs.max()), num_generate_points)
 

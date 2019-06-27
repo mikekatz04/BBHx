@@ -10,7 +10,7 @@ cdef extern from "src/c_manager.h":
         np.uint32_t *,
         int,
         np.float64_t*,
-        np.complex128_t *, np.complex128_t *, np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int)
+        np.complex128_t *, np.complex128_t *, np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double)
 
         void gen_amp_phase(np.float64_t *, int,
                             double,
@@ -23,7 +23,7 @@ cdef extern from "src/c_manager.h":
 
         void setup_interp_wave()
         void GetAmpPhase(np.float64_t*, np.float64_t*)
-        void LISAresponseFD(double, double, double, double, double, double, double)
+        void LISAresponseFD(double, double, double, double, double, double, double, double)
         void setup_interp_response()
         void perform_interp()
         void Likelihood(np.float64_t*)
@@ -49,7 +49,7 @@ cdef class PhenomHM:
      np.ndarray[ndim=1, dtype=np.float64_t] X_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] Y_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] Z_ASDinv,
-     TDItag):
+     TDItag, t_obs_dur):
         self.num_modes = len(l_vals)
         self.data_channel1 = data_channel1
         self.data_channel2 = data_channel2
@@ -60,7 +60,7 @@ cdef class PhenomHM:
         &m_vals[0],
         self.num_modes, &data_freqs[0],
         &data_channel1[0], &data_channel2[0], &data_channel3[0],
-        self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0], TDItag)
+        self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0], TDItag, t_obs_dur)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses
@@ -84,8 +84,8 @@ cdef class PhenomHM:
     def setup_interp_wave(self):
         self.g.setup_interp_wave()
 
-    def LISAresponseFD(self, inc, lam, beta, psi, t0_epoch, tRef, merger_freq):
-        self.g.LISAresponseFD(inc, lam, beta, psi, t0_epoch, tRef, merger_freq)
+    def LISAresponseFD(self, inc, lam, beta, psi, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq):
+        self.g.LISAresponseFD(inc, lam, beta, psi, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq)
 
     def setup_interp_response(self):
         self.g.setup_interp_response()
@@ -117,15 +117,13 @@ cdef class PhenomHM:
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] data_channel2_
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] data_channel3_
 
-        data_channel1_ = np.zeros((self.num_modes*self.data_length,), dtype=np.complex128)
-        data_channel2_ = np.zeros((self.num_modes*self.data_length,), dtype=np.complex128)
-        data_channel3_ = np.zeros((self.num_modes*self.data_length,), dtype=np.complex128)
+        data_channel1_ = np.zeros((self.data_length,), dtype=np.complex128)
+        data_channel2_ = np.zeros((self.data_length,), dtype=np.complex128)
+        data_channel3_ = np.zeros((self.data_length,), dtype=np.complex128)
 
         self.g.GetTDI(&data_channel1_[0], &data_channel2_[0], &data_channel3_[0])
 
-        return (data_channel1_.reshape(self.num_modes, self.data_length),
-                data_channel2_.reshape(self.num_modes, self.data_length),
-                data_channel3_.reshape(self.num_modes, self.data_length))
+        return (data_channel1_, data_channel2_, data_channel3_)
 
     def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses
@@ -134,7 +132,7 @@ cdef class PhenomHM:
                         chi2z,
                         distance,
                         phiRef,
-                        f_ref, inc, lam, beta, psi, t0, tRef, merger_freq, return_amp_phase=False, return_TDI=False):
+                        f_ref, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_amp_phase=False, return_TDI=False):
         self.gen_amp_phase(freqs,
                             m1, #solar masses
                             m2, #solar masses
@@ -144,14 +142,16 @@ cdef class PhenomHM:
                             phiRef,
                             f_ref)
 
+        print(return_amp_phase)
         if return_amp_phase:
             return self.GetAmpPhase()
 
+        self.LISAresponseFD(inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq)
         self.setup_interp_wave()
-        self.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         self.setup_interp_response()
         self.perform_interp()
 
+        print(return_TDI)
         if return_TDI:
             return self.GetTDI()
 

@@ -159,7 +159,7 @@ void host_set_spline_constants_response(ModeContainer *mode_vals, double *b_mat,
         }
     }
 }
-void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_dur){
 
     double f, time_start, x, x2, x3;
     double time_coeff_0, time_coeff_1, time_coeff_2, time_coeff_3;
@@ -180,6 +180,12 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
     int old_ind_below;
+    double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI;
+    for (int i=0; i<length; i++) {
+        channel1_out[i] += 0.0+0.0*I;
+        channel2_out[i] = 0.0+0.0*I;
+        channel3_out[i] = 0.0+0.0*I;
+    }
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         old_ind_below = -1;
         while (data_freqs[0] > old_freqs[old_ind_below+2]){
@@ -188,17 +194,11 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
         for (int i=0; i<length; i++){
             f = data_freqs[i];
             if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
-                channel1_out[mode_i*length + i] = 0.0+0.0*I;
-                channel2_out[mode_i*length + i] = 0.0+0.0*I;
-                channel3_out[mode_i*length + i] = 0.0+0.0*I;
                 continue;
             }
             if (f >= old_freqs[old_ind_below+1]){
                 old_ind_below += 1;
                 if (old_ind_below == old_length -1){
-                    channel1_out[mode_i*length + i] = 0.0+0.0*I;
-                    channel2_out[mode_i*length + i] = 0.0+0.0*I;
-                    channel3_out[mode_i*length + i] = 0.0+0.0*I;
                     continue;
                 }
                 time_coeff_0 = old_mode_vals[mode_i].time_freq_corr[old_ind_below];
@@ -262,18 +262,15 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             time_start = time_coeff_0 + (time_coeff_1*x) + (time_coeff_2*x2) + (time_coeff_3*x3);
 
-            if (time_start <= 0.0) {
-                channel1_out[mode_i*length + i] = 0.0+0.0*I;
-                channel2_out[mode_i*length + i] = 0.0+0.0*I;
-                channel3_out[mode_i*length + i] = 0.0+0.0*I;
+            if (time_start < t_break) {
                 continue;
             }
 
             amp = amp_coeff_0 + (amp_coeff_1*x) + (amp_coeff_2*x2) + (amp_coeff_3*x3);
             if (amp < 1e-40){
-                channel1_out[mode_i*length + i] = 0.0+I*0.0;
-                channel2_out[mode_i*length + i] = 0.0+I*0.0;
-                channel3_out[mode_i*length + i] = 0.0+I*0.0;
+                channel1_out[i] = 0.0+I*0.0;
+                channel2_out[i] = 0.0+I*0.0;
+                channel3_out[i] = 0.0+I*0.0;
                 continue;
             }
 
@@ -287,19 +284,19 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 
             transferL1_im  = l1_im_coeff_0 + (l1_im_coeff_1*x) + (l1_im_coeff_2*x2) + (l1_im_coeff_3*x3);
 
-            channel1_out[mode_i*length + i] = ((transferL1_re+I*transferL1_im) * ampphasefactor * X_ASD_inv[i]);
+            channel1_out[i] += ((transferL1_re+I*transferL1_im) * ampphasefactor * X_ASD_inv[i]);
 
             transferL2_re  = l2_re_coeff_0 + (l2_re_coeff_1*x) + (l2_re_coeff_2*x2) + (l2_re_coeff_3*x3);
 
             transferL2_im  = l2_im_coeff_0 + (l2_im_coeff_1*x) + (l2_im_coeff_2*x2) + (l2_im_coeff_3*x3);
 
-            channel2_out[mode_i*length + i] = ((transferL2_re+I*transferL2_im) * ampphasefactor * Y_ASD_inv[i]);
+            channel2_out[i] += ((transferL2_re+I*transferL2_im) * ampphasefactor * Y_ASD_inv[i]);
 
             transferL3_re  = l3_re_coeff_0 + (l3_re_coeff_1*x) + (l3_re_coeff_2*x2) + (l3_re_coeff_3*x3);
 
             transferL3_im  = l3_im_coeff_0 + (l3_im_coeff_1*x) + (l3_im_coeff_2*x2) + (l3_im_coeff_3*x3);
 
-            channel3_out[mode_i*length + i] = ((transferL3_re+I*transferL3_im) * ampphasefactor * Z_ASD_inv[i]);
+            channel3_out[i] = ((transferL3_re+I*transferL3_im) * ampphasefactor * Z_ASD_inv[i]);
         }
     }
 }

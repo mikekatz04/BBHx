@@ -33,10 +33,13 @@ class pyPhenomHM(Converter):
             'num_generate_points': int(2**18),
             'df': None,
             'tLtoSSB': True,
+            'noise_kwargs': {'model': 'SciRDv1'},
         }
 
         for prop, default in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))
+            #TODO: check this
+            kwargs[prop] = kwargs.get(prop, default)
 
         self.converter = Converter(key_order, tLtoSSB=self.tLtoSSB)
         self.recycler = Recycler(key_order, tLtoSSB=self.tLtoSSB)
@@ -80,14 +83,27 @@ class pyPhenomHM(Converter):
 
         if self.TDItag == 'AET':
             self.TDItag_in = 2
-            self.channel1_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(self.data_freqs, model='SciRDv1'))*additional_factor
-            self.channel2_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(self.data_freqs, model='SciRDv1'))*additional_factor
-            self.channel3_ASDinv = 1./np.sqrt(tdi.noisepsd_T(self.data_freqs, model='SciRDv1'))*additional_factor
+
+            """AE_noise = np.genfromtxt('SnAE2017.dat').T
+            T_noise = np.genfromtxt('SnAE2017.dat').T
+
+            from scipy.interpolate import CubicSpline
+
+            AE_noise = CubicSpline(AE_noise[0], AE_noise[1])
+            T_noise = CubicSpline(T_noise[0], T_noise[1])
+
+            self.channel1_ASDinv = 1./np.sqrt(AE_noise(self.data_freqs))*additional_factor
+            self.channel2_ASDinv = 1./np.sqrt(AE_noise(self.data_freqs))*additional_factor
+            self.channel3_ASDinv = 1./np.sqrt(T_noise(self.data_freqs))*additional_factor"""
+
+            self.channel1_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(self.data_freqs, **self.noise_kwargs))*additional_factor
+            self.channel2_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(self.data_freqs, **self.noise_kwargs))*additional_factor
+            self.channel3_ASDinv = 1./np.sqrt(tdi.noisepsd_T(self.data_freqs, **self.noise_kwargs))*additional_factor
 
         elif self.TDItag == 'XYZ':
             self.TDItag_in = 1
             for i in range(1, 4):
-                temp = np.sqrt(tdi.noisepsd_XYZ(self.data_freqs, model='SciRDv1'))*additional_factor
+                temp = np.sqrt(tdi.noisepsd_XYZ(self.data_freqs, **self.noise_kwargs))*additional_factor
                 setattr(self, 'channel{}_ASDinv'.format(i), temp)
 
         if self.data_stream_whitened is False:
@@ -160,6 +176,10 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         waveform_params['m1'] = waveform_params['ln_mT']
         waveform_params['m2'] = waveform_params['mr']
 
+    if 'chi_s' in waveform_params:
+        waveform_params['a1'] = waveform_params['chi_s']
+        waveform_params['a2'] = waveform_params['chi_a']
+
     waveform_params['distance'] = waveform_params['ln_distance']
     waveform_params['tRef_wave_frame'] = waveform_params['ln_tRef']
     waveform_params['fRef'] = 0.0
@@ -192,15 +212,15 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
     if add_noise is not None:
         if TDItag == 'AET':
             # assumes gaussian noise
-            noise_channel1 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_AE(data_freqs, model='SciRDv1'))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel2 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_AE(data_freqs, model='SciRDv1'))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel3 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_T(data_freqs, model='SciRDv1'))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel1 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel2 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel3 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_T(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
 
         else:
             # assumes gaussian noise
-            noise_channel1 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, model='SciRDv1'))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel2 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, model='SciRDv1'))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel3 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, model='SciRDv1'))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel1 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel2 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel3 = np.sqrt(np.abs(np.random.normal(0.0, tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
 
     generate_freqs = np.logspace(np.log10(data_freqs.min()), np.log10(data_freqs.max()), num_generate_points)
 

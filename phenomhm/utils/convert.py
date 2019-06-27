@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import constants as ct
 from scipy import stats
-
+import warnings
 
 class Converter:
 
@@ -21,6 +21,16 @@ class Converter:
         if 'ln_m2' in key_order:
             self.ind_ln_m2 = key_order.index('ln_m2')
             self.conversions.append(self.ln_m2)
+
+        if 'chi_s' in key_order:
+            self.ind_chi_s = key_order.index('chi_s')
+            self.ind_chi_a = key_order.index('chi_a')
+            self.conversions.append(self.chi_s_chi_a)
+
+        if 'chi_s_m_weight' in key_order:
+            self.ind_chi_s_m_weight = key_order.index('chi_s_m_weight')
+            self.ind_chi_a_m_weight = key_order.index('chi_a_m_weight')
+            self.conversions.append(self.chi_s_chi_a_m_weight)
 
         """
         if 'ln_mC' in key_order and 'mu' in key_order:
@@ -66,6 +76,26 @@ class Converter:
 
         x[self.ind_ln_mT] = m1
         x[self.ind_mr] = m2
+        return x
+
+    def chi_s_chi_a(self, x):
+        chi_s = x[self.ind_chi_s]
+        chi_a = x[self.ind_chi_a]
+        a1 = chi_s + chi_a
+        a2 = chi_s - chi_a
+        x[self.ind_chi_s] = a1
+        x[self.ind_chi_a] = a2
+        return x
+
+    def chi_s_chi_a_m_weight(self, x):
+        chi_s = x[self.ind_chi_s_m_weight]
+        chi_a = x[self.ind_chi_a_m_weight]
+        m1 = x[self.ind_ln_mT]
+        m2 = x[self.ind_mr]
+        a1 = (chi_s + chi_a)*(m1 + m2)/(2*m1)
+        a2 = (chi_s - chi_a)*(m1 + m2)/(2*m2)
+        x[self.ind_chi_s_m_weight] = a1
+        x[self.ind_chi_a_m_weight] = a2
         return x
 
     """

@@ -619,6 +619,7 @@ __device__
             phase_i = cshift[mm];
             Mf_wf = freq_geom;
             // This if ladder is in the mathematica function HMPhase. PhenomHMDev.nb
+
             if (!(Mf_wf > q.fi))
             { /* in mathematica -> IMRPhenDPhaseA */
                 Mf = q.ai * Mf_wf + q.bi;
@@ -641,6 +642,7 @@ __device__
                 //printf("ERROR - should not get here - in function IMRPhenomHMPhase");
                 //ERROR(PD_EDOM, "error");
             }
+
         //}
 
             //phase_term1 = 0.0;
@@ -652,6 +654,13 @@ __device__
 
             mode_val.phase[i] = (phase_term1 + phase_term2);
 
+            /*# if __CUDA_ARCH__>=200
+            //if (i % 2000 == 0)
+            if ((Mf > pHM->Mf_ref*0.95) && (Mf < pHM->Mf_ref*1.05) && (ell == 2) && (mm == 2))
+                printf("phases: %e, %e, %e, %e, %e, %e \n", mode_val.phase[i], mm * phi0, phase_i, Mf, pHM->Mf_ref, t0);
+
+
+            #endif*/
             //hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
 
              //double complexFrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);

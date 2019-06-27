@@ -65,8 +65,10 @@ class PhenomHM {
   double beta;
   double psi;
   double t0_epoch;
-  double tRef;
+  double tRef_wave_frame;
+  double tRef_sampling_frame;
   int TDItag;
+  double t_obs_dur;
   double merger_freq;
 
   double *B;
@@ -91,7 +93,8 @@ public:
       double *data_freqs_,
       cmplx *data_channel1_,
       cmplx *data_channel2_,
-      cmplx *data_channel3_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag); // constructor (copies to GPU)
+      cmplx *data_channel3_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag,
+      double t_obs_dur_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 
@@ -106,7 +109,7 @@ public:
 
   void setup_interp_wave();
 
-  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef, double merger_freq);
+  void LISAresponseFD(double inc, double lam, double beta, double psi, double t0_epoch, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq);
 
   void setup_interp_response();
 

@@ -24,7 +24,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     double *data_freqs_,
     cmplx *data_channel1_,
     cmplx *data_channel2_,
-    cmplx *data_channel3_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_){
+    cmplx *data_channel3_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_,
+    double t_obs_dur_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -40,6 +41,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     data_channel3 = data_channel3_;
 
     TDItag = TDItag_;
+    t_obs_dur = t_obs_dur_;
     to_gpu = 0;
 
     // DECLARE ALL THE  NECESSARY STRUCTS
@@ -67,9 +69,9 @@ PhenomHM::PhenomHM (int max_length_init_,
 
     H_mat = new cmplx[num_modes*9];
 
-    template_channel1 = new cmplx[num_modes*data_stream_length];
-    template_channel2 = new cmplx[num_modes*data_stream_length];
-    template_channel3 = new cmplx[num_modes*data_stream_length];
+    template_channel1 = new cmplx[data_stream_length];
+    template_channel2 = new cmplx[data_stream_length];
+    template_channel3 = new cmplx[data_stream_length];
 
     B = new double[8*data_stream_length*num_modes];
 
@@ -146,18 +148,21 @@ void PhenomHM::setup_interp_wave(){
     host_set_spline_constants_wave(mode_vals, B, current_length, num_modes);
 }
 
-void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_, double merger_freq_){
+void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_,  double tRef_wave_frame_,
+  double tRef_sampling_frame_, double merger_freq_){
     inc = inc_;
     lam = lam_;
     beta = beta_;
     psi = psi_;
     t0_epoch = t0_epoch_;
-    tRef = tRef_;
     merger_freq = merger_freq_;
+    tRef_wave_frame = tRef_wave_frame_;
+    tRef_sampling_frame = tRef_sampling_frame_;
+
     int order_fresnel_stencil = 0;
     prep_H_info(H_mat, l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    JustLISAFDresponseTDI_wrap(mode_vals, H_mat, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef, merger_freq, TDItag, order_fresnel_stencil);
+    JustLISAFDresponseTDI_wrap(mode_vals, H_mat, freqs, freqs, d_log10f, l_vals, m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq, TDItag, order_fresnel_stencil);
 }
 
 void PhenomHM::setup_interp_response(){
@@ -169,12 +174,12 @@ void PhenomHM::setup_interp_response(){
 
 void PhenomHM::perform_interp(){
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    host_interpolate(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
+    host_interpolate(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_dur);
 }
 
 
 
-void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
+void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef_wave_frame, double tRef_sampling_frame, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_dur){
 
     double f, t, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
@@ -184,10 +189,11 @@ void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out,
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
     int old_ind_below;
+    double t_break = t0*YRSID_SI + tRef_sampling_frame - t_obs_dur*YRSID_SI;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<length; i++){
             t = old_mode_vals[mode_i].time_freq_corr[i];
-            if (t < 0.0){
+            if (t < t_break){
                 channel1_out[mode_i*length + i] = 0.0+I*0.0;
                 channel2_out[mode_i*length + i] = 0.0+I*0.0;
                 channel3_out[mode_i*length + i] = 0.0+I*0.0;
@@ -244,7 +250,7 @@ void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out,
 
             phase = old_mode_vals[mode_i].phase[i];
             phaseRdelay = old_mode_vals[mode_i].phaseRdelay[i];
-            phasetimeshift = 2.*PI*(t0+tRef)*f;
+            phasetimeshift = 2.*PI*(t0+tRef_wave_frame)*f;
             fastPart = amp * exp(I*(phase + phaseRdelay + phasetimeshift));
 
 
@@ -313,35 +319,25 @@ void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out,
 
 void PhenomHM::Combine(){
     double d_log10f = log10(data_freqs[1]) - log10(data_freqs[0]);
-    host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
+    host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef_wave_frame, tRef_sampling_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_dur);
 }
 
-cmplx complex_dot_d_h(cmplx *arr1, cmplx *arr2, int n, int num_modes){
+cmplx complex_dot_d_h(cmplx *arr1, cmplx *arr2, int n){
     // arr1 template arr2 data
     cmplx I(0.0, 1.0);
     cmplx sum = 0.0 + 0.0*I;
-    cmplx temp_sum = 0.0 + 0.0*I;
     for (int i=0; i<n; i++){
-        temp_sum = 0.0 + 0.0*I;
-        for (int mode_i=0; mode_i<num_modes; mode_i++){
-            temp_sum += arr1[mode_i*n + i];
-        }
-        sum += std::conj(arr2[i])*temp_sum;
+        sum += std::conj(arr2[i])*arr1[i];
     }
     return sum;
 }
 
-cmplx complex_dot_h_h(cmplx *arr1, cmplx *arr2, int n, int num_modes){
+cmplx complex_dot_h_h(cmplx *arr1, cmplx *arr2, int n){
     // arr1 template arr2 template
     cmplx I(0.0, 1.0);
     cmplx sum = 0.0 + 0.0*I;
-    cmplx temp_sum = 0.0 + 0.0*I;
     for (int i=0; i<n; i++){
-        temp_sum = 0.0 + 0.0*I;
-        for (int mode_i=0; mode_i<num_modes; mode_i++){
-            temp_sum += arr1[mode_i*n + i];
-        }
-        sum += std::conj(temp_sum)*temp_sum;
+        sum += std::conj(arr1[i])*arr1[i];
     }
     return sum;
 }
@@ -353,22 +349,22 @@ void PhenomHM::Likelihood (double *like_out_){
      double h_h = 0.0;
      cmplx res, result;
 
-     result = complex_dot_d_h(template_channel1, data_channel1, data_stream_length, num_modes);
+     result = complex_dot_d_h(template_channel1, data_channel1, data_stream_length);
      d_h += result.real();
 
-     result = complex_dot_d_h(template_channel2, data_channel2, data_stream_length, num_modes);
+     result = complex_dot_d_h(template_channel2, data_channel2, data_stream_length);
      d_h += result.real();
 
-     result = complex_dot_d_h(template_channel3, data_channel3, data_stream_length, num_modes);
+     result = complex_dot_d_h(template_channel3, data_channel3, data_stream_length);
      d_h += result.real();
 
-     result = complex_dot_h_h(template_channel1, template_channel1, data_stream_length, num_modes);
+     result = complex_dot_h_h(template_channel1, template_channel1, data_stream_length);
      h_h += result.real();
 
-     result = complex_dot_h_h(template_channel2, template_channel2, data_stream_length, num_modes);
+     result = complex_dot_h_h(template_channel2, template_channel2, data_stream_length);
      h_h += result.real();
 
-     result = complex_dot_h_h(template_channel3, template_channel3, data_stream_length, num_modes);
+     result = complex_dot_h_h(template_channel3, template_channel3, data_stream_length);
      h_h += result.real();
 
      like_out_[0] = 4*d_h;
@@ -376,9 +372,9 @@ void PhenomHM::Likelihood (double *like_out_){
 }
 
 void PhenomHM::GetTDI(cmplx *template_channel1_, cmplx *template_channel2_, cmplx *template_channel3_){
-    memcpy(template_channel1_, template_channel1, num_modes*data_stream_length*sizeof(cmplx));
-    memcpy(template_channel2_, template_channel2, num_modes*data_stream_length*sizeof(cmplx));
-    memcpy(template_channel3_, template_channel3, num_modes*data_stream_length*sizeof(cmplx));
+    memcpy(template_channel1_, template_channel1, data_stream_length*sizeof(cmplx));
+    memcpy(template_channel2_, template_channel2, data_stream_length*sizeof(cmplx));
+    memcpy(template_channel3_, template_channel3, data_stream_length*sizeof(cmplx));
 }
 
 void PhenomHM::GetAmpPhase(double* amp_, double* phase_){

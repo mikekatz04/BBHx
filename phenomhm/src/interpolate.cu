@@ -462,6 +462,11 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
         printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_dur, t_break);
 
     #endif*/
+    /*for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < data_length;
+         i += blockDim.x * gridDim.x)
+      {*/
+
     for (int mode_i=0; mode_i<num_modes; mode_i++){
             f = data_freqs[i];
             old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
@@ -579,6 +584,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             channel3_out[i] = cuCadd(channel3_out[i], trans_complex);
     }
+//}
 }
 
 Interpolate::Interpolate(){

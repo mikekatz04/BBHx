@@ -15,73 +15,85 @@ except ImportError:
 
 def test():
     df = 1e-5
-    data_length = int(2* int(2**17))
+    length = int(2**15)
+    data_length = int(2* length)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
-    df = 1e-4
-    q = 1/3.00000000e+00
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 1.654545, 1e-3, 2.00000000e+06/(1+q), 2.00000000e+06*q/(1+q), 0.0, 0.0,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
+    M = 6.00000000e+07
+    q = 0.4892
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 1.4893, 0.0, M/(1+q), M*q/(1+q), -0.738283, 0.45837,  cosmo.luminosity_distance(10.0).value*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
-
-    inc =  1.04719755
-    lam = -2.43647481e-02
-    beta =  6.24341583e-01
-    psi = 2.02958790e+00
     t0 = 1.0
-    tRef = 5.02462348e+01# minutes to seconds
+    tRef = 23.43892# minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
     Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
     f_ref = 0.0
     TDItag = 2
-
     l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32) #
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32) #,
 
-    key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
+    Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
+    upper_freq = 0.6/Msec
+    lower_freq = 1e-4/Msec
+    freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), len(freq))
+    data_freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), length)
 
+    data = data[:length]
+
+    deltaF = np.zeros_like(data_freqs)
+    deltaF[1:] = np.diff(data_freqs)
+    deltaF[0] = deltaF[1]
+
+    """AE_noise = np.genfromtxt('SnAE2017.dat').T
+    T_noise = np.genfromtxt('SnAE2017.dat').T
+
+    from scipy.interpolate import CubicSpline
+
+    AE_noise = CubicSpline(AE_noise[0], AE_noise[1])
+    T_noise = CubicSpline(T_noise[0], T_noise[1])
+
+    AE_ASDinv = 1./np.sqrt(AE_noise(data_freqs))*np.sqrt(deltaF)
+    AE_ASDinv = 1./np.sqrt(AE_noise(data_freqs))*np.sqrt(deltaF)
+    T_ASDinv = 1./np.sqrt(T_noise(data_freqs))*np.sqrt(deltaF)"""
+
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1', includewd=3))*np.sqrt(deltaF)
+    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1', includewd=3))*np.sqrt(deltaF)
+    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
+
+    #AE_ASDinv = np.ones_like(data_freqs)
+    #T_ASDinv = np.ones_like(data_freqs)
+
+    t_obs_dur = 0.9
+
+    inc =  1.28394490393
+    lam = 3.8707963268
+    beta = 1.3892909090
+    psi = 0.8237823
+
+    key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
     recycler = Recycler(key_order)
 
     converter = Converter(key_order, tLtoSSB=True)
 
-    tRef_sampling_frame = 50.2462348
+    tRef_sampling_frame = tRef
+
     array = np.array([inc, lam, beta, psi, np.log(tRef)])
 
     array = recycler.recycle(array)
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
-
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
 
-    m1, m2, a1, a2, distance, phiRef, inc, lam, beta, psi, tRef_wave_frame = np.array([ 1.50000000e+06,  5.00000000e+05,  0.00000000e+00,  0.00000000e+00,
-        1.12918211e+27,  4.14364406e+00,  1.04719755e+00, -2.94775421e+00,
-        1.46800073e+00,  2.23667294e+00,  4.72267398e-08])
-    print('should be 492820.8889363843')
-
-    #data_freqs = np.fft.rfftfreq(data_length, d=0.1)
-    #data_freqs[0] = 1e-8
-    Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
-    upper_freq = 0.6/Msec
-    lower_freq = 1e-4/Msec
-    freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), int(2**12))
-    data_freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), int(2**17))
-    data = data[:int(2**17)]
-
-    deltaF = np.zeros_like(data_freqs)
-    deltaF[1:] = np.diff(data_freqs)
-    deltaF[0] = deltaF[1]
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
-    AE_ASDinv = 1./np.sqrt(tdi.noisepsd_AE(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
-    T_ASDinv = 1./np.sqrt(tdi.noisepsd_T(data_freqs, model='SciRDv1'))*np.sqrt(deltaF)
-
-    t_obs_dur = 0.5
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
      m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur)
 
-    num = 1
+    num = 100000
     st = time.perf_counter()
+    #phiRef = np.linspace(0.0, 2*np.pi, num)
+    #snrs = np.zeros_like(phiRef)
     for i in range(num):
         """phenomHM.gen_amp_phase(freq, m1,  # solar masses
                      m2,  # solar masses
@@ -97,8 +109,10 @@ def test():
         phenomHM.perform_interp()
         like = phenomHM.Likelihood()"""
 
-        like2 = phenomHM.WaveformThroughLikelihood(freq, m1, m2,  chi1z, chi2z, distance, phiRef,f_ref, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq)
-        print(like2)
+        like2 = phenomHM.WaveformThroughLikelihood(freqs, m1, m2,  chi1z, chi2z, distance, phiRef, f_ref, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_TDI=False)
+        #snrs[i] = like2[1]
+        #print(like2**(1/2))
+
         """
         phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
 
@@ -119,10 +133,12 @@ def test():
         assert(all(like == like2))
         """
 
+    #np.save('snrs', np.array([phiRef, snrs]))
     t = time.perf_counter() - st
     print('gpu per waveform:', t/num)
     #print(like)
     #gpu_X, gpu_Y, gpu_Z = phenomHM.GetTDI()
+    import pdb; pdb.set_trace()
     amp, phase = phenomHM.GetAmpPhase()
     A, E, T = phenomHM.GetTDI()
     #np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
@@ -180,7 +196,9 @@ def test():
         E_out.append(E)
         T_out.append(T)
     """
-    np.save('TDI', np.array([A, E, T]))
+
+    #np.save('amp-phase', np.concatenate([np.array([freq]), amp, phase], axis=0))
+    #np.save('TDI', np.array([data_freqs, A, E, T]))
     pdb.set_trace()
 
 if __name__ == "__main__":

@@ -331,28 +331,30 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H_mat, double f, double t, double 
 
 
 
-void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef, double merger_freq, int TDItag, int order_fresnel_stencil){
+void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef_wave_frame, double tRef_sampling_frame, double merger_freq, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     double phasetimeshift;
-    double f, t, x, x2, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
+    double phi_up, phi;
+    double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<num_points; i++){
 
             f = frqs[i];
 
-            // Right now, it assumes same points for initial sampling of the response and the waveform
-            // linear term in cubic spline is the first derivative of phase at each node point
-            dphidf = mode_vals[mode_i].phase_coeff_1[i];
+            if (i == 0) dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
 
-            t = 1./(2.0*PI)*dphidf + tRef;
+            t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+            t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
             // adjust phase values stored in mode vals to reflect the tRef shift
-            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef;
+            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef_wave_frame;
             //if (t<0.0) printf("mode %d, index %d, time %e\n", mode_i, i, t);
-            transferL_holder transferL = JustLISAFDresponseTDI(&H_mat[mode_i*9], f, t, lam, beta, t0, TDItag, order_fresnel_stencil);
+            transferL_holder transferL = JustLISAFDresponseTDI(&H_mat[mode_i*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 
-            mode_vals[mode_i].time_freq_corr[i] = t + t0;
+            mode_vals[mode_i].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI;
             mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);
             mode_vals[mode_i].transferL1_im[i] = std::imag(transferL.transferL1);
             mode_vals[mode_i].transferL2_re[i] = std::real(transferL.transferL2);

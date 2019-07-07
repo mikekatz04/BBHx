@@ -1,11 +1,31 @@
-/*
-This is the central piece of code. This file implements a class
-that takes data in on the cpu side, copies
-it to the gpu, and exposes functions that let
-you perform actions with the GPU
-
-This class will get translated into python via cython
-*/
+/*  This code was created by Michael Katz.
+ *  It is shared under the GNU license (see below).
+ *  This is the central piece of code. This file implements a class
+ *  that takes data in on the cpu side, copies
+ *  it to the gpu, and exposes functions that let
+ *  you perform actions with the GPU.
+ *
+ *  This class will get translated into python via cython.
+ *
+ *
+ *
+ *  Copyright (C) 2019 Michael Katz
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with with program; see the file COPYING. If not, write to the
+ *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ *  MA  02111-1307  USA
+ */
 
 #include <kernel.cu>
 #include <manager.hh>
@@ -65,6 +85,8 @@ PhenomHM::PhenomHM (int max_length_init_,
 
     q_all_trans = new HMPhasePreComp[num_modes];
 
+    // malloc and setup for the GPU
+
   gpuErrchk(cudaMalloc(&d_B, 8*data_stream_length_*num_modes*sizeof(double)));
 
   mode_vals = cpu_create_modes(num_modes, l_vals, m_vals, max_length_init, to_gpu, 1);
@@ -111,7 +133,7 @@ PhenomHM::PhenomHM (int max_length_init_,
 
   gpuErrchk(cudaMalloc((void**) &d_q_all_trans, num_modes*sizeof(HMPhasePreComp)));
 
-
+  // phase shifts for each m mode
   double cShift[7] = {0.0,
                        PI_2 /* i shift */,
                        0.0,
@@ -134,6 +156,7 @@ PhenomHM::PhenomHM (int max_length_init_,
       }
       // ----------------
 
+// initialize values needed for GPU waveform creation
   //double t0_;
   t0 = 0.0;
 
@@ -143,12 +166,16 @@ PhenomHM::PhenomHM (int max_length_init_,
   //double amp0_;
   amp0 = 0.0;
 
+  // alocate for H matrix from pyFDResponse in LDC
   H = new cmplx[9*num_modes];
 
+  // alocate GPU arrays for interpolation
   interp.alloc_arrays(max_length_init);
 }
 
-
+/*
+generate gpu amp and phase
+*/
 void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     double m1_, //solar masses
     double m2_, //solar masses
@@ -181,6 +208,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     f_ref = f_ref_;
     //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
 
+    // copy everything to GPU
     gpuErrchk(cudaMemcpy(d_freqs, freqs, current_length*sizeof(double), cudaMemcpyHostToDevice));
 
     gpuErrchk(cudaMemcpy(d_pHM_trans, pHM_trans, sizeof(PhenomHMStorage), cudaMemcpyHostToDevice));
@@ -194,7 +222,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     gpuErrchk(cudaMemcpy(d_q_all_trans, q_all_trans, num_modes*sizeof(HMPhasePreComp), cudaMemcpyHostToDevice));
 
     double M_tot_sec = (m1+m2)*MTSUN_SI;
-    /* main: evaluate model at given frequencies */
+    /* main: evaluate model at given frequencies on GPU */
     NUM_THREADS = 256;
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes);
@@ -219,6 +247,9 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
      current_status = 1;
 }
 
+/*
+generate structures for GPU creation of amp and phase
+*/
 void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
     double m1, //solar masses
     double m2, //solar masses
@@ -238,7 +269,7 @@ void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
     m1_SI = m1*MSUN_SI;
     m2_SI = m2*MSUN_SI;
 
-    /* main: evaluate model at given frequencies */
+    /* fill all the structures necessary for waveform creation */
     retcode = 0;
     retcode = IMRPhenomHMCore(
         mode_vals,
@@ -265,16 +296,20 @@ void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
 }
 
-
+/*
+Setup interpolation of amp and phase
+*/
 void PhenomHM::setup_interp_wave(){
 
     assert(current_status >= 2);
     dim3 waveInterpDim(num_blocks, num_modes);
 
+    // fill B array
     fill_B_wave<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals, d_B, current_length, num_modes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
+    // perform interpolation
     interp.prep(d_B, current_length, 2*num_modes, 1);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
@@ -286,6 +321,9 @@ void PhenomHM::setup_interp_wave(){
     if (current_status == 2) current_status = 3;
 }
 
+/*
+Get LISA fast Fourier domain response on GPU
+*/
 void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq_){
     inc = inc_;
     lam = lam_;
@@ -300,6 +338,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
 
     assert(current_status >= 1);
 
+    // get H on the CPU
     prep_H_info(H, l_vals, m_vals, num_modes, inc, lam, beta, psi, phiRef);
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
@@ -308,6 +347,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     dim3 gridDim(num_blocks, num_modes);
 
     //printf("inc %lf, beta %lf, lam %lf, psi %lf, phiRef %e, t0_epoch %lf, tRef %lf\n", inc, beta, lam, psi, phiRef, t0_epoch, tRef);
+    // Perform response
     kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals, d_H, d_freqs, d_freqs, d_log10f, d_l_vals, d_m_vals, num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq, TDItag, 0);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
@@ -315,6 +355,9 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     if (current_status == 1) current_status = 2;
 }
 
+/*
+setup interpolation for the response transfer functions
+*/
 void PhenomHM::setup_interp_response(){
 
     assert(current_status >= 3);
@@ -336,6 +379,9 @@ void PhenomHM::setup_interp_response(){
     if (current_status == 3) current_status = 4;
 }
 
+/*
+interpolate amp and phase up to frequencies of the data stream.
+*/
 void PhenomHM::perform_interp(){
     assert(current_status >= 4);
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
@@ -349,6 +395,9 @@ void PhenomHM::perform_interp(){
     if (current_status == 4) current_status = 5;
 }
 
+/*
+Compute likelihood on the GPU
+*/
 void PhenomHM::Likelihood (double *like_out_){
 
      assert(current_status == 5);
@@ -358,6 +407,7 @@ void PhenomHM::Likelihood (double *like_out_){
      double res;
      cuDoubleComplex result;
 
+        // get data - template terms
          stat = cublasZdotc(handle, data_stream_length,
                  d_template_channel1, 1,
                  d_data_channel1, 1,
@@ -397,6 +447,8 @@ void PhenomHM::Likelihood (double *like_out_){
          d_h += cuCreal(result);
          //printf("channel3 d_h: %e\n", cuCreal(result));
 
+
+         // get template template terms
         stat = cublasZdotc(handle, data_stream_length,
                      d_template_channel1, 1,
                      d_template_channel1, 1,
@@ -436,44 +488,13 @@ void PhenomHM::Likelihood (double *like_out_){
              h_h += cuCreal(result);
              //printf("channel3 h_h: %e\n", cuCreal(result));
 
-     /*
-     // d_template_channel1 d_template_channel1 for h_h
-     stat = cublasDznrm2(handle, num_modes*data_stream_length,
-             d_template_channel1, 1, &res);
-     status = _cudaGetErrorEnum(stat);
-      cudaDeviceSynchronize();
-
-      if (stat != CUBLAS_STATUS_SUCCESS) {
-              exit(0);
-          }
-        h_h += res*res; //TODO: MAKE SURE THIS IS RIGHT
-
-      // d_template_channel2 d_template_channel2 for h_h
-      stat = cublasDznrm2(handle, num_modes*data_stream_length,
-              d_template_channel2, 1, &res);
-      status = _cudaGetErrorEnum(stat);
-       cudaDeviceSynchronize();
-
-       if (stat != CUBLAS_STATUS_SUCCESS) {
-               exit(0);
-           }
-         h_h += res*res;
-
-       // d_template_channel3 d_template_channel3 for h_h
-       stat = cublasDznrm2(handle, num_modes*data_stream_length,
-               d_template_channel3, 1, &res);
-       status = _cudaGetErrorEnum(stat);
-        cudaDeviceSynchronize();
-
-        if (stat != CUBLAS_STATUS_SUCCESS) {
-                exit(0);
-            }
-     h_h += res*res;*/
-
      like_out_[0] = 4*d_h;
      like_out_[1] = 4*h_h;
 }
 
+/*
+Copy TDI channels to CPU and return to python.
+*/
 void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 
   assert(current_status > 4);
@@ -482,6 +503,9 @@ void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
   gpuErrchk(cudaMemcpy(channel3_, d_template_channel3, data_stream_length*sizeof(cmplx), cudaMemcpyDeviceToHost));
 }
 
+/*
+auxillary function for getting amplitude and phase to the CPU
+*/
 __global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
@@ -491,6 +515,9 @@ __global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double
     phase[mode_i*length + i] = mode_vals[mode_i].phase[i];
 }
 
+/*
+Return amplitude and phase in python on CPU
+*/
 void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
   assert(current_status > 1);
   double *amp, *phase;
@@ -509,7 +536,9 @@ void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
   gpuErrchk(cudaFree(phase));
 }
 
-
+/*
+Destructor
+*/
 PhenomHM::~PhenomHM() {
   delete pHM_trans;
   delete pAmp_trans;

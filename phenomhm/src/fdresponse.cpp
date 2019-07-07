@@ -1,3 +1,28 @@
+/*  This code was created by Michael Katz.
+ *  It is shared under the GNU license (see below).
+ *  This code computes the fast Fourier domain response function for LISA
+ *  based on Marsat and Baker 2018. This code contains the CPU side to mirror GPU functions
+ *  for this calculation.
+ *
+ *
+ *  Copyright (C) 2019 Michael Katz
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with with program; see the file COPYING. If not, write to the
+ *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ *  MA  02111-1307  USA
+ */
+
 #include <complex>
 #include "globalPhenomHM.h"
 #include <stdio.h>
@@ -7,6 +32,9 @@
 
 using namespace std;
 
+/*
+Calculate spin weighted spherical harmonics
+*/
 cmplx SpinWeightedSphericalHarmonic(int s, int l, int m, double theta, double phi){
     // l=2
     double fac;
@@ -56,12 +84,17 @@ cmplx SpinWeightedSphericalHarmonic(int s, int l, int m, double theta, double ph
     }
 }
 
+/*
+custom sinc function
+*/
 double sinc(double x){
     if (x == 0.0) return 1.0;
     else return sin(x)/x;
 }
 
-
+/*
+custom dot product in 2d
+*/
 void dot_product_2d(double out[3][3], double arr1[3][3], int m1, int n1, double arr2[3][3], int m2, int n2){
     for (int i=0; i<m1; i++){
         for (int j=0; j<n2; j++){
@@ -72,6 +105,9 @@ void dot_product_2d(double out[3][3], double arr1[3][3], int m1, int n1, double 
     }
 }
 
+/*
+Custom dot product in 1d
+*/
 double dot_product_1d(double arr1[3], double arr2[3]){
     double out = 0.0;
     for (int i=0; i<3; i++){
@@ -80,6 +116,9 @@ double dot_product_1d(double arr1[3], double arr2[3]){
     return out;
 }
 
+/*
+Function for calculating matrix calculations of vectors with H matrix
+*/
 cmplx vec_H_vec_product(double arr1[3], cmplx *H_mat, double arr2[3]){
     cmplx I(0.0, 1.0);
     cmplx out(0.0, 0.0);
@@ -94,6 +133,9 @@ cmplx vec_H_vec_product(double arr1[3], cmplx *H_mat, double arr2[3]){
     return out;
 }
 
+/*
+Get H matrix for projections based on source location.
+*/
 void prep_H_info(cmplx *H_mat, unsigned int *l_vals, unsigned int *m_vals, int num_modes, double inc, double lam, double beta, double psi, double phi0){
 
     //##### Based on the f-n by Sylvain   #####
@@ -249,6 +291,9 @@ Gslr_holder EvaluateGslr(double t, double f, cmplx *H_mat, double k[3], int resp
     return Gslr_out;
 }
 
+/*
+Function for calculating TDI from GSLR info.
+*/
 transferL_holder TDICombinationFD(Gslr_holder Gslr, double f, int TDItag, int rescaled){
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
@@ -296,6 +341,9 @@ transferL_holder TDICombinationFD(Gslr_holder Gslr, double f, int TDItag, int re
     }
 }
 
+/*
+main function for response calculation for a single time/frequency point and in specific mode.
+*/
 transferL_holder JustLISAFDresponseTDI(cmplx *H_mat, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
     t = t + t0*YRSID_SI;
 
@@ -330,7 +378,9 @@ transferL_holder JustLISAFDresponseTDI(cmplx *H_mat, double f, double t, double 
 }
 
 
-
+/*
+wrapper for calculating reponse at all frequencies and for all modes.
+*/
 void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef_wave_frame, double tRef_sampling_frame, double merger_freq, int TDItag, int order_fresnel_stencil){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     double phasetimeshift;
@@ -362,6 +412,7 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *
             mode_vals[mode_i].transferL3_re[i] = std::real(transferL.transferL3);
             mode_vals[mode_i].transferL3_im[i] = std::imag(transferL.transferL3);
             mode_vals[mode_i].phaseRdelay[i] = transferL.phaseRdelay;
+
         }
     }
 }

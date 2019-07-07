@@ -1,3 +1,11 @@
+"""
+Wrapper code for gpuPhenomHM. Helps to calculate likelihoods
+for samplers. Author: Michael Katz
+
+Calculates phenomHM waveforms, puts them through the LISA response
+and calculates likelihood.
+"""
+
 import numpy as np
 from scipy import constants as ct
 from .utils.convert import Converter, Recycler

@@ -1,4 +1,10 @@
-
+/*  This code was edited by Michael Katz. It is originally from the LAL library.
+ *  The original copyright and license is shown in `PhenomHM.cpp`. Michael Katz has edited
+ *  the code for his purposes and removed dependencies on the LAL libraries. The code has been confirmed to match the LAL version.
+ *  This code is distrbuted under the same GNU license it originally came with.
+ *  The comments in the code have been left generally the same. A few comments
+ *  have been made for the newer functions added.
+ */
 /* QNM data */
 #ifndef _QNM_DATA_
 #define _QNM_DATA_

@@ -1,4 +1,10 @@
-/*
+/*  This code was edited by Michael Katz. It is originally from the LAL library.
+ *  The original copyright and license is shown below. Michael Katz has edited
+ *  the code for his purposes and removed dependencies on the LAL libraries. The code has been confirmed to match the LAL version.
+ *  This code is distrbuted under the same GNU license it originally came with.
+ *  The comments in the code have been left generally the same. A few comments
+ *  have been made for the newer functions added.
+
  * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
  *
  *  This program is free software; you can redistribute it and/or modify

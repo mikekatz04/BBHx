@@ -1,3 +1,7 @@
+"""
+Converter to convert parameters in a sampler to physical parameters
+needed for the likelihood calculation.
+"""
 import numpy as np
 from scipy import constants as ct
 from scipy import stats

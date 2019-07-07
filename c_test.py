@@ -20,13 +20,13 @@ def test():
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
-    M = 6.00000000e+07
-    q = 0.4892
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 1.4893, 0.0, M/(1+q), M*q/(1+q), -0.738283, 0.45837,  cosmo.luminosity_distance(10.0).value*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
+    M = 2.00000000e+06
+    q = 1/3.00000000e+00
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 2.13954125e+00, 0.0, M/(1+q), M*q/(1+q), 0.2323489, -0.72320,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
     t0 = 1.0
-    tRef = 23.43892# minutes to seconds
+    tRef = 5.02462348e+01# minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
     Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
     f_ref = 0.0
@@ -67,10 +67,10 @@ def test():
 
     t_obs_dur = 0.9
 
-    inc =  1.28394490393
-    lam = 3.8707963268
-    beta = 1.3892909090
-    psi = 0.8237823
+    inc =  np.pi - 1.04719755e+00
+    lam = -2.43647481e-02
+    beta = -6.24341583e-01
+    psi = np.pi - 2.02958790e+00
 
     key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
     recycler = Recycler(key_order)
@@ -86,11 +86,12 @@ def test():
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
 
+    data_A, data_E, data_T = np.load('data_set.npy')
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data_freqs, data, data, data, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur)
+     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur)
 
-    num = 100000
+    num = 1
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
@@ -138,7 +139,6 @@ def test():
     print('gpu per waveform:', t/num)
     #print(like)
     #gpu_X, gpu_Y, gpu_Z = phenomHM.GetTDI()
-    import pdb; pdb.set_trace()
     amp, phase = phenomHM.GetAmpPhase()
     A, E, T = phenomHM.GetTDI()
     #np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))

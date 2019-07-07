@@ -1,6 +1,32 @@
-#include "globalPhenomHM.h"
+/*  This code was created by Michael Katz.
+ *  It is shared under the GNU license (see below).
+ *  Creates the structures that hold waveform and interpolation information
+ *  for the CPU version of the PhenomHM waveform.
+ *
+ *
+ *  Copyright (C) 2019 Michael Katz
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with with program; see the file COPYING. If not, write to the
+ *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ *  MA  02111-1307  USA
+ */
 
+ #include "globalPhenomHM.h"
 
+ /*
+ Function for creating ModeContainer on the cpu.
+ */
 ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp){
         ModeContainer * mode_vals = new ModeContainer[num_modes];
         for (int i=0; i<num_modes; i++){
@@ -72,6 +98,9 @@ ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
         return mode_vals;
 }
 
+/*
+Destroy ModeContainer structures.
+*/
 void cpu_destroy_modes(ModeContainer * mode_vals){
     if (mode_vals[0].to_gpu == 0){
         for (int i=0; i<mode_vals[0].num_modes; i++){

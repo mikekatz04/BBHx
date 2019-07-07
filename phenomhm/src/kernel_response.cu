@@ -1,3 +1,28 @@
+/*  This code was created by Michael Katz.
+ *  It is shared under the GNU license (see below).
+ *  This code computes the fast Fourier domain response function for LISA
+ *  based on Marsat and Baker 2018. This code contains the GPU functions
+ *  for this calculation. See fdresponse.cpp for comments. See pyFDresponse.py in LDC.
+ *
+ *
+ *  Copyright (C) 2019 Michael Katz
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with with program; see the file COPYING. If not, write to the
+ *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ *  MA  02111-1307  USA
+ */
+
 #include <cuComplex.h>
 #include "globalPhenomHM.h"
 #include <stdio.h>
@@ -303,12 +328,11 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             mode_vals[mode_i].phaseRdelay[i] = transferL.phaseRdelay;
 
             /*# if __CUDA_ARCH__>=200
-            //if (i % 2000 == 0)
-            if ((f > 9.750143e-02) && (f < 9.783093190178288046e-02))
+            if ((i == 1000) && (mode_i == 1)){
                 printf("phases: %d, %.18e, %.18e, %e, %e, %e, %e, %e, %e, %e \n", mode_i, f, t_wave_frame, cuCreal(transferL.transferL1), cuCimag(transferL.transferL1), cuCreal(transferL.transferL2), cuCimag(transferL.transferL2), cuCreal(transferL.transferL3), cuCimag(transferL.transferL3), transferL.phaseRdelay);
+            }
 
-
-            #endif*/
+            #endif //*/
 }
 
 

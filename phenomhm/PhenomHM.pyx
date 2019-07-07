@@ -142,7 +142,6 @@ cdef class PhenomHM:
                             phiRef,
                             f_ref)
 
-        print(return_amp_phase)
         if return_amp_phase:
             return self.GetAmpPhase()
 
@@ -151,7 +150,6 @@ cdef class PhenomHM:
         self.setup_interp_response()
         self.perform_interp()
 
-        print(return_TDI)
         if return_TDI:
             return self.GetTDI()
 

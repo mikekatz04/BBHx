@@ -1,10 +1,36 @@
+/*  This code was created by Michael Katz.
+ *  It is shared under the GNU license (see below).
+ *  Creates the structures that hold waveform and interpolation information
+ *  for the GPU version of the PhenomHM waveform.
+ *
+ *
+ *  Copyright (C) 2019 Michael Katz
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with with program; see the file COPYING. If not, write to the
+ *  Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ *  MA  02111-1307  USA
+ */
+
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
 #include <complex>
 #include "cuComplex.h"
 
-
+/*
+Function for gpu Error checking.
+//*/
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -15,10 +41,14 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-
+/*
+Function for creating ModeContainer on the gpu.
+*/
 ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp){
         ModeContainer * cpu_mode_vals = cpu_create_modes(num_modes,  l_vals, m_vals, max_length, 1, 0);
         ModeContainer * mode_vals;
+
+        // This employs a special way to transfer structures with arrays to the GPU.
 
         double *amp[num_modes];
         double *phase[num_modes];
@@ -194,6 +224,9 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
         return mode_vals;
 }
 
+/*
+Destroy ModeContainer structures.
+*/
 void gpu_destroy_modes(ModeContainer * mode_vals){
     for (int i=0; i<mode_vals[0].num_modes; i++){
         gpuErrchk(cudaFree(mode_vals[i].amp));
@@ -210,8 +243,6 @@ void gpu_destroy_modes(ModeContainer * mode_vals){
         gpuErrchk(cudaFree(mode_vals[i].transferL3_im));
         gpuErrchk(cudaFree(mode_vals[i].phaseRdelay));
 
-        //gpuErrchk(cudaFree(mode_vals[i].hI));
-        //gpuErrchk(cudaFree(mode_vals[i].hII));
         if (mode_vals[i].to_interp == 1){
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_1));
             gpuErrchk(cudaFree(mode_vals[i].amp_coeff_2));

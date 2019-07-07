@@ -1,4 +1,11 @@
-/*
+/*  This code was edited by Michael Katz. It is originally from the LAL library.
+ *  The original copyright and license is shown below. Michael Katz has edited
+ *  the code for his purposes and removed dependencies on the LAL libraries. The code has been confirmed to match the LAL version.
+ *  This code is distrbuted under the same GNU license it originally came with.
+ *  The comments in the code have been left generally the same. A few comments
+ *  have been made for the newer functions added.
+
+
  *  Copyright (C) 2017 Sebastian Khan, Francesco Pannarale, Lionel London
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -806,7 +813,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
  */
 
 /**
- * Returns h+ and hx in the frequency domain.
+ * Original Code: Returns h+ and hx in the frequency domain.
  *
  * This function can be called in the usual sense
  * where you supply a f_min, f_max and deltaF.
@@ -817,6 +824,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
  * To do this you must call this function with
  * deltaF <= 0.
  *
+ * New code: This function is really used for testing.
  */
  int IMRPhenomHM(
      ModeContainer *mode_vals, /**< [out] Frequency-domain waveform hx */
@@ -837,16 +845,9 @@ double IMRPhenomHMOnePointFiveSpinPN(
     /* define and init return code for this function */
     int retcode;
 
-    /* sanity checks on input parameters: check pointers, etc. */
-    /* NOTE: a lot of checks are done in the function
-     * IMRPhenomHMGethlmModes because that can also be used
-     * as a standalone function. It gets called through IMRPhenomHMCore
-     * so to avoid doubling up on checks alot of the checks are done in
-     * IMRPhenomHMGethlmModes.
-     */
     assert (distance > 0); //, PD_EDOM, "distance must be positive.\n");
 
-    // DECLARE ALL THE  NECESSARY STRUCTS FOR THE GPU
+    // DECLARE ALL THE  NECESSARY STRUCTS FOR TESTING
     PhenomHMStorage *pHM_trans = (PhenomHMStorage *) malloc(sizeof(PhenomHMStorage));
     IMRPhenomDAmplitudeCoefficients *pAmp_trans = (IMRPhenomDAmplitudeCoefficients*)malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
     AmpInsPrefactors *amp_prefactors_trans = (AmpInsPrefactors*)malloc(sizeof(AmpInsPrefactors));
@@ -897,14 +898,17 @@ double IMRPhenomHMOnePointFiveSpinPN(
 /** @} */
 
 /**
- * internal function that returns h+ and hx.
- * Inside this function the my bulk of the work is done
- * like the loop over frequencies.
+ * Michael Katz added this function.
+ * internal function that returns amplitude and phase for all frequencies and modes.
+ * Inside this function the bulk of the work is done
+ * in the loop over frequencies. This is to match the GPU setup.
  */
  void host_calculate_all_modes(ModeContainer *mode_vals, PhenomHMStorage *pHM, double *freqs, double M_tot_sec, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp *pDPreComp_all, HMPhasePreComp *q_all, double amp0, int num_modes, double t0, double phi0){
      unsigned int mm, ell;
      double Rholm, Taulm;
      double freq_geom;
+
+     // Get mode and frequency information to pass to amplitude and phase function
      for (int mode_i=0; mode_i<num_modes; mode_i++)
      {
          ell = mode_vals[mode_i].l;
@@ -916,12 +920,17 @@ double IMRPhenomHMOnePointFiveSpinPN(
         for (unsigned int i = pHM->ind_min; i < pHM->ind_max; i++)
         {
             freq_geom = freqs[i]*M_tot_sec;
+
+            // fill amplitude and phase arrays for this specific mode and frequency
             host_calculate_each_mode(i, mode_vals[mode_i], ell, mm, pHM, freq_geom, pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, Rholm, Taulm, t0, phi0);
         }
      }
  }
 
-
+ /**
+  * Michael Katz added this function.
+  * internal function that filles amplitude and phase for a specific frequency and mode.
+  */
  void host_calculate_each_mode(int i, ModeContainer mode_val, unsigned int ell, unsigned int mm, PhenomHMStorage *pHM, double freq_geom, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0){
          double freq_amp, Mf, beta_term1, beta, beta_term2, HMamp_term1, HMamp_term2;
          double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
@@ -930,7 +939,6 @@ double IMRPhenomHMOnePointFiveSpinPN(
          UsefulPowers powers_of_f;
          int retcode = 0;
 
-          /* loop over only positive m is intentional. negative m added automatically */
           // generate amplitude
           // IMRPhenomHMAmplitude
         freq_amp = IMRPhenomHMFreqDomainMap(freq_geom, ell, mm, pHM, AmpFlagTrue);
@@ -951,7 +959,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
                 amp_i = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
               }
 
-
+             // calculate terms to adjust the PhenomD amplitude for each mode
             beta_term1 = IMRPhenomHMOnePointFiveSpinPN(
                 freq_geom,
                 ell,
@@ -990,8 +998,10 @@ double IMRPhenomHMOnePointFiveSpinPN(
             //HMamp is computed here
             amp_i *= beta * HMamp_term1 / HMamp_term2;
 
+        // fill amplitude value
         mode_val.amp[i] = amp_i*amp0;
 
+        // calculate phase
         Mf_wf = 0.0;
         Mf = 0.0;
         Mfr = 0.0;
@@ -1030,31 +1040,22 @@ double IMRPhenomHMOnePointFiveSpinPN(
             //phase_term2 = 0.0;
             //Mf = 0.0;
             Mf = freq_geom;
+            // time shift compared to f_ref
             phase_term1 = - t0 * (Mf - pHM->Mf_ref);
+
+            // phase shift to set phiRef to 0.0 (phiRef is set extrinsically)
             phase_term2 = phase_i - (mm * phi0);
 
+            // add phase
             mode_val.phase[i] = phase_term1 + phase_term2;
-
-             /*hlm = amp_i * std::exp(-I * (phase_term1 + phase_term2));
-             //double complexFrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
-             if ((std::real(hlm) == 0.0) && (std::imag(hlm) == 0.0))
-             {
-                 hptilde->data[mode_i*hptilde->length + i] = 0.0; //TODO check += here
-                hctilde->data[mode_i*hctilde->length + i] = 0.0;
-             }
-             else
-             {
-                 hptilde->data[mode_i*hptilde->length + i] = factorp * hlm * amp0; //TODO check += here
-                 hctilde->data[mode_i*hctilde->length + i] = factorc * hlm * amp0;
-             }                */
-             //IMRPhenomHMFDAddMode(*hptilde, *hctilde, hlm, inclination, 0., ell, mm, sym); /* The phase \Phi is set to 0 - assumes phiRef is defined as half the phase of the 22 mode h22 */
-
-             //if (mode_i == 1)
-             //    printf("%d, %d %e\n", ell, mm, (*hptilde)->data[mode_i*(*hptilde)->length + i]);
-         //printf("(l, m): (%d, %d)\n", ell, mm);
 }
 
-
+/**
+ * Michael Katz added this function.
+ * Main function for calculating PhenomHM in the form used by Michael Katz
+ * This is setup to allow for pre-allocation of arrays. Therefore, all arrays
+ * should be setup outside of this function.
+ */
 
 int IMRPhenomHMCore(
     ModeContainer *mode_vals, /**< [out] Frequency domain hx GW strain */
@@ -1113,6 +1114,7 @@ failed");
 
 
     /* Two possibilities */
+    /* Never goes in here with my setup where the frequencies are provided. */
     if (pHM->freq_is_uniform == 1)
     { /* 1. uniformly spaced */
         //printf("freq_is_uniform = True\n");
@@ -1135,7 +1137,7 @@ failed");
             "Failed to shift coalescence time to t=0,\
 tried to apply shift of -1.0/deltaF with deltaF=%g.",
             pHM->deltaF);*/
-        ligotimegps_zero += -1. / deltaF;
+        //ligotimegps_zero += -1. / deltaF;
     }
     else if (pHM->freq_is_uniform == 0)
     { /* 2. arbitrarily space */
@@ -1163,6 +1165,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     }
     */
 
+    // Prepare 22 coefficients
     PhenDAmpAndPhasePreComp pDPreComp22;
     retcode = IMRPhenomDSetupAmpAndPhaseCoefficients(
         &pDPreComp22,
@@ -1178,6 +1181,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
         assert(0); //ERROR(PD_EDOM, "error");
     }
 
+    // set f_ref to f_max
     if (pHM->f_ref == 0.0){
         pHM->Mf_ref = pDPreComp22.pAmp.fmaxCalc;
         pHM->f_ref = PhenomUtilsMftoHz(pHM->Mf_ref, pHM->Mtot);
@@ -1191,13 +1195,16 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     phi0 is the correction we need to add to each mode. */
     double phiRef_to_zero = 0.0;
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
+
+    // phi0 is passed into this function as a pointer.This is for compatibility with GPU.
     *phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
 
+    // t0 is passed into this function as a pointer.This is for compatibility with GPU.
     *t0 = IMRPhenomDComputet0(
     pHM->eta, pHM->chi1z, pHM->chi2z,
     pHM->finspin);
 
-
+    // setup PhenomD info. Sub here is due to preallocated struct
     retcode = ComputeIMRPhenomDAmplitudeCoefficients_sub(pAmp_trans, pHM->eta, pHM->chi1z, pHM->chi2z,
     pHM->finspin);
     assert(retcode == 1);
@@ -1223,9 +1230,12 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     assert (1 == retcode); //,
                 //PD_EFUNC, "init_IMRPhenomHMGet_FrequencyBounds_storage failed");
    /* Compute the amplitude pre-factor */
+   // amp0 is passed into this function as a pointer.This is for compatibility with GPU.
    *amp0 = PhenomUtilsFDamp0(Mtot, distance); // TODO check if this is right units
 
     //HMPhasePreComp q;
+
+    // prep q and pDPreComp for each mode in the loop below
     HMPhasePreComp * q_all = q_all_trans;
 
     PhenDAmpAndPhasePreComp *pDPreComp_all = pDPreComp_all_trans;
@@ -1271,6 +1281,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
 
 
     /* Two possibilities */
+    // Michael Katz: no need to destroy anything with this setup
     if (pHM->freq_is_uniform == 1)
     { /* 1. uniformly spaced */
         //DestroyRealVector(freqs);
@@ -1296,7 +1307,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     //DestroyRealVector(freqs);
     free(pHMFS);
     //DestroyRealVector(freqs_geom);
-    free(freqs); // TODO check this
+    free(freqs); 
     return 1;
 }
 

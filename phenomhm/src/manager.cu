@@ -53,7 +53,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     cmplx *data_channel3_, int data_stream_length_,
     double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_,
     int TDItag_,
-    double t_obs_dur_){
+    double t_obs_start_,
+    double t_obs_end_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -69,7 +70,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     data_channel3 = data_channel3_;
 
     TDItag = TDItag_;
-    t_obs_dur = t_obs_dur_;
+    t_obs_start = t_obs_start_;
+    t_obs_end = t_obs_end_;
     to_gpu = 1;
 
     cudaError_t err;
@@ -388,7 +390,7 @@ void PhenomHM::perform_interp(){
     dim3 mainInterpDim(num_block_interp);//, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv, t_obs_dur);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv, t_obs_start, t_obs_end);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 

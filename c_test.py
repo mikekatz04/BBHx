@@ -65,7 +65,8 @@ def test():
     #AE_ASDinv = np.ones_like(data_freqs)
     #T_ASDinv = np.ones_like(data_freqs)
 
-    t_obs_dur = 0.9
+    t_obs_start = 0.0
+    t_obs_end = 2.0
 
     inc =  np.pi - 1.04719755e+00
     lam = -2.43647481e-02
@@ -89,7 +90,7 @@ def test():
     data_A, data_E, data_T = np.load('data_set.npy')
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur)
+     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_start, t_obs_end)
 
     num = 1
     st = time.perf_counter()

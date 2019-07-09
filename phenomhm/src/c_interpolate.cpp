@@ -183,9 +183,9 @@ void host_set_spline_constants_response(ModeContainer *mode_vals, double *b_mat,
         }
     }
 }
-void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_dur){
+void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_start, double t_obs_end){
 
-    double f, time_start, x, x2, x3;
+    double f, time, x, x2, x3;
     double time_coeff_0, time_coeff_1, time_coeff_2, time_coeff_3;
     double amp_coeff_0, amp_coeff_1, amp_coeff_2, amp_coeff_3;
     double phase_coeff_0, phase_coeff_1, phase_coeff_2, phase_coeff_3;
@@ -204,7 +204,6 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
     int old_ind_below;
-    double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI;
     for (int i=0; i<length; i++) {
         channel1_out[i] += 0.0+0.0*I;
         channel2_out[i] = 0.0+0.0*I;
@@ -284,9 +283,8 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
             x2 = x*x;
             x3 = x*x2;
 
-            time_start = time_coeff_0 + (time_coeff_1*x) + (time_coeff_2*x2) + (time_coeff_3*x3);
-
-            if (time_start < t_break) {
+            time = time_coeff_0 + (time_coeff_1*x) + (time_coeff_2*x2) + (time_coeff_3*x3);
+            if ((time < t_obs_start*YRSID_SI) || (time > t_obs_end*YRSID_SI)) {
                 continue;
             }
 
@@ -328,7 +326,7 @@ void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_
 /*
 void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv){
 
-    double f, time_start, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
+    double f, time, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     cmplx ampphasefactor;

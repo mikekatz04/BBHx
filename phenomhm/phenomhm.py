@@ -23,7 +23,7 @@ MTSUN = 1.989e30*ct.G/ct.c**3
 
 
 class pyPhenomHM(Converter):
-    def __init__(self, max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, t_obs_dur, key_order, **kwargs):
+    def __init__(self, max_length_init, l_vals,  m_vals, data_freqs, data_stream, key_order, t0, t_obs_start=0.0, t_obs_end=5.0, **kwargs):
         """
         data_stream (dict): keys X, Y, Z or A, E, T
         """
@@ -53,7 +53,7 @@ class pyPhenomHM(Converter):
         self.recycler = Recycler(key_order, tLtoSSB=self.tLtoSSB)
 
         self.t0 = t0
-        self.t_obs_dur = t_obs_dur
+        self.t_obs_start, self.t_obs_end = t_obs_start, t_obs_end
         self.max_length_init = max_length_init
         self.l_vals, self.m_vals = l_vals, m_vals
         self.data_freqs, self.data_stream = data_freqs, data_stream
@@ -70,7 +70,8 @@ class pyPhenomHM(Converter):
                                  + 'user must supply data_params kwarg as'
                                  + 'dict with params for data stream.')
             kwargs['data_params']['t0'] = t0
-            kwargs['data_params']['t_obs_dur'] = t_obs_dur
+            kwargs['data_params']['t_obs_start'] = t_obs_start
+            kwargs['data_params']['t_obs_end'] = t_obs_end
 
             self.data_freqs, self.data_stream = (create_data_set(l_vals,  m_vals, t0,
                                 self.data_params, data_freqs=data_freqs, **kwargs))
@@ -127,7 +128,7 @@ class pyPhenomHM(Converter):
                           self.data_freqs, self.data_channel1,
                           self.data_channel2, self.data_channel3,
                           self.channel1_ASDinv, self.channel2_ASDinv, self.channel3_ASDinv,
-                          self.TDItag_in, self.t_obs_dur)
+                          self.TDItag_in, self.t_obs_start, self.t_obs_end)
 
     def NLL(self, m1, m2, a1, a2, distance,
                  phiRef, inc, lam, beta,
@@ -200,8 +201,10 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
     if data_freqs is None:
         if add_noise is not None:
             fs = add_noise['fs']
-            t_obs_dur = waveform_params['t_obs_dur']
-            num_data_points = int(t_obs_dur*ct.Julian_year*fs)
+            t_obs_start = waveform_params['t_obs_start']
+            t_obs_end = waveform_params['t_obs_end']
+            t_obs = t_obs_end - t_obs_start
+            num_data_points = int(t_obs*ct.Julian_year*fs)
             noise_freqs = np.fft.rfftfreq(num_data_points, 1/fs)
             data_freqs = noise_freqs[noise_freqs >= add_noise['min_freq']]
 
@@ -241,7 +244,7 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
     elif TDItag == 'XYZ':
         TDItag_in = 1
 
-    phenomHM = PhenomHM(len(generate_freqs), l_vals, m_vals, data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD, TDItag_in, waveform_params['t_obs_dur'])
+    phenomHM = PhenomHM(len(generate_freqs), l_vals, m_vals, data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD, TDItag_in, waveform_params['t_obs_start'], waveform_params['t_obs_end'])
 
     phenomHM.gen_amp_phase(generate_freqs, waveform_params['m1'],  # solar masses
                  waveform_params['m2'],  # solar masses

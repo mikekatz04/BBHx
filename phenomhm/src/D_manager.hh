@@ -36,7 +36,7 @@
 #include "PhenomHM.h"
 #include "interpolate.hh"
 
-class PhenomHM {
+class PhenomD {
   // pointer to the GPU memory where the array is stored
   int current_status;
   int max_length_init;
@@ -123,7 +123,8 @@ class PhenomHM {
   double tRef_wave_frame;
   double tRef_sampling_frame;
   int TDItag;
-  double t_obs_dur;
+  double t_obs_start;
+  double t_obs_end;
   double merger_freq;
 
 
@@ -139,7 +140,7 @@ public:
        %apply (int* ARGOUT_ARRAY1, int DIM1) {(int* myarray, int length)}
    */
 
-  PhenomHM(int max_length_init_,
+  PhenomD(int max_length_init_,
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
@@ -150,9 +151,9 @@ public:
       int data_stream_length_,
       double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_,
       int TDItag,
-      double t_obs_dur_); // constructor (copies to GPU)
+      double t_obs_start_, double t_obs_end_); // constructor (copies to GPU)
 
-  ~PhenomHM(); // destructor
+  ~PhenomD(); // destructor
 
     void gen_amp_phase(double *freqs_, int current_length_,
         double m1_, //solar masses

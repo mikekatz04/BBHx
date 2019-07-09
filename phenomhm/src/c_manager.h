@@ -95,7 +95,8 @@ class PhenomHM {
   double tRef_wave_frame;
   double tRef_sampling_frame;
   int TDItag;
-  double t_obs_dur;
+  double t_obs_start;
+  double t_obs_end;
   double merger_freq;
 
   double *B;
@@ -121,7 +122,7 @@ public:
       cmplx *data_channel1_,
       cmplx *data_channel2_,
       cmplx *data_channel3_, int data_stream_length_, double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_, int TDItag,
-      double t_obs_dur_); // constructor (copies to GPU)
+      double t_obs_start_, double t_obs_end_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 

@@ -235,6 +235,7 @@ typedef struct tagPhenDAmpAndPhasePreComp
   PhiInsPrefactors phi_prefactors;
   IMRPhenomDAmplitudeCoefficients pAmp;
   AmpInsPrefactors amp_prefactors;
+  double finspin;
 } PhenDAmpAndPhasePreComp;
 
 /**

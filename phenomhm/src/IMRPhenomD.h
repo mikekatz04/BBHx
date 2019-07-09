@@ -77,4 +77,6 @@ double IMRPhenomDFinalMass(
     double chi2z  /**< aligned-spin component on secondary */
 );
 
+double PhenDPhaseDerivFrequencyPoint(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
+
 #endif /* _LALSIM_IMR_PHENOMD_H */

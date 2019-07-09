@@ -11,7 +11,7 @@ cdef extern from "src/manager.hh":
         int, np.float64_t*,
         np.complex128_t *,
         np.complex128_t *,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double)
+        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double, double)
 
         void gen_amp_phase(np.float64_t *, int,
                             double,
@@ -51,7 +51,7 @@ cdef class PhenomHM:
      np.ndarray[ndim=1, dtype=np.float64_t] channel2_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] channel3_ASDinv,
      TDItag,
-     t_obs_dur):
+     t_obs_start, t_obs_end):
 
         self.num_modes = len(l_vals)
         self.data_length = len(data_channel1)
@@ -61,7 +61,7 @@ cdef class PhenomHM:
         self.num_modes, &data_freqs[0],
         &data_channel1[0],
         &data_channel2[0],
-        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_dur)
+        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_start, t_obs_end)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses

@@ -10,7 +10,7 @@ cdef extern from "src/c_manager.h":
         np.uint32_t *,
         int,
         np.float64_t*,
-        np.complex128_t *, np.complex128_t *, np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double)
+        np.complex128_t *, np.complex128_t *, np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double, double)
 
         void gen_amp_phase(np.float64_t *, int,
                             double,
@@ -49,7 +49,7 @@ cdef class PhenomHM:
      np.ndarray[ndim=1, dtype=np.float64_t] X_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] Y_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] Z_ASDinv,
-     TDItag, t_obs_dur):
+     TDItag, t_obs_start, t_obs_end):
         self.num_modes = len(l_vals)
         self.data_channel1 = data_channel1
         self.data_channel2 = data_channel2
@@ -60,7 +60,7 @@ cdef class PhenomHM:
         &m_vals[0],
         self.num_modes, &data_freqs[0],
         &data_channel1[0], &data_channel2[0], &data_channel3[0],
-        self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0], TDItag, t_obs_dur)
+        self.data_length, &X_ASDinv[0], &Y_ASDinv[0], &Z_ASDinv[0], TDItag, t_obs_start, t_obs_end)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses

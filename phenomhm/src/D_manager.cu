@@ -28,7 +28,7 @@
  */
 
 #include <kernel.cu>
-#include <manager.hh>
+#include <D_manager.hh>
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
@@ -40,11 +40,12 @@
 #include "createGPUHolders.cu"
 #include "kernel_response.cu"
 #include "IMRPhenomD.h"
+#include "IMRPhenomD_internals.h"
 // TODO: CUTOFF PHASE WHEN IT STARTS TO GO BACK UP!!!
 
 using namespace std;
 
-PhenomHM::PhenomHM (int max_length_init_,
+PhenomD::PhenomD (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
@@ -54,7 +55,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     cmplx *data_channel3_, int data_stream_length_,
     double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_,
     int TDItag_,
-    double t_obs_dur_){
+    double t_obs_start_, double t_obs_end_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -70,7 +71,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     data_channel3 = data_channel3_;
 
     TDItag = TDItag_;
-    t_obs_dur = t_obs_dur_;
+    t_obs_start = t_obs_start_;
+    t_obs_end = t_obs_end_;
     to_gpu = 1;
 
     cudaError_t err;
@@ -154,7 +156,7 @@ PhenomHM::PhenomHM (int max_length_init_,
 }
 
 
-void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
+void PhenomD::gen_amp_phase(double *freqs_, int current_length_,
     double m1_, //solar masses
     double m2_, //solar masses
     double chi1z_,
@@ -166,7 +168,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     assert(to_gpu == 1);
     assert(current_length_ <= max_length_init);
 
-    PhenomHM::gen_amp_phase_prep(freqs_, current_length_,
+    PhenomD::gen_amp_phase_prep(freqs_, current_length_,
         m1_, //solar masses
         m2_, //solar masses
         chi1z_,
@@ -213,7 +215,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
      current_status = 1;
 }
 
-void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
+void PhenomD::gen_amp_phase_prep(double *freqs, int current_length,
     double m1, //solar masses
     double m2, //solar masses
     double chi1z,
@@ -222,7 +224,7 @@ void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
     double phiRef,
     double f_ref){
 
-    // for phenomHM internal calls
+    // for PhenomD internal calls
     deltaF = -1.0;
 
     for (int i=0; i<num_modes; i++){
@@ -247,11 +249,48 @@ void PhenomHM::gen_amp_phase_prep(double *freqs, int current_length,
         printf("IMRPhenomDSetupAmpAndPhaseCoefficients failed\n");
         assert(0); //ERROR(PD_EDOM, "IMRPhenomDSetupAmpAndPhaseCoefficients failed");
     }
+
+    double eta = pDPreComp_all_trans[0].pPhi.eta;
+    double finspin = pDPreComp_all_trans[0].finspin;
+
+    t0 = IMRPhenomDComputet0(
+        eta,           /**< symmetric mass-ratio */
+        chi1z,         /**< dimensionless aligned-spin of primary */
+        chi2z,         /**< dimensionless aligned-spin of secondary */
+        finspin       /**< final spin */
+    );
+
+    double Mtot = m1 + m2;
+    double M_tot_sec = Mtot*MTSUN_SI;
+    double Mf_ref;
+    if (f_ref == 0.0){
+        Mf_ref = pDPreComp_all_trans[0].pAmp.fmaxCalc;
+        f_ref = PhenomUtilsMftoHz(Mf_ref, Mtot);
+    } else{
+        Mf_ref = f_ref*M_tot_sec;
+    }
+
+    double phiRef_to_zero = 0.0;
+    double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(Mf_ref, pDPreComp_all_trans[0],  1.0, 1.0);
+
+    // phi0 is passed into this function as a pointer.This is for compatibility with GPU.
+    phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero);
+
+    amp0 = PhenomUtilsFDamp0(Mtot, distance);
+
+    double new_t0;
+    if (f_ref != 0.0){
+        Mf_ref = f_ref*M_tot_sec;
+        new_t0 = PhenDPhaseDerivFrequencyPoint(Mf_ref, &(pDPreComp_all_trans[0].pPhi), &(pDPreComp_all_trans[0].pn));
+        t0 += new_t0;
+    }
+
+
     assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
 }
 
 
-void PhenomHM::setup_interp_wave(){
+void PhenomD::setup_interp_wave(){
 
     assert(current_status >= 2);
     dim3 waveInterpDim(num_blocks, num_modes);
@@ -271,7 +310,7 @@ void PhenomHM::setup_interp_wave(){
     if (current_status == 2) current_status = 3;
 }
 
-void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq_){
+void PhenomD::LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq_){
     inc = inc_;
     lam = lam_;
     beta = beta_;
@@ -280,6 +319,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     tRef_wave_frame = tRef_wave_frame_;
     tRef_sampling_frame = tRef_sampling_frame_;
     merger_freq = merger_freq_;
+
 
     //printf("extrinsic: %e, %e, %e, %e, %e, %e, %e\n", inc, lam, beta, psi, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq);
 
@@ -300,7 +340,7 @@ void PhenomHM::LISAresponseFD(double inc_, double lam_, double beta_, double psi
     if (current_status == 1) current_status = 2;
 }
 
-void PhenomHM::setup_interp_response(){
+void PhenomD::setup_interp_response(){
 
     assert(current_status >= 3);
 
@@ -321,20 +361,20 @@ void PhenomHM::setup_interp_response(){
     if (current_status == 3) current_status = 4;
 }
 
-void PhenomHM::perform_interp(){
+void PhenomD::perform_interp(){
     assert(current_status >= 4);
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 mainInterpDim(num_block_interp);//, num_modes);
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
 
-    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv, t_obs_dur);
+    interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes, d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, d_channel1_ASDinv, d_channel2_ASDinv, d_channel3_ASDinv, t_obs_start, t_obs_end);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
     if (current_status == 4) current_status = 5;
 }
 
-void PhenomHM::Likelihood (double *like_out_){
+void PhenomD::Likelihood (double *like_out_){
 
      assert(current_status == 5);
      double d_h = 0.0;
@@ -459,7 +499,7 @@ void PhenomHM::Likelihood (double *like_out_){
      like_out_[1] = 4*h_h;
 }
 
-void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
+void PhenomD::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 
   assert(current_status > 4);
   gpuErrchk(cudaMemcpy(channel1_, d_template_channel1, data_stream_length*sizeof(cmplx), cudaMemcpyDeviceToHost));
@@ -476,7 +516,7 @@ __global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double
     phase[mode_i*length + i] = mode_vals[mode_i].phase[i];
 }
 
-void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
+void PhenomD::GetAmpPhase(double* amp_, double* phase_) {
   assert(current_status > 1);
   double *amp, *phase;
   gpuErrchk(cudaMalloc(&amp, num_modes*current_length*sizeof(double)));
@@ -495,7 +535,7 @@ void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
 }
 
 
-PhenomHM::~PhenomHM() {
+PhenomD::~PhenomD() {
   delete[] pDPreComp_all_trans;
   cpu_destroy_modes(mode_vals);
   delete[] H;

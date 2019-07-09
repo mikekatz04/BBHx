@@ -236,13 +236,13 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 Interpolate amp, phase, and response transfer functions on GPU.
 */
 __global__
-void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur){
+void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end){
     //int mode_i = blockIdx.y;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= data_length) return;
     //if (mode_i >= num_modes) return;
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double time_start, amp, phase, phaseRdelay;
+    double time, amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
@@ -253,12 +253,6 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
     channel1_out[i] = make_cuDoubleComplex(0.0, 0.0);
     channel2_out[i] = make_cuDoubleComplex(0.0, 0.0);
     channel3_out[i] = make_cuDoubleComplex(0.0, 0.0);
-    double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
-    /*# if __CUDA_ARCH__>=200
-    if (i == 200)
-        printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_dur, t_break);
-
-    #endif*/
     /*for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < data_length;
          i += blockDim.x * gridDim.x)
@@ -279,8 +273,13 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_2 = old_mode_vals[mode_i].time_freq_coeff_2[old_ind_below];
             coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
 
-            time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            if (time_start < t_break) {
+            time = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            /*# if __CUDA_ARCH__>=200
+            if (i < 200)
+                printf("times %d: %e, %e, %e \n", i, time, t_obs_start*YRSID_SI, t_obs_end*YRSID_SI);
+
+            #endif //*/
+            if ((time < t_obs_start*YRSID_SI) || (time > t_obs_end*YRSID_SI)) {
                 continue;
             }
 

@@ -135,7 +135,7 @@ def cuda_install():
 
     setup(name = 'gpuPhenomHM',
           # Random metadata. there's more you can supply
-          author = 'Michael Katz',
+          author = 'Robert McGibbon',
           version = '0.1',
 
           ext_modules = [ext],
@@ -166,7 +166,7 @@ def cuda_install():
             )
     setup(name = 'gpuPhenomD',
           # Random metadata. there's more you can supply
-          author = 'Michael Katz',
+          author = 'Robert McGibbon',
           version = '0.1',
 
           ext_modules = [extD],
@@ -206,7 +206,7 @@ def cpp_install():
 
     setup(name = 'PhenomHM',
           # Random metadata. there's more you can supply
-          author = 'Michael Katz',
+          author = 'Robert McGibbon',
           version = '0.1',
 
           ext_modules=extensions,
@@ -219,7 +219,7 @@ def cpp_install():
 def wrapper_install():
     setup(name = 'phenomhm',
           # Random metadata. there's more you can supply
-          author = 'Michael Katz',
+          author = 'Robert McGibbon',
           version = '0.1',
           packages=['phenomhm', 'phenomhm.utils'],
            py_modules=['phenomhm.phenomhm'],

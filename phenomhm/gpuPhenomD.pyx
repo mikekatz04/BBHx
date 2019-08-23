@@ -4,14 +4,14 @@ cimport numpy as np
 assert sizeof(int) == sizeof(np.int32_t)
 
 cdef extern from "src/D_manager.hh":
-    cdef cppclass PhenomDwrap "PhenomD":
-        PhenomDwrap(int,
+    cdef cppclass PhenomHMwrap "PhenomHM":
+        PhenomHMwrap(int,
         np.uint32_t *,
         np.uint32_t *,
         int, np.float64_t*,
         np.complex128_t *,
         np.complex128_t *,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double, double)
+        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double)
 
         void gen_amp_phase(np.float64_t *, int,
                             double,
@@ -34,8 +34,8 @@ cdef extern from "src/D_manager.hh":
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
         void GetAmpPhase(np.float64_t*, np.float64_t*)
 
-cdef class PhenomD:
-    cdef PhenomDwrap* g
+cdef class PhenomHM:
+    cdef PhenomHMwrap* g
     cdef int num_modes
     cdef int f_dim
     cdef int data_length
@@ -51,17 +51,17 @@ cdef class PhenomD:
      np.ndarray[ndim=1, dtype=np.float64_t] channel2_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] channel3_ASDinv,
      TDItag,
-     t_obs_start, t_obs_end):
+     t_obs_dur):
 
         self.num_modes = len(l_vals)
         self.data_length = len(data_channel1)
-        self.g = new PhenomDwrap(max_length_init,
+        self.g = new PhenomHMwrap(max_length_init,
         &l_vals[0],
         &m_vals[0],
         self.num_modes, &data_freqs[0],
         &data_channel1[0],
         &data_channel2[0],
-        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_start, t_obs_end)
+        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_dur)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         m1, #solar masses

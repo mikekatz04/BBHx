@@ -51,6 +51,6 @@ void host_fill_B_wave(ModeContainer *mode_vals, double *b_mat, int f_length, int
 void host_fill_B_response(ModeContainer *mode_vals, double *b_mat, int f_length, int num_modes);
 void host_set_spline_constants_wave(ModeContainer *mode_vals, double *b_mat, int f_length, int num_modes);
 void host_set_spline_constants_response(ModeContainer *mode_vals, double *b_mat, int f_length, int num_modes);
-void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_start, double t_obs_end);
+void host_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_dur);
 
 #endif //__INTERPOLATE_H_

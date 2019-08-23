@@ -5,7 +5,7 @@
  *  The comments in the code have been left generally the same. A few comments
  *  have been made for the newer functions added.
 
-
+ 
  * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -556,6 +556,76 @@ int IMRPhenomDGenerateh22FDAmpPhase_internal(
   size_t num_main_constants = 4;
   constants_main = CreateConstantsArray(num_main_constants);
 */
+  // main constants
+  constants_main[0] = t0;
+  constants_main[1] = MfRef;
+  constants_main[2] = phi_precalc;
+  constants_main[3] = amp0;
+  constants_main[4] = fCut;
+  constants_main[5] = M_sec;
+
+  // amplitude constants
+  constants_amp[0] = AMP_fJoin_INS; // p->fInsJoin
+  constants_amp[1] = pAmp->fmaxCalc; //p->fMRDJoin
+
+  constants_amp[2] = amp_prefactors.two_thirds;
+  constants_amp[3] = amp_prefactors.one;
+  constants_amp[4] = amp_prefactors.four_thirds;
+  constants_amp[5] = amp_prefactors.five_thirds;
+  constants_amp[6] = amp_prefactors.two;
+  constants_amp[7] = amp_prefactors.seven_thirds;
+  constants_amp[8] = amp_prefactors.eight_thirds;
+  constants_amp[9] = amp_prefactors.three;
+  constants_amp[10] = amp_prefactors.amp0;
+
+  constants_amp[11] = pAmp->fRD;
+  constants_amp[12] = pAmp->fDM;
+  constants_amp[13] = pAmp->gamma1;
+  constants_amp[14] = pAmp->gamma2;
+  constants_amp[15] = pAmp->gamma3;
+
+  constants_amp[16] = pAmp->delta0;
+  constants_amp[17] = pAmp->delta1;
+  constants_amp[18] = pAmp->delta2;
+  constants_amp[19] = pAmp->delta3;
+  constants_amp[20] = pAmp->delta4;
+
+  // phase constants
+
+  constants_phase[0] = pPhi->eta;
+  constants_phase[1] = PHI_fJoin_INS; // p->fInsJoin
+  constants_phase[2] = 0.5*pPhi->fRD; //p->fMRDJoin
+
+  constants_phase[3] = phi_prefactors.initial_phasing;
+  constants_phase[4] = phi_prefactors.two_thirds;
+  constants_phase[5] = phi_prefactors.third;
+  constants_phase[6] = phi_prefactors.third_with_logv;
+  constants_phase[7] = phi_prefactors.logv;
+  constants_phase[8] = phi_prefactors.minus_third;
+  constants_phase[9] = phi_prefactors.minus_two_thirds;
+  constants_phase[10] = phi_prefactors.minus_one;
+  constants_phase[11] = phi_prefactors.minus_five_thirds;
+  constants_phase[12] = phi_prefactors.one;
+  constants_phase[13] = phi_prefactors.four_thirds;
+  constants_phase[14] = phi_prefactors.five_thirds;
+  constants_phase[15] = phi_prefactors.two;
+
+  constants_phase[16] = pPhi->C1MRD;
+  constants_phase[17] = pPhi->C2MRD;
+  constants_phase[18] = pPhi->fRD;
+  constants_phase[19] = pPhi->fDM;
+  constants_phase[20] = pPhi->alpha1;
+  constants_phase[21] = pPhi->alpha2;
+  constants_phase[22] = pPhi->alpha3;
+  constants_phase[23] = pPhi->alpha4;
+  constants_phase[24] = pPhi->alpha5;
+
+  constants_phase[25] = pPhi->C1Int;
+  constants_phase[26] = pPhi->C2Int;
+  constants_phase[27] = pPhi->beta1;
+  constants_phase[28] = pPhi->beta2;
+  constants_phase[29] = pPhi->beta3;
+
 
   size_t i;
   #pragma omp parallel for
@@ -624,7 +694,6 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
  // Calculate phenomenological parameters
  const double finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
 
-
  if (finspin < MIN_FINAL_SPIN)
    printf("Final spin (Mf=%g) and ISCO frequency of this system are small, \
                            the model might misbehave here.",
@@ -663,7 +732,6 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
  //end amp
 
  //output
- pDPreComp->finspin = finspin;
  pDPreComp->pn = *pn;
  pDPreComp->pPhi = *pPhi;
  pDPreComp->phi_prefactors = phi_prefactors;
@@ -932,35 +1000,6 @@ double IMRPhenomDFinalSpin(
 
     return finspin;
 }
-
- /** Miuhael Katz is using this function. It was originally commented out.
-  * Helper function to return the value of the frequency derivative of the
-  * Fourier domain phase.
-  * This is function is wrapped by IMRPhenomDPhaseDerivative and used
-  * when estimating the length of the time domain version of the waveform.
-  * unreviewed
-  */
- double PhenDPhaseDerivFrequencyPoint(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
- {
-
-   // split the calculation to just 1 of 3 possible mutually exclusive ranges
-
-   if (!StepFunc_boolean(Mf, p->fInsJoin))	// Inspiral range
-   {
-       double DPhiIns = DPhiInsAnsatzInt(Mf, p, pn);
- 	  return DPhiIns;
-   }
-
-   if (StepFunc_boolean(Mf, p->fMRDJoin))	// MRD range
-   {
-       double DPhiMRDval = DPhiMRD(Mf, p, 1.0, 1.0) + p->C2MRD;
- 	  return DPhiMRDval;
-   }
-
-//   //	Intermediate range
-   double DPhiInt = DPhiIntAnsatz(Mf, p) + p->C2Int;
-   return DPhiInt;
- }
 
 
 // /**

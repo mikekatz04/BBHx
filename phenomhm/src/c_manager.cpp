@@ -43,7 +43,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     cmplx *data_channel1_,
     cmplx *data_channel2_,
     cmplx *data_channel3_, int data_stream_length_, double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_, int TDItag_,
-    double t_obs_start_, double t_obs_end_){
+    double t_obs_dur_){
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -59,8 +59,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     data_channel3 = data_channel3_;
 
     TDItag = TDItag_;
-    t_obs_start = t_obs_start_;
-    t_obs_end = t_obs_end_;
+    t_obs_dur = t_obs_dur_;
     to_gpu = 0;
 
     // DECLARE ALL THE  NECESSARY STRUCTS
@@ -193,12 +192,12 @@ void PhenomHM::setup_interp_response(){
 
 void PhenomHM::perform_interp(){
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    host_interpolate(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_start, t_obs_end);
+    host_interpolate(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef_sampling_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_dur);
 }
 
 
 
-void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef_wave_frame, double tRef_sampling_frame, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_start, double t_obs_end){
+void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int length, double t0, double tRef_wave_frame, double tRef_sampling_frame, double *X_ASD_inv, double *Y_ASD_inv, double *Z_ASD_inv, double t_obs_dur){
 
     double f, t, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double amp, phase, phaseRdelay, phasetimeshift;
@@ -208,10 +207,11 @@ void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out,
     double f_min_limit = old_freqs[0];
     double f_max_limit = old_freqs[old_length-1];
     int old_ind_below;
+    double t_break = t0*YRSID_SI + tRef_sampling_frame - t_obs_dur*YRSID_SI;
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<length; i++){
             t = old_mode_vals[mode_i].time_freq_corr[i];
-            if ((t < t_obs_start*YRSID_SI) || (t > t_obs_start*YRSID_SI)){
+            if (t < t_break){
                 channel1_out[mode_i*length + i] = 0.0+I*0.0;
                 channel2_out[mode_i*length + i] = 0.0+I*0.0;
                 channel3_out[mode_i*length + i] = 0.0+I*0.0;
@@ -337,7 +337,7 @@ void host_combine(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out,
 
 void PhenomHM::Combine(){
     double d_log10f = log10(data_freqs[1]) - log10(data_freqs[0]);
-    host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef_wave_frame, tRef_sampling_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_start, t_obs_end);
+    host_combine(template_channel1, template_channel2, template_channel3, mode_vals, num_modes, d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch, tRef_wave_frame, tRef_sampling_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_dur);
 }
 
 cmplx complex_dot_d_h(cmplx *arr1, cmplx *arr2, int n){

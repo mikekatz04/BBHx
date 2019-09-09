@@ -131,7 +131,7 @@ class pyPhenomHM(Converter):
 
     def NLL(self, m1, m2, a1, a2, distance,
                  phiRef, inc, lam, beta,
-                 psi, tRef_wave_frame, tRef_sampling_frame, freqs=None, return_amp_phase=False, return_TDI=False):
+                 psi, tRef_wave_frame, tRef_sampling_frame, freqs=None, return_amp_phase=False, return_TDI=False, return_snr=False):
 
         Msec = (m1+m2)*MTSUN
         # merger frequency for 22 mode amplitude in phenomD
@@ -156,6 +156,9 @@ class pyPhenomHM(Converter):
             return out
 
         d_h, h_h = out
+
+        if return_snr:
+            return np.sqrt(d_h), np.sqrt(h_h)
 
         return self.d_d + h_h - 2*d_h
 

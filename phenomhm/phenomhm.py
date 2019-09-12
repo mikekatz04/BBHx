@@ -191,6 +191,12 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         waveform_params['a1'] = waveform_params['chi_s']
         waveform_params['a2'] = waveform_params['chi_a']
 
+    if 'cos_inc' in waveform_params:
+        waveform_params['inc'] = waveform_params['cos_inc']
+
+    if 'sin_beta' in waveform_params:
+        waveform_params['beta'] = waveform_params['sin_beta']
+
     waveform_params['distance'] = waveform_params['ln_distance']
     waveform_params['tRef_wave_frame'] = waveform_params['ln_tRef']
     waveform_params['fRef'] = 0.0
@@ -204,6 +210,7 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         if add_noise is not None:
             fs = add_noise['fs']
             t_obs_dur = waveform_params['t_obs_dur']
+            df = 1./(t_obs_dur*ct.Julian_year)
             num_data_points = int(t_obs_dur*ct.Julian_year*fs)
             noise_freqs = np.fft.rfftfreq(num_data_points, 1/fs)
             data_freqs = noise_freqs[noise_freqs >= add_noise['min_freq']]
@@ -221,17 +228,24 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
                 data_freqs = np.arange(fmin, fmax+df, df)
 
     if add_noise is not None:
+
+        norm1 = 0.5 * (1. / df)**0.5
+        re = np.random.normal(0, norm1, size=(3,) + data_freqs.shape)
+        im = np.random.normal(0, norm1, size=(3,) + data_freqs.shape)
+        htilde = re + 1j * im
+
+        # the 0.125 is 1/8 to match LDC data #FIXME
         if TDItag == 'AET':
             # assumes gaussian noise
-            noise_channel1 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel2 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel3 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_T(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel1 = np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))*htilde[0]*0.125
+            noise_channel2 = np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs['noise_kwargs']))*htilde[1]*0.125
+            noise_channel3 = np.sqrt(tdi.noisepsd_T(data_freqs, **kwargs['noise_kwargs']))*htilde[2]*0.125
 
         else:
             # assumes gaussian noise
-            noise_channel1 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel2 = nnp.abs(np.random.normal(0.0, p.sqrt(1./2.*tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
-            noise_channel3 = np.abs(np.random.normal(0.0, np.sqrt(1./2.*tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))))*np.exp(1j*np.random.uniform(0, 2*np.pi, size=data_freqs.shape))
+            noise_channel1 = np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))*htilde[0]*0.125
+            noise_channel2 = np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))*htilde[1]*0.125
+            noise_channel3 = np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs['noise_kwargs']))*htilde[2]*0.125
 
     generate_freqs = np.logspace(np.log10(data_freqs.min()), np.log10(data_freqs.max()), num_generate_points)
 

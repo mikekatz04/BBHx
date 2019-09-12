@@ -125,7 +125,13 @@ def cuda_install():
             extra_compile_args= {
                 'gcc': ['-std=c99'], # '-g'],
                 'nvcc': [
-                    '-arch=sm_70', '--default-stream=per-thread', '--ptxas-options=-v', '-c',
+                    '-arch=sm_70',
+                    '-gencode=arch=compute_50,code=sm_50',
+                    '-gencode=arch=compute_52,code=sm_52',
+                    '-gencode=arch=compute_60,code=sm_60',
+                    '-gencode=arch=compute_61,code=sm_61',
+                    '-gencode=arch=compute_70,code=sm_70',
+                    '--default-stream=per-thread', '--ptxas-options=-v', '-c',
                     '--compiler-options', "'-fPIC'" ]#,"-G", "-g"] # for debugging
                 },
                 include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'phenomhm/src']

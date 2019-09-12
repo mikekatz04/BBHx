@@ -36,6 +36,14 @@ class Converter:
             self.ind_chi_a_m_weight = key_order.index('chi_a_m_weight')
             self.conversions.append(self.chi_s_chi_a_m_weight)
 
+        if 'cos_inc' in key_order:
+            self.ind_inc = key_order.index('cos_inc')
+            self.conversions.append(self.cos_inc)
+
+        if 'sin_beta' in key_order:
+            self.ind_beta = key_order.index('sin_beta')
+            self.conversions.append(self.sin_beta)
+
         """
         if 'ln_mC' in key_order and 'mu' in key_order:
             self.ind_ln_mC = key_order.index('ln_mC')
@@ -59,7 +67,7 @@ class Converter:
             if kwargs['tLtoSSB']:
                 self.ind_ln_tRef = key_order.index('ln_tRef')
                 self.ind_lam = key_order.index('lam')
-                self.ind_beta = key_order.index('beta')
+                self.ind_beta = key_order.index('sin_beta')
                 self.ind_psi = key_order.index('psi')
                 self.conversions.append(self.LISA_to_SSB)
 
@@ -121,6 +129,14 @@ class Converter:
 
     def ln_tRef(self, x):
         x[self.ind_ln_tRef] = np.exp(x[self.ind_ln_tRef])
+        return x
+
+    def cos_inc(self, x):
+        x[self.ind_inc] = np.arccos(x[self.ind_inc])
+        return x
+
+    def sin_beta(self, x):
+        x[self.ind_beta] = np.arcsin(x[self.ind_beta])
         return x
 
     def LISA_to_SSB(self, x):
@@ -208,7 +224,7 @@ class Recycler:
         if 'lam' in key_order:
             # assumes beta is also there
             self.ind_lam = key_order.index('lam')
-            self.ind_beta = key_order.index('beta')
+            self.ind_beta = key_order.index('sin_beta')
             self.recycles.append(self.lam_and_beta)
 
         if 'phiRef' in key_order:
@@ -234,7 +250,7 @@ class Recycler:
         if x[self.ind_lam] < 0.0 or x[self.ind_lam] > 2*np.pi:
             x[self.ind_lam] = x[self.ind_lam] % (2.*np.pi)
 
-        if x[self.ind_beta] < -np.pi/2 or x[self.ind_beta] > np.pi/2:
+        """if x[self.ind_beta] < -np.pi/2 or x[self.ind_beta] > np.pi/2:
             # assumes beta = 0 at ecliptic plane [-pi/2, pi/2]
             x_trans = np.cos(x[self.ind_beta])*np.cos(x[self.ind_lam])
             y_trans = np.cos(x[self.ind_beta])*np.sin(x[self.ind_lam])
@@ -242,7 +258,7 @@ class Recycler:
 
             x[self.ind_lam] = np.arctan2(y_trans, x_trans)
             x[self.ind_beta] = np.arcsin(z_trans/np.sqrt(x_trans**2 + y_trans**2 + z_trans**2))  # check this with eccliptic coordinates
-
+        """
         return x
 
     def phiRef(self, x):

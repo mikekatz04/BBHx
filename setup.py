@@ -151,7 +151,7 @@ def cuda_install():
 
           # Since the package has c code, the egg cannot be zipped
           zip_safe = False)
-
+    """
     extD = Extension('gpuPhenomD',
             sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/D_manager.cu', 'phenomhm/gpuPhenomD.pyx'],
             library_dirs = [lib_gsl_dir, CUDA['lib64']],
@@ -182,6 +182,7 @@ def cuda_install():
 
           # Since the package has c code, the egg cannot be zipped
           zip_safe = False)
+    """
 
 def cpp_install():
     # Obtain the numpy include directory. This logic works across numpy versions.

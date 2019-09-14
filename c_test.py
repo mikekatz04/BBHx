@@ -15,7 +15,7 @@ except ImportError:
 
 def test():
     df = 1e-5
-    length = int(2**15)
+    length = int(2**16)
     data_length = int(2* length)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
@@ -67,12 +67,12 @@ def test():
 
     t_obs_dur = 0.9
 
-    inc =  np.pi - 1.04719755e+00
+    inc =  np.cos(np.pi - 1.04719755e+00)
     lam = -2.43647481e-02
-    beta = -6.24341583e-01
+    beta = np.sin(-6.24341583e-01)
     psi = np.pi - 2.02958790e+00
 
-    key_order = ['inc', 'lam', 'beta', 'psi', 'ln_tRef']
+    key_order = ['cos_inc', 'lam', 'sin_beta', 'psi', 'ln_tRef']
     recycler = Recycler(key_order)
 
     converter = Converter(key_order, tLtoSSB=True)
@@ -85,32 +85,59 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
+    nwalkers = 2
 
-    data_A, data_E, data_T = np.load('data_set.npy')
+    #data_A, data_E, data_T = np.load('data_set.npy')
+    data_A, data_E, data_T = data, data, data
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur)
+     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers)
 
-    num = 1
+    num = 3
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
     for i in range(num):
-        """phenomHM.gen_amp_phase(freq, m1,  # solar masses
-                     m2,  # solar masses
-                     chi1z,
-                     chi2z,
-                     distance,
-                     phiRef,
-                     f_ref)
+        phenomHM.gen_amp_phase(freq,
+                             np.array([m1]),
+                             np.array([m2]),
+                             np.array([chi1z]),
+                             np.array([chi2z]),
+                             np.array([distance]),
+                             np.array([phiRef]),
+                             np.array([f_ref]))
         #phenomHM.Combine()
+        phenomHM.LISAresponseFD(np.array([inc]),
+                                np.array([lam]),
+                                np.array([beta]),
+                                np.array([psi]),
+                                np.array([t0]),
+                                np.array([tRef_wave_frame]),
+                                np.array([tRef_sampling_frame]),
+                                np.array([merger_freq]))
         phenomHM.setup_interp_wave()
-        phenomHM.LISAresponseFD(inc, lam, beta, psi, t0, tRef, merger_freq)
         phenomHM.setup_interp_response()
         phenomHM.perform_interp()
-        like = phenomHM.Likelihood()"""
+        like = phenomHM.Likelihood()
 
-        like2 = phenomHM.WaveformThroughLikelihood(freqs, m1, m2,  chi1z, chi2z, distance, phiRef, f_ref, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_TDI=False)
+        """like2 = phenomHM.WaveformThroughLikelihood(freqs,
+                                                   np.arrays([m1]),
+                                                   np.arrays([m2]),
+                                                   np.arrays([chi1z]),
+                                                   np.arrays([chi2z]),
+                                                   np.arrays([distance]),
+                                                   np.arrays([phiRef]),
+                                                   np.arrays([f_ref]),
+                                                   np.arrays([inc,
+                                                   np.arrays([lam,
+                                                   np.arrays([beta,
+                                                   np.arrays([psi,
+                                                   np.arrays([t0,
+                                                   np.arrays([tRef_wave_frame,
+                                                   np.arrays([tRef_sampling_frame,
+                                                   np.arrays([merger_freq,
+                                                   np.arrays([return_TDI=False)
+        """
         #snrs[i] = like2[1]
         #print(like2**(1/2))
 

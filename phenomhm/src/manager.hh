@@ -43,6 +43,7 @@ class PhenomHM {
   int data_stream_length;
   double *freqs;
   int current_length;
+  int nwalkers;
   double m1; //solar masses
   double m2; //solar masses
   double chi1z;
@@ -150,18 +151,19 @@ public:
       int data_stream_length_,
       double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_,
       int TDItag,
-      double t_obs_dur_); // constructor (copies to GPU)
+      double t_obs_dur_,
+      int nwalkers_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 
     void gen_amp_phase(double *freqs_, int current_length_,
-        double m1_, //solar masses
-        double m2_, //solar masses
-        double chi1z_,
-        double chi2z_,
-        double distance_,
-        double phiRef_,
-        double f_ref_);
+        double* m1_, //solar masses
+        double* m2_, //solar masses
+        double* chi1z_,
+        double* chi2z_,
+        double* distance_,
+        double* phiRef_,
+        double* f_ref_);
 
     void gen_amp_phase_prep(double *freqs_, int current_length_,
             double m1_, //solar masses
@@ -174,7 +176,7 @@ public:
 
   void setup_interp_wave();
 
-  void LISAresponseFD(double inc_, double lam_, double beta_, double psi_, double t0_epoch_, double tRef_wave_frame_, double tRef_sampling_frame_, double merger_freq_);
+  void LISAresponseFD(double* inc_, double* lam_, double* beta_, double* psi_, double* t0_epoch_, double* tRef_wave_frame_, double* tRef_sampling_frame_, double* merger_freq_);
 
   void setup_interp_response();
 

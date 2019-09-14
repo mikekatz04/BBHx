@@ -11,22 +11,22 @@ cdef extern from "src/manager.hh":
         int, np.float64_t*,
         np.complex128_t *,
         np.complex128_t *,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double)
+        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double, int)
 
         void gen_amp_phase(np.float64_t *, int,
-                            double,
-                            double,
-                            double,
-                            double,
-                            double,
-                            double,
-                            double)
+                            np.float64_t *,
+                            np.float64_t *,
+                            np.float64_t *,
+                            np.float64_t *,
+                            np.float64_t *,
+                            np.float64_t *,
+                            np.float64_t *)
 
         void setup_interp_wave()
 
         void perform_interp()
 
-        void LISAresponseFD(double, double, double, double, double, double, double, double)
+        void LISAresponseFD(np.float64_t *, np.float64_t *, np.float64_t *, np.float64_t *, np.float64_t *, np.float64_t *, np.float64_t *, np.float64_t *)
 
         void setup_interp_response()
 
@@ -39,6 +39,7 @@ cdef class PhenomHM:
     cdef int num_modes
     cdef int f_dim
     cdef int data_length
+    cdef int nwalkers
 
     def __cinit__(self, max_length_init,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
@@ -51,8 +52,10 @@ cdef class PhenomHM:
      np.ndarray[ndim=1, dtype=np.float64_t] channel2_ASDinv,
      np.ndarray[ndim=1, dtype=np.float64_t] channel3_ASDinv,
      TDItag,
-     t_obs_dur):
+     t_obs_dur,
+     nwalkers):
 
+        self.nwalkers = nwalkers
         self.num_modes = len(l_vals)
         self.data_length = len(data_channel1)
         self.g = new PhenomHMwrap(max_length_init,
@@ -61,33 +64,41 @@ cdef class PhenomHM:
         self.num_modes, &data_freqs[0],
         &data_channel1[0],
         &data_channel2[0],
-        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_dur)
+        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_dur, nwalkers)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
-                        m1, #solar masses
-                        m2, #solar masses
-                        chi1z,
-                        chi2z,
-                        distance,
-                        phiRef,
-                        f_ref):
+                        np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses
+                        np.ndarray[ndim=1, dtype=np.float64_t] m2, #solar masses
+                        np.ndarray[ndim=1, dtype=np.float64_t] chi1z,
+                        np.ndarray[ndim=1, dtype=np.float64_t] chi2z,
+                        np.ndarray[ndim=1, dtype=np.float64_t] distance,
+                        np.ndarray[ndim=1, dtype=np.float64_t] phiRef,
+                        np.ndarray[ndim=1, dtype=np.float64_t] f_ref):
 
         self.f_dim = len(freqs)
         self.g.gen_amp_phase(&freqs[0], self.f_dim,
-                                m1, #solar masses
-                                m2, #solar masses
-                                chi1z,
-                                chi2z,
-                                distance,
-                                phiRef,
-                                f_ref)
+                                &m1[0], #solar masses
+                                &m2[0], #solar masses
+                                &chi1z[0],
+                                &chi2z[0],
+                                &distance[0],
+                                &phiRef[0],
+                                &f_ref[0])
 
     def setup_interp_wave(self):
         self.g.setup_interp_wave()
         return
 
-    def LISAresponseFD(self, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq):
-        self.g.LISAresponseFD(inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq)
+    def LISAresponseFD(self,
+                       np.ndarray[ndim=1, dtype=np.float64_t] inc,
+                       np.ndarray[ndim=1, dtype=np.float64_t] lam,
+                       np.ndarray[ndim=1, dtype=np.float64_t] beta,
+                       np.ndarray[ndim=1, dtype=np.float64_t] psi,
+                       np.ndarray[ndim=1, dtype=np.float64_t] t0,
+                       np.ndarray[ndim=1, dtype=np.float64_t] tRef_wave_frame,
+                       np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
+                       np.ndarray[ndim=1, dtype=np.float64_t] merger_freq):
+        self.g.LISAresponseFD(&inc[0], &lam[0], &beta[0], &psi[0], &t0[0], &tRef_wave_frame[0], &tRef_sampling_frame[0], &merger_freq[0])
         return
 
     def setup_interp_response(self):
@@ -121,13 +132,22 @@ cdef class PhenomHM:
         return (amp_.reshape(self.num_modes, self.f_dim), phase_.reshape(self.num_modes, self.f_dim))
 
     def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
-                        m1, #solar masses
-                        m2, #solar masses
-                        chi1z,
-                        chi2z,
-                        distance,
-                        phiRef,
-                        f_ref, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_amp_phase=False, return_TDI=False):
+                        np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses
+                        np.ndarray[ndim=1, dtype=np.float64_t] m2, #solar masses
+                        np.ndarray[ndim=1, dtype=np.float64_t] chi1z,
+                        np.ndarray[ndim=1, dtype=np.float64_t] chi2z,
+                        np.ndarray[ndim=1, dtype=np.float64_t] distance,
+                        np.ndarray[ndim=1, dtype=np.float64_t] phiRef,
+                        np.ndarray[ndim=1, dtype=np.float64_t] f_ref,
+                        np.ndarray[ndim=1, dtype=np.float64_t] inc,
+                        np.ndarray[ndim=1, dtype=np.float64_t] lam,
+                        np.ndarray[ndim=1, dtype=np.float64_t] beta,
+                        np.ndarray[ndim=1, dtype=np.float64_t] psi,
+                        np.ndarray[ndim=1, dtype=np.float64_t] t0,
+                        np.ndarray[ndim=1, dtype=np.float64_t] tRef_wave_frame,
+                        np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
+                        np.ndarray[ndim=1, dtype=np.float64_t] merger_freq,
+                        return_amp_phase=False, return_TDI=False):
         self.gen_amp_phase(freqs,
                             m1, #solar masses
                             m2, #solar masses

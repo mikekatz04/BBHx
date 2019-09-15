@@ -1197,10 +1197,10 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
 
     // phi0 is passed into this function as a pointer.This is for compatibility with GPU.
-    *phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
+    phi0[0] = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
 
     // t0 is passed into this function as a pointer.This is for compatibility with GPU.
-    *t0 = IMRPhenomDComputet0(
+    t0[0] = IMRPhenomDComputet0(
     pHM->eta, pHM->chi1z, pHM->chi2z,
     pHM->finspin);
 
@@ -1231,7 +1231,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
                 //PD_EFUNC, "init_IMRPhenomHMGet_FrequencyBounds_storage failed");
    /* Compute the amplitude pre-factor */
    // amp0 is passed into this function as a pointer.This is for compatibility with GPU.
-   *amp0 = PhenomUtilsFDamp0(Mtot, distance); // TODO check if this is right units
+   amp0[0] = PhenomUtilsFDamp0(Mtot, distance); // TODO check if this is right units
 
     //HMPhasePreComp q;
 
@@ -1276,7 +1276,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     double M_tot_sec = (pHM->m1 + pHM->m2)*MTSUN_SI;
 
     if (to_gpu == 0){
-        host_calculate_all_modes(mode_vals, pHM, freqs_trans, M_tot_sec, pAmp, *amp_prefactors, pDPreComp_all, q_all, *amp0, num_modes, *t0, *phi0);
+        host_calculate_all_modes(mode_vals, pHM, freqs_trans, M_tot_sec, pAmp, *amp_prefactors, pDPreComp_all, q_all, amp0[0], num_modes, t0[0], phi0[0]);
     }
 
 
@@ -1307,7 +1307,7 @@ tried to apply shift of -1.0/deltaF with deltaF=%g.",
     //DestroyRealVector(freqs);
     free(pHMFS);
     //DestroyRealVector(freqs_geom);
-    free(freqs); 
+    free(freqs);
     return 1;
 }
 
@@ -1338,9 +1338,10 @@ int main(){
     m[3] = 4;
     l[3] = 4;
 
+    int num_walkers = 2;
     int to_gpu = 0;
     int to_interp = 0;
-    ModeContainer * mode_vals = cpu_create_modes(num_modes, l, m, f_length, to_gpu, to_interp);
+    ModeContainer * mode_vals = cpu_create_modes(num_modes, num_walkers, l, m, f_length, to_gpu, to_interp);
     int i;
     for (i=0; i<num_modes; i++){
         mode_vals[i].length = f_length;

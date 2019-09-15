@@ -567,6 +567,7 @@ __device__
      HMPhasePreComp q,
      double amp0,
      double Rholm, double Taulm, double t0, double phi0, double *cshift){
+
          double freq_amp, Mf, beta_term1, beta, beta_term2, HMamp_term1, HMamp_term2;
          double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
          double amp_i, phase_i;
@@ -578,6 +579,8 @@ __device__
           /* loop over only positive m is intentional. negative m added automatically */
           // generate amplitude
           // IMRPhenomHMAmplitude
+
+
         freq_amp = d_IMRPhenomHMFreqDomainMap(freq_geom, ell, mm, pHM, AmpFlagTrue);
 
             //status_in_for = PD_SUCCESS;
@@ -682,13 +685,7 @@ __device__
 
             mode_val.phase[i] = (phase_term1 + phase_term2);
 
-            /*# if __CUDA_ARCH__>=200
-            //if (i % 2000 == 0)
-            if ((Mf > pHM->Mf_ref*0.95) && (Mf < pHM->Mf_ref*1.05) && (ell == 2) && (mm == 2))
-                printf("phases: %e, %e, %e, %e, %e, %e \n", mode_val.phase[i], mm * phi0, phase_i, Mf, pHM->Mf_ref, t0);
 
-
-            #endif*/
             //hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
 
              //double complexFrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
@@ -715,38 +712,46 @@ __global__
 void kernel_calculate_all_modes(ModeContainer *mode_vals,
       PhenomHMStorage *pHM,
       double *freqs,
-      double M_tot_sec,
+      double *M_tot_sec,
       IMRPhenomDAmplitudeCoefficients *pAmp,
       AmpInsPrefactors *amp_prefactors,
       PhenDAmpAndPhasePreComp *pDPreComp_all,
       HMPhasePreComp *q_all,
-      double amp0,
+      double *amp0,
       int num_modes,
-      double t0,
-      double phi0,
-      double *cshift
+      double *t0,
+      double *phi0,
+      double *cshift,
+	  int nwalkers,
+	  int length
         ){
       unsigned int mm, ell;
       double Rholm, Taulm;
       double freq_geom;
       unsigned int mode_i = blockIdx.y;
+	  unsigned int walker_i = blockIdx.z;
 
       unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
       /* if (mode_i >= num_modes) return;
        for (int i = blockIdx.y * blockDim.x + threadIdx.x;
           i < length;
           i += blockDim.x * gridDim.y)*/
-      if ((i < pHM->ind_max) && (i >= pHM->ind_min) && (mode_i < num_modes))  // kernel setup should always make second part true
+
+      if ((i < (&pHM[walker_i])->ind_max) && (i >= (&pHM[walker_i])->ind_min) && (mode_i < num_modes) && (walker_i < nwalkers))  // kernel setup should always make second part true
       {
-         ell = mode_vals[mode_i].l;
-         mm = mode_vals[mode_i].m;
-         Rholm = pHM->Rholm[ell][mm];
-         Taulm = pHM->Taulm[ell][mm];
-         freq_geom = freqs[i]*M_tot_sec;
-         calculate_each_mode(i, mode_vals[mode_i], ell, mm, pHM, freq_geom, pAmp, amp_prefactors, pDPreComp_all[mode_i], q_all[mode_i], amp0, Rholm, Taulm, t0, phi0, cshift);
+
+         ell = mode_vals[walker_i*num_modes + mode_i].l;
+         mm = mode_vals[walker_i*num_modes + mode_i].m;
+         Rholm = (&pHM[walker_i])->Rholm[ell][mm];
+         Taulm = (&pHM[walker_i])->Taulm[ell][mm];
+         freq_geom = freqs[walker_i*length + i]*M_tot_sec[walker_i];
+
+         calculate_each_mode(i, mode_vals[walker_i*num_modes + mode_i], ell, mm, &pHM[walker_i], freq_geom, &pAmp[walker_i], &amp_prefactors[walker_i], pDPreComp_all[walker_i*num_modes + mode_i], q_all[walker_i*num_modes + mode_i], amp0[walker_i], Rholm, Taulm, t0[walker_i], phi0[walker_i], cshift);
 
       }
   }
+
+
 
 
   __device__

@@ -121,7 +121,7 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
     double D_i, D_ip1, y_i, y_ip1;
     int mode_i = blockIdx.y;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= f_length) return;
+    if (i >= f_length-1) return;
     if (mode_i >= num_modes) return;
 
             D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
@@ -236,23 +236,31 @@ cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
 Interpolate amp, phase, and response transfer functions on GPU.
 */
 __global__
-void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals, int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double t0, double tRef, double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur){
+void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals,
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur, int num_walkers){
     //int mode_i = blockIdx.y;
+    int walker_i = blockIdx.z;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= data_length) return;
+    if (walker_i >= num_walkers) return;
     //if (mode_i >= num_modes) return;
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double time_start, amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    double f_min_limit = old_freqs[0];
-    double f_max_limit = old_freqs[old_length-1];
+    double f_min_limit = old_freqs[walker_i*old_length];
+    double f_max_limit = old_freqs[walker_i*old_length + old_length-1];
     cuDoubleComplex ampphasefactor;
     cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
     int old_ind_below;
     cuDoubleComplex trans_complex;
-    channel1_out[i] = make_cuDoubleComplex(0.0, 0.0);
-    channel2_out[i] = make_cuDoubleComplex(0.0, 0.0);
-    channel3_out[i] = make_cuDoubleComplex(0.0, 0.0);
+
+    channel1_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+    channel2_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+    channel3_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+
+    double t0 = t0_arr[walker_i];
+    double tRef = tRef_arr[walker_i];
     double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
     /*# if __CUDA_ARCH__>=200
     if (i == 200)
@@ -266,106 +274,115 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
     for (int mode_i=0; mode_i<num_modes; mode_i++){
             f = data_freqs[i];
-            old_ind_below = floor((log10(f) - log10(old_freqs[0]))/d_log10f);
-            if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit)){
+            old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
+
+            if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
                 return;
             }
-            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+            x = (f - old_freqs[walker_i*old_length + old_ind_below])/(old_freqs[walker_i*old_length + old_ind_below+1] - old_freqs[walker_i*old_length + old_ind_below]);
             x2 = x*x;
             x3 = x*x2;
             // interp time frequency to remove less than 0.0
-            coeff_0 = old_mode_vals[mode_i].time_freq_corr[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].time_freq_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].time_freq_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].time_freq_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_corr[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_3[old_ind_below];
 
             time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
             if (time_start < t_break) {
                 continue;
             }
 
             // interp amplitude
-            coeff_0 = old_mode_vals[mode_i].amp[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].amp_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].amp_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].amp_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].amp[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_3[old_ind_below];
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
             if (amp < 1e-40){
                 continue;
             }
             // interp phase
-            coeff_0 = old_mode_vals[mode_i].phase[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].phase_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].phase_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].phase_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phase[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_3[old_ind_below];
 
             phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[mode_i].phaseRdelay[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].phaseRdelay_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].phaseRdelay_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].phaseRdelay_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             ampphasefactor = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(make_cuDoubleComplex(0.0, phase + phaseRdelay)));
 
             // X or A
-            coeff_0 = old_mode_vals[mode_i].transferL1_re[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].transferL1_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].transferL1_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].transferL1_re_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_3[old_ind_below];
 
             transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[mode_i].transferL1_im[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].transferL1_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].transferL1_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].transferL1_im_coeff_3[old_ind_below];
+            # if __CUDA_ARCH__>=200
+            if (i == 15000)
+                printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_start, t_break, t0, tRef, amp, transferL1_re);
+
+            #endif
+
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_3[old_ind_below];
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
             trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), ampphasefactor), make_cuDoubleComplex(channel1_ASDinv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
-            channel1_out[i] = cuCadd(channel1_out[i], trans_complex);
+            channel1_out[walker_i*data_length + i] = cuCadd(channel1_out[walker_i*data_length + i], trans_complex);
             // Y or E
-            coeff_0 = old_mode_vals[mode_i].transferL2_re[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].transferL2_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].transferL2_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].transferL2_re_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_3[old_ind_below];
 
             transferL2_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[mode_i].transferL2_im[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].transferL2_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].transferL2_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].transferL2_im_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_3[old_ind_below];
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
             trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), ampphasefactor), make_cuDoubleComplex(channel2_ASDinv[i], 0.0));
 
-            channel2_out[i] = cuCadd(channel2_out[i], trans_complex);
+            channel2_out[walker_i*data_length + i] = cuCadd(channel2_out[walker_i*data_length + i], trans_complex);
 
             // Z or T
-            coeff_0 = old_mode_vals[mode_i].transferL3_re[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].transferL3_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].transferL3_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].transferL3_re_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_3[old_ind_below];
 
             transferL3_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[mode_i].transferL3_im[old_ind_below];
-            coeff_1 = old_mode_vals[mode_i].transferL3_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[mode_i].transferL3_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[mode_i].transferL3_im_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im[old_ind_below];
+            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_3[old_ind_below];
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
             trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), ampphasefactor), make_cuDoubleComplex(channel3_ASDinv[i], 0.0));
 
             // add to this channel
-            channel3_out[i] = cuCadd(channel3_out[i], trans_complex);
+            channel3_out[walker_i*data_length + i] = cuCadd(channel3_out[walker_i*data_length + i], trans_complex);
     }
 }
 

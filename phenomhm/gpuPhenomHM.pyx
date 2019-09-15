@@ -40,6 +40,7 @@ cdef class PhenomHM:
     cdef int f_dim
     cdef int data_length
     cdef int nwalkers
+    cdef max_length_init
 
     def __cinit__(self, max_length_init,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
@@ -58,6 +59,7 @@ cdef class PhenomHM:
         self.nwalkers = nwalkers
         self.num_modes = len(l_vals)
         self.data_length = len(data_channel1)
+        self.max_length_init = max_length_init
         self.g = new PhenomHMwrap(max_length_init,
         &l_vals[0],
         &m_vals[0],
@@ -75,7 +77,7 @@ cdef class PhenomHM:
                         np.ndarray[ndim=1, dtype=np.float64_t] phiRef,
                         np.ndarray[ndim=1, dtype=np.float64_t] f_ref):
 
-        self.f_dim = len(freqs)
+        self.f_dim = self.max_length_init
         self.g.gen_amp_phase(&freqs[0], self.f_dim,
                                 &m1[0], #solar masses
                                 &m2[0], #solar masses
@@ -115,21 +117,21 @@ cdef class PhenomHM:
         return like_out_
 
     def GetTDI(self):
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length,), dtype=np.complex128)
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.data_length,), dtype=np.complex128)
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.data_length,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length*self.nwalkers,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.data_length*self.nwalkers,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.data_length*self.nwalkers,), dtype=np.complex128)
 
         self.g.GetTDI(&X_[0], &Y_[0], &Z_[0])
 
-        return (X_, Y_, Z_)
+        return (X_.reshape(self.nwalkers, -1), Y_.reshape(self.nwalkers, -1), Z_.reshape(self.nwalkers, -1))
 
     def GetAmpPhase(self):
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes,), dtype=np.float64)
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim*self.num_modes,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers,), dtype=np.float64)
 
         self.g.GetAmpPhase(&amp_[0], &phase_[0])
 
-        return (amp_.reshape(self.num_modes, self.f_dim), phase_.reshape(self.num_modes, self.f_dim))
+        return (amp_.reshape(self.nwalkers, self.num_modes, self.f_dim), phase_.reshape(self.nwalkers, self.num_modes, self.f_dim))
 
     def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses

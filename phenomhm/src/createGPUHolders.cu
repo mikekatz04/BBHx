@@ -44,10 +44,11 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 /*
 Function for creating ModeContainer on the gpu.
 */
-ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp){
-        ModeContainer * cpu_mode_vals = cpu_create_modes(num_modes,  l_vals, m_vals, max_length, 1, 0);
+ModeContainer * gpu_create_modes(int num_modes, int num_walkers, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp){
+        ModeContainer * cpu_mode_vals = cpu_create_modes(num_modes, num_walkers, l_vals, m_vals, max_length, 1, 0);
         ModeContainer * mode_vals;
 
+        num_modes = num_modes * num_walkers; // so we do not have to change the whole code.
         // This employs a special way to transfer structures with arrays to the GPU.
 
         double *amp[num_modes];
@@ -228,7 +229,7 @@ ModeContainer * gpu_create_modes(int num_modes, unsigned int *l_vals, unsigned i
 Destroy ModeContainer structures.
 */
 void gpu_destroy_modes(ModeContainer * mode_vals){
-    for (int i=0; i<mode_vals[0].num_modes; i++){
+    for (int i=0; i<(mode_vals[0].num_modes*mode_vals[0].num_walkers); i++){
         gpuErrchk(cudaFree(mode_vals[i].amp));
         gpuErrchk(cudaFree(mode_vals[i].phase));
         gpuErrchk(cudaFree(mode_vals[i].freq_amp_phase));

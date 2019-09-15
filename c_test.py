@@ -22,7 +22,7 @@ def test():
 
     M = 2.00000000e+06
     q = 1/3.00000000e+00
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 2.13954125e+00, 0.0, M/(1+q), M*q/(1+q), 0.2323489, -0.72320,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 2.13954125e+00, 0.0, M/(1+q), M*q/(1+q), 0.0, 0.0,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
     t0 = 1.0
@@ -67,10 +67,10 @@ def test():
 
     t_obs_dur = 0.9
 
-    inc =  np.cos(np.pi - 1.04719755e+00)
+    inc =  np.cos(1.04719755e+00)
     lam = -2.43647481e-02
-    beta = np.sin(-6.24341583e-01)
-    psi = np.pi - 2.02958790e+00
+    beta = np.sin(6.24341583e-01)
+    psi = 2.02958790e+00
 
     key_order = ['cos_inc', 'lam', 'sin_beta', 'psi', 'ln_tRef']
     recycler = Recycler(key_order)
@@ -93,33 +93,45 @@ def test():
      l_vals,
      m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers)
 
-    num = 3
+    num = 1
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
-    for i in range(num):
-        phenomHM.gen_amp_phase(freq,
-                             np.array([m1]),
-                             np.array([m2]),
-                             np.array([chi1z]),
-                             np.array([chi2z]),
-                             np.array([distance]),
-                             np.array([phiRef]),
-                             np.array([f_ref]))
-        #phenomHM.Combine()
-        phenomHM.LISAresponseFD(np.array([inc]),
-                                np.array([lam]),
-                                np.array([beta]),
-                                np.array([psi]),
-                                np.array([t0]),
-                                np.array([tRef_wave_frame]),
-                                np.array([tRef_sampling_frame]),
-                                np.array([merger_freq]))
-        phenomHM.setup_interp_wave()
-        phenomHM.setup_interp_response()
-        phenomHM.perform_interp()
-        like = phenomHM.Likelihood()
 
+    print(m1, m2, chi1z, chi1z, distance,
+                            phiRef, inc, lam, beta,
+                            psi, tRef_wave_frame, tRef_sampling_frame)
+    for i in range(num):
+
+        phenomHM.gen_amp_phase(np.tile(freqs, 2),
+                             np.full(nwalkers, m1),
+                             np.full(nwalkers, m2),
+                             np.full(nwalkers, chi1z),
+                             np.full(nwalkers, chi2z),
+                             np.full(nwalkers, distance),
+                             np.full(nwalkers, phiRef),
+                             np.full(nwalkers, f_ref))
+
+        #phenomHM.Combine()
+
+        phenomHM.LISAresponseFD(np.full(nwalkers, inc),
+                                np.full(nwalkers, lam),
+                                np.full(nwalkers, beta),
+                                np.full(nwalkers, psi),
+                                np.full(nwalkers, t0),
+                                np.full(nwalkers, tRef_wave_frame),
+                                np.full(nwalkers, tRef_sampling_frame),
+                                np.full(nwalkers, merger_freq))
+
+        phenomHM.setup_interp_wave()
+
+        phenomHM.setup_interp_response()
+
+        phenomHM.perform_interp()
+        """
+
+        like = phenomHM.Likelihood()
+        """
         """like2 = phenomHM.WaveformThroughLikelihood(freqs,
                                                    np.arrays([m1]),
                                                    np.arrays([m2]),
@@ -167,6 +179,7 @@ def test():
     #print(like)
     #gpu_X, gpu_Y, gpu_Z = phenomHM.GetTDI()
     amp, phase = phenomHM.GetAmpPhase()
+    import pdb; pdb.set_trace()
     A, E, T = phenomHM.GetTDI()
     #np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
     #print('2gpu per waveform:', t/num)

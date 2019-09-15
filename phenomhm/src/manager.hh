@@ -44,14 +44,14 @@ class PhenomHM {
   double *freqs;
   int current_length;
   int nwalkers;
-  double m1; //solar masses
-  double m2; //solar masses
-  double chi1z;
-  double chi2z;
-  double distance;
-  double phiRef;
+  double* m1; //solar masses
+  double* m2; //solar masses
+  double* chi1z;
+  double* chi2z;
+  double* distance;
+  double* phiRef;
   double deltaF;
-  double f_ref;
+  double* f_ref;
   unsigned int *l_vals;
   unsigned int *m_vals;
   int num_modes;
@@ -61,13 +61,14 @@ class PhenomHM {
   AmpInsPrefactors *amp_prefactors_trans;
   PhenDAmpAndPhasePreComp *pDPreComp_all_trans;
   HMPhasePreComp *q_all_trans;
-  double t0;
-  double phi0;
-  double amp0;
+  double* t0;
+  double* phi0;
+  double* amp0;
   int retcode;
   double m1_SI;
   double m2_SI;
   cmplx *H;
+  double* M_tot_sec;
 
   double *d_freqs;
   double *d_time_freq_corr;
@@ -80,6 +81,10 @@ class PhenomHM {
   HMPhasePreComp *d_q_all_trans;
   double *d_cShift;
   cuDoubleComplex *d_H;
+  double* d_t0;
+  double* d_phi0;
+  double* d_amp0;
+  double* d_M_tot_sec;
 
   dim3 gridDim;
   int NUM_THREADS;
@@ -116,16 +121,27 @@ class PhenomHM {
   double *d_channel2_ASDinv;
   double *d_channel3_ASDinv;
 
-  double inc;
-  double lam;
-  double beta;
-  double psi;
-  double t0_epoch;
-  double tRef_wave_frame;
-  double tRef_sampling_frame;
+  double* inc;
+  double* lam;
+  double* beta;
+  double* psi;
+  double* t0_epoch;
+  double* tRef_wave_frame;
+  double* tRef_sampling_frame;
   int TDItag;
   double t_obs_dur;
-  double merger_freq;
+  double* merger_freq;
+
+  double* d_inc;
+  double* d_lam;
+  double* d_beta;
+  double* d_psi;
+  double* d_t0_epoch;
+  double* d_tRef_wave_frame;
+  double* d_tRef_sampling_frame;
+  double* d_merger_freq;
+  double* d_phiRef;
+  double d_log10f;
 
 
 public:
@@ -165,7 +181,7 @@ public:
         double* phiRef_,
         double* f_ref_);
 
-    void gen_amp_phase_prep(double *freqs_, int current_length_,
+    void gen_amp_phase_prep(int ind_walker_, double *freqs_, int current_length_,
             double m1_, //solar masses
             double m2_, //solar masses
             double chi1z_,

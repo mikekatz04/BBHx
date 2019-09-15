@@ -132,7 +132,7 @@ def cuda_install():
                     '-gencode=arch=compute_61,code=sm_61',
                     '-gencode=arch=compute_70,code=sm_70',
                     '--default-stream=per-thread', '--ptxas-options=-v', '-c',
-                    '--compiler-options', "'-fPIC'" ]#,"-G", "-g"] # for debugging
+                    '--compiler-options', "'-fPIC'", '-lineinfo']#,"-G", "-g"] # for debugging
                 },
                 include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'phenomhm/src']
             )
@@ -245,8 +245,8 @@ except OSError:
                          + 'The nvcc binary could not be located in your $PATH. '
                          + 'Either add it to your path, or set $CUDAHOME')
 
-cpp_install()
-print_strings.append('INSTALLED C++ VERSION: PhenomHM')
+#cpp_install()
+#print_strings.append('INSTALLED C++ VERSION: PhenomHM')
 
 wrapper_install()
 print_strings.append('INSTALLED WRAPPER: phenomhm.py')

@@ -301,6 +301,8 @@ typedef struct tagModeContainer{
     int max_length;
     int to_gpu;
     int to_interp;
+    int num_walkers;
+    int walker;
 
     double *freq_amp_phase;
     double d_log10f_amp_phase;
@@ -355,7 +357,7 @@ typedef struct tagModeContainer{
 
 } ModeContainer;
 
-ModeContainer * cpu_create_modes(int num_modes, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp);
+ModeContainer * cpu_create_modes(int num_modes, int num_walkers, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp);
 void cpu_destroy_modes(ModeContainer * mode_vals);
 
 #endif

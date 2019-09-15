@@ -264,22 +264,40 @@ d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double 
 
 
 __global__
-void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double inc, double lam, double beta, double psi, double phi0, double t0, double tRef_wave_frame, double tRef_sampling_frame, double merger_freq, int TDItag, int order_fresnel_stencil){
+void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
+    double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
+    int walker_i = blockIdx.z;
     if (i>=num_points) return;
     if (mode_i >= num_modes) return;
+    if (walker_i >= num_walkers) return;
+
+    double inc = inc_arr[walker_i];
+    double lam = lam_arr[walker_i];
+    double beta = beta_arr[walker_i];
+    double psi = psi_arr[walker_i];
+    double phi0 = phi0_arr[walker_i];
+    double t0 = t0_arr[walker_i];
+    double tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+    double tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
+    double merger_freq = merger_freq_arr[walker_i];
+
+
     double phasetimeshift;
     double phi_up, phi;
+
     double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
 
+    int mode_index = walker_i*num_modes + mode_i;
+
             f = frqs[i];
 
-            if (i == 0) dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);
+            if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[1] - old_freqs[0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            else dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[i+1] - old_freqs[i]);
 
 
             /*old_ind_below = i;
@@ -287,10 +305,10 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
             x2 = x*x;
             x3 = x2*x;
-            coeff_0 = mode_vals[mode_i].phase[old_ind_below];
-            coeff_1 = mode_vals[mode_i].phase_coeff_1[old_ind_below];
-            coeff_2 = mode_vals[mode_i].phase_coeff_2[old_ind_below];
-            coeff_3 = mode_vals[mode_i].phase_coeff_3[old_ind_below];
+            coeff_0 = mode_vals[mode_index].phase[old_ind_below];
+            coeff_1 = mode_vals[mode_index].phase_coeff_1[old_ind_below];
+            coeff_2 = mode_vals[mode_index].phase_coeff_2[old_ind_below];
+            coeff_3 = mode_vals[mode_index].phase_coeff_3[old_ind_below];
 
             phi = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
 
@@ -300,36 +318,36 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             dphidf = (phi_up - phi)/1e-6;*/
 
 
-            /*dphidf = (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0])/(old_freqs[1] - old_freqs[0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_i].phase[num_points-1] - mode_vals[mode_i].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            else dphidf = (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i])/(old_freqs[i+1] - old_freqs[i]);*/
+            /*dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[1] - old_freqs[0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+            else dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[i+1] - old_freqs[i]);*/
 
 
             // Right now, it assumes same points for initial sampling of the response and the waveform
             // linear term in cubic spline is the first derivative of phase at each node point
 
-            //dphidf = mode_vals[mode_i].phase_coeff_1[i];
+            //dphidf = mode_vals[mode_index].phase_coeff_1[i];
 
             t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
             // adjust phase values stored in mode vals to reflect the tRef shift
-            mode_vals[mode_i].phase[i] += 2.0*PI*f*tRef_wave_frame;
+            mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
 
-            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_i*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
+            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 
-            mode_vals[mode_i].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it should be okay at long enough times.
-            mode_vals[mode_i].transferL1_re[i] = cuCreal(transferL.transferL1);
-            mode_vals[mode_i].transferL1_im[i] = cuCimag(transferL.transferL1);
-            mode_vals[mode_i].transferL2_re[i] = cuCreal(transferL.transferL2);
-            mode_vals[mode_i].transferL2_im[i] = cuCimag(transferL.transferL2);
-            mode_vals[mode_i].transferL3_re[i] = cuCreal(transferL.transferL3);
-            mode_vals[mode_i].transferL3_im[i] = cuCimag(transferL.transferL3);
-            mode_vals[mode_i].phaseRdelay[i] = transferL.phaseRdelay;
+            mode_vals[mode_index].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it should be okay at long enough times.
+            mode_vals[mode_index].transferL1_re[i] = cuCreal(transferL.transferL1);
+            mode_vals[mode_index].transferL1_im[i] = cuCimag(transferL.transferL1);
+            mode_vals[mode_index].transferL2_re[i] = cuCreal(transferL.transferL2);
+            mode_vals[mode_index].transferL2_im[i] = cuCimag(transferL.transferL2);
+            mode_vals[mode_index].transferL3_re[i] = cuCreal(transferL.transferL3);
+            mode_vals[mode_index].transferL3_im[i] = cuCimag(transferL.transferL3);
+            mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
 
-            /*# if __CUDA_ARCH__>=200
-            if ((i == 1000) && (mode_i == 1)){
-                printf("phases: %d, %.18e, %.18e, %e, %e, %e, %e, %e, %e, %e \n", mode_i, f, t_wave_frame, cuCreal(transferL.transferL1), cuCimag(transferL.transferL1), cuCreal(transferL.transferL2), cuCimag(transferL.transferL2), cuCreal(transferL.transferL3), cuCimag(transferL.transferL3), transferL.phaseRdelay);
+            # if __CUDA_ARCH__>=200
+            if (i == 1000){
+                printf("phases: %d, %.18e, %.18e, %e, %e, %e, %e, %e, %e, %e, %e \n", mode_index, f, t_wave_frame, t_sampling_frame + t0*YRSID_SI, cuCreal(transferL.transferL1), cuCimag(transferL.transferL1), cuCreal(transferL.transferL2), cuCimag(transferL.transferL2), cuCreal(transferL.transferL3), cuCimag(transferL.transferL3), transferL.phaseRdelay);
             }
 
             #endif //*/

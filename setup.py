@@ -115,7 +115,7 @@ def cuda_install():
     ext = Extension('gpuPhenomHM',
             sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/manager.cu', 'phenomhm/gpuPhenomHM.pyx'],
             library_dirs = [lib_gsl_dir, CUDA['lib64']],
-            libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas"],
+            libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas", "gomp"],
             language = 'c++',
             runtime_library_dirs = [CUDA['lib64']],
             # This syntax is specific to this build system
@@ -126,13 +126,14 @@ def cuda_install():
                 'gcc': ['-std=c99'], # '-g'],
                 'nvcc': [
                     '-arch=sm_70',
+                    '-gencode=arch=compute_35,code=sm_35',
                     '-gencode=arch=compute_50,code=sm_50',
                     '-gencode=arch=compute_52,code=sm_52',
                     '-gencode=arch=compute_60,code=sm_60',
                     '-gencode=arch=compute_61,code=sm_61',
                     '-gencode=arch=compute_70,code=sm_70',
                     '--default-stream=per-thread', '--ptxas-options=-v', '-c',
-                    '--compiler-options', "'-fPIC'", '-lineinfo']#,"-G", "-g"] # for debugging
+                    '--compiler-options', "'-fPIC'", '-lineinfo', '-Xcompiler', '-fopenmp']#,"-G", "-g"] # for debugging
                 },
                 include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'phenomhm/src']
             )

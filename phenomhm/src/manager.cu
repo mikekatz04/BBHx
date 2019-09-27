@@ -39,6 +39,7 @@
 #include "fdresponse.h"
 #include "createGPUHolders.cu"
 #include "kernel_response.cu"
+#include "omp.h"
 // TODO: CUTOFF PHASE WHEN IT STARTS TO GO BACK UP!!!
 
 using namespace std;
@@ -275,19 +276,26 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     phiRef = phiRef_;
     f_ref = f_ref_;
 
-    for (int i=0; i<nwalkers; i++){
-        PhenomHM::gen_amp_phase_prep(i, &freqs[i*current_length], current_length_,
-            m1_[i], //solar masses
-            m2_[i], //solar masses
-            chi1z_[i],
-            chi2z_[i],
-            distance_[i],
-            phiRef_[i],
-            f_ref_[i]);
+    int i, th_id, nthreads;
+    #pragma omp parallel private(th_id, i)
+    {
+    //for (int i=0; i<nwalkers; i++){
+        nthreads = omp_get_num_threads();
+        th_id = omp_get_thread_num();
+        for (int i=th_id; i<nwalkers; i+=nthreads){
+            PhenomHM::gen_amp_phase_prep(i, &freqs[i*current_length], current_length_,
+                m1_[i], //solar masses
+                m2_[i], //solar masses
+                chi1z_[i],
+                chi2z_[i],
+                distance_[i],
+                phiRef_[i],
+                f_ref_[i]);
 
-        M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
-        //printf("%d, %e\n", i, M_tot_sec[i]);
+            M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
+        }
     }
+
 
     //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
 
@@ -436,8 +444,15 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
     assert(current_status >= 1);
 
     // get H on the CPU
-    for (int i=0; i<nwalkers; i++){
-        prep_H_info(&H[i*num_modes*9], l_vals, m_vals, num_modes, inc[i], lam[i], beta[i], psi[i], phiRef[i]);
+    int i, th_id, nthreads;
+    #pragma omp parallel private(th_id, i)
+    {
+    //for (int i=0; i<nwalkers; i++){
+        nthreads = omp_get_num_threads();
+        th_id = omp_get_thread_num();
+        for (int i=th_id; i<nwalkers; i+=nthreads){
+            prep_H_info(&H[i*num_modes*9], l_vals, m_vals, num_modes, inc[i], lam[i], beta[i], psi[i], phiRef[i]);
+        }
     }
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*nwalkers*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
@@ -498,7 +513,6 @@ void PhenomHM::perform_interp(){
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     //dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
     dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
-    //printf("%e, %e, %e\n", freqs[1], freqs[0], d_log10f);
 
     interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes,
         d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, d_t0_epoch,
@@ -512,7 +526,7 @@ void PhenomHM::perform_interp(){
 /*
 Compute likelihood on the GPU
 */
-void PhenomHM::Likelihood (double *like_out_){
+void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
 
     //printf("like mem\n");
     //print_mem_info();
@@ -523,89 +537,93 @@ void PhenomHM::Likelihood (double *like_out_){
      double res;
      cuDoubleComplex result;
 
-        // get data - template terms
+     for (int i=0; i<nwalkers; i++){
+         d_h = 0.0;
+         h_h = 0.0;
+         // get data - template terms
+          stat = cublasZdotc(handle, data_stream_length,
+                  &d_template_channel1[data_stream_length*i], 1,
+                  d_data_channel1, 1,
+                  &result);
+          status = _cudaGetErrorEnum(stat);
+           cudaDeviceSynchronize();
+
+           if (stat != CUBLAS_STATUS_SUCCESS) {
+                   exit(0);
+               }
+          d_h += cuCreal(result);
+          //printf("channel1 d_h: %e\n", cuCreal(result));
+
+          stat = cublasZdotc(handle, data_stream_length,
+                  &d_template_channel2[data_stream_length*i], 1,
+                  d_data_channel2, 1,
+                  &result);
+          status = _cudaGetErrorEnum(stat);
+           cudaDeviceSynchronize();
+
+           if (stat != CUBLAS_STATUS_SUCCESS) {
+                   exit(0);
+               }
+          d_h += cuCreal(result);
+          //printf("channel2 d_h: %e\n", cuCreal(result));
+
+          stat = cublasZdotc(handle, data_stream_length,
+                  &d_template_channel3[data_stream_length*i], 1,
+                  d_data_channel3, 1,
+                  &result);
+          status = _cudaGetErrorEnum(stat);
+           cudaDeviceSynchronize();
+
+           if (stat != CUBLAS_STATUS_SUCCESS) {
+                   exit(0);
+               }
+          d_h += cuCreal(result);
+          //printf("channel3 d_h: %e\n", cuCreal(result));
+
+
+          // get template template terms
          stat = cublasZdotc(handle, data_stream_length,
-                 d_template_channel1, 1,
-                 d_data_channel1, 1,
-                 &result);
-         status = _cudaGetErrorEnum(stat);
-          cudaDeviceSynchronize();
+                      &d_template_channel1[data_stream_length*i], 1,
+                      &d_template_channel1[data_stream_length*i], 1,
+                      &result);
+              status = _cudaGetErrorEnum(stat);
+               cudaDeviceSynchronize();
 
-          if (stat != CUBLAS_STATUS_SUCCESS) {
-                  exit(0);
-              }
-         d_h += cuCreal(result);
-         //printf("channel1 d_h: %e\n", cuCreal(result));
+               if (stat != CUBLAS_STATUS_SUCCESS) {
+                       exit(0);
+                   }
+              h_h += cuCreal(result);
+              //printf("channel1 h_h: %e\n", cuCreal(result));
 
-         stat = cublasZdotc(handle, data_stream_length,
-                 d_template_channel2, 1,
-                 d_data_channel2, 1,
-                 &result);
-         status = _cudaGetErrorEnum(stat);
-          cudaDeviceSynchronize();
+              stat = cublasZdotc(handle, data_stream_length,
+                      &d_template_channel2[data_stream_length*i], 1,
+                      &d_template_channel2[data_stream_length*i], 1,
+                      &result);
+              status = _cudaGetErrorEnum(stat);
+               cudaDeviceSynchronize();
 
-          if (stat != CUBLAS_STATUS_SUCCESS) {
-                  exit(0);
-              }
-         d_h += cuCreal(result);
-         //printf("channel2 d_h: %e\n", cuCreal(result));
+               if (stat != CUBLAS_STATUS_SUCCESS) {
+                       exit(0);
+                   }
+              h_h += cuCreal(result);
+              //printf("channel2 h_h: %e\n", cuCreal(result));
 
-         stat = cublasZdotc(handle, data_stream_length,
-                 d_template_channel3, 1,
-                 d_data_channel3, 1,
-                 &result);
-         status = _cudaGetErrorEnum(stat);
-          cudaDeviceSynchronize();
+              stat = cublasZdotc(handle, data_stream_length,
+                      &d_template_channel3[data_stream_length*i], 1,
+                      &d_template_channel3[data_stream_length*i], 1,
+                      &result);
+              status = _cudaGetErrorEnum(stat);
+               cudaDeviceSynchronize();
 
-          if (stat != CUBLAS_STATUS_SUCCESS) {
-                  exit(0);
-              }
-         d_h += cuCreal(result);
-         //printf("channel3 d_h: %e\n", cuCreal(result));
+               if (stat != CUBLAS_STATUS_SUCCESS) {
+                       exit(0);
+                   }
+              h_h += cuCreal(result);
+              //printf("channel3 h_h: %e\n", cuCreal(result));
 
-
-         // get template template terms
-        stat = cublasZdotc(handle, data_stream_length,
-                     d_template_channel1, 1,
-                     d_template_channel1, 1,
-                     &result);
-             status = _cudaGetErrorEnum(stat);
-              cudaDeviceSynchronize();
-
-              if (stat != CUBLAS_STATUS_SUCCESS) {
-                      exit(0);
-                  }
-             h_h += cuCreal(result);
-             //printf("channel1 h_h: %e\n", cuCreal(result));
-
-             stat = cublasZdotc(handle, data_stream_length,
-                     d_template_channel2, 1,
-                     d_template_channel2, 1,
-                     &result);
-             status = _cudaGetErrorEnum(stat);
-              cudaDeviceSynchronize();
-
-              if (stat != CUBLAS_STATUS_SUCCESS) {
-                      exit(0);
-                  }
-             h_h += cuCreal(result);
-             //printf("channel2 h_h: %e\n", cuCreal(result));
-
-             stat = cublasZdotc(handle, data_stream_length,
-                     d_template_channel3, 1,
-                     d_template_channel3, 1,
-                     &result);
-             status = _cudaGetErrorEnum(stat);
-              cudaDeviceSynchronize();
-
-              if (stat != CUBLAS_STATUS_SUCCESS) {
-                      exit(0);
-                  }
-             h_h += cuCreal(result);
-             //printf("channel3 h_h: %e\n", cuCreal(result));
-
-     like_out_[0] = 4*d_h;
-     like_out_[1] = 4*h_h;
+          d_h_arr[i] = 4*d_h;
+          h_h_arr[i] = 4*h_h;
+     }
 }
 
 /*

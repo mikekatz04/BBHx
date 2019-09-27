@@ -198,7 +198,7 @@ public:
 
   void perform_interp();
 
-  void Likelihood (double *like_out_);
+  void Likelihood (double *d_h_arr, double *h_h_arr);
 
   void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
 

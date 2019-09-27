@@ -30,7 +30,7 @@ cdef extern from "src/manager.hh":
 
         void setup_interp_response()
 
-        void Likelihood(np.float64_t*)
+        void Likelihood(np.float64_t*, np.float64_t*)
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
         void GetAmpPhase(np.float64_t*, np.float64_t*)
 
@@ -100,6 +100,8 @@ cdef class PhenomHM:
                        np.ndarray[ndim=1, dtype=np.float64_t] tRef_wave_frame,
                        np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
                        np.ndarray[ndim=1, dtype=np.float64_t] merger_freq):
+
+        
         self.g.LISAresponseFD(&inc[0], &lam[0], &beta[0], &psi[0], &t0[0], &tRef_wave_frame[0], &tRef_sampling_frame[0], &merger_freq[0])
         return
 
@@ -112,9 +114,10 @@ cdef class PhenomHM:
         return
 
     def Likelihood(self):
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] like_out_ = np.zeros((2,), dtype=np.float64)
-        self.g.Likelihood(&like_out_[0])
-        return like_out_
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] d_h_arr = np.zeros((self.nwalkers,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] h_h_arr = np.zeros((self.nwalkers,), dtype=np.float64)
+        self.g.Likelihood(&d_h_arr[0], &h_h_arr[0])
+        return d_h_arr, h_h_arr
 
     def GetTDI(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length*self.nwalkers,), dtype=np.complex128)
@@ -150,6 +153,7 @@ cdef class PhenomHM:
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] merger_freq,
                         return_amp_phase=False, return_TDI=False):
+
         self.gen_amp_phase(freqs,
                             m1, #solar masses
                             m2, #solar masses
@@ -158,6 +162,7 @@ cdef class PhenomHM:
                             distance,
                             phiRef,
                             f_ref)
+
 
         if return_amp_phase:
             return self.GetAmpPhase()

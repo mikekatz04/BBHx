@@ -85,7 +85,7 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
-    nwalkers = 10
+    nwalkers = 100
 
     #data_A, data_E, data_T = np.load('data_set.npy')
     data_A, data_E, data_T = data, data, data
@@ -93,7 +93,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers)
 
-    num = 100
+    num = 1000
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
@@ -101,55 +101,71 @@ def test():
     print(m1, m2, chi1z, chi1z, distance,
                             phiRef, inc, lam, beta,
                             psi, tRef_wave_frame, tRef_sampling_frame)
+    freqs_in = np.tile(freqs, nwalkers)
+    m1_in = np.full(nwalkers, m1)
+    m2_in = np.full(nwalkers, m2)
+    chi1z_in = np.full(nwalkers, chi1z)
+    chi2z_in = np.full(nwalkers, chi1z)
+    distance_in = np.full(nwalkers, distance)
+    phiRef_in = np.full(nwalkers, phiRef)
+    f_ref_in = np.full(nwalkers, f_ref)
+    inc_in = np.full(nwalkers, inc)
+    lam_in = np.full(nwalkers, lam)
+    beta_in = np.full(nwalkers, beta)
+    psi_in = np.full(nwalkers, psi)
+    t0_in = np.full(nwalkers, t0)
+    tRef_wave_frame_in = np.full(nwalkers, tRef_wave_frame)
+    tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
+    merger_freq_in = np.full(nwalkers, merger_freq)
+
+
     for i in range(num):
 
-        phenomHM.gen_amp_phase(np.tile(freqs, nwalkers),
-                             np.full(nwalkers, m1),
-                             np.full(nwalkers, m2),
-                             np.full(nwalkers, chi1z),
-                             np.full(nwalkers, chi2z),
-                             np.full(nwalkers, distance),
-                             np.full(nwalkers, phiRef),
-                             np.full(nwalkers, f_ref))
+        phenomHM.gen_amp_phase(freqs_in,
+                             m1_in,
+                             m2_in,
+                             chi1z_in,
+                             chi2z_in,
+                             distance_in,
+                             phiRef_in,
+                             f_ref_in)
 
         #phenomHM.Combine()
 
-        phenomHM.LISAresponseFD(np.full(nwalkers, inc),
-                                np.full(nwalkers, lam),
-                                np.full(nwalkers, beta),
-                                np.full(nwalkers, psi),
-                                np.full(nwalkers, t0),
-                                np.full(nwalkers, tRef_wave_frame),
-                                np.full(nwalkers, tRef_sampling_frame),
-                                np.full(nwalkers, merger_freq))
+        phenomHM.LISAresponseFD(inc_in,
+                                lam_in,
+                                beta_in,
+                                psi_in,
+                                t0_in,
+                                tRef_wave_frame_in,
+                                tRef_sampling_frame_in,
+                                merger_freq_in)
 
         phenomHM.setup_interp_wave()
 
         phenomHM.setup_interp_response()
 
         phenomHM.perform_interp()
-        """
 
         like = phenomHM.Likelihood()
-        """
-        """like2 = phenomHM.WaveformThroughLikelihood(freqs,
-                                                   np.arrays([m1]),
-                                                   np.arrays([m2]),
-                                                   np.arrays([chi1z]),
-                                                   np.arrays([chi2z]),
-                                                   np.arrays([distance]),
-                                                   np.arrays([phiRef]),
-                                                   np.arrays([f_ref]),
-                                                   np.arrays([inc,
-                                                   np.arrays([lam,
-                                                   np.arrays([beta,
-                                                   np.arrays([psi,
-                                                   np.arrays([t0,
-                                                   np.arrays([tRef_wave_frame,
-                                                   np.arrays([tRef_sampling_frame,
-                                                   np.arrays([merger_freq,
-                                                   np.arrays([return_TDI=False)
-        """
+
+        """like2 = phenomHM.WaveformThroughLikelihood(freqs_in,
+                                                     m1_in,
+                                                     m2_in,
+                                                     chi1z_in,
+                                                     chi2z_in,
+                                                     distance_in,
+                                                     phiRef_in,
+                                                     f_ref_in,
+                                                      inc_in,
+                                                      lam_in,
+                                                      beta_in,
+                                                      psi_in,
+                                                      t0_in,
+                                                      tRef_wave_frame_in,
+                                                      tRef_sampling_frame_in,
+                                                      merger_freq_in, return_TDI=False)"""
+
         #snrs[i] = like2[1]
         #print(like2**(1/2))
 

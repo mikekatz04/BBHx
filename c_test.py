@@ -85,7 +85,7 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
-    nwalkers = 2
+    nwalkers = 10
 
     #data_A, data_E, data_T = np.load('data_set.npy')
     data_A, data_E, data_T = data, data, data
@@ -93,7 +93,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers)
 
-    num = 1
+    num = 100
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
@@ -103,7 +103,7 @@ def test():
                             psi, tRef_wave_frame, tRef_sampling_frame)
     for i in range(num):
 
-        phenomHM.gen_amp_phase(np.tile(freqs, 2),
+        phenomHM.gen_amp_phase(np.tile(freqs, nwalkers),
                              np.full(nwalkers, m1),
                              np.full(nwalkers, m2),
                              np.full(nwalkers, chi1z),
@@ -175,7 +175,7 @@ def test():
 
     #np.save('snrs', np.array([phiRef, snrs]))
     t = time.perf_counter() - st
-    print('gpu per waveform:', t/num)
+    print('gpu per waveform:', t/(num*nwalkers))
     #print(like)
     #gpu_X, gpu_Y, gpu_Z = phenomHM.GetTDI()
     amp, phase = phenomHM.GetAmpPhase()

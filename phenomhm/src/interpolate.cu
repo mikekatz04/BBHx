@@ -329,11 +329,11 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            # if __CUDA_ARCH__>=200
+            /*# if __CUDA_ARCH__>=200
             if (i == 15000)
                 printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_start, t_break, t0, tRef, amp, transferL1_re);
 
-            #endif
+            #endif //*/
 
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im[old_ind_below];
             coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_1[old_ind_below];

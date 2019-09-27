@@ -108,8 +108,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     to_gpu = 1;
 
     cudaDeviceSynchronize();
-    printf("pre pre\n");
-    print_mem_info();
+    //printf("pre pre\n");
+    //print_mem_info();
 
     cudaError_t err;
 
@@ -133,22 +133,22 @@ PhenomHM::PhenomHM (int max_length_init_,
   gpuErrchk(cudaMalloc(&d_H, 9*num_modes*nwalkers*sizeof(cuDoubleComplex)));
 
   cudaDeviceSynchronize();
-  printf("after d_B, d_H\n");
-  print_mem_info();
+  //printf("after d_B, d_H\n");
+  //print_mem_info();
 
   gpuErrchk(cudaMalloc(&d_template_channel1, data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
   gpuErrchk(cudaMalloc(&d_template_channel2, data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
   gpuErrchk(cudaMalloc(&d_template_channel3, data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
 
   cudaDeviceSynchronize();
-  printf("after template\n");
-  print_mem_info();
+  //printf("after template\n");
+  //print_mem_info();
 
   d_mode_vals = gpu_create_modes(num_modes, nwalkers, l_vals, m_vals, max_length_init, to_gpu, 1);
 
   cudaDeviceSynchronize();
-  printf("after mode_vals\n");
-  print_mem_info();
+  //printf("after mode_vals\n");
+  //print_mem_info();
 
   gpuErrchk(cudaMalloc(&d_freqs, nwalkers*max_length_init*sizeof(double)));
 
@@ -175,8 +175,8 @@ PhenomHM::PhenomHM (int max_length_init_,
   gpuErrchk(cudaMemcpy(d_channel3_ASDinv, channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
   cudaDeviceSynchronize();
-  printf("after data_freqs, data_channels, ASD\n");
-  print_mem_info();
+  //printf("after data_freqs, data_channels, ASD\n");
+  //print_mem_info();
 
   gpuErrchk(cudaMalloc(&d_pHM_trans, nwalkers*sizeof(PhenomHMStorage)));
 
@@ -244,8 +244,8 @@ PhenomHM::PhenomHM (int max_length_init_,
   interp.alloc_arrays(max_length_init);
 
   cudaDeviceSynchronize();
-  printf("after all initialization\n");
-  print_mem_info();
+  //printf("after all initialization\n");
+  //print_mem_info();
 }
 
 /*
@@ -264,7 +264,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     assert(current_length_ <= nwalkers*max_length_init);
 
     freqs = freqs_;
-    printf("fsss: %e, %e\n", freqs[1], freqs[0]);
+    //printf("fsss: %e, %e\n", freqs[1], freqs[0]);
     d_log10f = log10(freqs[1]) - log10(freqs[0]);
     current_length = current_length_;
     m1 = m1_; //solar masses
@@ -286,7 +286,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
             f_ref_[i]);
 
         M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
-        printf("%d, %e\n", i, M_tot_sec[i]);
+        //printf("%d, %e\n", i, M_tot_sec[i]);
     }
 
     //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
@@ -313,7 +313,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     gpuErrchk(cudaMemcpy(d_M_tot_sec, M_tot_sec, nwalkers*sizeof(double), cudaMemcpyHostToDevice));
 
     gpuErrchk(cudaMemcpy(pHM_trans, d_pHM_trans, nwalkers*sizeof(PhenomHMStorage), cudaMemcpyDeviceToHost));
-    printf("%e, %e\n", amp0[0], amp0[1]);
+    //printf("%e, %e\n", amp0[0], amp0[1]);
     /* main: evaluate model at given frequencies on GPU */
     NUM_THREADS = 256;
 
@@ -441,7 +441,7 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
     }
     gpuErrchk(cudaMemcpy(d_H, H, 9*num_modes*nwalkers*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
-    printf("fs2: %e, %e, %e\n", freqs[1], freqs[0], d_log10f);
+    //printf("fs2: %e, %e, %e\n", freqs[1], freqs[0], d_log10f);
     int num_blocks = std::ceil((current_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);
 
@@ -498,7 +498,7 @@ void PhenomHM::perform_interp(){
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     //dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
     dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
-    printf("%e, %e, %e\n", freqs[1], freqs[0], d_log10f);
+    //printf("%e, %e, %e\n", freqs[1], freqs[0], d_log10f);
 
     interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1, d_template_channel2, d_template_channel3, d_mode_vals, num_modes,
         d_log10f, d_freqs, current_length, d_data_freqs, data_stream_length, d_t0_epoch,
@@ -514,8 +514,8 @@ Compute likelihood on the GPU
 */
 void PhenomHM::Likelihood (double *like_out_){
 
-    printf("like mem\n");
-    print_mem_info();
+    //printf("like mem\n");
+    //print_mem_info();
      assert(current_status == 5);
      double d_h = 0.0;
      double h_h = 0.0;

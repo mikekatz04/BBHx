@@ -345,7 +345,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             mode_vals[mode_index].transferL3_im[i] = cuCimag(transferL.transferL3);
             mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
 
-            # if __CUDA_ARCH__>=200
+            /*# if __CUDA_ARCH__>=200
             if (i == 1000){
                 printf("phases: %d, %.18e, %.18e, %e, %e, %e, %e, %e, %e, %e, %e \n", mode_index, f, t_wave_frame, t_sampling_frame + t0*YRSID_SI, cuCreal(transferL.transferL1), cuCimag(transferL.transferL1), cuCreal(transferL.transferL2), cuCimag(transferL.transferL2), cuCreal(transferL.transferL3), cuCimag(transferL.transferL3), transferL.phaseRdelay);
             }

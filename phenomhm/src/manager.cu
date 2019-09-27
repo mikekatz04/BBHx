@@ -319,7 +319,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
 
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);
-    printf("%d walkers \n", nwalkers);
+    //printf("%d walkers \n", nwalkers);
 
     kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals,
           d_pHM_trans,

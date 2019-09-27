@@ -242,7 +242,7 @@ PhenomHM::PhenomHM (int max_length_init_,
   gpuErrchk(cudaMalloc(&d_phiRef, nwalkers*sizeof(double)));
 
   // alocate GPU arrays for interpolation
-  interp.alloc_arrays(max_length_init);
+  interp.alloc_arrays(max_length_init, 8*num_modes*nwalkers, d_B);
 
   cudaDeviceSynchronize();
   //printf("after all initialization\n");

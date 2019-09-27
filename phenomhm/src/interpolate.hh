@@ -41,12 +41,14 @@ class Interpolate{
     int m;
     int n;
     int to_gpu;
+    size_t bufferSizeInBytes;
+    void *pBuffer;
 
 public:
     // FOR NOW WE ASSUME dLOGX is evenly spaced // TODO: allocate at the beginning
     Interpolate();
 
-    __host__ void alloc_arrays(int max_length_init);
+    __host__ void alloc_arrays(int m, int n, double *d_B);
     __host__ void prep(double *B, int m_, int n_, int to_gpu_);
 
     __host__ ~Interpolate(); //destructor

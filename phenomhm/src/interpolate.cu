@@ -399,13 +399,20 @@ allocate arrays for interpolation
 */
 
 __host__
-void Interpolate::alloc_arrays(int max_length_init){
-    err = cudaMalloc(&d_dl, max_length_init*sizeof(double));
+void Interpolate::alloc_arrays(int m, int n, double *d_B){
+    err = cudaMalloc(&d_dl, m*sizeof(double));
     assert(err == 0);
-    err = cudaMalloc(&d_d, max_length_init*sizeof(double));
+    err = cudaMalloc(&d_d, m*sizeof(double));
     assert(err == 0);
-    err = cudaMalloc(&d_du, max_length_init*sizeof(double));
+    err = cudaMalloc(&d_du, m*sizeof(double));
     assert(err == 0);
+
+    CUSPARSE_CALL( cusparseCreate(&handle) );
+    cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
+    cusparseDestroy(handle);
+    printf("buffer: %d\n", bufferSizeInBytes);
+
+    cudaMalloc(&pBuffer, bufferSizeInBytes);
 }
 
 /*
@@ -451,7 +458,7 @@ Use cuSparse to perform matrix calcuation.
 */
 __host__ void Interpolate::gpu_fit_constants(double *B){
     CUSPARSE_CALL( cusparseCreate(&handle) );
-    cusparseStatus_t status = cusparseDgtsv_nopivot(handle, m, n, d_dl, d_d, d_du, B, m);
+    cusparseStatus_t status = cusparseDgtsv2_nopivot(handle, m, n, d_dl, d_d, d_du, B, m, pBuffer);
     if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
     cusparseDestroy(handle);
 }
@@ -463,4 +470,5 @@ __host__ Interpolate::~Interpolate(){
     cudaFree(d_dl);
     cudaFree(d_du);
     cudaFree(d_d);
+    cudaFree(pBuffer);
 }

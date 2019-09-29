@@ -70,38 +70,38 @@ class PhenomHM {
   cmplx *H;
   double* M_tot_sec;
 
-  double *d_freqs;
-  double *d_time_freq_corr;
+  double **d_freqs;
+  double **d_time_freq_corr;
   unsigned int *d_l_vals;
   unsigned int *d_m_vals;
-  PhenomHMStorage *d_pHM_trans;
-  IMRPhenomDAmplitudeCoefficients *d_pAmp_trans;
-  AmpInsPrefactors *d_amp_prefactors_trans;
-  PhenDAmpAndPhasePreComp *d_pDPreComp_all_trans;
-  HMPhasePreComp *d_q_all_trans;
-  double *d_cShift;
-  cuDoubleComplex *d_H;
-  double* d_t0;
-  double* d_phi0;
-  double* d_amp0;
-  double* d_M_tot_sec;
+  PhenomHMStorage **d_pHM_trans;
+  IMRPhenomDAmplitudeCoefficients **d_pAmp_trans;
+  AmpInsPrefactors **d_amp_prefactors_trans;
+  PhenDAmpAndPhasePreComp **d_pDPreComp_all_trans;
+  HMPhasePreComp **d_q_all_trans;
+  double **d_cShift;
+  cuDoubleComplex **d_H;
+  double** d_t0;
+  double** d_phi0;
+  double** d_amp0;
+  double** d_M_tot_sec;
 
   dim3 gridDim;
   int NUM_THREADS;
   int num_blocks;
 
-  cublasHandle_t handle;
+  cublasHandle_t *handle;
   cublasStatus_t stat;
 
   // Interpolate related stuff
-  Interpolate interp;
-  double *d_B;
+  Interpolate *interp;
+  double **d_B;
 
   ModeContainer *mode_vals;
-  ModeContainer *d_mode_vals;
+  ModeContainer **d_mode_vals;
+  int ndevices;
 
   double *data_freqs;
-  double *d_data_freqs;
   cmplx *data_channel1;
   cmplx *data_channel2;
   cmplx *data_channel3;
@@ -110,16 +110,17 @@ class PhenomHM {
   double *channel2_ASDinv;
   double *channel3_ASDinv;
 
-  cuDoubleComplex *d_data_channel1;
-  cuDoubleComplex *d_data_channel2;
-  cuDoubleComplex *d_data_channel3;
+    double **d_data_freqs;
+  cuDoubleComplex **d_data_channel1;
+  cuDoubleComplex **d_data_channel2;
+  cuDoubleComplex **d_data_channel3;
 
-  cuDoubleComplex *d_template_channel1;
-  cuDoubleComplex *d_template_channel2;
-  cuDoubleComplex *d_template_channel3;
-  double *d_channel1_ASDinv;
-  double *d_channel2_ASDinv;
-  double *d_channel3_ASDinv;
+  cuDoubleComplex **d_template_channel1;
+  cuDoubleComplex **d_template_channel2;
+  cuDoubleComplex **d_template_channel3;
+  double **d_channel1_ASDinv;
+  double **d_channel2_ASDinv;
+  double **d_channel3_ASDinv;
 
   double* inc;
   double* lam;
@@ -132,15 +133,15 @@ class PhenomHM {
   double t_obs_dur;
   double* merger_freq;
 
-  double* d_inc;
-  double* d_lam;
-  double* d_beta;
-  double* d_psi;
-  double* d_t0_epoch;
-  double* d_tRef_wave_frame;
-  double* d_tRef_sampling_frame;
-  double* d_merger_freq;
-  double* d_phiRef;
+  double** d_inc;
+  double** d_lam;
+  double** d_beta;
+  double** d_psi;
+  double** d_t0_epoch;
+  double** d_tRef_wave_frame;
+  double** d_tRef_sampling_frame;
+  double** d_merger_freq;
+  double** d_phiRef;
   double d_log10f;
 
 

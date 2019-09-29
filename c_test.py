@@ -86,6 +86,7 @@ def test():
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
     nwalkers = 100
+    ndevices = 2
 
     #data_A, data_E, data_T = np.load('data_set.npy')
     data_A, data_E, data_T = data, data, data
@@ -93,7 +94,7 @@ def test():
      l_vals,
      m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers)
 
-    num = 1000
+    num = 1
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
@@ -101,6 +102,8 @@ def test():
     print(m1, m2, chi1z, chi1z, distance,
                             phiRef, inc, lam, beta,
                             psi, tRef_wave_frame, tRef_sampling_frame)
+
+    nwalkers = nwalkers*ndevices
     freqs_in = np.tile(freqs, nwalkers)
     m1_in = np.full(nwalkers, m1)
     m2_in = np.full(nwalkers, m2)

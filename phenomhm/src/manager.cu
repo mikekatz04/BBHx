@@ -108,11 +108,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     t_obs_dur = t_obs_dur_;
     to_gpu = 1;
 
-    ndevices = 1;
+    ndevices = 2;
 
-    cudaDeviceSynchronize();
-    //printf("pre pre\n");
-    //print_mem_info();
 
     cudaError_t err;
 
@@ -284,6 +281,7 @@ PhenomHM::PhenomHM (int max_length_init_,
       // alocate GPU arrays for interpolation
       interp[i].alloc_arrays(max_length_init, 8*num_modes*nwalkers, d_B[i]);
   }
+  cudaSetDevice(0);
 }
 
 /*
@@ -319,7 +317,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     //for (int i=0; i<nwalkers; i++){
         nthreads = omp_get_num_threads();
         th_id = omp_get_thread_num();
-        for (int i=th_id; i<nwalkers; i+=nthreads){
+        for (int i=th_id; i<ndevices*nwalkers; i+=nthreads){
             PhenomHM::gen_amp_phase_prep(i, &freqs[i*current_length], current_length_,
                 m1_[i], //solar masses
                 m2_[i], //solar masses
@@ -331,31 +329,10 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
 
             M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
         }
+        for (int i=th_id; i<ndevices; i+=nthreads){
+            cudaSetDevice(i);
+        }
     }
-
-
-    //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
-
-    // copy everything to GPU
-    gpuErrchk(cudaMemcpy(d_freqs[0], freqs, nwalkers*current_length*sizeof(double), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_pHM_trans[0], pHM_trans, nwalkers*sizeof(PhenomHMStorage), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_pAmp_trans[0], pAmp_trans, nwalkers*sizeof(IMRPhenomDAmplitudeCoefficients), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_amp_prefactors_trans[0], amp_prefactors_trans, nwalkers*sizeof(AmpInsPrefactors), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_pDPreComp_all_trans[0], pDPreComp_all_trans, nwalkers*num_modes*sizeof(PhenDAmpAndPhasePreComp), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_q_all_trans[0], q_all_trans, nwalkers*num_modes*sizeof(HMPhasePreComp), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_t0[0], t0, nwalkers*sizeof(double), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_phi0[0], phi0, nwalkers*sizeof(double), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_amp0[0], amp0, nwalkers*sizeof(double), cudaMemcpyHostToDevice));
-
-    gpuErrchk(cudaMemcpy(d_M_tot_sec[0], M_tot_sec, nwalkers*sizeof(double), cudaMemcpyHostToDevice));
 
     /* main: evaluate model at given frequencies on GPU */
     NUM_THREADS = 256;
@@ -364,24 +341,60 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     dim3 gridDim(num_blocks, num_modes, nwalkers);
     //printf("%d walkers \n", nwalkers);
 
-    kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals[0],
-          d_pHM_trans[0],
-          d_freqs[0],
-          d_M_tot_sec[0],
-          d_pAmp_trans[0],
-          d_amp_prefactors_trans[0],
-          d_pDPreComp_all_trans[0],
-          d_q_all_trans[0],
-          d_amp0[0],
-          num_modes,
-          d_t0[0],
-          d_phi0[0],
-          d_cShift[0],
-          nwalkers,
-          current_length
-      );
-     cudaDeviceSynchronize();
-     gpuErrchk(cudaGetLastError());
+    #pragma omp parallel private(th_id, i)
+    {
+    //for (int i=0; i<nwalkers; i++){
+        nthreads = omp_get_num_threads();
+        th_id = omp_get_thread_num();
+        for (int i=th_id; i<ndevices; i+=nthreads){
+            cudaSetDevice(i);
+
+            // copy everything to GPU
+            gpuErrchk(cudaMemcpy(d_freqs[i], &freqs[i*nwalkers*current_length], nwalkers*current_length*sizeof(double), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_pHM_trans[i], &pHM_trans[i*nwalkers], nwalkers*sizeof(PhenomHMStorage), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_pAmp_trans[i], &pAmp_trans[i*nwalkers], nwalkers*sizeof(IMRPhenomDAmplitudeCoefficients), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_amp_prefactors_trans[i], &amp_prefactors_trans[i*nwalkers], nwalkers*sizeof(AmpInsPrefactors), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_pDPreComp_all_trans[i], &pDPreComp_all_trans[i*nwalkers*num_modes], nwalkers*num_modes*sizeof(PhenDAmpAndPhasePreComp), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_q_all_trans[i], &q_all_trans[i*nwalkers*num_modes], nwalkers*num_modes*sizeof(HMPhasePreComp), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_t0[i], &t0[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_phi0[i], &phi0[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_amp0[i], &amp0[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
+
+            gpuErrchk(cudaMemcpy(d_M_tot_sec[i], &M_tot_sec[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
+
+            kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(d_mode_vals[i],
+                  d_pHM_trans[i],
+                  d_freqs[i],
+                  d_M_tot_sec[i],
+                  d_pAmp_trans[i],
+                  d_amp_prefactors_trans[i],
+                  d_pDPreComp_all_trans[i],
+                  d_q_all_trans[i],
+                  d_amp0[i],
+                  num_modes,
+                  d_t0[i],
+                  d_phi0[i],
+                  d_cShift[i],
+                  nwalkers,
+                  current_length
+              );
+              cudaDeviceSynchronize();
+              gpuErrchk(cudaGetLastError());
+        }
+    }
+
+    cudaSetDevice(0);
+    //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
+
+
 
      // ensure calls are run in correct order
      current_status = 1;

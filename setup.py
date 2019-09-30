@@ -250,7 +250,7 @@ except OSError:
 #print_strings.append('INSTALLED C++ VERSION: PhenomHM')
 
 wrapper_install()
-print_strings.append('INSTALLED WRAPPER: phenomhm.py')
+#print_strings.append('INSTALLED WRAPPER: phenomhm.py')
 print('\n')
 for string in print_strings:
     print(string)

@@ -410,7 +410,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
     CUSPARSE_CALL( cusparseCreate(&handle) );
     cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
     cusparseDestroy(handle);
-    printf("buffer: %d\n", bufferSizeInBytes);
+    //printf("buffer: %d\n", bufferSizeInBytes);
 
     cudaMalloc(&pBuffer, bufferSizeInBytes);
 }

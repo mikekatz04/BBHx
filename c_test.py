@@ -92,9 +92,9 @@ def test():
     data_A, data_E, data_T = data, data, data
     phenomHM = PhenomHM.PhenomHM(len(freq),
      l_vals,
-     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers)
+     m_vals, data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv, TDItag, t_obs_dur, nwalkers, ndevices)
 
-    num = 1
+    num = 1000
     st = time.perf_counter()
     #phiRef = np.linspace(0.0, 2*np.pi, num)
     #snrs = np.zeros_like(phiRef)
@@ -124,7 +124,7 @@ def test():
 
     for i in range(num):
 
-        phenomHM.gen_amp_phase(freqs_in,
+        """phenomHM.gen_amp_phase(freqs_in,
                              m1_in,
                              m2_in,
                              chi1z_in,
@@ -152,7 +152,8 @@ def test():
 
         like = phenomHM.Likelihood()
 
-        """like2 = phenomHM.WaveformThroughLikelihood(freqs_in,
+        """
+        like2 = phenomHM.WaveformThroughLikelihood(freqs_in,
                                                      m1_in,
                                                      m2_in,
                                                      chi1z_in,
@@ -167,7 +168,7 @@ def test():
                                                       t0_in,
                                                       tRef_wave_frame_in,
                                                       tRef_sampling_frame_in,
-                                                      merger_freq_in, return_TDI=False)"""
+                                                      merger_freq_in, return_TDI=False)
 
         #snrs[i] = like2[1]
         #print(like2**(1/2))

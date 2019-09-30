@@ -169,7 +169,8 @@ public:
       double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_,
       int TDItag,
       double t_obs_dur_,
-      int nwalkers_); // constructor (copies to GPU)
+      int nwalkers_,
+      int ndevices_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 

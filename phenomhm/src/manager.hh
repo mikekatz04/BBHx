@@ -174,6 +174,11 @@ public:
 
   ~PhenomHM(); // destructor
 
+  void input_data(double *data_freqs, cmplx *data_channel1,
+                            cmplx *data_channel2, cmplx *data_channel3,
+                            double *channel1_ASDinv, double *channel2_ASDinv,
+                            double *channel3_ASDinv, int data_stream_length_);
+
     void gen_amp_phase(double *freqs_, int current_length_,
         double* m1_, //solar masses
         double* m2_, //solar masses

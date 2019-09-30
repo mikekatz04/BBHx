@@ -214,25 +214,18 @@ PhenomHM::PhenomHM (int max_length_init_,
       gpuErrchk(cudaMalloc(&d_template_channel3[i], data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
 
       gpuErrchk(cudaMalloc(&d_data_freqs[i], data_stream_length*sizeof(double)));
-      gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_data_channel1[i], data_stream_length*sizeof(cuDoubleComplex)));
-      gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_data_channel2[i], data_stream_length*sizeof(cuDoubleComplex)));
-      gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_data_channel3[i], data_stream_length*sizeof(cuDoubleComplex)));
-      gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_channel1_ASDinv[i], data_stream_length*sizeof(double)));
-      gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_channel2_ASDinv[i], data_stream_length*sizeof(double)));
-      gpuErrchk(cudaMemcpy(d_channel2_ASDinv[i], channel2_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_channel3_ASDinv[i], data_stream_length*sizeof(double)));
-      gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
       gpuErrchk(cudaMalloc(&d_pHM_trans[i], nwalkers*sizeof(PhenomHMStorage)));
 
@@ -282,6 +275,37 @@ PhenomHM::PhenomHM (int max_length_init_,
       // alocate GPU arrays for interpolation
       interp[i].alloc_arrays(max_length_init, 8*num_modes*nwalkers, d_B[i]);
   }
+
+  PhenomHM::input_data(data_freqs, data_channel1,
+                        data_channel2, data_channel3,
+                        channel1_ASDinv, channel2_ASDinv,
+                        channel3_ASDinv, data_stream_length);
+}
+
+
+void PhenomHM::input_data(double *data_freqs, cmplx *data_channel1,
+                          cmplx *data_channel2, cmplx *data_channel3,
+                          double *channel1_ASDinv, double *channel2_ASDinv,
+                          double *channel3_ASDinv, int data_stream_length_){
+
+    assert(data_stream_length_ == data_stream_length);
+
+    for (int i=0; i<ndevices; i++){
+        cudaSetDevice(i);
+        gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+
+        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
+        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
+        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
+        gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+
+        gpuErrchk(cudaMemcpy(d_channel2_ASDinv[i], channel2_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+
+        gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+    }
 }
 
 /*

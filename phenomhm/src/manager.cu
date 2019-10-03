@@ -356,7 +356,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     }
 
     /* main: evaluate model at given frequencies on GPU */
-    NUM_THREADS = 32;
+    NUM_THREADS = 256;
 
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);

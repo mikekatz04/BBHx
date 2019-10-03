@@ -735,16 +735,23 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
       unsigned int mm, ell;
       double Rholm, Taulm;
       double freq_geom;
-      unsigned int mode_i = blockIdx.y;
-	  unsigned int walker_i = blockIdx.z;
+      for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+           walker_i < nwalkers;
+           walker_i += blockDim.z * gridDim.z){
 
-      unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+       for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+            mode_i < num_modes;
+            mode_i += blockDim.y * gridDim.y){
+
+      for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+           i < length;
+           i += blockDim.x * gridDim.x){
       /* if (mode_i >= num_modes) return;
        for (int i = blockIdx.y * blockDim.x + threadIdx.x;
           i < length;
           i += blockDim.x * gridDim.y)*/
 
-      if ((i < (&pHM[walker_i])->ind_max) && (i >= (&pHM[walker_i])->ind_min) && (mode_i < num_modes) && (walker_i < nwalkers))  // kernel setup should always make second part true
+      if ((i < (&pHM[walker_i])->ind_max) && (i >= (&pHM[walker_i])->ind_min))  // kernel setup should always make second part true
       {
 
          ell = mode_vals[walker_i*num_modes + mode_i].l;
@@ -756,6 +763,9 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
          calculate_each_mode(i, mode_vals[walker_i*num_modes + mode_i], ell, mm, &pHM[walker_i], freq_geom, &pAmp[walker_i], &amp_prefactors[walker_i], pDPreComp_all[walker_i*num_modes + mode_i], q_all[walker_i*num_modes + mode_i], amp0[walker_i], Rholm, Taulm, t0[walker_i], phi0[walker_i], cshift, walker_i, mode_i);
 
       }
+}
+}
+}
   }
 
 

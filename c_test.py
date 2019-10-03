@@ -22,7 +22,7 @@ def test():
 
     M = 4e7
     q = 0.2
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 3.09823412789, 0.0, M/(1+q), M*q/(1+q), 0.0, 0.0,  15.93461637*1e3*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**10)), 3.09823412789, 0.0, M/(1+q), M*q/(1+q), 0.0, 0.0,  15.93461637*1e3*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
     t0 = 1.0
@@ -85,7 +85,7 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
-    nwalkers = 50
+    nwalkers = 150
     ndevices = 2
 
     #data_A, data_E, data_T = np.load('data_set.npy')

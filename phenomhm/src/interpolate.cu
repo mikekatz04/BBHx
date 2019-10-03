@@ -430,17 +430,47 @@ allocate arrays for interpolation
 
 __host__
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
-    err = cudaMalloc(&d_dl, m*n*sizeof(double));
-    assert(err == 0);
-    err = cudaMalloc(&d_d, m*n*sizeof(double));
-    assert(err == 0);
-    err = cudaMalloc(&d_du, m*n*sizeof(double));
-    assert(err == 0);
+    double *w = new double[m];
+    double *a = new double[m];
+    double *b = new double[m];
+    double *c = new double[m];
 
-    err = cudaMalloc(&d_w, m*n*sizeof(double));
-    assert(err == 0);
-    err = cudaMalloc(&d_d_mat, m*n*sizeof(double));
-    assert(err == 0);
+    a[0] = 0.0;
+    b[0] = 2.0;
+    c[0] = 1.0;
+
+    a[m-1] = 1.0;
+    b[m-1] = 2.0;
+    c[m-1] = 0.0;
+
+    for (int i = 1;
+         i < m-1;
+         i += 1){
+     a[i] = 1.0;
+     b[i] = 4.0;
+     c[i] = 1.0;
+ }
+
+ for (int i=1; i<m; i++){
+     w[i] = a[i]/b[i-1];
+     b[i] = b[i] - w[i]*c[i-1];
+ }
+
+    gpuErrchk_here(cudaMalloc(&d_b, m*sizeof(double)));
+    gpuErrchk_here(cudaMemcpy(d_b, b, m*sizeof(double), cudaMemcpyHostToDevice));
+
+    gpuErrchk_here(cudaMalloc(&d_c, m*sizeof(double)));
+    gpuErrchk_here(cudaMemcpy(d_c, c, m*sizeof(double), cudaMemcpyHostToDevice));
+
+    gpuErrchk_here(cudaMalloc(&d_w, m*sizeof(double)));
+    gpuErrchk_here(cudaMemcpy(d_w, w, m*sizeof(double), cudaMemcpyHostToDevice));
+
+    gpuErrchk_here(cudaMalloc(&d_x, m*n*sizeof(double)));
+
+    delete[] w;
+    delete[] a;
+    delete[] b;
+    delete[] c;
 
     //CUSPARSE_CALL( cusparseCreate(&handle) );
     //cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
@@ -489,41 +519,36 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     int NUM_THREADS = 256;
 
     int num_blocks = std::ceil((m + NUM_THREADS -1)/NUM_THREADS);
-    setup_d_vals<<<dim3(num_blocks, n), NUM_THREADS>>>(d_dl, d_d, d_du, m, n);
+    //setup_d_vals<<<dim3(num_blocks, n), NUM_THREADS>>>(d_dl, d_d, d_du, m, n);
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
     Interpolate::gpu_fit_constants(B);
 }
 
 __global__
-void gpu_fit_constants_serial(int m, int n, double *w_in, double *d_mat_in, double *b_mat_in, double *du_in, double *d_in, double *dl_in){
+void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
 
-    double * w, *d_mat, *b_mat, *du, *d, *dl;
+    double *x, *d;
     for (int j = blockIdx.x * blockDim.x + threadIdx.x;
          j < n;
          j += blockDim.x * gridDim.x){
 
-        w = &w_in[j*m];
-        d_mat = &d_mat_in[j*m];
-        b_mat = &b_mat_in[j*m];
-        du = &du_in[j*m];
         d = &d_in[j*m];
-        dl = &dl_in[j*m];
+        x = &x_in[j*m];
 
-
+        # pragma unroll
         for (int i=2; i<m; i++){
             //printf("%d\n", i);
-            w[i] = dl[i]/d[i-1];
-            d[i] = d[i] - w[i]*du[i-1];
-            b_mat[i] = b_mat[i] - w[i]*b_mat[i-1];
+            d[i] = d[i] - w[i]*d[i-1];
             //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
         }
 
-        d_mat[m-1] = b_mat[m-1]/d[m-1];
-        b_mat[m-1] = d_mat[m-1];
+        # pragma unroll
+        x[m-1] = d[m-1]/b[m-1];
+        d[m-1] = x[m-1];
         for (int i=(m-2); i>=0; i--){
-            d_mat[i] = (b_mat[i] - du[i]*d_mat[i+1])/d[i];
-            b_mat[i] = d_mat[i];
+            x[i] = (d[i] - c[i]*x[i+1])/b[i];
+            d[i] = x[i];
         }
     }
 }
@@ -538,7 +563,7 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
     //cusparseDestroy(handle);
     int NUM_THREADS = 256;
     int num_blocks = std::ceil((n + NUM_THREADS -1)/NUM_THREADS);
-    gpu_fit_constants_serial<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_d_mat, B, d_du, d_d, d_dl);
+    gpu_fit_constants_serial<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_b, d_c, B, d_x);
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
 
@@ -549,10 +574,9 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
 Deallocate
 */
 __host__ Interpolate::~Interpolate(){
-    cudaFree(d_dl);
-    cudaFree(d_du);
-    cudaFree(d_d);
+    cudaFree(d_b);
+    cudaFree(d_c);
     cudaFree(d_w);
-    cudaFree(d_d_mat);
+    cudaFree(d_x);
     cudaFree(pBuffer);
 }

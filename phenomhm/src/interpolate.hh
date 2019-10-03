@@ -30,14 +30,10 @@ class Interpolate{
     double *w;
     double *D;
 
-    double *dl;
-    double *d;
-    double *du;
-    double *d_dl;
-    double *d_d;
-    double *d_du;
+    double *d_b;
+    double *d_c;
     double *d_w;
-    double *d_d_mat;
+    double *d_x;
     cusparseHandle_t  handle;
     cudaError_t err;
     int m;

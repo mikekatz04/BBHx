@@ -36,6 +36,8 @@ class Interpolate{
     double *d_dl;
     double *d_d;
     double *d_du;
+    double *d_w;
+    double *d_d_mat;
     cusparseHandle_t  handle;
     cudaError_t err;
     int m;

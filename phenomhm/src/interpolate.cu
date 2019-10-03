@@ -240,28 +240,35 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
     double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur, int num_walkers){
     //int mode_i = blockIdx.y;
-    int walker_i = blockIdx.z;
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= data_length) return;
-    if (walker_i >= num_walkers) return;
-    //if (mode_i >= num_modes) return;
+
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double time_start, amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    double f_min_limit = old_freqs[walker_i*old_length];
-    double f_max_limit = old_freqs[walker_i*old_length + old_length-1];
     cuDoubleComplex ampphasefactor;
     cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
     int old_ind_below;
     cuDoubleComplex trans_complex;
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < num_walkers;
+         walker_i += blockDim.z * gridDim.z){
+             tRef_wave_frame = tRef_wave_frame_arr[walker_i];
 
-    channel1_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-    channel2_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-    channel3_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+     double f_min_limit = old_freqs[walker_i*old_length];
+     double f_max_limit = old_freqs[walker_i*old_length + old_length-1];
+     double t0 = t0_arr[walker_i];
+     double tRef = tRef_arr[walker_i];
+     double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
 
-    double t0 = t0_arr[walker_i];
-    double tRef = tRef_arr[walker_i];
-    double t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < num_points;
+         i += blockDim.x * gridDim.x){
+    //if (mode_i >= num_modes) return;
+
+        channel1_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+        channel2_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+        channel3_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+
+
     /*# if __CUDA_ARCH__>=200
     if (i == 200)
         printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_dur, t_break);
@@ -385,6 +392,8 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             channel3_out[walker_i*data_length + i] = cuCadd(channel3_out[walker_i*data_length + i], trans_complex);
     }
 }
+}
+}
 
 /*
 Interpolation class initializer
@@ -400,19 +409,24 @@ allocate arrays for interpolation
 
 __host__
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
-    err = cudaMalloc(&d_dl, m*sizeof(double));
+    err = cudaMalloc(&d_dl, m*n*sizeof(double));
     assert(err == 0);
-    err = cudaMalloc(&d_d, m*sizeof(double));
+    err = cudaMalloc(&d_d, m*n*sizeof(double));
     assert(err == 0);
-    err = cudaMalloc(&d_du, m*sizeof(double));
+    err = cudaMalloc(&d_du, m*n*sizeof(double));
     assert(err == 0);
 
-    CUSPARSE_CALL( cusparseCreate(&handle) );
-    cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
-    cusparseDestroy(handle);
+    err = cudaMalloc(&d_w, m*n*sizeof(double));
+    assert(err == 0);
+    err = cudaMalloc(&d_d_mat, m*n*sizeof(double));
+    assert(err == 0);
+
+    //CUSPARSE_CALL( cusparseCreate(&handle) );
+    //cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
+    //cusparseDestroy(handle);
     //printf("buffer: %d\n", bufferSizeInBytes);
 
-    cudaMalloc(&pBuffer, bufferSizeInBytes);
+    //cudaMalloc(&pBuffer, bufferSizeInBytes);
 }
 
 /*
@@ -421,19 +435,20 @@ setup tridiagonal matrix for interpolation solution
 __global__
 void setup_d_vals(double *dl, double *d, double *du, int current_length){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y;
     if (i >= current_length) return;
     if (i == 0){
-        dl[0] = 0.0;
-        d[0] = 2.0;
-        du[0] = 1.0;
+        dl[j*current_length + 0] = 0.0;
+        d[j*current_length + 0] = 2.0;
+        du[j*current_length + 0] = 1.0;
     } else if (i == current_length - 1){
-        dl[current_length-1] = 1.0;
-        d[current_length-1] = 2.0;
-        du[current_length-1] = 0.0;
+        dl[j*current_length + current_length-1] = 1.0;
+        d[j*current_length + current_length-1] = 2.0;
+        du[j*current_length + current_length-1] = 0.0;
     } else{
-        dl[i] = 1.0;
-        d[i] = 4.0;
-        du[i] = 1.0;
+        dl[j*current_length + i] = 1.0;
+        d[j*current_length + i] = 4.0;
+        du[j*current_length + i] = 1.0;
     }
 }
 
@@ -447,21 +462,61 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     int NUM_THREADS = 256;
 
     int num_blocks = std::ceil((m + NUM_THREADS -1)/NUM_THREADS);
-    setup_d_vals<<<num_blocks, NUM_THREADS>>>(d_dl, d_d, d_du, m);
+    setup_d_vals<<<dim3(num_blocks, n), NUM_THREADS>>>(d_dl, d_d, d_du, m);
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
     Interpolate::gpu_fit_constants(B);
+}
+
+__global__
+void gpu_fit_constants_serial(int m, int n, double *w_in, double *d_mat_in, double *b_mat_in, double *du_in, double *d_in, double *dl_in){
+
+    double * w, *d_mat, *b_mat, *du, *d, *dl;
+    for (int j = blockIdx.x * blockDim.x + threadIdx.x;
+         j < n;
+         j += blockDim.x * gridDim.x){
+
+        w = &w_in[j*m];
+        d_mat = &d_mat_in[j*m];
+        b_mat = &b_mat_in[j*m];
+        du = &du_in[j*m];
+        d = &d_in[j*m];
+        dl = &dl_in[j*m];
+
+
+        for (int i=2; i<m; i++){
+            //printf("%d\n", i);
+            w[i] = dl[i]/d[i-1];
+            d[i] = d[i] - w[i]*du[i-1];
+            b_mat[i] = b_mat[i] - w[i]*b_mat[i-1];
+            //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
+        }
+
+        d_mat[m-1] = b_mat[m-1]/d[m-1];
+        b_mat[m-1] = d_mat[m-1];
+        for (int i=(m-2); i>=0; i--){
+            d_mat[i] = (b_mat[i] - du[i]*d_mat[i+1])/d[i];
+            b_mat[i] = d_mat[i];
+        }
+    }
 }
 
 /*
 Use cuSparse to perform matrix calcuation.
 */
 __host__ void Interpolate::gpu_fit_constants(double *B){
-    CUSPARSE_CALL( cusparseCreate(&handle) );
-    cusparseStatus_t status = cusparseDgtsv2_nopivot(handle, m, n, d_dl, d_d, d_du, B, m, pBuffer);
-    if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
-    cusparseDestroy(handle);
+    //CUSPARSE_CALL( cusparseCreate(&handle) );
+    //cusparseStatus_t status = cusparseDgtsv2_nopivot(handle, m, n, d_dl, d_d, d_du, B, m, pBuffer);
+    //if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
+    //cusparseDestroy(handle);
+    int NUM_THREADS = 256;
+    int num_blocks = std::ceil((n + NUM_THREADS -1)/NUM_THREADS);
+    gpu_fit_constants_serial<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_d_mat, B, d_du, d_d, d_dl);
+    cudaDeviceSynchronize();
+    gpuErrchk_here(cudaGetLastError());
+
 }
+
 
 /*
 Deallocate
@@ -470,5 +525,7 @@ __host__ Interpolate::~Interpolate(){
     cudaFree(d_dl);
     cudaFree(d_du);
     cudaFree(d_d);
+    cudaFree(d_w);
+    cudaFree(d_d_mat);
     cudaFree(pBuffer);
 }

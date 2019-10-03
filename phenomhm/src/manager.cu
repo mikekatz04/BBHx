@@ -356,7 +356,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     }
 
     /* main: evaluate model at given frequencies on GPU */
-    NUM_THREADS = 256;
+    NUM_THREADS = 32;
 
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);
@@ -506,6 +506,32 @@ void PhenomHM::setup_interp_wave(){
 /*
 Get LISA fast Fourier domain response on GPU
 */
+__global__
+void check_response(ModeContainer *mode_vals, int num_modes, int nwalkers, int length){
+    double orig_val, val;
+    int mode_ind;
+    for (int i=0; i< length; i++){
+
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+        for (int j=0; j<nwalkers; j++){
+            mode_ind = j*num_modes + mode_i;
+            if (j==0) orig_val = mode_vals[mode_ind].transferL1_re[i];
+            else {
+                val = mode_vals[mode_ind].transferL1_re[i];
+                if (val != orig_val){
+                    # if __CUDA_ARCH__>=200
+                        printf("%d, %d, %d, %.12e, %.12e\n", j, mode_i, i, val, orig_val);
+                    #endif //*/
+                }
+            }
+        }
+    }
+    }
+
+
+
+}
+
 void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double* psi_, double* t0_epoch_, double* tRef_wave_frame_, double* tRef_sampling_frame_, double* merger_freq_){
     inc = inc_;
     lam = lam_;
@@ -554,14 +580,27 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
             gpuErrchk(cudaMemcpy(d_tRef_sampling_frame[i], &tRef_sampling_frame[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
             gpuErrchk(cudaMemcpy(d_merger_freq[i], &merger_freq[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
 
+            int num_blocks = std::ceil((current_length + NUM_THREADS - 1)/NUM_THREADS);
+
             // Perform response
+
             kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals[i], d_H[i], d_freqs[i], d_freqs[i], d_log10f, d_l_vals, d_m_vals,
                         num_modes, current_length, d_inc[i], d_lam[i], d_beta[i], d_psi[i], d_phiRef[i], d_t0_epoch[i],
                         d_tRef_wave_frame[i], d_tRef_sampling_frame[i], d_merger_freq[i], TDItag, 0, nwalkers);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
+
+            kernel_add_tRef_phase_shift<<<gridDim, NUM_THREADS>>>(d_mode_vals[i], d_freqs[i],
+                        num_modes, current_length, d_tRef_wave_frame[i], nwalkers);
+            cudaDeviceSynchronize();
+            gpuErrchk(cudaGetLastError());
         }
     }
+
+    /*cudaSetDevice(0);
+    check_response<<<1,1>>>(d_mode_vals[0], num_modes, nwalkers, current_length);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());*/
 
     if (current_status == 1) current_status = 2;
 }
@@ -634,21 +673,19 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
     //printf("like mem\n");
     //print_mem_info();
      assert(current_status == 5);
-     double d_h = 0.0;
-     double h_h = 0.0;
-     char * status;
-     double res;
-     cuDoubleComplex result;
 
-     int j, i, th_id, nthreads;
-     j = 1;
-
-     #pragma omp parallel private(th_id, i, j, d_h, h_h, res, status, result)
-     {
+     //#pragma omp parallel
+     //{
      //for (int i=0; i<nwalkers; i++){
-         nthreads = omp_get_num_threads();
-         th_id = omp_get_thread_num();
-         for (int j=th_id; j<ndevices; j+=nthreads){
+        int j, i, th_id, nthreads;
+         double d_h = 0.0;
+         double h_h = 0.0;
+         char * status;
+         double res;
+         cuDoubleComplex result;
+         //nthreads = omp_get_num_threads();
+         //th_id = omp_get_thread_num();
+         for (int j=0; j<ndevices; j+=1){
              cudaSetDevice(j);
              for (int i=0; i<nwalkers; i++){
                  d_h = 0.0;
@@ -737,7 +774,7 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                   h_h_arr[j*nwalkers + i] = 4*h_h;
              }
         }
-    }
+    //}
 }
 
 /*
@@ -772,20 +809,21 @@ Return amplitude and phase in python on CPU
 void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
   assert(current_status >= 1);
   double *amp, *phase;
-  cudaSetDevice(0);
-  gpuErrchk(cudaMalloc(&amp, nwalkers*num_modes*current_length*sizeof(double)));
-  gpuErrchk(cudaMalloc(&phase, nwalkers*num_modes*current_length*sizeof(double)));
+
 
   dim3 readOutDim(num_blocks, num_modes*nwalkers);
-  read_out_amp_phase<<<readOutDim, NUM_THREADS>>>(d_mode_vals[0], amp, phase, nwalkers*num_modes, current_length);
-  cudaDeviceSynchronize();
-  gpuErrchk(cudaGetLastError());
-
-  gpuErrchk(cudaMemcpy(amp_, amp, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
-  gpuErrchk(cudaMemcpy(phase_, phase, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
-
-  gpuErrchk( cudaFree(amp));
-  gpuErrchk(cudaFree(phase));
+  for (int i=0; i<ndevices; i++){
+      cudaSetDevice(i);
+      gpuErrchk(cudaMalloc(&amp, nwalkers*num_modes*current_length*sizeof(double)));
+      gpuErrchk(cudaMalloc(&phase, nwalkers*num_modes*current_length*sizeof(double)));
+      read_out_amp_phase<<<readOutDim, NUM_THREADS>>>(d_mode_vals[i], amp, phase, nwalkers*num_modes, current_length);
+      cudaDeviceSynchronize();
+      gpuErrchk(cudaGetLastError());
+      gpuErrchk(cudaMemcpy(&amp_[i*nwalkers*num_modes*current_length], amp, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&phase_[i*nwalkers*num_modes*current_length], phase, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk( cudaFree(amp));
+      gpuErrchk(cudaFree(phase));
+  }
 }
 
 /*

@@ -150,12 +150,12 @@ cdef class PhenomHM:
         return (X_.reshape(self.nwalkers*self.ndevices, -1), Y_.reshape(self.nwalkers*self.ndevices, -1), Z_.reshape(self.nwalkers*self.ndevices, -1))
 
     def GetAmpPhase(self):
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers,), dtype=np.float64)
-        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
 
         self.g.GetAmpPhase(&amp_[0], &phase_[0])
 
-        return (amp_.reshape(self.nwalkers, self.num_modes, self.f_dim), phase_.reshape(self.nwalkers, self.num_modes, self.f_dim))
+        return (amp_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim), phase_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim))
 
     def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses

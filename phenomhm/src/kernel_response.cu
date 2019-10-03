@@ -267,12 +267,17 @@ __global__
 void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
     double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
     int walker_i = blockIdx.z;
-    if (i>=num_points) return;
     if (mode_i >= num_modes) return;
     if (walker_i >= num_walkers) return;
+
+
+    double phasetimeshift;
+    double phi_up, phi;
+
+    double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
+    int old_ind_below;
 
     double inc = inc_arr[walker_i];
     double lam = lam_arr[walker_i];
@@ -284,20 +289,34 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
     double tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
     double merger_freq = merger_freq_arr[walker_i];
 
-
-    double phasetimeshift;
-    double phi_up, phi;
-
-    double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
-    int old_ind_below;
-
     int mode_index = walker_i*num_modes + mode_i;
+    int freq_ind;
 
-            f = frqs[i];
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < num_walkers;
+         walker_i += blockDim.z * gridDim.z){
+     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+          mode_i < num_modes;
+          mode_i += blockDim.y * gridDim.y){
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < num_points;
+         i += blockDim.x * gridDim.x){
 
-            if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[1] - old_freqs[0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            else dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[i+1] - old_freqs[i]);
+             freq_ind = walker_i*num_points + i;
+
+
+            f = frqs[freq_ind];
+
+            if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[walker_i*num_points + 1] - old_freqs[walker_i*num_points + 0]);
+            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[walker_i*num_points + num_points-1] - old_freqs[walker_i*num_points + num_points-2]);
+            else {dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[walker_i*num_points + i+1] - old_freqs[walker_i*num_points + i]);
+            /*# if __CUDA_ARCH__>=200
+                if ((i == 1183) && (walker_i == 20))
+                printf("%d, %d, %d, %.12e, %.12e, %.12e, %.12e\n", walker_i, mode_i, i, mode_vals[mode_index].phase[i+1], mode_vals[mode_index].phase[i],
+                old_freqs[walker_i*num_points + i+1],
+                old_freqs[walker_i*num_points + i]);
+            #endif //*/
+        }
 
 
             /*old_ind_below = i;
@@ -332,7 +351,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
             // adjust phase values stored in mode vals to reflect the tRef shift
-            mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
+            //mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
 
             d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 
@@ -345,14 +364,46 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             mode_vals[mode_index].transferL3_im[i] = cuCimag(transferL.transferL3);
             mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
 
-            /*# if __CUDA_ARCH__>=200
-            if ((i == 1000) && (mode_i == 1) && (walker_i == 0)){
-                //printf("phases: %d, %.18e, %.18e, %e, %e, %e, %e, %e, %e, %e, %e \n", mode_index, f, t_wave_frame, t_sampling_frame + t0*YRSID_SI, cuCreal(transferL.transferL1), cuCimag(transferL.transferL1), cuCreal(transferL.transferL2), cuCimag(transferL.transferL2), cuCreal(transferL.transferL3), cuCimag(transferL.transferL3), transferL.phaseRdelay);
-                printf("phases: %d, %e, %e, %e, %e, %e \n", mode_index, H[mode_index*9+1], H[mode_index*9+2], H[mode_index*9+3], H[mode_index*9+4], H[mode_index*9+5]);
-            }
-
-            #endif //*/
 }
+}
+}
+
+}
+
+__global__
+void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers){
+    // TDItag == 1 is XYZ, TDItag == 2 is AET
+    int mode_i = blockIdx.y;
+    int walker_i = blockIdx.z;
+    if (mode_i >= num_modes) return;
+    if (walker_i >= num_walkers) return;
+
+    double f;
+
+    double tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+
+    int mode_index = walker_i*num_modes + mode_i;
+    int freq_ind;
+
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < num_walkers;
+         walker_i += blockDim.z * gridDim.z){
+     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+          mode_i < num_modes;
+          mode_i += blockDim.y * gridDim.y){
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < num_points;
+         i += blockDim.x * gridDim.x){
+
+             freq_ind = walker_i*num_points + i;
+            f = frqs[freq_ind];
+
+            mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
+        }
+    }
+}
+}
+
 
 
             // interpolate for time

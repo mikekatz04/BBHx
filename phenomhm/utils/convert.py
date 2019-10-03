@@ -217,15 +217,11 @@ class Recycler:
 
         # Setup of recycler
         self.recycles = []
-        if 'inc' in key_order:
-            self.ind_inc = key_order.index('inc')
-            self.recycles.append(self.inc)
 
         if 'lam' in key_order:
             # assumes beta is also there
             self.ind_lam = key_order.index('lam')
-            self.ind_beta = key_order.index('sin_beta')
-            self.recycles.append(self.lam_and_beta)
+            self.recycles.append(self.lam)
 
         if 'phiRef' in key_order:
             self.ind_phiRef = key_order.index('phiRef')
@@ -235,20 +231,8 @@ class Recycler:
             self.ind_psi = key_order.index('psi')
             self.recycles.append(self.psi)
 
-    def inc(self, x):
-        if x[self.ind_inc] < 0. or x[self.ind_inc] > np.pi:
-            if x[self.ind_inc] < 0.0:
-                factor = 1.
-            else:
-                factor = -1.
-            while (x[self.ind_inc] > np.pi or x[self.ind_inc] < 0.0):
-                x[self.ind_inc] += factor*np.pi
-
-        return x
-
-    def lam_and_beta(self, x):
-        if x[self.ind_lam] < 0.0 or x[self.ind_lam] > 2*np.pi:
-            x[self.ind_lam] = x[self.ind_lam] % (2.*np.pi)
+    def lam(self, x):
+        x[self.ind_lam] = x[self.ind_lam] % (2*np.pi)
 
         """if x[self.ind_beta] < -np.pi/2 or x[self.ind_beta] > np.pi/2:
             # assumes beta = 0 at ecliptic plane [-pi/2, pi/2]
@@ -262,19 +246,11 @@ class Recycler:
         return x
 
     def phiRef(self, x):
-        if x[self.ind_phiRef] < 0.0 or x[self.ind_phiRef] > 2*np.pi:
-            x[self.ind_phiRef] = x[self.ind_phiRef] % (2.*np.pi)
+        x[self.ind_phiRef] = x[self.ind_phiRef] % (2*np.pi)
         return x
 
     def psi(self, x):
-        if x[self.ind_psi] < 0. or x[self.ind_psi] > np.pi:
-            if x[self.ind_psi] < 0.0:
-                factor = 1.
-            else:
-                factor = -1.
-            while (x[self.ind_psi] > np.pi or x[self.ind_psi] < 0.0):
-                x[self.ind_psi] += factor*np.pi
-
+        x[self.ind_psi] = x[self.ind_psi] % np.pi
         return x
 
     def recycle(self, x):

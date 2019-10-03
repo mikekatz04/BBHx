@@ -566,7 +566,8 @@ __device__
      PhenDAmpAndPhasePreComp pDPreComp,
      HMPhasePreComp q,
      double amp0,
-     double Rholm, double Taulm, double t0, double phi0, double *cshift){
+     double Rholm, double Taulm, double t0, double phi0, double *cshift,
+    int walker_i, int mode_i){
 
          double freq_amp, Mf, beta_term1, beta, beta_term2, HMamp_term1, HMamp_term2;
          double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
@@ -686,7 +687,13 @@ __device__
             mode_val.phase[i] = (phase_term1 + phase_term2);
 
 
-            //hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
+             /* # if __CUDA_ARCH__>=200
+                  if (((i == 1184) || (i==1183)) && (walker_i == 20))
+                  printf("%d, %d, %d, %.12e\n", walker_i, mode_i, i, mode_val.phase[i]);
+              #endif //*/
+
+
+//hlm = cuCmul(make_cuDoubleComplex(amp_i, 0.0), my_cexpf(cuCmul(make_cuDoubleComplex(0.0, -1.0), make_cuDoubleComplex(phase_term1 + phase_term2, 0))));
 
              //double complexFrequencySeries *hlm = XLALSphHarmFrequencySeriesGetMode(*hlms, ell, mm);
              /*if (!(hlm))
@@ -746,7 +753,7 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
          Taulm = (&pHM[walker_i])->Taulm[ell][mm];
          freq_geom = freqs[walker_i*length + i]*M_tot_sec[walker_i];
 
-         calculate_each_mode(i, mode_vals[walker_i*num_modes + mode_i], ell, mm, &pHM[walker_i], freq_geom, &pAmp[walker_i], &amp_prefactors[walker_i], pDPreComp_all[walker_i*num_modes + mode_i], q_all[walker_i*num_modes + mode_i], amp0[walker_i], Rholm, Taulm, t0[walker_i], phi0[walker_i], cshift);
+         calculate_each_mode(i, mode_vals[walker_i*num_modes + mode_i], ell, mm, &pHM[walker_i], freq_geom, &pAmp[walker_i], &amp_prefactors[walker_i], pDPreComp_all[walker_i*num_modes + mode_i], q_all[walker_i*num_modes + mode_i], amp0[walker_i], Rholm, Taulm, t0[walker_i], phi0[walker_i], cshift, walker_i, mode_i);
 
       }
   }

@@ -20,13 +20,13 @@ def test():
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
-    M = 2.00000000e+06
-    q = 1/3.00000000e+00
-    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 2.13954125e+00, 0.0, M/(1+q), M*q/(1+q), 0.0, 0.0,  3.65943000e+04*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
+    M = 4e7
+    q = 0.2
+    freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**12)), 3.09823412789, 0.0, M/(1+q), M*q/(1+q), 0.0, 0.0,  15.93461637*1e3*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0
 
     #freq = np.load('freqs.npy')
     t0 = 1.0
-    tRef = 5.02462348e+01# minutes to seconds
+    tRef = 2.39284219993e1# minutes to seconds
     merger_freq = 0.018/((m1+m2)*1.989e30*ct.G/ct.c**3)
     Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
     f_ref = 0.0
@@ -35,7 +35,7 @@ def test():
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32) #,
 
     Msec = (m1+m2)*1.989e30*ct.G/ct.c**3
-    upper_freq = 0.6/Msec
+    upper_freq = 0.5/Msec
     lower_freq = 1e-4/Msec
     freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), len(freq))
     data_freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), length)
@@ -67,10 +67,10 @@ def test():
 
     t_obs_dur = 0.9
 
-    inc =  np.cos(1.04719755e+00)
-    lam = -2.43647481e-02
-    beta = np.sin(6.24341583e-01)
-    psi = 2.02958790e+00
+    inc =  np.cos(2.98553920)
+    lam = 5.900332547
+    beta = np.sin(-1.3748820938)
+    psi = 0.139820023
 
     key_order = ['cos_inc', 'lam', 'sin_beta', 'psi', 'ln_tRef']
     recycler = Recycler(key_order)
@@ -85,7 +85,7 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print('init:', inc, lam, beta, psi, tRef_wave_frame)
-    nwalkers = 100
+    nwalkers = 50
     ndevices = 2
 
     #data_A, data_E, data_T = np.load('data_set.npy')
@@ -121,6 +121,24 @@ def test():
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
 
+    like2 = phenomHM.WaveformThroughLikelihood(freqs_in,
+                                                 m1_in,
+                                                 m2_in,
+                                                 chi1z_in,
+                                                 chi2z_in,
+                                                 distance_in,
+                                                 phiRef_in,
+                                                 f_ref_in,
+                                                  inc_in,
+                                                  lam_in,
+                                                  beta_in,
+                                                  psi_in,
+                                                  t0_in,
+                                                  tRef_wave_frame_in,
+                                                  tRef_sampling_frame_in,
+                                                  merger_freq_in, return_TDI=False)
+
+    phenomHM.input_data(data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv)
 
     for i in range(num):
 
@@ -170,6 +188,11 @@ def test():
                                                       tRef_sampling_frame_in,
                                                       merger_freq_in, return_TDI=False)
 
+        """try:
+            assert(np.allclose(like2[1], like2[1][0]))
+            print('\n\n\n GOOD \n\n\n')
+        except AssertionError:
+            import pdb; pdb.set_trace()"""
         #snrs[i] = like2[1]
         #print(like2**(1/2))
 

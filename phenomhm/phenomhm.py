@@ -8,7 +8,7 @@ and calculates likelihood.
 
 import numpy as np
 from scipy import constants as ct
-from .utils.convert import Converter, Recycler
+from phenomhm.utils.convert import Converter, Recycler
 
 import tdi
 
@@ -23,7 +23,7 @@ MTSUN = 1.989e30*ct.G/ct.c**3
 
 
 class pyPhenomHM(Converter):
-    def __init__(self, max_length_init, l_vals,  m_vals, data_freqs, data_stream, t0, t_obs_dur, key_order, **kwargs):
+    def __init__(self, max_length_init, nwalkers, ndevices, l_vals,  m_vals, data_freqs, data_stream, t0, t_obs_dur, key_order, **kwargs):
         """
         data_stream (dict): keys X, Y, Z or A, E, T
         """
@@ -38,7 +38,6 @@ class pyPhenomHM(Converter):
             'test_inds': None,
             'num_params': 12,
             'num_data_points': int(2**19),
-            'num_generate_points': int(2**18),
             'df': None,
             'tLtoSSB': True,
             'noise_kwargs': {'model': 'SciRDv1'},
@@ -49,10 +48,12 @@ class pyPhenomHM(Converter):
             #TODO: check this
             kwargs[prop] = kwargs.get(prop, default)
 
+        self.nwalkers, self.ndevices = nwalkers, ndevices
         self.converter = Converter(key_order, tLtoSSB=self.tLtoSSB)
         self.recycler = Recycler(key_order, tLtoSSB=self.tLtoSSB)
 
-        self.t0 = t0
+        self.generator = None
+        self.t0 = np.full(nwalkers*ndevices, t0)
         self.t_obs_dur = t_obs_dur
         self.max_length_init = max_length_init
         self.l_vals, self.m_vals = l_vals, m_vals
@@ -65,15 +66,14 @@ class pyPhenomHM(Converter):
             raise ValueError('TDItag must be AET or XYZ.')
 
         if self.data_stream is {} or self.data_stream is None:
-            if self.data_params is {}:
+            if self.data_params == {}:
                 raise ValueError('If data_stream is empty dict or None,'
-                                 + 'user must supply data_params kwarg as'
+                                 + 'user must supply data_params kwarg as '
                                  + 'dict with params for data stream.')
             kwargs['data_params']['t0'] = t0
             kwargs['data_params']['t_obs_dur'] = t_obs_dur
 
-            self.data_freqs, self.data_stream = (create_data_set(l_vals,  m_vals, t0,
-                                self.data_params, data_freqs=data_freqs, **kwargs))
+            self.data_freqs, self.data_stream, self.generator = (create_data_set(nwalkers, ndevices, l_vals,  m_vals, t0, self.data_params, self.converter, self.recycler, num_generate_points=max_length_init, data_freqs=data_freqs, **kwargs))
             self.data_stream_whitened = False
 
         for i, channel in enumerate(self.TDItag):
@@ -122,12 +122,21 @@ class pyPhenomHM(Converter):
 
         self.d_d = 4*np.sum([np.abs(self.data_channel1)**2, np.abs(self.data_channel2)**2, np.abs(self.data_channel3)**2])
 
-        self.generator = PhenomHM(self.max_length_init,
-                          self.l_vals, self.m_vals,
-                          self.data_freqs, self.data_channel1,
-                          self.data_channel2, self.data_channel3,
-                          self.channel1_ASDinv, self.channel2_ASDinv, self.channel3_ASDinv,
-                          self.TDItag_in, self.t_obs_dur)
+        if self.generator is None:
+            self.generator = PhenomHM(self.max_length_init,
+                                      self.l_vals, self.m_vals,
+                                      self.data_freqs, self.data_channel1,
+                                      self.data_channel2, self.data_channel3,
+                                      self.channel1_ASDinv, self.channel2_ASDinv, self.channel3_ASDinv,
+                                      self.TDItag_in, self.t_obs_dur)
+
+        else:
+            self.generator.input_data(self.data_freqs, self.data_channel1,
+                                      self.data_channel2, self.data_channel3,
+                                      self.channel1_ASDinv, self.channel2_ASDinv,
+                                      self.channel3_ASDinv)
+
+        self.fRef = np.zeros(nwalkers*ndevices)
 
     def NLL(self, m1, m2, a1, a2, distance,
                  phiRef, inc, lam, beta,
@@ -136,17 +145,17 @@ class pyPhenomHM(Converter):
         Msec = (m1+m2)*MTSUN
         # merger frequency for 22 mode amplitude in phenomD
         merger_freq = 0.018/Msec
-        fRef = 0.0
 
         if freqs is None:
             upper_freq = self.max_dimensionless_freq/Msec
             lower_freq = self.min_dimensionless_freq/Msec
-            freqs = np.logspace(np.log10(lower_freq), np.log10(upper_freq), self.max_length_init)
+            freqs = np.asarray([np.logspace(np.log10(lf), np.log10(uf), self.max_length_init) for lf, uf in zip(lower_freq, upper_freq)]).flatten()
 
+        import pdb; pdb.set_trace()
         out = self.generator.WaveformThroughLikelihood(freqs,
                                               m1, m2,  # solar masses
                                               a1, a2,
-                                              distance, phiRef, fRef,
+                                              distance, phiRef, self.fRef,
                                               inc, lam, beta, psi,
                                               self.t0, tRef_wave_frame, tRef_sampling_frame, merger_freq,
                                               return_amp_phase=return_amp_phase,
@@ -162,11 +171,25 @@ class pyPhenomHM(Converter):
 
         return self.d_d + h_h - 2*d_h
 
+    def getNLL(self, x, **kwargs):
+        # changes parameters to in range in actual array (not copy)
+        x = self.recycler.recycle(x)
 
-def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, min_dimensionless_freq=1e-4, max_dimensionless_freq=1.0, add_noise=None, **kwargs):
+        # need tRef in the sampling frame
+        tRef_sampling_frame = np.exp(x[10])
+
+        # converts parameters in copy, not original array
+        x_in = self.converter.convert(x.copy())
+
+        m1, m2, a1, a2, distance, phiRef, inc, lam, beta, psi, tRef_wave_frame = x_in
+
+        return self.NLL(m1, m2, a1, a2, distance,
+                            phiRef, inc, lam, beta,
+                            psi, tRef_wave_frame, tRef_sampling_frame, **kwargs)
+
+
+def create_data_set(nwalkers, ndevices, l_vals,  m_vals, t0, waveform_params, converter, recycler, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, min_dimensionless_freq=1e-4, max_dimensionless_freq=1.0, add_noise=None, **kwargs):
     key_list = list(waveform_params.keys())
-    converter = Converter(key_list, **kwargs)
-    recycler = Recycler(key_list, **kwargs)
 
     vals = np.array([waveform_params[key] for key in key_list])
 
@@ -258,25 +281,46 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
     elif TDItag == 'XYZ':
         TDItag_in = 1
 
-    phenomHM = PhenomHM(len(generate_freqs), l_vals, m_vals, data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD, TDItag_in, waveform_params['t_obs_dur'])
+    phenomHM = PhenomHM(len(generate_freqs), l_vals, m_vals, data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD, TDItag_in, waveform_params['t_obs_dur'], nwalkers, ndevices)
 
-    phenomHM.gen_amp_phase(generate_freqs, waveform_params['m1'],  # solar masses
-                 waveform_params['m2'],  # solar masses
-                 waveform_params['a1'],
-                 waveform_params['a2'],
-                 waveform_params['distance'],
-                 waveform_params['phiRef'],
-                 waveform_params['fRef'])
+    freqs = np.tile(generate_freqs, nwalkers*ndevices)
+    m1 = np.full(nwalkers*ndevices, waveform_params['m1'])
+    m2 = np.full(nwalkers*ndevices, waveform_params['m2'])
+    a1 = np.full(nwalkers*ndevices, waveform_params['a1'])
+    a2 = np.full(nwalkers*ndevices, waveform_params['a2'])
+    distance = np.full(nwalkers*ndevices, waveform_params['distance'])
+    phiRef = np.full(nwalkers*ndevices, waveform_params['phiRef'])
+    fRef =  np.full(nwalkers*ndevices, waveform_params['fRef'])
+    inc = np.full(nwalkers*ndevices, waveform_params['inc'])
+    lam = np.full(nwalkers*ndevices, waveform_params['lam'])
+    beta = np.full(nwalkers*ndevices, waveform_params['beta'])
+    psi = np.full(nwalkers*ndevices, waveform_params['psi'])
+    t0 = np.full(nwalkers*ndevices, waveform_params['t0'])
+    tRef_wave_frame = np.full(nwalkers*ndevices, waveform_params['tRef_wave_frame'])
+    tRef_sampling_frame = np.full(nwalkers*ndevices, waveform_params['tRef_sampling_frame'])
+    merger_freq = np.full(nwalkers*ndevices, merger_freq)
 
-    phenomHM.LISAresponseFD(waveform_params['inc'], waveform_params['lam'], waveform_params['beta'], waveform_params['psi'], waveform_params['t0'], waveform_params['tRef_wave_frame'], waveform_params['tRef_sampling_frame'], merger_freq)
-    phenomHM.setup_interp_wave()
-    phenomHM.setup_interp_response()
-    phenomHM.perform_interp()
+    channel1, channel2, channel3 = phenomHM.WaveformThroughLikelihood(freqs, m1, m2, a1, a2, distance, phiRef, fRef, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_TDI=True)
 
-    channel1, channel2, channel3 = phenomHM.GetTDI()
+    check = phenomHM.WaveformThroughLikelihood(freqs, m1, m2, a1, a2, distance, phiRef, fRef, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_TDI=False)
 
-    if channel1.ndim > 1:
-        channel1, channel2, channel3 = channel1.sum(axis=0), channel2.sum(axis=0), channel3.sum(axis=0)
+    ap = phenomHM.GetAmpPhase()
+
+    print(check[1] == check[1][0])
+    for i in range(nwalkers*ndevices):
+        inds = np.where(ap[1][0] != ap[1][i])[0]
+        if len(inds) != 0:
+            print('ap', i, inds)
+        inds = np.where(channel1[0] != channel1[i])[0]
+        if len(inds) != 0:
+            print('tdi', i, inds)
+
+
+
+    import pdb; pdb.set_trace()
+    assert(np.all(check[1] == check[1][0]))
+
+    channel1, channel2, channel3 = channel1[0], channel2[0], channel3[0]
 
     if add_noise is not None:
         channel1 = channel1 + noise_channel1
@@ -284,4 +328,4 @@ def create_data_set(l_vals,  m_vals, t0, waveform_params, data_freqs=None, TDIta
         channel3 = channel3 + noise_channel3
 
     data_stream = {TDItag[0]: channel1, TDItag[1]: channel2, TDItag[2]: channel3}
-    return data_freqs, data_stream
+    return data_freqs, data_stream, phenomHM

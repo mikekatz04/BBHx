@@ -20,6 +20,33 @@ def test():
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2*np.pi*1e-3 * np.arange(data_length)*0.1))
 
+    key_order = [
+        'ln_mT',
+        'mr',
+        'a1',
+        'a2',
+        'ln_distance',  # Gpc z=2
+        'phiRef',
+        'cos_inc',
+        'lam',
+        'sin_beta',
+        'psi',
+        'ln_tRef'
+    ]
+
+    initial_point = {
+        'ln_mT': np.log(2.00000000e+06),
+        'mr': 1/3.00000000e+00,
+        'a1': 0.0,
+        'a2': 0.0,
+        'ln_distance': np.log(3.65943000e+01),  # Gpc z=2
+        'phiRef': 2.13954125e+00,
+        'cos_inc': np.cos(1.04719755e+00),
+        'lam': -2.43647481e-02,
+        'sin_beta': np.sin(6.24341583e-01),
+        'psi': 2.02958790e+00,
+        'ln_tRef': np.log(5.02462348e+01)
+    }
     M = 4e7
     q = 0.2
     freq, phiRef, f_ref, m1, m2, chi1z, chi2z, distance, deltaF = np.logspace(-6, 0, int(2**10)), 3.09823412789, 0.0, M/(1+q), M*q/(1+q), 0.0, 0.0,  15.93461637*1e3*1e6*ct.parsec, -1. # cosmo.luminosity_distance(2.0).value*1e6*ct.parsec, -1.0

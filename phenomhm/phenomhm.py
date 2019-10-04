@@ -36,7 +36,7 @@ class pyPhenomHM(Converter):
             'log_scaled_likelihood': True,
             'eps': 1e-6,
             'test_inds': None,
-            'num_params': 12,
+            'num_params': 11,
             'num_data_points': int(2**19),
             'df': None,
             'tLtoSSB': True,
@@ -151,7 +151,6 @@ class pyPhenomHM(Converter):
             lower_freq = self.min_dimensionless_freq/Msec
             freqs = np.asarray([np.logspace(np.log10(lf), np.log10(uf), self.max_length_init) for lf, uf in zip(lower_freq, upper_freq)]).flatten()
 
-        import pdb; pdb.set_trace()
         out = self.generator.WaveformThroughLikelihood(freqs,
                                               m1, m2,  # solar masses
                                               a1, a2,
@@ -186,6 +185,41 @@ class pyPhenomHM(Converter):
         return self.NLL(m1, m2, a1, a2, distance,
                             phiRef, inc, lam, beta,
                             psi, tRef_wave_frame, tRef_sampling_frame, **kwargs)
+
+    def get_Fisher(self, x):
+        Mij = np.zeros((len(self.test_inds), len(self.test_inds)),  dtype=x.dtype)
+        if self.nwalkers*self.ndevices < 2*len(self.test_inds):
+            raise ValueError("num walkers must be greater than 2*ndim")
+        x_in = np.tile(x, (self.nwalkers*self.ndevices, 1))
+
+        for i in range(len(self.test_inds)):
+            x_in[2*i, i] += self.eps
+            x_in[2*i+1, i] -= self.eps
+
+        A, E, T = self.getNLL(x_in.T, return_TDI=True)
+
+        for i in range(len(self.test_inds)):
+            Ai_up, Ei_up, Ti_up = A[2*i + 1], E[2*i + 1], T[2*i + 1]
+            Ai_down, Ei_down, Ti_down = A[2*i], E[2*i], T[2*i]
+
+            hi_A = (Ai_up - Ai_down)/(2*self.eps)
+            hi_E = (Ei_up - Ei_down)/(2*self.eps)
+            hi_T = (Ti_up - Ti_down)/(2*self.eps)
+
+            for j in range(i, len(self.test_inds)):
+                Aj_up, Ej_up, Tj_up = A[2*j + 1], E[2*j + 1], T[2*j + 1]
+                Aj_down, Ej_down, Tj_down = A[2*j], E[2*j], T[2*j]
+
+                hj_A = (Aj_up - Aj_down)/(2*self.eps)
+                hj_E = (Ej_up - Ej_down)/(2*self.eps)
+                hj_T = (Tj_up - Tj_down)/(2*self.eps)
+                
+                inner_product = 4*np.real((np.dot(hi_A.conj(), hj_A) + np.dot(hi_E.conj(), hj_E) + np.dot(hi_T.conj(), hj_T)))
+
+                Mij[i][j] = inner_product
+                Mij[j][i] = inner_product
+
+        return Mij
 
 
 def create_data_set(nwalkers, ndevices, l_vals,  m_vals, t0, waveform_params, converter, recycler, data_freqs=None, TDItag='AET', num_data_points=int(2**19), num_generate_points=int(2**18), df=None, min_dimensionless_freq=1e-4, max_dimensionless_freq=1.0, add_noise=None, **kwargs):
@@ -301,24 +335,6 @@ def create_data_set(nwalkers, ndevices, l_vals,  m_vals, t0, waveform_params, co
     merger_freq = np.full(nwalkers*ndevices, merger_freq)
 
     channel1, channel2, channel3 = phenomHM.WaveformThroughLikelihood(freqs, m1, m2, a1, a2, distance, phiRef, fRef, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_TDI=True)
-
-    check = phenomHM.WaveformThroughLikelihood(freqs, m1, m2, a1, a2, distance, phiRef, fRef, inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq, return_TDI=False)
-
-    ap = phenomHM.GetAmpPhase()
-
-    print(check[1] == check[1][0])
-    for i in range(nwalkers*ndevices):
-        inds = np.where(ap[1][0] != ap[1][i])[0]
-        if len(inds) != 0:
-            print('ap', i, inds)
-        inds = np.where(channel1[0] != channel1[i])[0]
-        if len(inds) != 0:
-            print('tdi', i, inds)
-
-
-
-    import pdb; pdb.set_trace()
-    assert(np.all(check[1] == check[1][0]))
 
     channel1, channel2, channel3 = channel1[0], channel2[0], channel3[0]
 

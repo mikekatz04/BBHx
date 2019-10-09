@@ -338,7 +338,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     int i, th_id, nthreads;
     #pragma omp parallel private(th_id, i)
     {
-    //for (int i=0; i<nwalkers; i++){
+    //for (int i=0; i<ndevices*nwalkers; i++){
         nthreads = omp_get_num_threads();
         th_id = omp_get_thread_num();
         for (int i=th_id; i<ndevices*nwalkers; i+=nthreads){
@@ -352,7 +352,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
                 f_ref_[i]);
 
             M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
-        }
+      }
     }
 
     /* main: evaluate model at given frequencies on GPU */
@@ -374,6 +374,8 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
             gpuErrchk(cudaMemcpy(d_freqs[i], &freqs[i*nwalkers*current_length], nwalkers*current_length*sizeof(double), cudaMemcpyHostToDevice));
 
             gpuErrchk(cudaMemcpy(d_pHM_trans[i], &pHM_trans[i*nwalkers], nwalkers*sizeof(PhenomHMStorage), cudaMemcpyHostToDevice));
+
+            //printf("%.12e, %.12e, %.12e, %.12e\n\n", pHM_trans[2].m1, pHM_trans[2].m2, m1[2], m2[2]);
 
             gpuErrchk(cudaMemcpy(d_pAmp_trans[i], &pAmp_trans[i*nwalkers], nwalkers*sizeof(IMRPhenomDAmplitudeCoefficients), cudaMemcpyHostToDevice));
 
@@ -422,39 +424,40 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
 /*
 generate structures for GPU creation of amp and phase
 */
-void PhenomHM::gen_amp_phase_prep(int ind_walker, double *freqs, int current_length,
-    double m1, //solar masses
-    double m2, //solar masses
-    double chi1z,
-    double chi2z,
-    double distance,
-    double phiRef,
-    double f_ref){
+void PhenomHM::gen_amp_phase_prep(int ind_walker, double *freqs_gen, int current_length,
+    double m1_gen, //solar masses
+    double m2_gen, //solar masses
+    double chi1z_gen,
+    double chi2z_gen,
+    double distance_gen,
+    double phiRef_gen,
+    double f_ref_gen){
+
+    double m1_SI, m2_SI, deltaF;
 
     // for phenomHM internal calls
     deltaF = -1.0;
-
     for (int i=0; i<num_modes; i++){
         mode_vals[ind_walker*num_modes + i].length = current_length;
     }
 
-    m1_SI = m1*MSUN_SI;
-    m2_SI = m2*MSUN_SI;
+    m1_SI = m1_gen*MSUN_SI;
+    m2_SI = m2_gen*MSUN_SI;
 
     /* fill all the structures necessary for waveform creation */
     retcode = 0;
     retcode = IMRPhenomHMCore(
         mode_vals,
-        freqs,
+        freqs_gen,
         current_length,
         m1_SI,
         m2_SI,
-        chi1z,
-        chi2z,
-        distance,
-        phiRef,
+        chi1z_gen,
+        chi2z_gen,
+        distance_gen,
+        phiRef_gen,
         deltaF,
-        f_ref,
+        f_ref_gen,
         num_modes,
         to_gpu,
         &pHM_trans[ind_walker],
@@ -466,7 +469,10 @@ void PhenomHM::gen_amp_phase_prep(int ind_walker, double *freqs, int current_len
         &phi0[ind_walker],
         &amp0[ind_walker]);
     //assert (retcode == 1); //,PD_EFUNC, "IMRPhenomHMCore failed in
+      //printf("%d, %.12e, %.12e, %.12e, %.12e, %.12e, %.12e, %.12e\n\n", ind_walker, pHM_trans[ind_walker].m1, pHM_trans[ind_walker].m2, m1[ind_walker], m2[ind_walker], t0[ind_walker], phi0[ind_walker], amp0[ind_walker]);
+
 }
+
 
 /*
 Setup interpolation of amp and phase

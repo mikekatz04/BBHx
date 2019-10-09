@@ -50,7 +50,6 @@ class PhenomHM {
   double* chi2z;
   double* distance;
   double* phiRef;
-  double deltaF;
   double* f_ref;
   unsigned int *l_vals;
   unsigned int *m_vals;
@@ -65,8 +64,6 @@ class PhenomHM {
   double* phi0;
   double* amp0;
   int retcode;
-  double m1_SI;
-  double m2_SI;
   cmplx *H;
   double* M_tot_sec;
 

@@ -23,7 +23,6 @@
  *  MA  02111-1307  USA
  */
 
-#include <complex>
 #include "globalPhenomHM.h"
 #include <stdio.h>
 #include <math.h>
@@ -198,7 +197,7 @@ void prep_H_info(cmplx *H_mat, unsigned int *l_vals, unsigned int *m_vals, int n
         l = l_vals[mode_i];
         m = m_vals[mode_i];
         Ylm = SpinWeightedSphericalHarmonic(-2, l, m, inc, phi0);
-        Yl_m = pow(-1.0, l)*std::conj(SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0));
+        Yl_m = pow(-1.0, l)*conj(SpinWeightedSphericalHarmonic(-2, l, -1*m, inc, phi0));
         Yfactorplus = 1./2 * (Ylm + Yl_m);
         //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
         Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
@@ -405,12 +404,12 @@ void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H_mat, double *
             transferL_holder transferL = JustLISAFDresponseTDI(&H_mat[mode_i*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 
             mode_vals[mode_i].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI;
-            mode_vals[mode_i].transferL1_re[i] = std::real(transferL.transferL1);
-            mode_vals[mode_i].transferL1_im[i] = std::imag(transferL.transferL1);
-            mode_vals[mode_i].transferL2_re[i] = std::real(transferL.transferL2);
-            mode_vals[mode_i].transferL2_im[i] = std::imag(transferL.transferL2);
-            mode_vals[mode_i].transferL3_re[i] = std::real(transferL.transferL3);
-            mode_vals[mode_i].transferL3_im[i] = std::imag(transferL.transferL3);
+            mode_vals[mode_i].transferL1_re[i] = real(transferL.transferL1);
+            mode_vals[mode_i].transferL1_im[i] = imag(transferL.transferL1);
+            mode_vals[mode_i].transferL2_re[i] = real(transferL.transferL2);
+            mode_vals[mode_i].transferL2_im[i] = imag(transferL.transferL2);
+            mode_vals[mode_i].transferL3_re[i] = real(transferL.transferL3);
+            mode_vals[mode_i].transferL3_im[i] = imag(transferL.transferL3);
             mode_vals[mode_i].phaseRdelay[i] = transferL.phaseRdelay;
 
         }
@@ -433,7 +432,7 @@ int main(){
     for (int mode_i=0; mode_i<num_modes; mode_i++){
         for (int i=0; i<3; i++){
             for (int j=0; j<3; j++){
-                printf("(%d, %d, %d, %d): %e, %e\n", l[mode_i], m[mode_i], i, j, std::real(H_mat[mode_i*9 + i*3+j]), std::imag(H_mat[mode_i*9 + i*3+j]));
+                printf("(%d, %d, %d, %d): %e, %e\n", l[mode_i], m[mode_i], i, j, real(H_mat[mode_i*9 + i*3+j]), imag(H_mat[mode_i*9 + i*3+j]));
             }
         }
     }

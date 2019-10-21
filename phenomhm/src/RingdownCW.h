@@ -8,7 +8,7 @@
  *  The comments in the code have been left generally the same. A few comments
  *  have been made for the newer functions added.
 
- 
+
  * Copyright (C) 2016 Lionel London
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 /* Include the desired Libs */
 #include <stdbool.h>
 #include <math.h>
-#include <complex>
+
 #include "globalPhenomHM.h"
 
 /*

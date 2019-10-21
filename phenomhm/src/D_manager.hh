@@ -30,7 +30,7 @@
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
 #include "globalPhenomHM.h"
-#include <complex>
+
 #include "cuComplex.h"
 #include "cublas_v2.h"
 #include "PhenomHM.h"

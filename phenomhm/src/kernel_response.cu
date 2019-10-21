@@ -23,7 +23,7 @@
  *  MA  02111-1307  USA
  */
 
-#include <cuComplex.h>
+#include <cuda_complex.hpp>
 #include "globalPhenomHM.h"
 #include <stdio.h>
 #include <math.h>
@@ -33,39 +33,26 @@
 using namespace std;
 
 typedef struct tagd_Gslr_holder{
-    cuDoubleComplex G21;
-    cuDoubleComplex G12;
-    cuDoubleComplex G23;
-    cuDoubleComplex G32;
-    cuDoubleComplex G31;
-    cuDoubleComplex G13;
+    cmplx G21;
+    cmplx G12;
+    cmplx G23;
+    cmplx G32;
+    cmplx G31;
+    cmplx G13;
 } d_Gslr_holder;
 
 typedef struct tagd_transferL_holder{
-    cuDoubleComplex transferL1;
-    cuDoubleComplex transferL2;
-    cuDoubleComplex transferL3;
+    cmplx transferL1;
+    cmplx transferL2;
+    cmplx transferL3;
     double phaseRdelay;
 } d_transferL_holder;
 
 __device__
-double d_sinc(double x){
+double the_sinc(double x){
     if (x == 0.0) return 1.0;
     else return sin(x)/x;
 }
-
-__device__
-cuDoubleComplex complex_exp (cuDoubleComplex arg)
-{
-   cuDoubleComplex res;
-   double s, c;
-   double e = exp(arg.x);
-   sincos(arg.y, &s, &c);
-   res.x = c * e;
-   res.y = s * e;
-   return res;
-}
-
 
 __device__
 double d_dot_product_1d(double arr1[3], double arr2[3]){
@@ -77,24 +64,24 @@ double d_dot_product_1d(double arr1[3], double arr2[3]){
 }
 
 __device__
-cuDoubleComplex d_vec_H_vec_product(double arr1[3], cuDoubleComplex *H, double arr2[3]){
-    cuDoubleComplex c_arr1[3] = {make_cuDoubleComplex(arr1[0], 0.0),
-                                 make_cuDoubleComplex(arr1[1], 0.0),
-                                 make_cuDoubleComplex(arr1[2], 0.0)};
+cmplx d_vec_H_vec_product(double arr1[3], cmplx *H, double arr2[3]){
+    cmplx c_arr1[3] = {cmplx(arr1[0], 0.0),
+                                 cmplx(arr1[1], 0.0),
+                                 cmplx(arr1[2], 0.0)};
 
-    cuDoubleComplex c_arr2[3] = {make_cuDoubleComplex(arr2[0], 0.0),
-                                 make_cuDoubleComplex(arr2[1], 0.0),
-                                 make_cuDoubleComplex(arr2[2], 0.0)};
+    cmplx c_arr2[3] = {cmplx(arr2[0], 0.0),
+                                 cmplx(arr2[1], 0.0),
+                                 cmplx(arr2[2], 0.0)};
 
-    cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
-    cuDoubleComplex out = make_cuDoubleComplex(0.0, 0.0);
-    cuDoubleComplex trans;
+    cmplx I = cmplx(0.0, 1.0);
+    cmplx out = cmplx(0.0, 0.0);
+    cmplx trans;
     for (int i=0; i<3; i++){
-        trans = make_cuDoubleComplex(0.0, 0.0);
+        trans = cmplx(0.0, 0.0);
         for (int j=0; j<3; j++){
-            trans = cuCadd(trans, cuCmul(H[i*3 + j], c_arr2[j]));
+            trans = trans +  (H[i*3 + j] * c_arr2[j]);
         }
-        out = cuCadd(out, cuCmul(c_arr1[i], trans));
+        out = out + (c_arr1[i] * trans);
     }
     return out;
 }
@@ -103,11 +90,11 @@ cuDoubleComplex d_vec_H_vec_product(double arr1[3], cuDoubleComplex *H, double a
 # 'full' does include the orbital-delay term, 'constellation' does not
 # t can be a scalar or a 1D vector */
 __device__
-d_Gslr_holder d_EvaluateGslr(double t, double f, cuDoubleComplex *H, double k[3], int response){
+d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double k[3], int response){
     // response == 1 is full ,, response anything else is constellation
     //# Trajectories, p0 used only for the full response
-    cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
-    cuDoubleComplex m_I = make_cuDoubleComplex(0.0, -1.0);
+    cmplx I = cmplx(0.0, 1.0);
+    cmplx m_I = cmplx(0.0, -1.0);
     double alpha = Omega0*t; double c = cos(alpha); double s = sin(alpha);
     double a = aorbit; double e = eorbit;
 
@@ -126,9 +113,9 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cuDoubleComplex *H, double k[3]
     double kn2 = d_dot_product_1d(k, n2);
     double kn3 = d_dot_product_1d(k, n3);
 
-    cuDoubleComplex n1Hn1 = d_vec_H_vec_product(n1, H, n1); //np.dot(n1, np.dot(H, n1))
-    cuDoubleComplex n2Hn2 = d_vec_H_vec_product(n2, H, n2); //np.dot(n2, np.dot(H, n2))
-    cuDoubleComplex n3Hn3 = d_vec_H_vec_product(n3, H, n3); //np.dot(n3, np.dot(H, n3))
+    cmplx n1Hn1 = d_vec_H_vec_product(n1, H, n1); //np.dot(n1, np.dot(H, n1))
+    cmplx n2Hn2 = d_vec_H_vec_product(n2, H, n2); //np.dot(n2, np.dot(H, n2))
+    cmplx n3Hn3 = d_vec_H_vec_product(n3, H, n3); //np.dot(n3, np.dot(H, n3))
 
     double p1L_plus_p2L[3] = {p1L[0]+p2L[0], p1L[1]+p2L[1], p1L[2]+p2L[2]};
     double p2L_plus_p3L[3] = {p2L[0]+p3L[0], p2L[1]+p3L[1], p2L[2]+p3L[2]};
@@ -140,35 +127,37 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cuDoubleComplex *H, double k[3]
     double kp0 = d_dot_product_1d(k, p0);
 
     // # Prefactors - projections are either scalars or vectors
-    cuDoubleComplex factorccuCexp0;
-    if (response==1) factorccuCexp0 = complex_exp(cuCmul(I, make_cuDoubleComplex(2.*PI*f/C_SI * kp0, 0.0))); // I*2.*PI*f/C_SI * kp0
-    else factorccuCexp0 = make_cuDoubleComplex(1.0, 0.0);
+    // # Prefactors - projections are either scalars or vectors
+    cmplx factorcexp0;
+    if (response==1) factorcexp0 = exp(I*2.*PI*f/C_SI * kp0);
+    else factorcexp0 = 1.;
     double prefactor = PI*f*L_SI/C_SI;
 
-    cuDoubleComplex factorccuCexp12 = complex_exp(cuCmul(I, make_cuDoubleComplex(prefactor * (1.+kp1Lp2L/L_SI), 0.0))); //prefactor * (1.+kp1Lp2L/L_SI)
-    cuDoubleComplex factorccuCexp23 = complex_exp(cuCmul(I, make_cuDoubleComplex(prefactor * (1.+kp2Lp3L/L_SI), 0.0))); //prefactor * (1.+kp2Lp3L/L_SI)
-    cuDoubleComplex factorccuCexp31 = complex_exp(cuCmul(I, make_cuDoubleComplex(prefactor * (1.+kp3Lp1L/L_SI), 0.0))); //prefactor * (1.+kp3Lp1L/L_SI)
+    cmplx factorcexp12 = exp(I*prefactor * (1.+kp1Lp2L/L_SI));
+    cmplx factorcexp23 = exp(I*prefactor * (1.+kp2Lp3L/L_SI));
+    cmplx factorcexp31 = exp(I*prefactor * (1.+kp3Lp1L/L_SI));
 
-    cuDoubleComplex factorsinc12 = make_cuDoubleComplex(d_sinc( prefactor * (1.-kn3)),0.0);
-    cuDoubleComplex factorsinc21 = make_cuDoubleComplex(d_sinc( prefactor * (1.+kn3)),0.0);
-    cuDoubleComplex factorsinc23 = make_cuDoubleComplex(d_sinc( prefactor * (1.-kn1)),0.0);
-    cuDoubleComplex factorsinc32 = make_cuDoubleComplex(d_sinc( prefactor * (1.+kn1)),0.0);
-    cuDoubleComplex factorsinc31 = make_cuDoubleComplex(d_sinc( prefactor * (1.-kn2)),0.0);
-    cuDoubleComplex factorsinc13 = make_cuDoubleComplex(d_sinc( prefactor * (1.+kn2)),0.0);
+    cmplx factorsinc12 = the_sinc( prefactor * (1.-kn3));
+    cmplx factorsinc21 = the_sinc( prefactor * (1.+kn3));
+    cmplx factorsinc23 = the_sinc( prefactor * (1.-kn1));
+    cmplx factorsinc32 = the_sinc( prefactor * (1.+kn1));
+    cmplx factorsinc31 = the_sinc( prefactor * (1.-kn2));
+    cmplx factorsinc13 = the_sinc( prefactor * (1.+kn2));
 
     // # Compute the Gslr - either scalars or vectors
     d_Gslr_holder Gslr_out;
 
-    cuDoubleComplex commonfac = cuCmul(cuCmul(I, make_cuDoubleComplex(prefactor, 0.0)), factorccuCexp0);
-    Gslr_out.G12 = cuCmul(cuCmul(cuCmul(commonfac, n3Hn3), factorsinc12), factorccuCexp12);
-    Gslr_out.G21 = cuCmul(cuCmul(cuCmul(commonfac, n3Hn3), factorsinc21), factorccuCexp12);
-    Gslr_out.G23 = cuCmul(cuCmul(cuCmul(commonfac, n1Hn1), factorsinc23), factorccuCexp23);
-    Gslr_out.G32 = cuCmul(cuCmul(cuCmul(commonfac, n1Hn1), factorsinc32), factorccuCexp23);
-    Gslr_out.G31 = cuCmul(cuCmul(cuCmul(commonfac, n2Hn2), factorsinc31), factorccuCexp31);
-    Gslr_out.G13 = cuCmul(cuCmul(cuCmul(commonfac, n2Hn2), factorsinc13), factorccuCexp31);
+    cmplx commonfac = I * prefactor * factorcexp0;
+
+    Gslr_out.G12 = commonfac * n3Hn3 * factorsinc12 * factorcexp12;
+    Gslr_out.G21 = commonfac * n3Hn3 * factorsinc21 * factorcexp12;
+    Gslr_out.G23 = commonfac * n1Hn1 * factorsinc23 * factorcexp23;
+    Gslr_out.G32 = commonfac * n1Hn1 * factorsinc32 * factorcexp23;
+    Gslr_out.G31 = commonfac * n2Hn2 * factorsinc31 * factorcexp31;
+    Gslr_out.G13 = commonfac * n2Hn2 * factorsinc13 * factorcexp31;
 
     // ### FIXME
-    // # G13 = -1j * prefactor * n2Hn2 * factorsinc31 * np.conjugate(factorccuCexp31)
+    // # G13 = -1j * prefactor * n2Hn2 * factorsinc31 * np.conjugate(factorcexp31)
     return Gslr_out;
 }
 
@@ -177,23 +166,22 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
     d_transferL_holder transferL;
-    cuDoubleComplex factor, factorAE, factorT;
-    cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
+    cmplx factor, factorAE, factorT;
+    cmplx I(0.0, 1.0);
     double x = PI*f*L_SI/C_SI;
-    cuDoubleComplex z = complex_exp(cuCmul(I, make_cuDoubleComplex(2.*x, 0.0)));
-    cuDoubleComplex Xraw, Yraw, Zraw, Araw, Eraw, Traw;
-    cuDoubleComplex factor_convention, point5, c_one, c_two;
+    cmplx z = exp(2.*I*x);
+    cmplx Xraw, Yraw, Zraw, Araw, Eraw, Traw;
     if (TDItag==1){
         // # First-generation TDI XYZ
         // # With x=pifL, factor scaled out: 2I*sin2x*e2ix
-        if (rescaled == 1) factor = make_cuDoubleComplex(1., 0.0);
-        else factor = cuCmul(I, cuCmul(z, make_cuDoubleComplex(2.*sin(2.*x), 0.0)));
-        Xraw = cuCsub(cuCadd(Gslr.G21, cuCmul(z, Gslr.G12)), cuCadd(Gslr.G31,cuCmul(z, Gslr.G13)));
-        Yraw = cuCsub(cuCadd(Gslr.G32, cuCmul(z,Gslr.G23)), cuCadd(Gslr.G12, cuCmul(z,Gslr.G21)));
-        Zraw = cuCsub(cuCadd(Gslr.G13, cuCmul(z,Gslr.G31)), cuCadd(Gslr.G23, cuCmul(z,Gslr.G32)));
-        transferL.transferL1 = cuCmul(factor, Xraw);
-        transferL.transferL2 = cuCmul(factor, Yraw);
-        transferL.transferL3 = cuCmul(factor, Zraw);
+        if (rescaled == 1) factor = 1.;
+        else factor = 2.*I*sin(2.*x)*z;
+        Xraw = Gslr.G21 + z*Gslr.G12 - Gslr.G31 - z*Gslr.G13;
+        Yraw = Gslr.G32 + z*Gslr.G23 - Gslr.G12 - z*Gslr.G21;
+        Zraw = Gslr.G13 + z*Gslr.G31 - Gslr.G23 - z*Gslr.G32;
+        transferL.transferL1 = factor * Xraw;
+        transferL.transferL2 = factor * Yraw;
+        transferL.transferL3 = factor * Zraw;
         return transferL;
     }
 
@@ -201,34 +189,28 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
         //# First-generation TDI AET from X,Y,Z
         //# With x=pifL, factors scaled out: A,E:I*sqrt2*sin2x*e2ix T:2*sqrt2*sin2x*sinx*e3ix
         //# Here we include a factor 2, because the code was first written using the definitions (2) of McWilliams&al_0911 where A,E,T are 1/2 of their LDC definitions
-        factor_convention = make_cuDoubleComplex(2.,0.0);
+        double factor_convention = 2.;
         if (rescaled == 1){
-            factorAE = make_cuDoubleComplex(1., 0.0);
-            factorT = make_cuDoubleComplex(1., 0.0);
+            factorAE = 1.;
+            factorT = 1.;
         }
         else{
-            factorAE = cuCmul(I, cuCmul(z, make_cuDoubleComplex(sqrt2*sin(2.*x), 0.0)));
-            factorT = cuCmul(make_cuDoubleComplex(2.*sqrt2*sin(2.*x)*sin(x), 0.0), complex_exp(cuCmul(I, make_cuDoubleComplex(3.*x, 0.0))));
+            factorAE = I*sqrt2*sin(2.*x)*z;
+            factorT = 2.*sqrt2*sin(2.*x)*sin(x)*exp(I*3.*x);
         }
 
-        point5 = make_cuDoubleComplex(0.5, 0.0);
-        c_one = make_cuDoubleComplex(1.0, 0.0);
-        c_two = make_cuDoubleComplex(2.0, 0.0);
-        Araw = cuCmul(point5, cuCsub(cuCmul(cuCadd(c_one, z),cuCadd(Gslr.G31, Gslr.G13)), cuCadd(cuCadd(Gslr.G23, cuCmul(z, Gslr.G32)), cuCadd(Gslr.G21, cuCmul(z, Gslr.G12 )))));
-
-        Eraw = cuCmul(cuCmul(point5, make_cuDoubleComplex(invsqrt3, 0.0)), cuCadd(cuCmul(cuCsub(c_one, z), cuCsub(Gslr.G13, Gslr.G31)), cuCadd(cuCmul(cuCadd(c_two,z),cuCsub(Gslr.G12, Gslr.G32)), cuCmul(cuCadd(c_one, cuCmul(c_two,z)), cuCsub(Gslr.G21, Gslr.G23)))));
-
-        Traw = cuCmul(make_cuDoubleComplex(invsqrt6, 0.0), cuCadd(cuCsub(Gslr.G21, Gslr.G12), cuCadd(cuCsub(Gslr.G32, Gslr.G23), cuCsub(Gslr.G13, Gslr.G31))));
-
-        transferL.transferL1 = cuCmul(cuCmul(factor_convention, factorAE), Araw);
-        transferL.transferL2 = cuCmul(cuCmul(factor_convention, factorAE), Eraw);
-        transferL.transferL3 = cuCmul(cuCmul(factor_convention, factorT), Traw);
+        Araw = 0.5 * ( (1.+z)*(Gslr.G31 + Gslr.G13) - Gslr.G23 - z*Gslr.G32 - Gslr.G21 - z*Gslr.G12 );
+        Eraw = 0.5*invsqrt3 * ( (1.-z)*(Gslr.G13 - Gslr.G31) + (2.+z)*(Gslr.G12 - Gslr.G32) + (1.+2.*z)*(Gslr.G21 - Gslr.G23) );
+        Traw = invsqrt6 * ( Gslr.G21 - Gslr.G12 + Gslr.G32 - Gslr.G23 + Gslr.G13 - Gslr.G31);
+        transferL.transferL1 = factor_convention * factorAE * Araw;
+        transferL.transferL2 = factor_convention * factorAE * Eraw;
+        transferL.transferL3 = factor_convention * factorT * Traw;
         return transferL;
     }
 }
 
 __device__
-d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
+d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
     t = t + t0*YRSID_SI;
 
     //funck
@@ -246,16 +228,15 @@ d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double 
     // going to assume order_fresnel_stencil == 0 for now
     d_Gslr_holder Gslr = d_EvaluateGslr(t, f, H, kvec, 1); // assumes full response
     d_Gslr_holder Tslr; // use same struct because its the same setup
-    cuDoubleComplex m_I = make_cuDoubleComplex(0.0, -1.0); // -1.0 -> mu_I
+    cmplx I(0.0, 1.0); // -1.0 -> mu_I
 
     // fill Tslr
-    cuDoubleComplex complex_phaseRdelay = make_cuDoubleComplex(phaseRdelay, 0.0);
-    Tslr.G12 = cuCmul(Gslr.G12, complex_exp(cuCmul(m_I,complex_phaseRdelay))); // really -I*
-    Tslr.G21 = cuCmul(Gslr.G21, complex_exp(cuCmul(m_I,complex_phaseRdelay)));
-    Tslr.G23 = cuCmul(Gslr.G23, complex_exp(cuCmul(m_I,complex_phaseRdelay)));
-    Tslr.G32 = cuCmul(Gslr.G32, complex_exp(cuCmul(m_I,complex_phaseRdelay)));
-    Tslr.G31 = cuCmul(Gslr.G31, complex_exp(cuCmul(m_I,complex_phaseRdelay)));
-    Tslr.G13 = cuCmul(Gslr.G13, complex_exp(cuCmul(m_I,complex_phaseRdelay)));
+    Tslr.G12 = Gslr.G12 * exp(-I*phaseRdelay);
+    Tslr.G21 = Gslr.G21 * exp(-I*phaseRdelay);
+    Tslr.G23 = Gslr.G23 * exp(-I*phaseRdelay);
+    Tslr.G32 = Gslr.G32 * exp(-I*phaseRdelay);
+    Tslr.G31 = Gslr.G31 * exp(-I*phaseRdelay);
+    Tslr.G13 = Gslr.G13 * exp(-I*phaseRdelay);
 
     d_transferL_holder transferL = d_TDICombinationFD(Tslr, f, TDItag, 0);
     transferL.phaseRdelay = phaseRdelay;
@@ -264,7 +245,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cuDoubleComplex *H, double f, double 
 
 
 __global__
-void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
+void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
     double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     double phasetimeshift;
@@ -355,12 +336,12 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cuDoubleComplex
             d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 
             mode_vals[mode_index].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it should be okay at long enough times.
-            mode_vals[mode_index].transferL1_re[i] = cuCreal(transferL.transferL1);
-            mode_vals[mode_index].transferL1_im[i] = cuCimag(transferL.transferL1);
-            mode_vals[mode_index].transferL2_re[i] = cuCreal(transferL.transferL2);
-            mode_vals[mode_index].transferL2_im[i] = cuCimag(transferL.transferL2);
-            mode_vals[mode_index].transferL3_re[i] = cuCreal(transferL.transferL3);
-            mode_vals[mode_index].transferL3_im[i] = cuCimag(transferL.transferL3);
+            mode_vals[mode_index].transferL1_re[i] = real(transferL.transferL1);
+            mode_vals[mode_index].transferL1_im[i] = imag(transferL.transferL1);
+            mode_vals[mode_index].transferL2_re[i] = real(transferL.transferL2);
+            mode_vals[mode_index].transferL2_im[i] = imag(transferL.transferL2);
+            mode_vals[mode_index].transferL3_re[i] = real(transferL.transferL3);
+            mode_vals[mode_index].transferL3_im[i] = imag(transferL.transferL3);
             mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
 
 }

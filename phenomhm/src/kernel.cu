@@ -276,22 +276,6 @@ double d_IMRPhenomHMFreqDomainMap(
     return Mf22;
 }
 
-
-__device__ __forceinline__ cuDoubleComplex my_cexpf (cuDoubleComplex z)
-
-{
-
-
-
-    cuDoubleComplex t = make_cuDoubleComplex (exp (cuCreal(z)), 0.0);
-
-    cuDoubleComplex v = make_cuDoubleComplex (cos(cuCimag(z)), sin(cuCimag(z)));
-    cuDoubleComplex res = cuCmul(t, v);
-    return res;
-
-}
-
-
 __device__ double complex_norm(double real, double imag){
    return sqrt(real*real + imag*imag);
 }
@@ -386,7 +370,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
         //ERROR(PD_EDOM, "error");
     }
     // Compute the final PN Amplitude at Leading Order in fM
-    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * complex_norm(Hlm_real, Hlm_imag);
+    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * norm(cmplx(Hlm_real, Hlm_imag));
 
     return ans;
 }

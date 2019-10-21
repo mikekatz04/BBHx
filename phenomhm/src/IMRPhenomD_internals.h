@@ -94,7 +94,6 @@ of this waveform.
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <complex>
 
 #include <stdbool.h>
 #include <string.h>

@@ -1676,7 +1676,7 @@ cmplx crect(double re, double im){
 }
 
 cmplx cpolar(double r, double th){
-     return (r * std::exp(crect(0, th)));
+     return (r * exp(crect(0, th)));
 }
 
 COMPLEX2dArray *CreateCOMPLEX2dArray(

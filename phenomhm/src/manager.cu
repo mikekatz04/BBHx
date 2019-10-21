@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
-#include <complex>
+
 #include "cuComplex.h"
 #include "cublas_v2.h"
 #include "interpolate.cu"
@@ -41,8 +41,6 @@
 #include "kernel_response.cu"
 #include "omp.h"
 // TODO: CUTOFF PHASE WHEN IT STARTS TO GO BACK UP!!!
-
-using namespace std;
 
 void print_mem_info(){
         // show memory usage of GPU
@@ -80,11 +78,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
-    double *data_freqs_,
-    cmplx *data_channel1_,
-    cmplx *data_channel2_,
-    cmplx *data_channel3_, int data_stream_length_,
-    double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_,
+    int data_stream_length_,
     int TDItag_,
     double t_obs_dur_,
     int nwalkers_,
@@ -95,14 +89,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     l_vals = l_vals_;
     m_vals = m_vals_;
     num_modes = num_modes_;
-    data_freqs = data_freqs_;
     data_stream_length = data_stream_length_;
-    channel1_ASDinv = channel1_ASDinv_;
-    channel2_ASDinv = channel2_ASDinv_;
-    channel3_ASDinv = channel3_ASDinv_;
-    data_channel1 = data_channel1_;
-    data_channel2 = data_channel2_;
-    data_channel3 = data_channel3_;
     nwalkers = nwalkers_;
 
     TDItag = TDItag_;
@@ -150,18 +137,18 @@ PhenomHM::PhenomHM (int max_length_init_,
 
   d_mode_vals = new ModeContainer*[ndevices];
   d_freqs = new double*[ndevices];
-  d_H = new cuDoubleComplex*[ndevices];
+  d_H = new cmplx*[ndevices];
   d_B = new double*[ndevices];
 
-  d_template_channel1 = new cuDoubleComplex*[ndevices];
-  d_template_channel2 = new cuDoubleComplex*[ndevices];
-  d_template_channel3 = new cuDoubleComplex*[ndevices];
+  d_template_channel1 = new cmplx*[ndevices];
+  d_template_channel2 = new cmplx*[ndevices];
+  d_template_channel3 = new cmplx*[ndevices];
 
   d_data_freqs = new double*[ndevices];
 
-  d_data_channel1 = new cuDoubleComplex*[ndevices];
-  d_data_channel2 = new cuDoubleComplex*[ndevices];
-  d_data_channel3 = new cuDoubleComplex*[ndevices];
+  d_data_channel1 = new cmplx*[ndevices];
+  d_data_channel2 = new cmplx*[ndevices];
+  d_data_channel3 = new cmplx*[ndevices];
 
   d_channel1_ASDinv = new double*[ndevices];
   d_channel2_ASDinv = new double*[ndevices];
@@ -205,21 +192,21 @@ PhenomHM::PhenomHM (int max_length_init_,
       d_mode_vals[i] = gpu_create_modes(num_modes, nwalkers, l_vals, m_vals, max_length_init, to_gpu, 1);
       gpuErrchk(cudaMalloc(&d_freqs[i], nwalkers*max_length_init*sizeof(double)));
 
-      gpuErrchk(cudaMalloc(&d_H[i], 9*num_modes*nwalkers*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_H[i], 9*num_modes*nwalkers*sizeof(cmplx)));
 
       gpuErrchk(cudaMalloc(&d_B[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
 
-      gpuErrchk(cudaMalloc(&d_template_channel1[i], data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
-      gpuErrchk(cudaMalloc(&d_template_channel2[i], data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
-      gpuErrchk(cudaMalloc(&d_template_channel3[i], data_stream_length*nwalkers*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_template_channel1[i], data_stream_length*nwalkers*sizeof(cmplx)));
+      gpuErrchk(cudaMalloc(&d_template_channel2[i], data_stream_length*nwalkers*sizeof(cmplx)));
+      gpuErrchk(cudaMalloc(&d_template_channel3[i], data_stream_length*nwalkers*sizeof(cmplx)));
 
       gpuErrchk(cudaMalloc(&d_data_freqs[i], data_stream_length*sizeof(double)));
 
-      gpuErrchk(cudaMalloc(&d_data_channel1[i], data_stream_length*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_data_channel1[i], data_stream_length*sizeof(cmplx)));
 
-      gpuErrchk(cudaMalloc(&d_data_channel2[i], data_stream_length*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_data_channel2[i], data_stream_length*sizeof(cmplx)));
 
-      gpuErrchk(cudaMalloc(&d_data_channel3[i], data_stream_length*sizeof(cuDoubleComplex)));
+      gpuErrchk(cudaMalloc(&d_data_channel3[i], data_stream_length*sizeof(cmplx)));
 
       gpuErrchk(cudaMalloc(&d_channel1_ASDinv[i], data_stream_length*sizeof(double)));
 
@@ -275,16 +262,11 @@ PhenomHM::PhenomHM (int max_length_init_,
       // alocate GPU arrays for interpolation
       interp[i].alloc_arrays(max_length_init, 8*num_modes*nwalkers, d_B[i]);
   }
-
-  PhenomHM::input_data(data_freqs, data_channel1,
-                        data_channel2, data_channel3,
-                        channel1_ASDinv, channel2_ASDinv,
-                        channel3_ASDinv, data_stream_length);
 }
 
 
-void PhenomHM::input_data(double *data_freqs, cmplx *data_channel1,
-                          cmplx *data_channel2, cmplx *data_channel3,
+void PhenomHM::input_data(double *data_freqs, double *data_channel1,
+                          double *data_channel2, double *data_channel3,
                           double *channel1_ASDinv, double *channel2_ASDinv,
                           double *channel3_ASDinv, int data_stream_length_){
 
@@ -294,11 +276,11 @@ void PhenomHM::input_data(double *data_freqs, cmplx *data_channel1,
         cudaSetDevice(i);
         gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
 
         gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
@@ -575,7 +557,7 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
         th_id = omp_get_thread_num();
         for (int i=th_id; i<ndevices; i+=nthreads){
             cudaSetDevice(i);
-            gpuErrchk(cudaMemcpy(d_H[i], &H[i*9*num_modes*nwalkers], 9*num_modes*nwalkers*sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+            gpuErrchk(cudaMemcpy(d_H[i], &H[i*9*num_modes*nwalkers], 9*num_modes*nwalkers*sizeof(cmplx), cudaMemcpyHostToDevice));
             gpuErrchk(cudaMemcpy(d_inc[i], &inc[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
             gpuErrchk(cudaMemcpy(d_lam[i], &lam[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
             gpuErrchk(cudaMemcpy(d_beta[i], &beta[i*nwalkers], nwalkers*sizeof(double), cudaMemcpyHostToDevice));
@@ -698,8 +680,8 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                  h_h = 0.0;
                  // get data - template terms
                   stat = cublasZdotc(handle[j], data_stream_length,
-                          &d_template_channel1[j][data_stream_length*i], 1,
-                          d_data_channel1[j], 1,
+                          (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i], 1,
+                          (cuDoubleComplex*)d_data_channel1[j], 1,
                           &result);
                   status = _cudaGetErrorEnum(stat);
                    cudaDeviceSynchronize();
@@ -711,8 +693,8 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                   //printf("channel1 d_h: %e\n", cuCreal(result));
 
                   stat = cublasZdotc(handle[j], data_stream_length,
-                          &d_template_channel2[j][data_stream_length*i], 1,
-                          d_data_channel2[j], 1,
+                          (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i], 1,
+                          (cuDoubleComplex*)d_data_channel2[j], 1,
                           &result);
                   status = _cudaGetErrorEnum(stat);
                    cudaDeviceSynchronize();
@@ -724,8 +706,8 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                   //printf("channel2 d_h: %e\n", cuCreal(result));
 
                   stat = cublasZdotc(handle[j], data_stream_length,
-                          &d_template_channel3[j][data_stream_length*i], 1,
-                          d_data_channel3[j], 1,
+                          (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i], 1,
+                          (cuDoubleComplex*)d_data_channel3[j], 1,
                           &result);
                   status = _cudaGetErrorEnum(stat);
                    cudaDeviceSynchronize();
@@ -739,8 +721,8 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
 
                   // get template template terms
                  stat = cublasZdotc(handle[j], data_stream_length,
-                              &d_template_channel1[j][data_stream_length*i], 1,
-                              &d_template_channel1[j][data_stream_length*i], 1,
+                              (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i], 1,
+                              (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i], 1,
                               &result);
                       status = _cudaGetErrorEnum(stat);
                        cudaDeviceSynchronize();
@@ -752,8 +734,8 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                       //printf("channel1 h_h: %e\n", cuCreal(result));
 
                       stat = cublasZdotc(handle[j], data_stream_length,
-                              &d_template_channel2[j][data_stream_length*i], 1,
-                              &d_template_channel2[j][data_stream_length*i], 1,
+                              (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i], 1,
+                              (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i], 1,
                               &result);
                       status = _cudaGetErrorEnum(stat);
                        cudaDeviceSynchronize();
@@ -765,8 +747,8 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                       //printf("channel2 h_h: %e\n", cuCreal(result));
 
                       stat = cublasZdotc(handle[j], data_stream_length,
-                              &d_template_channel3[j][data_stream_length*i], 1,
-                              &d_template_channel3[j][data_stream_length*i], 1,
+                              (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i], 1,
+                              (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i], 1,
                               &result);
                       status = _cudaGetErrorEnum(stat);
                        cudaDeviceSynchronize();
@@ -786,7 +768,7 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
 /*
 Copy TDI channels to CPU and return to python.
 */
-void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
+void PhenomHM::GetTDI (double* channel1_, double* channel2_, double* channel3_) {
 
   assert(current_status > 4);
   for (int i=0; i<ndevices; i++){

@@ -30,7 +30,7 @@
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
 #include "globalPhenomHM.h"
-#include <complex>
+
 #include "cuComplex.h"
 #include "cublas_v2.h"
 #include "PhenomHM.h"
@@ -77,7 +77,7 @@ class PhenomHM {
   PhenDAmpAndPhasePreComp **d_pDPreComp_all_trans;
   HMPhasePreComp **d_q_all_trans;
   double **d_cShift;
-  cuDoubleComplex **d_H;
+  cmplx **d_H;
   double** d_t0;
   double** d_phi0;
   double** d_amp0;
@@ -108,13 +108,13 @@ class PhenomHM {
   double *channel3_ASDinv;
 
     double **d_data_freqs;
-  cuDoubleComplex **d_data_channel1;
-  cuDoubleComplex **d_data_channel2;
-  cuDoubleComplex **d_data_channel3;
+  cmplx **d_data_channel1;
+  cmplx **d_data_channel2;
+  cmplx **d_data_channel3;
 
-  cuDoubleComplex **d_template_channel1;
-  cuDoubleComplex **d_template_channel2;
-  cuDoubleComplex **d_template_channel3;
+  cmplx **d_template_channel1;
+  cmplx **d_template_channel2;
+  cmplx **d_template_channel3;
   double **d_channel1_ASDinv;
   double **d_channel2_ASDinv;
   double **d_channel3_ASDinv;
@@ -158,12 +158,7 @@ public:
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
-      double *data_freqs_,
-      cmplx *data_channel1_,
-      cmplx *data_channel2_,
-      cmplx *data_channel3_,
       int data_stream_length_,
-      double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_,
       int TDItag,
       double t_obs_dur_,
       int nwalkers_,
@@ -171,8 +166,8 @@ public:
 
   ~PhenomHM(); // destructor
 
-  void input_data(double *data_freqs, cmplx *data_channel1,
-                            cmplx *data_channel2, cmplx *data_channel3,
+  void input_data(double *data_freqs, double *data_channel1,
+                            double *data_channel2, double *data_channel3,
                             double *channel1_ASDinv, double *channel2_ASDinv,
                             double *channel3_ASDinv, int data_stream_length_);
 
@@ -204,7 +199,7 @@ public:
 
   void Likelihood (double *d_h_arr, double *h_h_arr);
 
-  void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
+  void GetTDI (double* X_, double* Y_, double* Z_);
 
   void GetAmpPhase(double* amp_, double* phase_);
 };

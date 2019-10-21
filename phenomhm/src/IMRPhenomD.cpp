@@ -5,7 +5,7 @@
  *  The comments in the code have been left generally the same. A few comments
  *  have been made for the newer functions added.
 
- 
+
  * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -413,7 +413,7 @@ int IMRPhenomDGenerateFD_internal(
       double phi = IMRPhenDPhase(Mf, pPhi, pn, &powers_of_f, &phi_prefactors, 1.0, 1.0);
 
       phi -= t0*(Mf-MfRef) + phi_precalc;
-      ((*htilde)->data)[i] = amp0 * amp * std::exp(-I * phi);
+      ((*htilde)->data)[i] = amp0 * amp * exp(-I * phi);
     }
   }
 

@@ -174,29 +174,22 @@ class pyPhenomHM(Converter):
         if self.generator is None:
             self.generator = PhenomHM(
                 self.max_length_init,
+                len(self.data_freqs),
                 self.l_vals,
                 self.m_vals,
-                self.data_freqs,
-                self.data_channel1,
-                self.data_channel2,
-                self.data_channel3,
-                self.channel1_ASDinv,
-                self.channel2_ASDinv,
-                self.channel3_ASDinv,
                 self.TDItag_in,
                 self.t_obs_dur,
             )
 
-        else:
-            self.generator.input_data(
-                self.data_freqs,
-                self.data_channel1,
-                self.data_channel2,
-                self.data_channel3,
-                self.channel1_ASDinv,
-                self.channel2_ASDinv,
-                self.channel3_ASDinv,
-            )
+        self.generator.input_data(
+            self.data_freqs,
+            self.data_channel1,
+            self.data_channel2,
+            self.data_channel3,
+            self.channel1_ASDinv,
+            self.channel2_ASDinv,
+            self.channel3_ASDinv,
+        )
 
         self.fRef = np.zeros(nwalkers * ndevices)
 
@@ -331,6 +324,36 @@ class pyPhenomHM(Converter):
 
                 Mij[i][j] = inner_product
                 Mij[j][i] = inner_product
+
+        return Mij
+
+    def gradNLL(self, x):
+        grad = np.zeros_like(x)
+        for i in range(len(self.test_inds)):
+            x_in = x.copy()
+
+            x_in[i] = x[i] + self.eps
+            like_up = self.getNLL(x_in)
+
+            x_in[i] = x[i] - self.eps
+            like_down = self.getNLL(x_in)
+
+            grad[i] = (like_up - like_down) / (2 * self.eps)
+        return grad
+
+    def deriv_2_of_NLL(self, x):
+        Mij = np.zeros_like(x)
+        f_x = self.getNLL(x)
+        for i in range(len(self.test_inds)):
+            x_in = x.copy()
+
+            x_in[i] = x[i] + 2 * self.eps
+            like_up = self.getNLL(x_in)
+
+            x_in[i] = x[i] - 2 * self.eps
+            like_down = self.getNLL(x_in)
+
+            Mij[i] = (like_up - 2 * f_x + like_down) / (4 * self.eps ** 2)
 
         return Mij
 
@@ -476,19 +499,17 @@ def create_data_set(
 
     phenomHM = PhenomHM(
         len(generate_freqs),
+        len(data_freqs),
         l_vals,
         m_vals,
-        data_freqs,
-        fake_data,
-        fake_data,
-        fake_data,
-        fake_ASD,
-        fake_ASD,
-        fake_ASD,
         TDItag_in,
         waveform_params["t_obs_dur"],
         nwalkers,
         ndevices,
+    )
+
+    phenomHM.input_data(
+        data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD
     )
 
     freqs = np.tile(generate_freqs, nwalkers * ndevices)

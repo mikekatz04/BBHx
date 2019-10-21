@@ -28,7 +28,7 @@
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
 #include "globalPhenomHM.h"
-#include <complex>
+
 #include "PhenomHM.h"
 #include "c_interpolate.h"
 

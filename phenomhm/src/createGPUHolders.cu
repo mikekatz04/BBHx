@@ -25,7 +25,7 @@
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
-#include <complex>
+
 #include "cuComplex.h"
 
 /*

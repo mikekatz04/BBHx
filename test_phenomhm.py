@@ -6,6 +6,7 @@ import time
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument("--time", "-t", default=0, type=int)
+    parser.add_argument("--time_grad", "-t_grad", default=0, type=int)
     args = parser.parse_args()
 
     prop_defaults = {
@@ -24,13 +25,27 @@ if __name__ == "__main__":
         "noise_kwargs": {"model": "SciRDv1"},
     }
 
-    max_length_init = 2 ** 10
-    nwalkers, ndevices = 64, 2
+    max_length_init = 2 ** 12
+    nwalkers, ndevices = 22, 1
     l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32)
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)
     data_freqs, data_stream = None, None
     t0 = 1.0
     t_obs_dur = 0.9
+
+    data_params = {
+        "ln_mT": np.log(3e5),
+        "mr": 0.7,
+        "a1": -0.8248645181588774,
+        "a2": 0.18303543738648465,
+        "ln_distance": np.log(70.57999903739),  # Gpc z=2
+        "phiRef": 1.223940230948,
+        "cos_inc": np.cos(1.32333892),
+        "lam": 2.237823991298,
+        "sin_beta": np.sin(-0.2229382839),
+        "psi": 2.72938112781,
+        "ln_tRef": np.log(9.432897898e2),
+    }
 
     data_params = {
         "ln_mT": np.log(4e7),
@@ -40,7 +55,7 @@ if __name__ == "__main__":
         "ln_distance": np.log(15.93461637),  # Gpc z=2
         "phiRef": 3.09823412789,
         "cos_inc": np.cos(2.98553920),
-        "lam": 5.900332547,
+        "lam": 4.21039847344,
         "sin_beta": np.sin(-1.3748820938),
         "psi": 0.139820023,
         "ln_tRef": np.log(2.39284219993e1),
@@ -49,8 +64,8 @@ if __name__ == "__main__":
     """data_params = {
         "ln_mT": np.log(2.00000000e06),
         "mr": 1 / 3.00000000e00,
-        "a1": 0.0,
-        "a2": 0.0,
+        "a1": 0.7532978342,
+        "a2": 0.3328723809,
         "ln_distance": np.log(3.65943000e01),  # Gpc z=2
         "phiRef": 2.13954125e00,
         "cos_inc": np.cos(1.04719755e00),
@@ -97,7 +112,7 @@ if __name__ == "__main__":
     waveform_params = np.tile(
         np.array([data_params[key] for key in key_order]), (nwalkers * ndevices, 1)
     )
-
+    """
     waveform_params[0 : ndevices * nwalkers : 2, 6] *= -1
     waveform_params[0 : ndevices * nwalkers : 2, 8] *= -1
     waveform_params[0 : ndevices * nwalkers : 2, 9] = (
@@ -113,7 +128,7 @@ if __name__ == "__main__":
             (i) * int(ndevices * nwalkers / 4) : (i + 1) * int(ndevices * nwalkers / 4),
             9,
         ] += (i * np.pi / 2)
-
+    """
     check = phenomhm.getNLL(waveform_params.T)
 
     if args.time:
@@ -132,8 +147,47 @@ if __name__ == "__main__":
             (et - st) / (args.time * nwalkers * ndevices),
         )
 
+    if args.time_grad:
+        st = time.perf_counter()
+        check = phenomhm.gradNLL(waveform_params.T)
+        for _ in range(args.time_grad):
+            check = phenomhm.gradNLL(waveform_params.T)
+        et = time.perf_counter()
+
+        print("Number of evals:", args.time_grad)
+        print("ndevices:", ndevices, "nwalkers:", nwalkers)
+        print("total time:", et - st)
+        print("time per group gradient call:", (et - st) / args.time_grad)
+        print(
+            "time per individual gradient call:",
+            (et - st) / (args.time_grad * nwalkers * ndevices),
+        )
+
     check = phenomhm.getNLL(waveform_params.T)
-    fishder = phenomhm.get_Fisher(waveform_params[0])
+    fisher = phenomhm.get_Fisher(waveform_params[0])
+    grad = phenomhm.gradNLL(waveform_params.T)
+    deriv_2 = phenomhm.deriv_2_of_NLL(waveform_params.T)
+    snr = phenomhm.getNLL(waveform_params.T, return_snr=True)
+
+    mrs = np.linspace(
+        waveform_params[0][1] - 10 * 0.0004222,
+        waveform_params[0][1] + 10 * 0.0004222,
+        22,
+    )
+    mts = np.linspace(
+        waveform_params[0][0] - 10 * 0.00037115,
+        waveform_params[0][0] + 10 * 0.00037115,
+        22,
+    )
+
     import pdb
 
     pdb.set_trace()
+    waveform_params[:, 1] = mrs
+    out = np.zeros((22, 22))
+    for i, mt in enumerate(mts):
+        waveform_params[:, 0] = mt
+        out[i] = phenomhm.getNLL(waveform_params.T)
+
+    np.save("out", out)
+    np.save("mr_mt", np.asarray([mrs, mts]))

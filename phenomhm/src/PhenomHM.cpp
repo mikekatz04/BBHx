@@ -24,7 +24,7 @@
  *  MA  02111-1307  USA
  */
 #include <math.h>
-#include <complex>
+
 #include <iostream>
 
 #include <stdbool.h>
@@ -117,10 +117,10 @@ int IMRPhenomHMGetRingdownFrequency(
     const double inv2Pi = 0.5 / PI;
     cmplx ZZ;
     ZZ = SimRingdownCW_CW07102016(SimRingdownCW_KAPPA(finalspin, ell, mm), ell, mm, 0);
-    const double Mf_RD_tmp = inv2Pi * std::real(ZZ); /* GW ringdown frequency, converted from angular frequency */
+    const double Mf_RD_tmp = inv2Pi * real(ZZ); /* GW ringdown frequency, converted from angular frequency */
     *fringdown = Mf_RD_tmp / finalmass;         /* scale by predicted final mass */
     /* lm mode ringdown damping time (imaginary part of ringdown), geometric units */
-    const double f_DAMP_tmp = inv2Pi * std::imag(ZZ); /* this is the 1./tau in the complex QNM */
+    const double f_DAMP_tmp = inv2Pi * imag(ZZ); /* this is the 1./tau in the complex QNM */
     *fdamp = f_DAMP_tmp / finalmass;             /* scale by predicted final mass */
     return 1;
 }
@@ -777,7 +777,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
         assert(0); //ERROR(PD_EDOM, "error");
     }
     // Compute the final PN Amplitude at Leading Order in fM
-    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * std::abs(Hlm);
+    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * abs(Hlm);
 
     return ans;
 }

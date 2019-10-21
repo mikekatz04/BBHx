@@ -8,10 +8,7 @@ cdef extern from "src/manager.hh":
         PhenomHMwrap(int,
         np.uint32_t *,
         np.uint32_t *,
-        int, np.float64_t*,
-        np.complex128_t *,
-        np.complex128_t *,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double, int, int)
+        int, int, int, double, int, int)
 
         void gen_amp_phase(np.float64_t *, int,
                             np.float64_t *,
@@ -30,13 +27,13 @@ cdef extern from "src/manager.hh":
 
         void setup_interp_response()
 
-        void input_data(np.float64_t *data_freqs, np.complex128_t *,
-                          np.complex128_t *, np.complex128_t *,
+        void input_data(np.float64_t *data_freqs, np.float64_t *,
+                          np.float64_t *, np.float64_t *,
                           np.float64_t *, np.float64_t *,
                           np.float64_t *, int)
 
         void Likelihood(np.float64_t*, np.float64_t*)
-        void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
+        void GetTDI(np.float64_t*, np.float64_t*, np.float64_t*)
         void GetAmpPhase(np.float64_t*, np.float64_t*)
 
 cdef class PhenomHM:
@@ -48,16 +45,9 @@ cdef class PhenomHM:
     cdef max_length_init
     cdef int ndevices
 
-    def __cinit__(self, max_length_init,
+    def __cinit__(self, max_length_init, data_length,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
-     np.ndarray[ndim=1, dtype=np.float64_t] data_freqs,
-     np.ndarray[ndim=1, dtype=np.complex128_t] data_channel1,
-     np.ndarray[ndim=1, dtype=np.complex128_t] data_channel2,
-     np.ndarray[ndim=1, dtype=np.complex128_t] data_channel3,
-     np.ndarray[ndim=1, dtype=np.float64_t] channel1_ASDinv,
-     np.ndarray[ndim=1, dtype=np.float64_t] channel2_ASDinv,
-     np.ndarray[ndim=1, dtype=np.float64_t] channel3_ASDinv,
      TDItag,
      t_obs_dur,
      nwalkers,
@@ -66,15 +56,12 @@ cdef class PhenomHM:
         self.nwalkers = nwalkers
         self.num_modes = len(l_vals)
         self.ndevices = ndevices
-        self.data_length = len(data_channel1)
+        self.data_length = data_length
         self.max_length_init = max_length_init
         self.g = new PhenomHMwrap(max_length_init,
         &l_vals[0],
         &m_vals[0],
-        self.num_modes, &data_freqs[0],
-        &data_channel1[0],
-        &data_channel2[0],
-        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag, t_obs_dur, nwalkers, ndevices)
+        self.num_modes, self.data_length, TDItag, t_obs_dur, nwalkers, ndevices)
 
     def gen_amp_phase(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses
@@ -103,8 +90,23 @@ cdef class PhenomHM:
                             np.ndarray[ndim=1, dtype=np.float64_t] channel2_ASDinv,
                             np.ndarray[ndim=1, dtype=np.float64_t] channel3_ASDinv):
 
-        self.g.input_data(&data_freqs[0], &data_channel1[0],
-                            &data_channel2[0], &data_channel3[0],
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] data_channel1_in = np.zeros(data_channel1.shape[0]*2).astype(np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] data_channel2_in = np.zeros(data_channel2.shape[0]*2).astype(np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] data_channel3_in = np.zeros(data_channel3.shape[0]*2).astype(np.float64)
+
+        if len(data_freqs) != self.data_length:
+            raise ValueError("data freqs length not equal to data length input.")
+
+        data_channel1_in[0::2] = data_channel1.real
+        data_channel1_in[1::2] = data_channel1.imag
+        data_channel2_in[0::2] = data_channel2.real
+        data_channel2_in[1::2] = data_channel2.imag
+        data_channel3_in[0::2] = data_channel3.real
+        data_channel3_in[1::2] = data_channel3.imag
+
+
+        self.g.input_data(&data_freqs[0], &data_channel1_in[0],
+                            &data_channel2_in[0], &data_channel3_in[0],
                             &channel1_ASDinv[0], &channel2_ASDinv[0],
                             &channel3_ASDinv[0], len(data_freqs))
 
@@ -141,13 +143,20 @@ cdef class PhenomHM:
         return d_h_arr, h_h_arr
 
     def GetTDI(self):
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_ = np.zeros((self.data_length*self.nwalkers*self.ndevices,), dtype=np.complex128)
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_ = np.zeros((self.data_length*self.nwalkers*self.ndevices,), dtype=np.complex128)
-        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_ = np.zeros((self.data_length*self.nwalkers*self.ndevices,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] X_ = np.zeros(((self.data_length*2)*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] Y_ = np.zeros(((self.data_length*2)*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] Z_ = np.zeros(((self.data_length*2)*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] X_out = np.zeros(((self.data_length)*self.nwalkers*self.ndevices,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Y_out = np.zeros(((self.data_length)*self.nwalkers*self.ndevices,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] Z_out = np.zeros(((self.data_length)*self.nwalkers*self.ndevices,), dtype=np.complex128)
 
         self.g.GetTDI(&X_[0], &Y_[0], &Z_[0])
 
-        return (X_.reshape(self.nwalkers*self.ndevices, -1), Y_.reshape(self.nwalkers*self.ndevices, -1), Z_.reshape(self.nwalkers*self.ndevices, -1))
+        X_out = X_[0::2] + 1j*X_[1::2]
+        Y_out = Y_[0::2] + 1j*Y_[1::2]
+        Z_out = Z_[0::2] + 1j*Z_[1::2]
+
+        return (X_out.reshape(self.nwalkers*self.ndevices, -1), Y_out.reshape(self.nwalkers*self.ndevices, -1), Z_out.reshape(self.nwalkers*self.ndevices, -1))
 
     def GetAmpPhase(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] amp_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)

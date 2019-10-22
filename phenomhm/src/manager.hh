@@ -93,10 +93,15 @@ class PhenomHM {
   // Interpolate related stuff
   Interpolate *interp;
   double **d_B;
+  double *B;
 
   ModeContainer *mode_vals;
   ModeContainer **d_mode_vals;
   int ndevices;
+
+  double * template_channel1;
+  double * template_channel2;
+  double * template_channel3;
 
   double *data_freqs;
   cmplx *data_channel1;

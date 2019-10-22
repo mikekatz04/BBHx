@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <cusparse_v2.h>
 #include "globalPhenomHM.h"
+#include "omp.h"
 
 /*
 GPU error checking
@@ -290,7 +291,8 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 }
 
-__host__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+__host__
+void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
         for (int i = 0;
              i < f_length;
              i += 1){
@@ -501,6 +503,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
      b[i] = b[i] - w[i]*c[i-1];
  }
 
+    #ifdef __CUDACC__
     gpuErrchk_here(cudaMalloc(&d_b, m*sizeof(double)));
     gpuErrchk_here(cudaMemcpy(d_b, b, m*sizeof(double), cudaMemcpyHostToDevice));
 
@@ -512,10 +515,10 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
 
     gpuErrchk_here(cudaMalloc(&d_x, m*n*sizeof(double)));
 
-    delete[] w;
-    delete[] a;
-    delete[] b;
-    delete[] c;
+    #else
+    x = new double[m*n];
+
+    #endif
 
     //CUSPARSE_CALL( cusparseCreate(&handle) );
     //cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
@@ -528,6 +531,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
 /*
 setup tridiagonal matrix for interpolation solution
 */
+/*
 __global__
 void setup_d_vals(double *dl, double *d, double *du, int m, int n){
     for (int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -553,49 +557,73 @@ void setup_d_vals(double *dl, double *d, double *du, int m, int n){
 }
 }
 }
-
+*/
 /*
 solve matrix solution for tridiagonal matrix for cublic spline.
 */
-void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
+void Interpolate::prep(double *B, int m_, int n_, int walker_i){
     m = m_;
     n = n_;
-    to_gpu = to_gpu_;
+
     int NUM_THREADS = 256;
 
-    int num_blocks = ceil((m + NUM_THREADS -1)/NUM_THREADS);
+    #ifdef __CUDACC__
+    int num_blocks = ceil((n + NUM_THREADS -1)/NUM_THREADS);
     //setup_d_vals<<<dim3(num_blocks, n), NUM_THREADS>>>(d_dl, d_d, d_du, m, n);
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
     Interpolate::gpu_fit_constants(B);
+
+    #else
+    Interpolate::cpu_fit_constants(B);
+    #endif
+}
+
+__device__ __host__
+void fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in, int j){
+      double *x, *d;
+
+      d = &d_in[j*m];
+      x = &x_in[j*m];
+
+      # pragma unroll
+      for (int i=2; i<m; i++){
+          //printf("%d\n", i);
+          d[i] = d[i] - w[i]*d[i-1];
+          //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
+      }
+
+      # pragma unroll
+      x[m-1] = d[m-1]/b[m-1];
+      d[m-1] = x[m-1];
+      for (int i=(m-2); i>=0; i--){
+          x[i] = (d[i] - c[i]*x[i+1])/b[i];
+          d[i] = x[i];
+      }
 }
 
 __global__
 void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
 
-    double *x, *d;
     for (int j = blockIdx.x * blockDim.x + threadIdx.x;
          j < n;
          j += blockDim.x * gridDim.x){
-
-        d = &d_in[j*m];
-        x = &x_in[j*m];
-
-        # pragma unroll
-        for (int i=2; i<m; i++){
-            //printf("%d\n", i);
-            d[i] = d[i] - w[i]*d[i-1];
-            //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
-        }
-
-        # pragma unroll
-        x[m-1] = d[m-1]/b[m-1];
-        d[m-1] = x[m-1];
-        for (int i=(m-2); i>=0; i--){
-            x[i] = (d[i] - c[i]*x[i+1])/b[i];
-            d[i] = x[i];
-        }
+           fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
     }
+}
+
+__host__
+void Interpolate::cpu_fit_constants(double *B){
+  int i, j, th_id, nthreads, walker_i;
+  #pragma omp parallel private(th_id, i, j)
+  {
+  //for (int i=0; i<ndevices*nwalkers; i++){
+      nthreads = omp_get_num_threads();
+      th_id = omp_get_thread_num();
+      for (int j=th_id; j<m; j+=nthreads){
+           fit_constants_serial(m, n, w, b, c, B, x, j);
+      }
+  }
 }
 
 /*
@@ -619,9 +647,18 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
 Deallocate
 */
 __host__ Interpolate::~Interpolate(){
+    #ifdef __CUDACC__
     cudaFree(d_b);
     cudaFree(d_c);
     cudaFree(d_w);
     cudaFree(d_x);
     cudaFree(pBuffer);
+    #else
+    delete[] x;
+    #endif
+
+    delete[] w;
+    delete[] a;
+    delete[] b;
+    delete[] c;
 }

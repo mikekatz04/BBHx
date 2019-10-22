@@ -28,7 +28,11 @@
 
 class Interpolate{
     double *w;
+    double *a;
+    double *b;
+    double *c;
     double *D;
+    double *x;
 
     double *d_b;
     double *d_c;
@@ -53,6 +57,7 @@ public:
 
     __host__ void gpu_fit_constants(double *B);
     __host__ void fit_constants(double *B);
+    __host__ void cpu_fit_constants(double *B);
 };
 
 #endif //__INTERPOLATE_H_

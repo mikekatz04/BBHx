@@ -18,7 +18,6 @@ def cuda_install():
                 return os.path.abspath(binpath)
         return None
 
-
     def locate_cuda():
         """Locate the CUDA environment on the system
 
@@ -30,28 +29,33 @@ def cuda_install():
         """
 
         # First check if the CUDAHOME env variable is in use
-        if 'CUDAHOME' in os.environ:
-            home = os.environ['CUDAHOME']
-            nvcc = pjoin(home, 'bin', 'nvcc')
+        if "CUDAHOME" in os.environ:
+            home = os.environ["CUDAHOME"]
+            nvcc = pjoin(home, "bin", "nvcc")
         else:
             # Otherwise, search the PATH for NVCC
-            nvcc = find_in_path('nvcc', os.environ['PATH'])
+            nvcc = find_in_path("nvcc", os.environ["PATH"])
             if nvcc is None:
-                raise EnvironmentError('The nvcc binary could not be '
-                    'located in your $PATH. Either add it to your path, '
-                    'or set $CUDAHOME')
+                raise EnvironmentError(
+                    "The nvcc binary could not be "
+                    "located in your $PATH. Either add it to your path, "
+                    "or set $CUDAHOME"
+                )
             home = os.path.dirname(os.path.dirname(nvcc))
 
-        cudaconfig = {'home': home, 'nvcc': nvcc,
-                      'include': pjoin(home, 'include'),
-                      'lib64': pjoin(home, 'lib64')}
+        cudaconfig = {
+            "home": home,
+            "nvcc": nvcc,
+            "include": pjoin(home, "include"),
+            "lib64": pjoin(home, "lib64"),
+        }
         for k, v in iter(cudaconfig.items()):
             if not os.path.exists(v):
-                raise EnvironmentError('The CUDA %s path could not be '
-                                       'located in %s' % (k, v))
+                raise EnvironmentError(
+                    "The CUDA %s path could not be " "located in %s" % (k, v)
+                )
 
         return cudaconfig
-
 
     def customize_compiler_for_nvcc(self):
         """Inject deep into distutils to customize how the dispatch
@@ -65,7 +69,7 @@ def cuda_install():
         """
 
         # Tell the compiler it can processes .cu
-        self.src_extensions.append('.cu')
+        self.src_extensions.append(".cu")
 
         # Save references to the default compiler_so and _comple methods
         default_compiler_so = self.compiler_so
@@ -75,14 +79,14 @@ def cuda_install():
         # object but distutils doesn't have the ability to change compilers
         # based on source extension: we add it.
         def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-            if os.path.splitext(src)[1] == '.cu':
+            if os.path.splitext(src)[1] == ".cu":
                 # use the cuda for .cu files
-                self.set_executable('compiler_so', CUDA['nvcc'])
+                self.set_executable("compiler_so", CUDA["nvcc"])
                 # use only a subset of the extra_postargs, which are 1-1
                 # translated from the extra_compile_args in the Extension class
-                postargs = extra_postargs['nvcc']
+                postargs = extra_postargs["nvcc"]
             else:
-                postargs = extra_postargs['gcc']
+                postargs = extra_postargs["gcc"]
 
             super(obj, src, ext, cc_args, postargs, pp_opts)
             # Reset the default compiler_so, which we might have changed for cuda
@@ -91,15 +95,11 @@ def cuda_install():
         # Inject our redefined _compile method into the class
         self._compile = _compile
 
-
-
     # Run the customize_compiler
     class custom_build_ext(build_ext):
         def build_extensions(self):
             customize_compiler_for_nvcc(self.compiler)
             build_ext.build_extensions(self)
-
-
 
     CUDA = locate_cuda()
 
@@ -112,46 +112,60 @@ def cuda_install():
     lib_gsl_dir = "/opt/local/lib"
     include_gsl_dir = "/opt/local/include"
 
-    ext = Extension('gpuPhenomHM',
-            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/manager.cu', 'phenomhm/gpuPhenomHM.pyx'],
-            library_dirs = [lib_gsl_dir, CUDA['lib64']],
-            libraries = ['cudart', 'cublas', 'cusparse',  "gsl", "gslcblas", "gomp"],
-            language = 'c++',
-            runtime_library_dirs = [CUDA['lib64']],
-            # This syntax is specific to this build system
-            # we're only going to use certain compiler args with nvcc
-            # and not with gcc the implementation of this trick is in
-            # customize_compiler()
-            extra_compile_args= {
-                'gcc': ['-std=c99'], # '-g'],
-                'nvcc': [
-                    '-arch=sm_70',
-                    '-gencode=arch=compute_35,code=sm_35',
-                    '-gencode=arch=compute_50,code=sm_50',
-                    '-gencode=arch=compute_52,code=sm_52',
-                    '-gencode=arch=compute_60,code=sm_60',
-                    '-gencode=arch=compute_61,code=sm_61',
-                    '-gencode=arch=compute_70,code=sm_70',
-                    '--default-stream=per-thread', '--ptxas-options=-v', '-c',
-                    '--compiler-options', "'-fPIC'", '-lineinfo', '-Xcompiler', '-fopenmp']#,"-G", "-g"] # for debugging
-                },
-                include_dirs = [numpy_include, include_gsl_dir, CUDA['include'], 'phenomhm/src']
-            )
+    ext = Extension(
+        "gpuPhenomHM",
+        sources=[
+            "phenomhm/src/globalPhenomHM.cpp",
+            "phenomhm/src/RingdownCW.cpp",
+            "phenomhm/src/fdresponse.cpp",
+            "phenomhm/src/IMRPhenomD_internals.cpp",
+            "phenomhm/src/IMRPhenomD.cpp",
+            "phenomhm/src/PhenomHM.cpp",
+            "phenomhm/src/manager.cu",
+            "phenomhm/gpuPhenomHM.pyx",
+        ],
+        library_dirs=[lib_gsl_dir, CUDA["lib64"]],
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
+        language="c++",
+        runtime_library_dirs=[CUDA["lib64"]],
+        # This syntax is specific to this build system
+        # we're only going to use certain compiler args with nvcc
+        # and not with gcc the implementation of this trick is in
+        # customize_compiler()
+        extra_compile_args={
+            "gcc": ["-std=c99"],  # '-g'],
+            "nvcc": [
+                "-arch=sm_70",
+                "-gencode=arch=compute_35,code=sm_35",
+                "-gencode=arch=compute_50,code=sm_50",
+                "-gencode=arch=compute_52,code=sm_52",
+                "-gencode=arch=compute_60,code=sm_60",
+                "-gencode=arch=compute_61,code=sm_61",
+                "-gencode=arch=compute_70,code=sm_70",
+                "--default-stream=per-thread",
+                "--ptxas-options=-v",
+                "-c",
+                "--compiler-options",
+                "'-fPIC'",
+                "-lineinfo",
+                "-Xcompiler",
+                "-fopenmp",
+            ],  # ,"-G", "-g"] # for debugging
+        },
+        include_dirs=[numpy_include, include_gsl_dir, CUDA["include"], "phenomhm/src"],
+    )
 
-
-
-    setup(name = 'gpuPhenomHM',
-          # Random metadata. there's more you can supply
-          author = 'Robert McGibbon',
-          version = '0.1',
-
-          ext_modules = [ext],
-
-          # Inject our custom trigger
-          cmdclass = {'build_ext': custom_build_ext},
-
-          # Since the package has c code, the egg cannot be zipped
-          zip_safe = False)
+    setup(
+        name="gpuPhenomHM",
+        # Random metadata. there's more you can supply
+        author="Robert McGibbon",
+        version="0.1",
+        ext_modules=[ext],
+        # Inject our custom trigger
+        cmdclass={"build_ext": custom_build_ext},
+        # Since the package has c code, the egg cannot be zipped
+        zip_safe=False,
+    )
     """
     extD = Extension('gpuPhenomD',
             sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/D_manager.cu', 'phenomhm/gpuPhenomD.pyx'],
@@ -185,6 +199,7 @@ def cuda_install():
           zip_safe = False)
     """
 
+
 def cpp_install():
     # Obtain the numpy include directory. This logic works across numpy versions.
     try:
@@ -195,62 +210,80 @@ def cpp_install():
     lib_gsl_dir = "/opt/local/lib"
     include_gsl_dir = "/opt/local/include"
 
-    extensions=[Extension('PhenomHM',
-            sources = ['phenomhm/src/globalPhenomHM.cpp', 'phenomhm/src/RingdownCW.cpp', 'phenomhm/src/IMRPhenomD_internals.cpp', 'phenomhm/src/IMRPhenomD.cpp', 'phenomhm/src/PhenomHM.cpp', 'phenomhm/src/fdresponse.cpp', 'phenomhm/src/c_interpolate.cpp', 'phenomhm/src/c_manager.cpp', 'phenomhm/PhenomHM.pyx'],
-            library_dirs = [lib_gsl_dir],
-            libraries = ["gsl", "gslcblas"],
-            language = 'c++',
-            #sruntime_library_dirs = [CUDA['lib64']],
+    extensions = [
+        Extension(
+            "PhenomHM",
+            sources=[
+                "phenomhm/src/globalPhenomHM.cpp",
+                "phenomhm/src/RingdownCW.cpp",
+                "phenomhm/src/IMRPhenomD_internals.cpp",
+                "phenomhm/src/IMRPhenomD.cpp",
+                "phenomhm/src/PhenomHM.cpp",
+                "phenomhm/src/fdresponse.cpp",
+                "phenomhm/src/c_interpolate.cpp",
+                "phenomhm/src/c_manager.cpp",
+                "phenomhm/PhenomHM.pyx",
+            ],
+            library_dirs=[lib_gsl_dir],
+            libraries=["gsl", "gslcblas"],
+            language="c++",
+            # sruntime_library_dirs = [CUDA['lib64']],
             # This syntax is specific to this build system
             # we're only going to use certain compiler args with nvcc
             # and not with gcc the implementation of this trick is in
             # customize_compiler()
-            extra_compile_args= ["-O3"],
-                include_dirs = [numpy_include, include_gsl_dir, 'phenomhm/src']
-            )]
+            extra_compile_args=["-O3"],
+            include_dirs=[numpy_include, include_gsl_dir, "phenomhm/src"],
+        )
+    ]
 
     from Cython.Build import cythonize
+
     extensions = cythonize(extensions, gdb_debug=True)
 
-    setup(name = 'PhenomHM',
-          # Random metadata. there's more you can supply
-          author = 'Robert McGibbon',
-          version = '0.1',
+    setup(
+        name="PhenomHM",
+        # Random metadata. there's more you can supply
+        author="Robert McGibbon",
+        version="0.1",
+        ext_modules=extensions,
+        packages=["phenomhm", "phenomhm.utils"],
+        py_modules=["phenomhm.phenomhm"],
+        # Since the package has c code, the egg cannot be zipped
+        zip_safe=False,
+    )
 
-          ext_modules=extensions,
-          packages=['phenomhm', 'phenomhm.utils'],
-           py_modules=['phenomhm.phenomhm'],
-
-          # Since the package has c code, the egg cannot be zipped
-          zip_safe = False)
 
 def wrapper_install():
-    setup(name = 'phenomhm',
-          # Random metadata. there's more you can supply
-          author = 'Robert McGibbon',
-          version = '0.1',
-          packages=['phenomhm', 'phenomhm.utils'],
-           py_modules=['phenomhm.phenomhm'],
-
-          # Since the package has c code, the egg cannot be zipped
-          zip_safe = False)
+    setup(
+        name="phenomhm",
+        # Random metadata. there's more you can supply
+        author="Robert McGibbon",
+        version="0.1",
+        packages=["phenomhm", "phenomhm.utils"],
+        py_modules=["phenomhm.phenomhm"],
+        # Since the package has c code, the egg cannot be zipped
+        zip_safe=False,
+    )
 
 
 print_strings = []
 try:
-    print_strings.append('ATTEMPTED CUDA INSTALL')
+    print_strings.append("ATTEMPTED CUDA INSTALL")
     cuda_install()
-    print_strings.append('INSTALLED FOR CUDA: gpuPhenomHM')
+    print_strings.append("INSTALLED FOR CUDA: gpuPhenomHM")
 except OSError:
-    print_strings.append('COULD NOT FIND CUDA ON PATH.'
-                         + 'The nvcc binary could not be located in your $PATH. '
-                         + 'Either add it to your path, or set $CUDAHOME')
+    print_strings.append(
+        "COULD NOT FIND CUDA ON PATH."
+        + "The nvcc binary could not be located in your $PATH. "
+        + "Either add it to your path, or set $CUDAHOME"
+    )
 
-#cpp_install()
-#print_strings.append('INSTALLED C++ VERSION: PhenomHM')
+# cpp_install()
+# print_strings.append('INSTALLED C++ VERSION: PhenomHM')
 
 wrapper_install()
-#print_strings.append('INSTALLED WRAPPER: phenomhm.py')
-print('\n')
+# print_strings.append('INSTALLED WRAPPER: phenomhm.py')
+print("\n")
 for string in print_strings:
     print(string)

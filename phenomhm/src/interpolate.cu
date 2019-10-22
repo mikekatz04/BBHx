@@ -300,6 +300,159 @@ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length
 }
 }
 
+__device__ __host__
+void interpolate_inner(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer *old_mode_vals, int walker_i, int i, int data_length, int old_ind_below, int num_modes,
+                      double x, double x2, double x3, double t_break,
+                      double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv){
+
+    double time_start, amp, phase, phaseRdelay;
+    double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
+    double coeff_0, coeff_1, coeff_2, coeff_3;
+    cmplx ampphasefactor;
+    cmplx I = cmplx(0.0, 1.0);
+    cmplx trans_complex;
+  for (int mode_i=0; mode_i<num_modes; mode_i++){
+
+          // interp time frequency to remove less than 0.0
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_corr[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_3[old_ind_below];
+
+          time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          if (time_start < t_break) {
+              continue;
+          }
+
+          // interp amplitude
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].amp[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_3[old_ind_below];
+
+          amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          if (amp < 1e-40){
+              continue;
+          }
+          // interp phase
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phase[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_3[old_ind_below];
+
+          phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_3[old_ind_below];
+
+          phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+          ampphasefactor = amp* exp(cmplx(0.0, phase + phaseRdelay));
+
+          // X or A
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_3[old_ind_below];
+
+          transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          /*# if __CUDA_ARCH__>=200
+          if (i == 15000)
+              printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_start, t_break, t0, tRef, amp, transferL1_re);
+
+          #endif //*/
+
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_3[old_ind_below];
+
+          transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          trans_complex = cmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
+
+          channel1_out[walker_i*data_length + i] = channel1_out[walker_i*data_length + i] + trans_complex;
+          // Y or E
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_3[old_ind_below];
+
+          transferL2_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_3[old_ind_below];
+
+          transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          trans_complex = cmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i];
+
+          channel2_out[walker_i*data_length + i] = channel2_out[walker_i*data_length + i] + trans_complex;
+
+          // Z or T
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_3[old_ind_below];
+
+          transferL3_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im[old_ind_below];
+          coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_1[old_ind_below];
+          coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_2[old_ind_below];
+          coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_3[old_ind_below];
+
+          transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+          trans_complex = cmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i];
+
+          // add to this channel
+          channel3_out[walker_i*data_length + i] = channel3_out[walker_i*data_length + i] + trans_complex;
+  }
+}
+
+
+__device__
+void interpolate_gpu(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals,
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length,
+    double t_break, double f_min_limit, double f_max_limit, double *channel1_ASDinv,
+    double *channel2_ASDinv, double *channel3_ASDinv, int num_walkers, int walker_i){
+
+
+          double f, x, x2, x3;
+
+          int old_ind_below;
+
+          for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+               i < data_length;
+               i += blockDim.x * gridDim.x){
+          //if (mode_i >= num_modes) return;
+
+        channel1_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
+        channel2_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
+        channel3_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
+
+        f = data_freqs[i];
+        old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
+
+        if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
+            return;
+        }
+        x = (f - old_freqs[walker_i*old_length + old_ind_below])/(old_freqs[walker_i*old_length + old_ind_below+1] - old_freqs[walker_i*old_length + old_ind_below]);
+        x2 = x*x;
+        x3 = x*x2;
+
+        interpolate_inner(channel1_out, channel2_out, channel3_out, old_mode_vals,
+                          walker_i, i, data_length, old_ind_below, num_modes,
+                          x, x2, x3, t_break, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv);
+}
+}
 
 /*
 Interpolate amp, phase, and response transfer functions on GPU.
@@ -310,13 +463,7 @@ void interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, 
     double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur, int num_walkers){
     //int mode_i = blockIdx.y;
 
-    double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double time_start, amp, phase, phaseRdelay, f_min_limit, f_max_limit, t0, tRef, t_break;
-    double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    cmplx ampphasefactor;
-    cmplx I = cmplx(0.0, 1.0);
-    int old_ind_below;
-    cmplx trans_complex;
+    double f_min_limit, f_max_limit, t0, tRef, t_break;
     for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
          walker_i < num_walkers;
          walker_i += blockDim.z * gridDim.z){
@@ -327,139 +474,10 @@ void interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, 
      tRef = tRef_arr[walker_i];
      t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
 
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < data_length;
-         i += blockDim.x * gridDim.x){
-    //if (mode_i >= num_modes) return;
-
-        channel1_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
-        channel2_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
-        channel3_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
-
-
-    /*# if __CUDA_ARCH__>=200
-    if (i == 200)
-        printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_dur, t_break);
-
-    #endif*/
-    /*for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < data_length;
-         i += blockDim.x * gridDim.x)
-      {*/
-
-    for (int mode_i=0; mode_i<num_modes; mode_i++){
-            f = data_freqs[i];
-            old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
-
-            if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
-                return;
-            }
-            x = (f - old_freqs[walker_i*old_length + old_ind_below])/(old_freqs[walker_i*old_length + old_ind_below+1] - old_freqs[walker_i*old_length + old_ind_below]);
-            x2 = x*x;
-            x3 = x*x2;
-            // interp time frequency to remove less than 0.0
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_corr[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_3[old_ind_below];
-
-            time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            if (time_start < t_break) {
-                continue;
-            }
-
-            // interp amplitude
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].amp[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_3[old_ind_below];
-
-            amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            if (amp < 1e-40){
-                continue;
-            }
-            // interp phase
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phase[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_3[old_ind_below];
-
-            phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_3[old_ind_below];
-
-            phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            ampphasefactor = amp* exp(cmplx(0.0, phase + phaseRdelay));
-
-            // X or A
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_3[old_ind_below];
-
-            transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            /*# if __CUDA_ARCH__>=200
-            if (i == 15000)
-                printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_start, t_break, t0, tRef, amp, transferL1_re);
-
-            #endif //*/
-
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_3[old_ind_below];
-
-            transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            trans_complex = cmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
-
-            channel1_out[walker_i*data_length + i] = channel1_out[walker_i*data_length + i] + trans_complex;
-            // Y or E
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_3[old_ind_below];
-
-            transferL2_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_3[old_ind_below];
-
-            transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            trans_complex = cmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i];
-
-            channel2_out[walker_i*data_length + i] = channel2_out[walker_i*data_length + i] + trans_complex;
-
-            // Z or T
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_3[old_ind_below];
-
-            transferL3_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_3[old_ind_below];
-
-            transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            trans_complex = cmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i];
-
-            // add to this channel
-            channel3_out[walker_i*data_length + i] = channel3_out[walker_i*data_length + i] + trans_complex;
-    }
-}
+     interpolate_gpu(channel1_out, channel2_out, channel3_out, old_mode_vals,
+         num_modes, d_log10f, old_freqs, old_length, data_freqs, data_length,
+         t_break, f_min_limit, f_max_limit, channel1_ASDinv,
+         channel2_ASDinv, channel3_ASDinv, num_walkers, walker_i);
 }
 }
 

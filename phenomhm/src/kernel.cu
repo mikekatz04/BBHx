@@ -34,7 +34,7 @@
 #include "globalPhenomHM.h"
 
 
-__device__
+__host__ __device__
 int d_init_useful_powers(UsefulPowers *p, double number)
 {
 	//CHECK(0 != p, PD_EFAULT, "p is NULL");
@@ -56,7 +56,7 @@ int d_init_useful_powers(UsefulPowers *p, double number)
 /**
  * domain mapping function - ringdown
  */
- __device__
+ __host__ __device__
 double d_IMRPhenomHMTrd(
     double Mf,
     double Mf_RD_22,
@@ -86,7 +86,7 @@ double d_IMRPhenomHMTrd(
  * mathematica function Ti
  * domain mapping function - inspiral
  */
- __device__
+ __host__ __device__
 double d_IMRPhenomHMTi(double Mf, const int mm)
 {
     return 2.0 * Mf / mm;
@@ -96,7 +96,7 @@ double d_IMRPhenomHMTi(double Mf, const int mm)
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+__host__ __device__
 int d_IMRPhenomHMSlopeAmAndBm(
     double *Am,
     double *Bm,
@@ -124,7 +124,7 @@ int d_IMRPhenomHMSlopeAmAndBm(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+__host__ __device__
 int d_IMRPhenomHMMapParams(
     double *a,
     double *b,
@@ -163,7 +163,7 @@ int d_IMRPhenomHMMapParams(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+__host__ __device__
 int d_IMRPhenomHMFreqDomainMapParams(
     double *a,             /**< [Out]  */
     double *b,             /**< [Out]  */
@@ -250,7 +250,7 @@ int d_IMRPhenomHMFreqDomainMapParams(
  * and computes what frequency this corresponds
  * to scaled to the 22 mode.
  */
-__device__
+__host__ __device__
 double d_IMRPhenomHMFreqDomainMap(
     double Mflm,
     const int ell,
@@ -276,11 +276,11 @@ double d_IMRPhenomHMFreqDomainMap(
     return Mf22;
 }
 
-__device__ double complex_norm(double real, double imag){
+__host__ __device__ double complex_norm(double real, double imag){
    return sqrt(real*real + imag*imag);
 }
 
-__device__
+__host__ __device__
 double d_IMRPhenomHMOnePointFiveSpinPN(
     double fM,
     int l,
@@ -375,7 +375,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     return ans;
 }
 
-  __device__
+  __host__ __device__
   double d_AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors) {
     double Mf2 = powers_of_Mf->two;
     double Mf3 = Mf*Mf2;
@@ -387,7 +387,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
   			+ Mf3 * prefactors->three;
   }
 
-  __device__
+  __host__ __device__
   double d_AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
     double fRD = p->fRD;
     double fDM = p->fDM;
@@ -400,7 +400,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
       * (fDMgamma3*gamma1) / (pow(fminfRD, 2.0) + pow(fDMgamma3, 2.0));
   }
 
-  __device__
+  __host__ __device__
   double d_AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
     double Mf2 = Mf*Mf;
     double Mf3 = Mf*Mf2;
@@ -414,7 +414,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
    * This function computes the IMR amplitude given phenom coefficients.
    * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
    */
-  __device__ double d_IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
+  __host__ __device__ double d_IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
     // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
     // The inspiral, intermediate and merger-ringdown amplitude parts
 
@@ -444,7 +444,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     return AmpInt;
   }
 
-  __device__
+  __host__ __device__
   double d_PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
   {
   	//CHECK(0 != pn, PD_EFAULT, "pn is NULL");
@@ -474,7 +474,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
   }
 
 
-  __device__
+  __host__ __device__
   double d_PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
   {
     double sqrootf = sqrt(f);
@@ -488,7 +488,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
   		 + p->alpha4 * Rholm * atan((f - p->alpha5 * p->fRD) / (Rholm * p->fDM * Taulm));
   }
 
-  __device__
+  __host__ __device__
   double d_PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
     // 1./eta in paper omitted and put in when need in the functions:
     // ComputeIMRPhenDPhaseConnectionCoefficients
@@ -498,7 +498,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
 
 
 
-__device__
+__host__ __device__
 double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
@@ -522,7 +522,7 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   return PhiInt;
 }
 
-  __device__
+  __host__ __device__
    double d_IMRPhenomDPhase_OneFrequency(
       double Mf,
       PhenDAmpAndPhasePreComp pD,
@@ -539,7 +539,7 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   }
 
 
-__device__
+__host__ __device__
  void calculate_each_mode(int i, ModeContainer mode_val,
      unsigned int ell,
      unsigned int mm,
@@ -698,6 +698,44 @@ __device__
          //printf("(l, m): (%d, %d)\n", ell, mm);
 }
 
+__host__ __device__
+void calculate_all_modes(ModeContainer *mode_vals,
+      PhenomHMStorage *pHM,
+      double *freqs,
+      double *M_tot_sec,
+      IMRPhenomDAmplitudeCoefficients *pAmp,
+      AmpInsPrefactors *amp_prefactors,
+      PhenDAmpAndPhasePreComp *pDPreComp_all,
+      HMPhasePreComp *q_all,
+      double *amp0,
+      int num_modes,
+      double *t0,
+      double *phi0,
+      double *cshift,
+			int nwalkers,
+			int length,
+			int walker_i,
+			int mode_i,
+			int i
+	){
+		unsigned int mm, ell;
+		double Rholm, Taulm;
+		double freq_geom;
+
+		if ((i < (&pHM[walker_i])->ind_max) && (i >= (&pHM[walker_i])->ind_min))  // kernel setup should always make second part true
+		{
+
+			 ell = mode_vals[walker_i*num_modes + mode_i].l;
+			 mm = mode_vals[walker_i*num_modes + mode_i].m;
+			 Rholm = (&pHM[walker_i])->Rholm[ell][mm];
+			 Taulm = (&pHM[walker_i])->Taulm[ell][mm];
+			 freq_geom = freqs[walker_i*length + i]*M_tot_sec[walker_i];
+
+			 calculate_each_mode(i, mode_vals[walker_i*num_modes + mode_i], ell, mm, &pHM[walker_i], freq_geom, &pAmp[walker_i], &amp_prefactors[walker_i], pDPreComp_all[walker_i*num_modes + mode_i], q_all[walker_i*num_modes + mode_i], amp0[walker_i], Rholm, Taulm, t0[walker_i], phi0[walker_i], cshift, walker_i, mode_i);
+
+		}
+
+	}
 
 __global__
 void kernel_calculate_all_modes(ModeContainer *mode_vals,
@@ -716,9 +754,7 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 	  int nwalkers,
 	  int length
         ){
-      unsigned int mm, ell;
-      double Rholm, Taulm;
-      double freq_geom;
+
       for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
            walker_i < nwalkers;
            walker_i += blockDim.z * gridDim.z){
@@ -730,27 +766,77 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
            i < length;
            i += blockDim.x * gridDim.x){
-      /* if (mode_i >= num_modes) return;
-       for (int i = blockIdx.y * blockDim.x + threadIdx.x;
-          i < length;
-          i += blockDim.x * gridDim.y)*/
 
-      if ((i < (&pHM[walker_i])->ind_max) && (i >= (&pHM[walker_i])->ind_min))  // kernel setup should always make second part true
-      {
-
-         ell = mode_vals[walker_i*num_modes + mode_i].l;
-         mm = mode_vals[walker_i*num_modes + mode_i].m;
-         Rholm = (&pHM[walker_i])->Rholm[ell][mm];
-         Taulm = (&pHM[walker_i])->Taulm[ell][mm];
-         freq_geom = freqs[walker_i*length + i]*M_tot_sec[walker_i];
-
-         calculate_each_mode(i, mode_vals[walker_i*num_modes + mode_i], ell, mm, &pHM[walker_i], freq_geom, &pAmp[walker_i], &amp_prefactors[walker_i], pDPreComp_all[walker_i*num_modes + mode_i], q_all[walker_i*num_modes + mode_i], amp0[walker_i], Rholm, Taulm, t0[walker_i], phi0[walker_i], cshift, walker_i, mode_i);
-
-      }
+						calculate_all_modes(mode_vals,
+			 			      pHM,
+			 			      freqs,
+			 			      M_tot_sec,
+			 			      pAmp,
+			 			      amp_prefactors,
+			 			      pDPreComp_all,
+			 			     	q_all,
+			 			      amp0,
+			 			      num_modes,
+			 			      t0,
+			 			      phi0,
+			 			      cshift,
+									nwalkers,
+									length,
+			 				  walker_i,
+			 				  mode_i,
+								i);
 }
 }
 }
   }
+
+__host__
+void cpu_calculate_all_modes(ModeContainer *mode_vals,
+      PhenomHMStorage *pHM,
+      double *freqs,
+      double *M_tot_sec,
+      IMRPhenomDAmplitudeCoefficients *pAmp,
+      AmpInsPrefactors *amp_prefactors,
+      PhenDAmpAndPhasePreComp *pDPreComp_all,
+      HMPhasePreComp *q_all,
+      double *amp0,
+      int num_modes,
+      double *t0,
+      double *phi0,
+      double *cshift,
+	  int nwalkers,
+	  int length,
+		int walker_i
+	){
+		for (int mode_i = 0;
+				 mode_i < num_modes;
+				 mode_i += 1){
+
+	 for (int i = 0;
+				i < length;
+				i += 1){
+
+				 calculate_all_modes(mode_vals,
+							 pHM,
+							 freqs,
+							 M_tot_sec,
+							 pAmp,
+							 amp_prefactors,
+							 pDPreComp_all,
+							 q_all,
+							 amp0,
+							 num_modes,
+							 t0,
+							 phi0,
+							 cshift,
+							 nwalkers,
+							 length,
+						 walker_i,
+						 mode_i,
+						 i);
+	}
+}
+}
 
 
 

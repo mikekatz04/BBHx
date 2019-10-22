@@ -54,6 +54,39 @@ using namespace std;
 /*
 fill the B array on the GPU for response transfer functions.
 */
+
+__host__ __device__
+void fill_B_response_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+  if (i == f_length - 1){
+      B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i] - mode_vals[mode_i].phaseRdelay[i-1]);
+      B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i] - mode_vals[mode_i].transferL1_re[i-1]);
+      B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i] - mode_vals[mode_i].transferL1_im[i-1]);
+      B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i] - mode_vals[mode_i].transferL2_re[i-1]);
+      B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i] - mode_vals[mode_i].transferL2_im[i-1]);
+      B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i] - mode_vals[mode_i].transferL3_re[i-1]);
+      B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i] - mode_vals[mode_i].transferL3_im[i-1]);
+      B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i] - mode_vals[mode_i].time_freq_corr[i-1]);
+
+  } else if (i == 0){
+      B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[1] - mode_vals[mode_i].phaseRdelay[0]);
+      B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[1] - mode_vals[mode_i].transferL1_re[0]);
+      B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[1] - mode_vals[mode_i].transferL1_im[0]);
+      B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[1] - mode_vals[mode_i].transferL2_re[0]);
+      B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[1] - mode_vals[mode_i].transferL2_im[0]);
+      B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[1] - mode_vals[mode_i].transferL3_re[0]);
+      B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[1] - mode_vals[mode_i].transferL3_im[0]);
+      B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[1] - mode_vals[mode_i].time_freq_corr[0]);
+  } else{
+      B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i+1] - mode_vals[mode_i].phaseRdelay[i-1]);
+      B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i+1] - mode_vals[mode_i].transferL1_re[i-1]);
+      B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i+1] - mode_vals[mode_i].transferL1_im[i-1]);
+      B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i+1] - mode_vals[mode_i].transferL2_re[i-1]);
+      B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i+1] - mode_vals[mode_i].transferL2_im[i-1]);
+      B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i+1] - mode_vals[mode_i].transferL3_re[i-1]);
+      B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i+1] - mode_vals[mode_i].transferL3_im[i-1]);
+      B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i+1] - mode_vals[mode_i].time_freq_corr[i-1]);
+  }
+}
 __global__
 void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -64,42 +97,37 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
             i < f_length;
             i += blockDim.x * gridDim.x){
 
-            if (i == f_length - 1){
-                B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i] - mode_vals[mode_i].phaseRdelay[i-1]);
-                B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i] - mode_vals[mode_i].transferL1_re[i-1]);
-                B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i] - mode_vals[mode_i].transferL1_im[i-1]);
-                B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i] - mode_vals[mode_i].transferL2_re[i-1]);
-                B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i] - mode_vals[mode_i].transferL2_im[i-1]);
-                B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i] - mode_vals[mode_i].transferL3_re[i-1]);
-                B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i] - mode_vals[mode_i].transferL3_im[i-1]);
-                B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i] - mode_vals[mode_i].time_freq_corr[i-1]);
-
-            } else if (i == 0){
-                B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[1] - mode_vals[mode_i].phaseRdelay[0]);
-                B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[1] - mode_vals[mode_i].transferL1_re[0]);
-                B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[1] - mode_vals[mode_i].transferL1_im[0]);
-                B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[1] - mode_vals[mode_i].transferL2_re[0]);
-                B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[1] - mode_vals[mode_i].transferL2_im[0]);
-                B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[1] - mode_vals[mode_i].transferL3_re[0]);
-                B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[1] - mode_vals[mode_i].transferL3_im[0]);
-                B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[1] - mode_vals[mode_i].time_freq_corr[0]);
-            } else{
-                B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i+1] - mode_vals[mode_i].phaseRdelay[i-1]);
-                B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i+1] - mode_vals[mode_i].transferL1_re[i-1]);
-                B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i+1] - mode_vals[mode_i].transferL1_im[i-1]);
-                B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i+1] - mode_vals[mode_i].transferL2_re[i-1]);
-                B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i+1] - mode_vals[mode_i].transferL2_im[i-1]);
-                B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i+1] - mode_vals[mode_i].transferL3_re[i-1]);
-                B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i+1] - mode_vals[mode_i].transferL3_im[i-1]);
-                B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i+1] - mode_vals[mode_i].time_freq_corr[i-1]);
-            }
+          fill_B_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
+}
+}
+
+__host__
+void cpu_fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+       for (int i = 0;
+            i < f_length;
+            i += 1){
+          fill_B_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
 }
 
 /*
 fill B array on GPU for amp and phase
 */
+
+__host__ __device__
+void fill_B_wave_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+      if (i == f_length - 1){
+          B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
+          B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
+      } else if (i == 0){
+          B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[1] - mode_vals[mode_i].amp[0]);
+          B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0]);
+      } else{
+          B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i+1] - mode_vals[mode_i].amp[i-1]);
+          B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
+      }
+}
 __global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
          mode_i < num_modes;
@@ -108,17 +136,18 @@ __global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, i
        for (int i = blockIdx.x * blockDim.x + threadIdx.x;
             i < f_length;
             i += blockDim.x * gridDim.x){
-    if (i == f_length - 1){
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
-    } else if (i == 0){
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[1] - mode_vals[mode_i].amp[0]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0]);
-    } else{
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i+1] - mode_vals[mode_i].amp[i-1]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
-    }
+
+            fill_B_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
+}
+}
+
+__host__ void cpu_fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+       for (int i = 0;
+            i < f_length;
+            i += 1){
+
+            fill_B_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
 }
 
@@ -126,9 +155,77 @@ __global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, i
 /*
 find spline constants based on matrix solution for response transfer functions.
 */
+__host__ __device__
+void set_spline_constants_response_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+      double D_i, D_ip1, y_i, y_ip1;
+      D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(0*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].phaseRdelay[i];
+      y_ip1 = mode_vals[mode_i].phaseRdelay[i+1];
+      mode_vals[mode_i].phaseRdelay_coeff_1[i] = D_i;
+      mode_vals[mode_i].phaseRdelay_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].phaseRdelay_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(1*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(1*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].transferL1_re[i];
+      y_ip1 = mode_vals[mode_i].transferL1_re[i+1];
+      mode_vals[mode_i].transferL1_re_coeff_1[i] = D_i;
+      mode_vals[mode_i].transferL1_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].transferL1_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(2*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(2*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].transferL1_im[i];
+      y_ip1 = mode_vals[mode_i].transferL1_im[i+1];
+      mode_vals[mode_i].transferL1_im_coeff_1[i] = D_i;
+      mode_vals[mode_i].transferL1_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].transferL1_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(3*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(3*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].transferL2_re[i];
+      y_ip1 = mode_vals[mode_i].transferL2_re[i+1];
+      mode_vals[mode_i].transferL2_re_coeff_1[i] = D_i;
+      mode_vals[mode_i].transferL2_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].transferL2_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(4*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(4*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].transferL2_im[i];
+      y_ip1 = mode_vals[mode_i].transferL2_im[i+1];
+      mode_vals[mode_i].transferL2_im_coeff_1[i] = D_i;
+      mode_vals[mode_i].transferL2_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].transferL2_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(5*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(5*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].transferL3_re[i];
+      y_ip1 = mode_vals[mode_i].transferL3_re[i+1];
+      mode_vals[mode_i].transferL3_re_coeff_1[i] = D_i;
+      mode_vals[mode_i].transferL3_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].transferL3_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(6*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(6*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].transferL3_im[i];
+      y_ip1 = mode_vals[mode_i].transferL3_im[i+1];
+      mode_vals[mode_i].transferL3_im_coeff_1[i] = D_i;
+      mode_vals[mode_i].transferL3_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].transferL3_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
+      D_i = B[(7*num_modes*f_length) + mode_i*f_length + i];
+      D_ip1 = B[(7*num_modes*f_length) + mode_i*f_length + i + 1];
+      y_i = mode_vals[mode_i].time_freq_corr[i];
+      y_ip1 = mode_vals[mode_i].time_freq_corr[i+1];
+      mode_vals[mode_i].time_freq_coeff_1[i] = D_i;
+      mode_vals[mode_i].time_freq_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+      mode_vals[mode_i].time_freq_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+}
+
 __global__
 void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    double D_i, D_ip1, y_i, y_ip1;
+
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
          mode_i < num_modes;
          mode_i += blockDim.y * gridDim.y){
@@ -137,70 +234,21 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
             i < f_length;
             i += blockDim.x * gridDim.x){
 
-            D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(0*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].phaseRdelay[i];
-            y_ip1 = mode_vals[mode_i].phaseRdelay[i+1];
-            mode_vals[mode_i].phaseRdelay_coeff_1[i] = D_i;
-            mode_vals[mode_i].phaseRdelay_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].phaseRdelay_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+              set_spline_constants_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 
-            D_i = B[(1*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(1*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].transferL1_re[i];
-            y_ip1 = mode_vals[mode_i].transferL1_re[i+1];
-            mode_vals[mode_i].transferL1_re_coeff_1[i] = D_i;
-            mode_vals[mode_i].transferL1_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].transferL1_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-            D_i = B[(2*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(2*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].transferL1_im[i];
-            y_ip1 = mode_vals[mode_i].transferL1_im[i+1];
-            mode_vals[mode_i].transferL1_im_coeff_1[i] = D_i;
-            mode_vals[mode_i].transferL1_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].transferL1_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-            D_i = B[(3*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(3*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].transferL2_re[i];
-            y_ip1 = mode_vals[mode_i].transferL2_re[i+1];
-            mode_vals[mode_i].transferL2_re_coeff_1[i] = D_i;
-            mode_vals[mode_i].transferL2_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].transferL2_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-            D_i = B[(4*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(4*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].transferL2_im[i];
-            y_ip1 = mode_vals[mode_i].transferL2_im[i+1];
-            mode_vals[mode_i].transferL2_im_coeff_1[i] = D_i;
-            mode_vals[mode_i].transferL2_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].transferL2_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-            D_i = B[(5*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(5*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].transferL3_re[i];
-            y_ip1 = mode_vals[mode_i].transferL3_re[i+1];
-            mode_vals[mode_i].transferL3_re_coeff_1[i] = D_i;
-            mode_vals[mode_i].transferL3_re_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].transferL3_re_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-            D_i = B[(6*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(6*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].transferL3_im[i];
-            y_ip1 = mode_vals[mode_i].transferL3_im[i+1];
-            mode_vals[mode_i].transferL3_im_coeff_1[i] = D_i;
-            mode_vals[mode_i].transferL3_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].transferL3_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-            D_i = B[(7*num_modes*f_length) + mode_i*f_length + i];
-            D_ip1 = B[(7*num_modes*f_length) + mode_i*f_length + i + 1];
-            y_i = mode_vals[mode_i].time_freq_corr[i];
-            y_ip1 = mode_vals[mode_i].time_freq_corr[i+1];
-            mode_vals[mode_i].time_freq_coeff_1[i] = D_i;
-            mode_vals[mode_i].time_freq_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-            mode_vals[mode_i].time_freq_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
+}
+}
+
+__host__
+void cpu_set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+
+       for (int i = 0;
+            i < f_length;
+            i += 1){
+
+              set_spline_constants_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
+
 }
 }
 
@@ -208,9 +256,27 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
 Find spline coefficients after matrix calculation on GPU for amp and phase
 */
 
-__global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+__host__ __device__
+void set_spline_constants_wave_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+        double D_i, D_ip1, y_i, y_ip1;
+        D_i = B[mode_i*f_length + i];
+        D_ip1 = B[mode_i*f_length + i + 1];
+        y_i = mode_vals[mode_i].amp[i];
+        y_ip1 = mode_vals[mode_i].amp[i+1];
+        mode_vals[mode_i].amp_coeff_1[i] = D_i;
+        mode_vals[mode_i].amp_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+        mode_vals[mode_i].amp_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 
-    double D_i, D_ip1, y_i, y_ip1;
+        D_i = B[(num_modes*f_length) + mode_i*f_length + i];
+        D_ip1 = B[(num_modes*f_length) + mode_i*f_length + i + 1];
+        y_i = mode_vals[mode_i].phase[i];
+        y_ip1 = mode_vals[mode_i].phase[i+1];
+        mode_vals[mode_i].phase_coeff_1[i] = D_i;
+        mode_vals[mode_i].phase_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
+        mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+}
+
+__global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
 
      for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
           mode_i < num_modes;
@@ -219,23 +285,16 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
         for (int i = blockIdx.x * blockDim.x + threadIdx.x;
              i < f_length;
              i += blockDim.x * gridDim.x){
-
-    D_i = B[mode_i*f_length + i];
-    D_ip1 = B[mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].amp[i];
-    y_ip1 = mode_vals[mode_i].amp[i+1];
-    mode_vals[mode_i].amp_coeff_1[i] = D_i;
-    mode_vals[mode_i].amp_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-    mode_vals[mode_i].amp_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
-
-    D_i = B[(num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].phase[i];
-    y_ip1 = mode_vals[mode_i].phase[i+1];
-    mode_vals[mode_i].phase_coeff_1[i] = D_i;
-    mode_vals[mode_i].phase_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
-    mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+              set_spline_constants_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
+}
+}
+
+__host__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+        for (int i = 0;
+             i < f_length;
+             i += 1){
+              set_spline_constants_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
 }
 

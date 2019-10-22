@@ -48,13 +48,13 @@ typedef struct tagd_transferL_holder{
     double phaseRdelay;
 } d_transferL_holder;
 
-__device__
+__host__ __device__
 double the_sinc(double x){
     if (x == 0.0) return 1.0;
     else return sin(x)/x;
 }
 
-__device__
+__host__ __device__
 double d_dot_product_1d(double arr1[3], double arr2[3]){
     double out = 0.0;
     for (int i=0; i<3; i++){
@@ -63,7 +63,7 @@ double d_dot_product_1d(double arr1[3], double arr2[3]){
     return out;
 }
 
-__device__
+__host__ __device__
 cmplx d_vec_H_vec_product(double arr1[3], cmplx *H, double arr2[3]){
     cmplx c_arr1[3] = {cmplx(arr1[0], 0.0),
                                  cmplx(arr1[1], 0.0),
@@ -89,7 +89,7 @@ cmplx d_vec_H_vec_product(double arr1[3], cmplx *H, double arr2[3]){
 /* # Single-link response
 # 'full' does include the orbital-delay term, 'constellation' does not
 # t can be a scalar or a 1D vector */
-__device__
+__host__ __device__
 d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double k[3], int response){
     // response == 1 is full ,, response anything else is constellation
     //# Trajectories, p0 used only for the full response
@@ -161,7 +161,7 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double k[3], int resp
     return Gslr_out;
 }
 
-__device__
+__host__ __device__
 d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, int rescaled){
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
@@ -209,7 +209,7 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
     }
 }
 
-__device__
+__host__ __device__
 d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
     t = t + t0*YRSID_SI;
 
@@ -243,20 +243,93 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
     return transferL;
 }
 
+__host__ __device__
+void JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f,
+  unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points,
+  double inc, double lam, double beta, double psi, double phi0, double t0,
+  double tRef_wave_frame, double tRef_sampling_frame,
+    double merger_freq, int TDItag, int order_fresnel_stencil, int num_walkers, int walker_i, int mode_index, int mode_i, int i){
+
+      double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
+      int old_ind_below;
+      double phasetimeshift;
+      double phi_up, phi;
+
+      int freq_ind;
+
+      freq_ind = walker_i*num_points + i;
+
+
+     f = frqs[freq_ind];
+
+     if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[walker_i*num_points + 1] - old_freqs[walker_i*num_points + 0]);
+     else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[walker_i*num_points + num_points-1] - old_freqs[walker_i*num_points + num_points-2]);
+     else {dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[walker_i*num_points + i+1] - old_freqs[walker_i*num_points + i]);
+     /*# if __CUDA_ARCH__>=200
+         if ((i == 1183) && (walker_i == 20))
+         printf("%d, %d, %d, %.12e, %.12e, %.12e, %.12e\n", walker_i, mode_i, i, mode_vals[mode_index].phase[i+1], mode_vals[mode_index].phase[i],
+         old_freqs[walker_i*num_points + i+1],
+         old_freqs[walker_i*num_points + i]);
+     #endif //*/
+ }
+
+
+     /*old_ind_below = i;
+     if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
+     x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+     x2 = x*x;
+     x3 = x2*x;
+     coeff_0 = mode_vals[mode_index].phase[old_ind_below];
+     coeff_1 = mode_vals[mode_index].phase_coeff_1[old_ind_below];
+     coeff_2 = mode_vals[mode_index].phase_coeff_2[old_ind_below];
+     coeff_3 = mode_vals[mode_index].phase_coeff_3[old_ind_below];
+
+     phi = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
+
+     x = (f + 1e-6 - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
+     phi_up = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
+
+     dphidf = (phi_up - phi)/1e-6;*/
+
+
+     /*dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[1] - old_freqs[0]);
+     else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
+     else dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[i+1] - old_freqs[i]);*/
+
+
+     // Right now, it assumes same points for initial sampling of the response and the waveform
+     // linear term in cubic spline is the first derivative of phase at each node point
+
+     //dphidf = mode_vals[mode_index].phase_coeff_1[i];
+
+     t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+     t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
+
+     // adjust phase values stored in mode vals to reflect the tRef shift
+     //mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
+
+     d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
+
+     mode_vals[mode_index].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it should be okay at long enough times.
+     mode_vals[mode_index].transferL1_re[i] = real(transferL.transferL1);
+     mode_vals[mode_index].transferL1_im[i] = imag(transferL.transferL1);
+     mode_vals[mode_index].transferL2_re[i] = real(transferL.transferL2);
+     mode_vals[mode_index].transferL2_im[i] = imag(transferL.transferL2);
+     mode_vals[mode_index].transferL3_re[i] = real(transferL.transferL3);
+     mode_vals[mode_index].transferL3_im[i] = imag(transferL.transferL3);
+     mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
+
+}
+
 
 __global__
 void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
     double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
-    double phasetimeshift;
-    double phi_up, phi;
-
-    double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
-    int old_ind_below;
 
     double inc, lam, beta, psi, phi0, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq;
 
-    int mode_index, freq_ind;
+    int mode_index;
 
     for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
          walker_i < num_walkers;
@@ -281,72 +354,61 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, doubl
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < num_points;
          i += blockDim.x * gridDim.x){
-
-             freq_ind = walker_i*num_points + i;
-
-
-            f = frqs[freq_ind];
-
-            if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[walker_i*num_points + 1] - old_freqs[walker_i*num_points + 0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[walker_i*num_points + num_points-1] - old_freqs[walker_i*num_points + num_points-2]);
-            else {dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[walker_i*num_points + i+1] - old_freqs[walker_i*num_points + i]);
-            /*# if __CUDA_ARCH__>=200
-                if ((i == 1183) && (walker_i == 20))
-                printf("%d, %d, %d, %.12e, %.12e, %.12e, %.12e\n", walker_i, mode_i, i, mode_vals[mode_index].phase[i+1], mode_vals[mode_index].phase[i],
-                old_freqs[walker_i*num_points + i+1],
-                old_freqs[walker_i*num_points + i]);
-            #endif //*/
-        }
-
-
-            /*old_ind_below = i;
-            if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
-            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-            x2 = x*x;
-            x3 = x2*x;
-            coeff_0 = mode_vals[mode_index].phase[old_ind_below];
-            coeff_1 = mode_vals[mode_index].phase_coeff_1[old_ind_below];
-            coeff_2 = mode_vals[mode_index].phase_coeff_2[old_ind_below];
-            coeff_3 = mode_vals[mode_index].phase_coeff_3[old_ind_below];
-
-            phi = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
-
-            x = (f + 1e-6 - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-            phi_up = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
-
-            dphidf = (phi_up - phi)/1e-6;*/
-
-
-            /*dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[1] - old_freqs[0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            else dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[i+1] - old_freqs[i]);*/
-
-
-            // Right now, it assumes same points for initial sampling of the response and the waveform
-            // linear term in cubic spline is the first derivative of phase at each node point
-
-            //dphidf = mode_vals[mode_index].phase_coeff_1[i];
-
-            t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
-            t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
-
-            // adjust phase values stored in mode vals to reflect the tRef shift
-            //mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
-
-            d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
-
-            mode_vals[mode_index].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it should be okay at long enough times.
-            mode_vals[mode_index].transferL1_re[i] = real(transferL.transferL1);
-            mode_vals[mode_index].transferL1_im[i] = imag(transferL.transferL1);
-            mode_vals[mode_index].transferL2_re[i] = real(transferL.transferL2);
-            mode_vals[mode_index].transferL2_im[i] = imag(transferL.transferL2);
-            mode_vals[mode_index].transferL3_re[i] = real(transferL.transferL3);
-            mode_vals[mode_index].transferL3_im[i] = imag(transferL.transferL3);
-            mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
-
+           JustLISAFDresponseTDI_wrap(mode_vals, H, frqs, old_freqs, d_log10f,
+             l_vals, m_vals, num_modes, num_points,
+             inc, lam, beta, psi, phi0, t0,
+             tRef_wave_frame, tRef_sampling_frame,
+               merger_freq, TDItag, order_fresnel_stencil, num_walkers, walker_i, mode_index, mode_i, i);
 }
 }
 }
+}
+
+__host__
+void cpu_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, cmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
+    double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers, int walker_i){
+    // TDItag == 1 is XYZ, TDItag == 2 is AET
+
+    double inc, lam, beta, psi, phi0, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq;
+
+    int mode_index;
+
+        inc = inc_arr[walker_i];
+        lam = lam_arr[walker_i];
+        beta = beta_arr[walker_i];
+        psi = psi_arr[walker_i];
+        phi0 = phi0_arr[walker_i];
+        t0 = t0_arr[walker_i];
+        tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+        tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
+        merger_freq = merger_freq_arr[walker_i];
+
+     for (int mode_i = 0;
+          mode_i < num_modes;
+          mode_i += 1){
+
+              mode_index = walker_i*num_modes + mode_i;
+
+    for (int i = 0;
+         i < num_points;
+         i += 1){
+           JustLISAFDresponseTDI_wrap(mode_vals, H, frqs, old_freqs, d_log10f,
+             l_vals, m_vals, num_modes, num_points,
+             inc, lam, beta, psi, phi0, t0,
+             tRef_wave_frame, tRef_sampling_frame,
+               merger_freq, TDItag, order_fresnel_stencil, num_walkers, walker_i, mode_index, mode_i, i);
+}
+}
+}
+
+__host__ __device__
+void add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double tRef_wave_frame, int num_walkers,
+                          int mode_index, int walker_i, int i){
+  double f;
+
+  f = frqs[walker_i*num_points + i];
+
+ mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
 
 }
 
@@ -369,13 +431,32 @@ void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < num_points;
          i += blockDim.x * gridDim.x){
+           add_tRef_phase_shift(mode_vals, frqs, num_modes, num_points, tRef_wave_frame, num_walkers, mode_index, walker_i, i);
 
-             f = frqs[walker_i*num_points + i];
-
-            mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
         }
     }
 }
+}
+
+__host__
+void cpu_add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers, int walker_i){
+
+    double f, tRef_wave_frame;
+    int mode_index;
+
+             tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+     for (int mode_i = 0;
+          mode_i < num_modes;
+          mode_i += 1){
+
+          mode_index = walker_i*num_modes + mode_i;
+    for (int i = 0;
+         i < num_points;
+         i += 1){
+           add_tRef_phase_shift(mode_vals, frqs, num_modes, num_points, tRef_wave_frame, num_walkers, mode_index, walker_i, i);
+
+        }
+    }
 }
 
 

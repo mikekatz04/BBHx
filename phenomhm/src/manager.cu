@@ -135,6 +135,7 @@ PhenomHM::PhenomHM (int max_length_init_,
 
    M_tot_sec = new double[nwalkers*ndevices];
 
+  # ifdef __CUDACC__
   d_mode_vals = new ModeContainer*[ndevices];
   d_freqs = new double*[ndevices];
   d_H = new cmplx*[ndevices];
@@ -262,33 +263,48 @@ PhenomHM::PhenomHM (int max_length_init_,
       // alocate GPU arrays for interpolation
       interp[i].alloc_arrays(max_length_init, 8*num_modes*nwalkers, d_B[i]);
   }
+  #else
+  interp = new Interpolate[1];
+
+  #endif
 }
 
 
-void PhenomHM::input_data(double *data_freqs, double *data_channel1,
-                          double *data_channel2, double *data_channel3,
-                          double *channel1_ASDinv, double *channel2_ASDinv,
-                          double *channel3_ASDinv, int data_stream_length_){
+void PhenomHM::input_data(double *data_freqs_, double *data_channel1_,
+                          double *data_channel2_, double *data_channel3_,
+                          double *channel1_ASDinv_, double *channel2_ASDinv_,
+                          double *channel3_ASDinv_, int data_stream_length_){
 
     assert(data_stream_length_ == data_stream_length);
-
+    # ifdef __CUDACC__
     for (int i=0; i<ndevices; i++){
         cudaSetDevice(i);
-        gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1_, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2_, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3_, data_stream_length*sizeof(cmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_channel2_ASDinv[i], channel2_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_channel2_ASDinv[i], channel2_ASDinv_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
     }
+    #else
+    d_data_freqs = data_freqs_;
+    d_data_channel1 = d_data_channel1_;
+    d_data_channel2 = d_data_channel2_;
+    d_data_channel3 = d_data_channel3_;
+    d_channel1_ASDinv = d_channel1_ASDinv_;
+    d_channel2_ASDinv = d_channel2_ASDinv_;
+    d_channel3_ASDinv = d_channel3_ASDinv_;
+
+    #endif
 }
+
 
 /*
 generate gpu amp and phase
@@ -317,7 +333,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     phiRef = phiRef_;
     f_ref = f_ref_;
 
-    int i, th_id, nthreads;
+    int i, th_id, nthreads, walker_i;
     #pragma omp parallel private(th_id, i)
     {
     //for (int i=0; i<ndevices*nwalkers; i++){
@@ -340,15 +356,18 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     /* main: evaluate model at given frequencies on GPU */
     NUM_THREADS = 256;
 
+    # ifdef __CUDACC__
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);
+    #endif
     //printf("%d walkers \n", nwalkers);
 
-    #pragma omp parallel private(th_id, i)
+    #pragma omp parallel private(th_id, i, walker_i)
     {
     //for (int i=0; i<nwalkers; i++){
         nthreads = omp_get_num_threads();
         th_id = omp_get_thread_num();
+        #ifdef __CUDACC__
         for (int i=th_id; i<ndevices; i+=nthreads){
             cudaSetDevice(i);
 
@@ -394,6 +413,28 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
               cudaDeviceSynchronize();
               gpuErrchk(cudaGetLastError());
         }
+        #else
+        for (int walker_i=th_id; walker_i<nwalkers; walker_i+=nthreads){
+          kernel_calculate_all_modes<<<gridDim, NUM_THREADS>>>(mode_vals,
+                pHM_trans[i],
+                freqs[i],
+                M_tot_sec[i],
+                pAmp_trans[i],
+                amp_prefactors_trans[i],
+                pDPreComp_all_trans[i],
+                q_all_trans[i],
+                amp0[i],
+                num_modes,
+                t0[i],
+                phi0[i],
+                cShift[i],
+                nwalkers,
+                current_length,
+                walker_i
+            );
+        }
+        #endif
+
     }
     //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
 
@@ -547,9 +588,11 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
 
     double d_log10f = log10(freqs[1]) - log10(freqs[0]);
     //printf("fs2: %e, %e, %e\n", freqs[1], freqs[0], d_log10f);
+    #ifdef __CUDACC__
     int num_blocks = std::ceil((current_length + NUM_THREADS - 1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);
-
+    #endif
+    
     #pragma omp parallel private(th_id, i)
     {
     //for (int i=0; i<nwalkers; i++){

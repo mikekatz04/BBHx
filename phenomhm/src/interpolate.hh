@@ -24,7 +24,11 @@
 
 #ifndef __INTERPOLATE_H_
 #define __INTERPOLATE_H_
-#include <cusparse_v2.h>
+
+#ifdef __CUDACC__
+#include<cuda_runtime_api.h>
+#include <cuda.h>
+#endif
 
 class Interpolate{
     double *w;
@@ -38,26 +42,47 @@ class Interpolate{
     double *d_c;
     double *d_w;
     double *d_x;
-    cusparseHandle_t  handle;
-    cudaError_t err;
     int m;
     int n;
     int to_gpu;
     size_t bufferSizeInBytes;
     void *pBuffer;
 
+    #ifdef __CUDACC__
+    cudaError_t err;
+    #endif
+
 public:
     // FOR NOW WE ASSUME dLOGX is evenly spaced // TODO: allocate at the beginning
     Interpolate();
 
-    __host__ void alloc_arrays(int m, int n, double *d_B);
-    __host__ void prep(double *B, int m_, int n_, int to_gpu_);
 
-    __host__ ~Interpolate(); //destructor
+    #ifdef __CUDACC__
+    __host__
+    #endif
+    void alloc_arrays(int m, int n, double *d_B);
+    #ifdef __CUDACC__
+    __host__
+    #endif
+    void prep(double *B, int m_, int n_, int to_gpu_);
 
-    __host__ void gpu_fit_constants(double *B);
-    __host__ void fit_constants(double *B);
-    __host__ void cpu_fit_constants(double *B);
+    #ifdef __CUDACC__
+    __host__
+    #endif
+    ~Interpolate(); //destructor
+
+    #ifdef __CUDACC__
+    __host__
+    #endif
+    void gpu_fit_constants(double *B);
+    #ifdef __CUDACC__
+    __host__
+    #endif
+    void fit_constants(double *B);
+    #ifdef __CUDACC__
+    __host__
+    #endif
+    void cpu_fit_constants(double *B);
 };
 
 #endif //__INTERPOLATE_H_

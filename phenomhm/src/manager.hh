@@ -30,11 +30,12 @@
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
 #include "globalPhenomHM.h"
-
-#include "cuComplex.h"
-#include "cublas_v2.h"
 #include "PhenomHM.h"
 #include "interpolate.hh"
+
+#ifdef __CUDACC__
+#include "cublas_v2.h"
+#endif
 
 class PhenomHM {
   // pointer to the GPU memory where the array is stored
@@ -51,6 +52,7 @@ class PhenomHM {
   double* distance;
   double* phiRef;
   double* f_ref;
+  double* cShift;
   unsigned int *l_vals;
   unsigned int *m_vals;
   int num_modes;
@@ -83,12 +85,14 @@ class PhenomHM {
   double** d_amp0;
   double** d_M_tot_sec;
 
-  dim3 gridDim;
   int NUM_THREADS;
   int num_blocks;
 
+  #ifdef __CUDACC__
+  dim3 gridDim;
   cublasHandle_t *handle;
   cublasStatus_t stat;
+  #endif
 
   // Interpolate related stuff
   Interpolate *interp;
@@ -99,9 +103,9 @@ class PhenomHM {
   ModeContainer **d_mode_vals;
   int ndevices;
 
-  double * template_channel1;
-  double * template_channel2;
-  double * template_channel3;
+  cmplx * template_channel1;
+  cmplx * template_channel2;
+  cmplx * template_channel3;
 
   double *data_freqs;
   cmplx *data_channel1;

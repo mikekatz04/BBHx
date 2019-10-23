@@ -24,13 +24,14 @@
 #include "manager.hh"
 #include "stdio.h"
 #include <assert.h>
-#include <cusparse_v2.h>
 #include "globalPhenomHM.h"
+
 #include "omp.h"
 
 /*
 GPU error checking
 */
+#ifdef __CUDACC__
 #define gpuErrchk_here(ans) { gpuAssert_here((ans), __FILE__, __LINE__); }
 inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -50,13 +51,16 @@ CuSparse error checking
 
 #define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
 #define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
+#endif
+
 using namespace std;
 
 /*
 fill the B array on the GPU for response transfer functions.
 */
-
+#ifdef __CUDACC__
 __host__ __device__
+#endif
 void fill_B_response_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
   if (i == f_length - 1){
       B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i] - mode_vals[mode_i].phaseRdelay[i-1]);
@@ -88,22 +92,10 @@ void fill_B_response_inner(ModeContainer *mode_vals, double *B, int f_length, in
       B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i+1] - mode_vals[mode_i].time_freq_corr[i-1]);
   }
 }
-__global__
-void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-         mode_i < num_modes;
-         mode_i += blockDim.y * gridDim.y){
 
-       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < f_length;
-            i += blockDim.x * gridDim.x){
-
-          fill_B_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
-}
-}
-}
-
+#ifdef __CUDACC__
 __host__
+#endif
 void cpu_fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
        for (int i = 0;
             i < f_length;
@@ -116,7 +108,9 @@ void cpu_fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int 
 fill B array on GPU for amp and phase
 */
 
+#ifdef __CUDACC__
 __host__ __device__
+#endif
 void fill_B_wave_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
       if (i == f_length - 1){
           B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
@@ -129,21 +123,12 @@ void fill_B_wave_inner(ModeContainer *mode_vals, double *B, int f_length, int nu
           B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
       }
 }
-__global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-         mode_i < num_modes;
-         mode_i += blockDim.y * gridDim.y){
 
-       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < f_length;
-            i += blockDim.x * gridDim.x){
 
-            fill_B_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
-}
-}
-}
-
-__host__ void cpu_fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+#ifdef __CUDACC__
+__host__
+#endif
+void cpu_fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
        for (int i = 0;
             i < f_length;
             i += 1){
@@ -156,7 +141,9 @@ __host__ void cpu_fill_B_wave(ModeContainer *mode_vals, double *B, int f_length,
 /*
 find spline constants based on matrix solution for response transfer functions.
 */
+#ifdef __CUDACC__
 __host__ __device__
+#endif
 void set_spline_constants_response_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
       double D_i, D_ip1, y_i, y_ip1;
       D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
@@ -224,28 +211,13 @@ void set_spline_constants_response_inner(ModeContainer *mode_vals, double *B, in
       mode_vals[mode_i].time_freq_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
 
-__global__
-void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-
-    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-         mode_i < num_modes;
-         mode_i += blockDim.y * gridDim.y){
-
-       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < f_length;
-            i += blockDim.x * gridDim.x){
-
-              set_spline_constants_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
-
-}
-}
-}
-
+#ifdef __CUDACC__
 __host__
+#endif
 void cpu_set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
 
        for (int i = 0;
-            i < f_length;
+            i < f_length-1;
             i += 1){
 
               set_spline_constants_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
@@ -257,7 +229,9 @@ void cpu_set_spline_constants_response(ModeContainer *mode_vals, double *B, int 
 Find spline coefficients after matrix calculation on GPU for amp and phase
 */
 
+#ifdef __CUDACC__
 __host__ __device__
+#endif
 void set_spline_constants_wave_inner(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
         double D_i, D_ip1, y_i, y_ip1;
         D_i = B[mode_i*f_length + i];
@@ -277,6 +251,49 @@ void set_spline_constants_wave_inner(ModeContainer *mode_vals, double *B, int f_
         mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
 
+
+#ifdef __CUDACC__
+__host__
+#endif
+void cpu_set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
+        for (int i = 0;
+             i < f_length - 1;
+             i += 1){
+              set_spline_constants_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
+}
+}
+
+#ifdef __CUDACC__
+__global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+         mode_i < num_modes;
+         mode_i += blockDim.y * gridDim.y){
+
+       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+            i < f_length;
+            i += blockDim.x * gridDim.x){
+
+            fill_B_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
+}
+}
+}
+
+
+__global__
+void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+         mode_i < num_modes;
+         mode_i += blockDim.y * gridDim.y){
+
+       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+            i < f_length;
+            i += blockDim.x * gridDim.x){
+
+          fill_B_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
+}
+}
+}
+
 __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
 
      for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -284,19 +301,27 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
           mode_i += blockDim.y * gridDim.y){
 
         for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-             i < f_length;
+             i < f_length-1;
              i += blockDim.x * gridDim.x){
               set_spline_constants_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
 }
 }
 }
 
-__host__
-void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i){
-        for (int i = 0;
-             i < f_length;
-             i += 1){
-              set_spline_constants_wave_inner(mode_vals, B, f_length, num_modes, mode_i, i);
+
+__global__
+void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+         mode_i < num_modes;
+         mode_i += blockDim.y * gridDim.y){
+
+       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+            i < f_length-1;
+            i += blockDim.x * gridDim.x){
+
+              set_spline_constants_response_inner(mode_vals, B, f_length, num_modes, mode_i, i);
+
+}
 }
 }
 
@@ -464,7 +489,12 @@ void interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, 
 }
 }
 
+#endif
+
+
+#ifdef __CUDACC__
 __host__
+#endif
 void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
     double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur, int num_walkers, int walker_i){
@@ -656,6 +686,7 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
 }
 }
 
+
 /*
 Interpolation class initializer
 */
@@ -668,7 +699,9 @@ Interpolate::Interpolate(){
 allocate arrays for interpolation
 */
 
+#ifdef __CUDACC__
 __host__
+#endif
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
     double *w = new double[m];
     double *a = new double[m];
@@ -772,7 +805,9 @@ void Interpolate::prep(double *B, int m_, int n_, int walker_i){
     #endif
 }
 
-__device__ __host__
+#ifdef __CUDACC__
+__host__ __device__
+#endif
 void fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in, int j){
       double *x, *d;
 
@@ -786,15 +821,16 @@ void fit_constants_serial(int m, int n, double *w, double *b, double *c, double 
           //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
       }
 
-      # pragma unroll
       x[m-1] = d[m-1]/b[m-1];
       d[m-1] = x[m-1];
+      # pragma unroll
       for (int i=(m-2); i>=0; i--){
           x[i] = (d[i] - c[i]*x[i+1])/b[i];
           d[i] = x[i];
       }
 }
 
+#ifdef __CUDACC__
 __global__
 void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
 
@@ -804,8 +840,11 @@ void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, dou
            fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
     }
 }
+#endif
 
+#ifdef __CUDACC__
 __host__
+#endif
 void Interpolate::cpu_fit_constants(double *B){
   int i, j, th_id, nthreads, walker_i;
   #pragma omp parallel private(th_id, i, j)
@@ -822,7 +861,9 @@ void Interpolate::cpu_fit_constants(double *B){
 /*
 Use cuSparse to perform matrix calcuation.
 */
-__host__ void Interpolate::gpu_fit_constants(double *B){
+#ifdef __CUDACC__
+__host__
+void Interpolate::gpu_fit_constants(double *B){
     //CUSPARSE_CALL( cusparseCreate(&handle) );
     //cusparseStatus_t status = cusparseDgtsv2_nopivot(handle, m, n, d_dl, d_d, d_du, B, m, pBuffer);
     //if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
@@ -834,12 +875,17 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
     gpuErrchk_here(cudaGetLastError());
 
 }
+#endif
 
 
 /*
 Deallocate
 */
-__host__ Interpolate::~Interpolate(){
+#ifdef __CUDACC__
+__host__
+#endif
+
+Interpolate::~Interpolate(){
     #ifdef __CUDACC__
     cudaFree(d_b);
     cudaFree(d_c);

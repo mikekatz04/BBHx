@@ -1,10 +1,13 @@
 # from future.utils import iteritems
 import os
+import shutil
 from os.path import join as pjoin
 from setuptools import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import numpy
+
+# os.environ["CC"] = "g++-9"
 
 
 def cuda_install():
@@ -201,6 +204,10 @@ def cuda_install():
 
 
 def cpp_install():
+    src_folder = "phenomhm/src/"
+    for file in os.listdir(src_folder):
+        if file.split(".")[-1] == "cu":
+            shutil.copy(src_folder + file, src_folder + file[:-2] + "cpp")
     # Obtain the numpy include directory. This logic works across numpy versions.
     try:
         numpy_include = numpy.get_include()
@@ -209,6 +216,7 @@ def cpp_install():
 
     lib_gsl_dir = "/opt/local/lib"
     include_gsl_dir = "/opt/local/include"
+    omp_dir = "/Users/michaelkatz/anaconda3/pkgs/llvm-openmp-9.0.0-h40edb58_0/include"
 
     extensions = [
         Extension(
@@ -216,23 +224,23 @@ def cpp_install():
             sources=[
                 "phenomhm/src/globalPhenomHM.cpp",
                 "phenomhm/src/RingdownCW.cpp",
+                "phenomhm/src/fdresponse.cpp",
                 "phenomhm/src/IMRPhenomD_internals.cpp",
                 "phenomhm/src/IMRPhenomD.cpp",
                 "phenomhm/src/PhenomHM.cpp",
-                "phenomhm/src/fdresponse.cpp",
-                "phenomhm/src/c_interpolate.cpp",
-                "phenomhm/src/c_manager.cpp",
-                "phenomhm/PhenomHM.pyx",
+                "phenomhm/src/manager.cpp",
+                "phenomhm/gpuPhenomHM.pyx",
             ],
             library_dirs=[lib_gsl_dir],
-            libraries=["gsl", "gslcblas"],
+            libraries=["gsl", "gslcblas", "gomp"],
             language="c++",
             # sruntime_library_dirs = [CUDA['lib64']],
             # This syntax is specific to this build system
             # we're only going to use certain compiler args with nvcc
             # and not with gcc the implementation of this trick is in
             # customize_compiler()
-            extra_compile_args=["-O3"],
+            extra_compile_args=["-O3", "-fopenmp"],
+            extra_link_args=["-O3", "-fopenmp"],
             include_dirs=[numpy_include, include_gsl_dir, "phenomhm/src"],
         )
     ]
@@ -279,11 +287,11 @@ except OSError:
         + "Either add it to your path, or set $CUDAHOME"
     )
 
-# cpp_install()
-# print_strings.append('INSTALLED C++ VERSION: PhenomHM')
+cpp_install()
+# print_strings.append("INSTALLED C++ VERSION: PhenomHM")
 
 wrapper_install()
-# print_strings.append('INSTALLED WRAPPER: phenomhm.py')
+print_strings.append("INSTALLED WRAPPER: phenomhm.py")
 print("\n")
 for string in print_strings:
     print(string)

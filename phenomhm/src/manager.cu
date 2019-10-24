@@ -130,6 +130,12 @@ PhenomHM::PhenomHM (int max_length_init_,
 
     // malloc and setup for the GPU
 
+  #ifdef __CUDACC__
+  int to_gpu=1;
+  #else
+  int to_gpu=0;
+  #endif
+
   mode_vals = cpu_create_modes(num_modes, nwalkers*ndevices, l_vals, m_vals, max_length_init, to_gpu, 1);
 
   // phase shifts for each m mode
@@ -380,7 +386,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     num_blocks = std::ceil((current_length + NUM_THREADS -1)/NUM_THREADS);
     dim3 gridDim(num_blocks, num_modes, nwalkers);
     #endif
-    //printf("%d walkers \n", nwalkers);
 
     #pragma omp parallel private(th_id, i, walker_i)
     {

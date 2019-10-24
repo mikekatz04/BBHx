@@ -15,7 +15,7 @@ import tdi
 try:
     from gpuPhenomHM import PhenomHM
 except ImportError:
-    from PhenomHM import PhenomHM
+    from cpuPhenomHM import PhenomHM
 
 import time
 

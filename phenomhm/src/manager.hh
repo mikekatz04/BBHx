@@ -34,6 +34,8 @@
 #include "interpolate.hh"
 
 #ifdef __CUDACC__
+#include<cuda_runtime_api.h>
+#include <cuda.h>
 #include "cublas_v2.h"
 #endif
 
@@ -89,7 +91,6 @@ class PhenomHM {
   int num_blocks;
 
   #ifdef __CUDACC__
-  dim3 gridDim;
   cublasHandle_t *handle;
   cublasStatus_t stat;
   #endif

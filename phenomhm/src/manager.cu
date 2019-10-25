@@ -855,6 +855,18 @@ void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
   #endif
 }
 
+int GetDeviceCount(){
+    int num_device_check;
+    #ifdef __CUDACC__
+    cudaError_t cuda_status = cudaGetDeviceCount(&num_device_check);
+    if (cudaSuccess != cuda_status) num_device_check = 0;
+    #else
+    num_device_check = 0;
+    #endif
+    printf("NUMBER OF DEVICES: %d\n", num_device_check);
+    return num_device_check;
+}
+
 /*
 Destructor
 */

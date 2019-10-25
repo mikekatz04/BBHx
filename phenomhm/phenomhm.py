@@ -14,8 +14,20 @@ import tdi
 
 try:
     from gpuPhenomHM import PhenomHM
+    from gpuPhenomHM import getDeviceCount
+
+    num_gpus = getDeviceCount()
+    if num_gpus > 0:
+        import_cpu = False
+    else:
+        import_cpu = True
+
 except ImportError:
+    import_cpu = True
+
+if import_cpu:
     from cpuPhenomHM import PhenomHM
+
 
 import time
 

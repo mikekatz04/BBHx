@@ -4,6 +4,8 @@ cimport numpy as np
 assert sizeof(int) == sizeof(np.int32_t)
 
 cdef extern from "src/manager.hh":
+    cdef int GetDeviceCount();
+
     cdef cppclass PhenomHMwrap "PhenomHM":
         PhenomHMwrap(int,
         np.uint32_t *,
@@ -206,3 +208,6 @@ cdef class PhenomHM:
             return self.GetTDI()
 
         return self.Likelihood()
+
+def getDeviceCount():
+    return GetDeviceCount()

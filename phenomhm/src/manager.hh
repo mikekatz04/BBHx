@@ -212,7 +212,9 @@ public:
   void GetTDI (double* X_, double* Y_, double* Z_);
 
   void GetAmpPhase(double* amp_, double* phase_);
+
 };
 
+int GetDeviceCount();
 
 #endif //__MANAGER_H__

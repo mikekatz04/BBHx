@@ -385,8 +385,9 @@ void add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num_modes,
 
   f = frqs[walker_i*num_points + i];
 
- mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
+  //if ((mode_index < 6) && (i == 3124)) printf("tref: %d %.18e %.18e\n", mode_index, mode_vals[mode_index].phase[i], 2.0*PI*f*tRef_wave_frame);
 
+ mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
 }
 
 

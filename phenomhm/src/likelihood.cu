@@ -123,8 +123,9 @@ void GetLikelihood_GPU (double *d_h_arr, double *h_h_arr, int nwalkers, int ndev
 
 cmplx complex_dot_product(cmplx *arr1, cmplx *arr2, int n){
   cmplx sum(0.0, 0.0);
-  for (int i=0; i<n; i++)
+  for (int i=0; i<n; i++){
       sum += conj(arr1[i])*arr2[i];
+  }
   return sum;
 }
 
@@ -139,11 +140,11 @@ void GetLikelihood_CPU(double *d_h_arr, double *h_h_arr, int nwalkers,
       int i, j, th_id, nthreads;
       double d_h, h_h;
       cmplx res;
-      # pragma omp parallel private(i, j, th_id, d_h, h_h, res)
-      {
-          nthreads = omp_get_num_threads();
-          th_id = omp_get_thread_num();
-          for (int i=th_id; i<nwalkers; i+=nthreads){
+      //# pragma omp parallel private(i, j, th_id, d_h, h_h, res)
+      //{
+      //    nthreads = omp_get_num_threads();
+      //    th_id = omp_get_thread_num();
+          for (int i=0; i<nwalkers; i+=1){
               h_h = 0.0;
               d_h = 0.0;
 
@@ -165,9 +166,10 @@ void GetLikelihood_CPU(double *d_h_arr, double *h_h_arr, int nwalkers,
               res = complex_dot_product(&template_channel3[i*data_stream_length], &template_channel3[i*data_stream_length], data_stream_length);
               h_h += real(res);
 
-              d_h_arr[i] = d_h;
-              h_h_arr[i] = h_h;
+              d_h_arr[i] = 4.*d_h;
+              h_h_arr[i] = 4.*h_h;
+              //printf("%lf, %lf\n", d_h_arr[i], h_h_arr[i]);
           }
-      }
+      //}
 
 }

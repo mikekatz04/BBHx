@@ -170,6 +170,7 @@ void set_spline_constants_response_inner(ModeContainer *mode_vals, double *B, in
       mode_vals[mode_i].transferL1_im_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
       mode_vals[mode_i].transferL1_im_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 
+
       D_i = B[(3*num_modes*f_length) + mode_i*f_length + i];
       D_ip1 = B[(3*num_modes*f_length) + mode_i*f_length + i + 1];
       y_i = mode_vals[mode_i].transferL2_re[i];
@@ -515,14 +516,13 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
      tRef = tRef_arr[walker_i];
      t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
 
-
     int i_start = 0;
     while(data_freqs[i_start] < f_min_limit) i_start++;
 
     f = data_freqs[i_start];
     old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
     current_f_low = old_freqs[walker_i*old_length + old_ind_below];
-    next_f_low = old_freqs[walker_i*old_length + old_ind_below];
+    next_f_low = old_freqs[walker_i*old_length + old_ind_below+1];
     x = (f - current_f_low)/(next_f_low - current_f_low);
     x2 = x*x;
     x3 = x*x2;
@@ -536,6 +536,7 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
     for (int i = i_start;
          i < data_length;
          i += 1){
+
     //if (mode_i >= num_modes) return;
 
         channel1_out[walker_i*data_length + i] = cmplx(0.0, 0.0);
@@ -570,6 +571,12 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
           phase_coeffs[mode_i*4 + 1] = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_1[old_ind_below];
           phase_coeffs[mode_i*4 + 2] = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_2[old_ind_below];
           phase_coeffs[mode_i*4 + 3] = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_3[old_ind_below];
+
+          // interp phase
+          phaseRdelay_coeffs[mode_i*4 + 0] = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay[old_ind_below];
+          phaseRdelay_coeffs[mode_i*4 + 1] = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_1[old_ind_below];
+          phaseRdelay_coeffs[mode_i*4 + 2] = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_2[old_ind_below];
+          phaseRdelay_coeffs[mode_i*4 + 3] = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_3[old_ind_below];
 
           transferL1_re_coeffs[mode_i*4 + 0] = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re[old_ind_below];
           transferL1_re_coeffs[mode_i*4 + 1] = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_1[old_ind_below];
@@ -644,6 +651,10 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
                           + (transferL1_re_coeffs[mode_i*4 + 2]*x2)
                           + (transferL1_re_coeffs[mode_i*4 + 3]*x3);
 
+
+            //if ((mode_i==0) && (i == 50000) && (walker_i == 0)) printf("%d, %.10e, %.10e, %.10e, %.10e\n", old_ind_below, transferL1_im_coeffs[mode_i*4 + 3], transferL1_im_coeffs[mode_i*4 + 0], transferL1_im_coeffs[mode_i*4 + 1], transferL1_im_coeffs[mode_i*4 + 2]);
+
+
             transferL1_im  = transferL1_im_coeffs[mode_i*4 + 0]
                           + (transferL1_im_coeffs[mode_i*4 + 1]*x)
                           + (transferL1_im_coeffs[mode_i*4 + 2]*x2)
@@ -652,6 +663,7 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
             trans_complex = cmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             channel1_out[walker_i*data_length + i] = channel1_out[walker_i*data_length + i] + trans_complex;
+
             // Y or E
             transferL2_re  = transferL2_re_coeffs[mode_i*4 + 0]
                           + (transferL2_re_coeffs[mode_i*4 + 1]*x)
@@ -682,6 +694,7 @@ void cpu_interpolate(cmplx *channel1_out, cmplx *channel2_out, cmplx *channel3_o
 
             // add to this channel
             channel3_out[walker_i*data_length + i] = channel3_out[walker_i*data_length + i] + trans_complex;
+
     }
 }
 }
@@ -703,10 +716,10 @@ allocate arrays for interpolation
 __host__
 #endif
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
-    double *w = new double[m];
-    double *a = new double[m];
-    double *b = new double[m];
-    double *c = new double[m];
+    w = new double[m];
+    a = new double[m];
+    b = new double[m];
+    c = new double[m];
 
     a[0] = 0.0;
     b[0] = 2.0;
@@ -745,7 +758,6 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
     x = new double[m*n];
 
     #endif
-
     //CUSPARSE_CALL( cusparseCreate(&handle) );
     //cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
     //cusparseDestroy(handle);
@@ -811,15 +823,17 @@ __host__ __device__
 void fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in, int j){
       double *x, *d;
 
+      //printf("check0 %d\n", j);
       d = &d_in[j*m];
       x = &x_in[j*m];
-
+      //printf("check1 %d\n", j);
       # pragma unroll
       for (int i=2; i<m; i++){
           //printf("%d\n", i);
           d[i] = d[i] - w[i]*d[i-1];
           //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
       }
+      //printf("check2 %d\n", j);
 
       x[m-1] = d[m-1]/b[m-1];
       d[m-1] = x[m-1];
@@ -847,15 +861,15 @@ __host__
 #endif
 void Interpolate::cpu_fit_constants(double *B){
   int i, j, th_id, nthreads, walker_i;
-  #pragma omp parallel private(th_id, i, j)
-  {
-  //for (int i=0; i<ndevices*nwalkers; i++){
-      nthreads = omp_get_num_threads();
-      th_id = omp_get_thread_num();
-      for (int j=th_id; j<m; j+=nthreads){
+  //#pragma omp parallel private(th_id, i, j)
+  //{
+  for (int j=0; j<n; j++){
+    //  nthreads = omp_get_num_threads();
+      //th_id = omp_get_thread_num();
+      //for (int j=th_id; j<m; j+=nthreads){
            fit_constants_serial(m, n, w, b, c, B, x, j);
       }
-  }
+  //}
 }
 
 /*

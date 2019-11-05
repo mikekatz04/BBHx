@@ -134,7 +134,7 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
          mode_i += blockDim.y * gridDim.y){
 
        for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < f_length;
+            i < f_length-1;
             i += blockDim.x * gridDim.x){
 
             D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
@@ -217,7 +217,7 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
           mode_i += blockDim.y * gridDim.y){
 
         for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-             i < f_length;
+             i < f_length-1;
              i += blockDim.x * gridDim.x){
 
     D_i = B[mode_i*f_length + i];

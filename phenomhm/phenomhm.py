@@ -33,8 +33,9 @@ class pyPhenomHM(Converter):
         data_freqs,
         data_stream,
         t0,
-        t_obs_dur,
         key_order,
+        t_obs_start,
+        t_obs_end=0.0,
         **kwargs
     ):
         """
@@ -67,7 +68,8 @@ class pyPhenomHM(Converter):
 
         self.generator = None
         self.t0 = np.full(nwalkers * ndevices, t0)
-        self.t_obs_dur = t_obs_dur
+        self.t_obs_start = t_obs_start
+        self.t_obs_end = t_obs_end
         self.max_length_init = max_length_init
         self.l_vals, self.m_vals = l_vals, m_vals
         self.data_freqs, self.data_stream = data_freqs, data_stream
@@ -86,7 +88,8 @@ class pyPhenomHM(Converter):
                     + "dict with params for data stream."
                 )
             kwargs["data_params"]["t0"] = t0
-            kwargs["data_params"]["t_obs_dur"] = t_obs_dur
+            kwargs["data_params"]["t_obs_start"] = t_obs_start
+            kwargs["data_params"]["t_obs_end"] = t_obs_end
 
             self.data_freqs, self.data_stream, self.generator = create_data_set(
                 nwalkers,
@@ -184,7 +187,10 @@ class pyPhenomHM(Converter):
                 self.channel2_ASDinv,
                 self.channel3_ASDinv,
                 self.TDItag_in,
-                self.t_obs_dur,
+                self.t_obs_start,
+                self.t_obs_end,
+                self.nwalkers,
+                self.ndevices,
             )
 
         else:
@@ -397,9 +403,10 @@ def create_data_set(
     if data_freqs is None:
         if add_noise is not None:
             fs = add_noise["fs"]
-            t_obs_dur = waveform_params["t_obs_dur"]
-            df = 1.0 / (t_obs_dur * ct.Julian_year)
-            num_data_points = int(t_obs_dur * ct.Julian_year * fs)
+            t_obs_start = waveform_params["t_obs_start"]
+            t_obs_end = waveform_params["t_obs_end"]
+            df = 1.0 / ((t_obs_start - t_obs_end) * ct.Julian_year)
+            num_data_points = int((t_obs_start - t_obs_end) * ct.Julian_year * fs)
             noise_freqs = np.fft.rfftfreq(num_data_points, 1 / fs)
             data_freqs = noise_freqs[noise_freqs >= add_noise["min_freq"]]
 
@@ -430,17 +437,14 @@ def create_data_set(
             noise_channel1 = (
                 np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[0]
-                * 0.125
             )
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
-                * 0.125
             )
             noise_channel3 = (
                 np.sqrt(tdi.noisepsd_T(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[2]
-                * 0.125
             )
 
         else:
@@ -448,17 +452,14 @@ def create_data_set(
             noise_channel1 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[0]
-                * 0.125
             )
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
-                * 0.125
             )
             noise_channel3 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[2]
-                * 0.125
             )
 
     generate_freqs = np.logspace(
@@ -486,7 +487,8 @@ def create_data_set(
         fake_ASD,
         fake_ASD,
         TDItag_in,
-        waveform_params["t_obs_dur"],
+        waveform_params["t_obs_start"],
+        waveform_params["t_obs_end"],
         nwalkers,
         ndevices,
     )

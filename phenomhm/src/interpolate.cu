@@ -260,11 +260,11 @@ Interpolate amp, phase, and response transfer functions on GPU.
 __global__
 void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
-    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_dur, int num_walkers){
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
     //int mode_i = blockIdx.y;
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double time_start, amp, phase, phaseRdelay, f_min_limit, f_max_limit, t0, tRef, t_break;
+    double time_check, amp, phase, phaseRdelay, f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     cuDoubleComplex ampphasefactor;
     cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
@@ -278,7 +278,8 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
      f_max_limit = old_freqs[walker_i*old_length + old_length-1];
      t0 = t0_arr[walker_i];
      tRef = tRef_arr[walker_i];
-     t_break = t0*YRSID_SI + tRef - t_obs_dur*YRSID_SI; // t0 and t_obs_dur in years. tRef in seconds.
+     t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
+     t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
 
     for (int i = blockIdx.x * blockDim.x + threadIdx.x;
          i < data_length;
@@ -292,7 +293,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
     /*# if __CUDA_ARCH__>=200
     if (i == 200)
-        printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_dur, t_break);
+        printf("times: %e %e, %e, %e \n", t0, tRef, t_obs_start, t_break_start);
 
     #endif*/
     /*for (int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -316,9 +317,13 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_2[old_ind_below];
             coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_3[old_ind_below];
 
-            time_start = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+            time_check = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            if (time_start < t_break) {
+            if (time_check < t_break_start) {
+                continue;
+            }
+
+            if ((t_obs_end > 0.0) && (time_check >= t_break_end)){
                 continue;
             }
 
@@ -359,7 +364,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             /*# if __CUDA_ARCH__>=200
             if (i == 15000)
-                printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_start, t_break, t0, tRef, amp, transferL1_re);
+                printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_check, t_break_start, t0, tRef, amp, transferL1_re);
 
             #endif //*/
 

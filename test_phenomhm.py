@@ -25,12 +25,12 @@ if __name__ == "__main__":
     }
 
     max_length_init = 2 ** 10
-    nwalkers, ndevices = 64, 2
+    nwalkers, ndevices = 64, 1
     l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32)
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)
     data_freqs, data_stream = None, None
     t0 = 1.0
-    t_obs_dur = 0.9
+    t_obs_start = 0.9
 
     data_params = {
         "ln_mT": np.log(4e7),
@@ -85,8 +85,9 @@ if __name__ == "__main__":
         data_freqs,
         data_stream,
         t0,
-        t_obs_dur,
         key_order,
+        t_obs_start,
+        t_obs_end=3 / 365.0,
         **prop_defaults
     )
 

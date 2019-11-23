@@ -86,7 +86,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     cmplx *data_channel3_, int data_stream_length_,
     double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_,
     int TDItag_,
-    double t_obs_dur_,
+    double t_obs_start_,
+    double t_obs_end_,
     int nwalkers_,
     int ndevices_){
 
@@ -106,7 +107,8 @@ PhenomHM::PhenomHM (int max_length_init_,
     nwalkers = nwalkers_;
 
     TDItag = TDItag_;
-    t_obs_dur = t_obs_dur_;
+    t_obs_start = t_obs_start_;
+    t_obs_end = t_obs_end_;
     to_gpu = 1;
 
     ndevices = ndevices_;
@@ -663,7 +665,7 @@ void PhenomHM::perform_interp(){
             cudaSetDevice(i);
             interpolate<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1[i], d_template_channel2[i], d_template_channel3[i], d_mode_vals[i], num_modes,
                 d_log10f, d_freqs[i], current_length, d_data_freqs[i], data_stream_length, d_t0_epoch[i],
-                d_tRef_sampling_frame[i], d_channel1_ASDinv[i], d_channel2_ASDinv[i], d_channel3_ASDinv[i], t_obs_dur, nwalkers);
+                d_tRef_sampling_frame[i], d_channel1_ASDinv[i], d_channel2_ASDinv[i], d_channel3_ASDinv[i], t_obs_start, t_obs_end, nwalkers);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
         }

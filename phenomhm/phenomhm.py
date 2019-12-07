@@ -54,7 +54,7 @@ class pyPhenomHM(Converter):
             "num_data_points": int(2 ** 19),
             "df": None,
             "tLtoSSB": True,
-            "noise_kwargs": {"model": "SciRDv1"},
+            "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
         }
 
         for prop, default in prop_defaults.items():
@@ -146,7 +146,11 @@ class pyPhenomHM(Converter):
             )
             self.channel3_ASDinv = (
                 1.0
-                / np.sqrt(tdi.noisepsd_T(self.data_freqs, **self.noise_kwargs))
+                / np.sqrt(
+                    tdi.noisepsd_T(
+                        self.data_freqs, model=kwargs["noise_kwargs"]["model"]
+                    )
+                )
                 * additional_factor
             )
 
@@ -443,7 +447,9 @@ def create_data_set(
                 * htilde[1]
             )
             noise_channel3 = (
-                np.sqrt(tdi.noisepsd_T(data_freqs, **kwargs["noise_kwargs"]))
+                np.sqrt(
+                    tdi.noisepsd_T(data_freqs, model=kwargs["noise_kwargs"]["model"])
+                )
                 * htilde[2]
             )
 

@@ -18,13 +18,13 @@ if __name__ == "__main__":
         "eps": 1e-6,
         "test_inds": None,
         "num_params": 11,
-        "num_data_points": int(2 ** 16),
+        "num_data_points": int(2 ** 19),
         "df": None,
         "tLtoSSB": True,
         "noise_kwargs": {"model": "SciRDv1"},
     }
 
-    max_length_init = 2 ** 10
+    max_length_init = 2 ** 12
     nwalkers, ndevices = 64, 1
     l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32)
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)
@@ -134,7 +134,8 @@ if __name__ == "__main__":
         )
 
     check = phenomhm.getNLL(waveform_params.T)
-    fishder = phenomhm.get_Fisher(waveform_params[0])
+    fisher = phenomhm.get_Fisher(waveform_params[0])
+    print(check[0:3])
     import pdb
 
     pdb.set_trace()

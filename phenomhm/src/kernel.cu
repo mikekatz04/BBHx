@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <cuComplex.h>
+#include "cuda_complex.hpp"
 
 #include "globalPhenomHM.h"
 
@@ -276,26 +276,6 @@ double d_IMRPhenomHMFreqDomainMap(
     return Mf22;
 }
 
-
-__device__ __forceinline__ cuDoubleComplex my_cexpf (cuDoubleComplex z)
-
-{
-
-
-
-    cuDoubleComplex t = make_cuDoubleComplex (exp (cuCreal(z)), 0.0);
-
-    cuDoubleComplex v = make_cuDoubleComplex (cos(cuCimag(z)), sin(cuCimag(z)));
-    cuDoubleComplex res = cuCmul(t, v);
-    return res;
-
-}
-
-
-__device__ double complex_norm(double real, double imag){
-   return sqrt(real*real + imag*imag);
-}
-
 __device__
 double d_IMRPhenomHMOnePointFiveSpinPN(
     double fM,
@@ -310,8 +290,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     // LLondon 2017
 
     // Define effective intinsic parameters
-    double Hlm_real = 0.0;
-    double Hlm_imag = 0.0;
+		agcmplx Hlm = 0;
     double M_INPUT = M1 + M2;
     M1 = M1 / (M_INPUT);
     M2 = M2 / (M_INPUT);
@@ -321,18 +300,19 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     double Xs = 0.5 * (X1z + X2z);
     double Xa = 0.5 * (X1z - X2z);
     double ans = 0;
+    agcmplx I(0.0, 1.0);
 
-    // Define PN parameter and realed powers
+		// Define PN parameter and realed powers
     double v = pow(M * 2.0 * PI * fM / m, 1.0 / 3.0);
     double v2 = v * v;
     double v3 = v * v2;
 
-    // Define Leading Order Ampitude for each supported multipole
+		// Define Leading Order Ampitude for each supported multipole
     if (l == 2 && m == 2)
     {
         // (l,m) = (2,2)
         // THIS IS LEADING ORDER
-        Hlm_real = 1.0;
+        Hlm = 1.0;
     }
     else if (l == 2 && m == 1)
     {
@@ -341,7 +321,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
 
         // UP TO 4PN
         double v4 = v * v3;
-        Hlm_real = (sqrt(2.0) / 3.0) * \
+        Hlm = (sqrt(2.0) / 3.0) * \
             ( \
                 v * delta - v2 * 1.5 * (Xa + delta * Xs) + \
                 v3 * delta * ((335.0 / 672.0) + (eta * 117.0 / 56.0)
@@ -351,42 +331,41 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
                 ( \
                 Xa * (3427.0 / 1344 - eta * 2101.0 / 336) + \
                 delta * Xs * (3427.0 / 1344 - eta * 965 / 336) + \
-                delta * (- PI))
+                delta * (-I * 0.5 - PI - 2.0 * I * 0.69314718056) \
+                )
             );
-        Hlm_imag =  (sqrt(2.0) / 3.0) * v4 *(delta * (-0.5 - 2 * 0.69314718056)); //I is in the end of this statement in each term in parentheses
-
     }
     else if (l == 3 && m == 3)
     {
         // (l,m) = (3,3)
         // THIS IS LEADING ORDER
-        Hlm_real = 0.75 * sqrt(5.0 / 7.0) * (v * delta);
+        Hlm = 0.75 * sqrt(5.0 / 7.0) * (v * delta);
     }
     else if (l == 3 && m == 2)
     {
         // (l,m) = (3,2)
         // NO SPIN TERMS to avoid roots
-        Hlm_real = (1.0 / 3.0) * sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta));
+        Hlm = (1.0 / 3.0) * sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta));
     }
     else if (l == 4 && m == 4)
     {
         // (l,m) = (4,4)
         // THIS IS LEADING ORDER
-        Hlm_real = (4.0 / 9.0) * sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta);
+        Hlm = (4.0 / 9.0) * sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta);
     }
     else if (l == 4 && m == 3)
     {
         // (l,m) = (4,3)
         // NO SPIN TERMS TO ADD AT DESIRED ORDER
-        Hlm_real = 0.75 * sqrt(3.0 / 35.0) * v3 * delta * (1.0 - 2.0 * eta);
+        Hlm = 0.75 * sqrt(3.0 / 35.0) * v3 * delta * (1.0 - 2.0 * eta);
     }
-    else
-    {
-        //printf("requested ell = %i and m = %i mode not available, check documentation for available modes\n", l, m);
-        //ERROR(PD_EDOM, "error");
-    }
+    //else
+    //{
+    //    printf("requested ell = %i and m = %i mode not available, check documentation for available modes\n", l, m);
+    //    assert(0); //ERROR(PD_EDOM, "error");
+    //}
     // Compute the final PN Amplitude at Leading Order in fM
-    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * complex_norm(Hlm_real, Hlm_imag);
+    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * gcmplx::abs(Hlm);
 
     return ans;
 }
@@ -781,7 +760,7 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
            double amp, phase;
            int status_in_for;
            UsefulPowers powers_of_f;
-           //cuDoubleComplex J = make_cuDoubleComplex(0.0, 1.0);
+
            int retcode = 0;
 
            double Mf = freq_geom;

@@ -244,25 +244,10 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 }
 
 /*
-Auxillary functino for complex exponential on GPU
-*/
-__device__
-cuDoubleComplex d_complex_exp (cuDoubleComplex arg)
-{
-   cuDoubleComplex res;
-   double s, c;
-   double e = exp(arg.x);
-   sincos(arg.y, &s, &c);
-   res.x = c * e;
-   res.y = s * e;
-   return res;
-}
-
-/*
 Interpolate amp, phase, and response transfer functions on GPU.
 */
 __global__
-void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, cuDoubleComplex *channel3_out, ModeContainer* old_mode_vals,
+void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
     double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
     //int mode_i = blockIdx.y;
@@ -270,10 +255,10 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
     double time_check, amp, phase, phaseRdelay, f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
-    cuDoubleComplex ampphasefactor;
-    cuDoubleComplex I = make_cuDoubleComplex(0.0, 1.0);
+    agcmplx ampphasefactor;
+    agcmplx I = agcmplx(0.0, 1.0);
     int old_ind_below;
-    cuDoubleComplex trans_complex;
+    agcmplx trans_complex;
     for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
          walker_i < num_walkers;
          walker_i += blockDim.z * gridDim.z){
@@ -290,9 +275,9 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
          i += blockDim.x * gridDim.x){
     //if (mode_i >= num_modes) return;
 
-        channel1_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-        channel2_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
-        channel3_out[walker_i*data_length + i] = make_cuDoubleComplex(0.0, 0.0);
+        channel1_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
+        channel2_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
+        channel3_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
 
 
     /*# if __CUDA_ARCH__>=200
@@ -356,7 +341,7 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
             coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-            ampphasefactor = cuCmul(make_cuDoubleComplex(amp,0.0), d_complex_exp(make_cuDoubleComplex(0.0, phase + phaseRdelay)));
+            ampphasefactor = amp*gcmplx::exp(agcmplx(0.0, phase + phaseRdelay));
 
             // X or A
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re[old_ind_below];
@@ -379,9 +364,9 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL1_re, transferL1_im), ampphasefactor), make_cuDoubleComplex(channel1_ASDinv[i], 0.0)); //TODO may be faster to load as complex number with 0.0 for imaginary part
+            trans_complex = agcmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
 
-            channel1_out[walker_i*data_length + i] = cuCadd(channel1_out[walker_i*data_length + i], trans_complex);
+            channel1_out[walker_i*data_length + i] += trans_complex;
             // Y or E
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re[old_ind_below];
             coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_1[old_ind_below];
@@ -397,9 +382,9 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL2_re, transferL2_im), ampphasefactor), make_cuDoubleComplex(channel2_ASDinv[i], 0.0));
+            trans_complex = agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
 
-            channel2_out[walker_i*data_length + i] = cuCadd(channel2_out[walker_i*data_length + i], trans_complex);
+            channel2_out[walker_i*data_length + i] += trans_complex;
 
             // Z or T
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re[old_ind_below];
@@ -416,10 +401,9 @@ void interpolate(cuDoubleComplex *channel1_out, cuDoubleComplex *channel2_out, c
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = cuCmul(cuCmul(make_cuDoubleComplex(transferL3_re, transferL3_im), ampphasefactor), make_cuDoubleComplex(channel3_ASDinv[i], 0.0));
+            trans_complex = agcmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
 
-            // add to this channel
-            channel3_out[walker_i*data_length + i] = cuCadd(channel3_out[walker_i*data_length + i], trans_complex);
+            channel3_out[walker_i*data_length + i] += trans_complex;
     }
 }
 }

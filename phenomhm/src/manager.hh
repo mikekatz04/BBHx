@@ -77,7 +77,7 @@ class PhenomHM {
   PhenDAmpAndPhasePreComp **d_pDPreComp_all_trans;
   HMPhasePreComp **d_q_all_trans;
   double **d_cShift;
-  cuDoubleComplex **d_H;
+  agcmplx **d_H;
   double** d_t0;
   double** d_phi0;
   double** d_amp0;
@@ -107,14 +107,14 @@ class PhenomHM {
   double *channel2_ASDinv;
   double *channel3_ASDinv;
 
-    double **d_data_freqs;
-  cuDoubleComplex **d_data_channel1;
-  cuDoubleComplex **d_data_channel2;
-  cuDoubleComplex **d_data_channel3;
+  double **d_data_freqs;
+  agcmplx **d_data_channel1;
+  agcmplx **d_data_channel2;
+  agcmplx **d_data_channel3;
 
-  cuDoubleComplex **d_template_channel1;
-  cuDoubleComplex **d_template_channel2;
-  cuDoubleComplex **d_template_channel3;
+  agcmplx **d_template_channel1;
+  agcmplx **d_template_channel2;
+  agcmplx **d_template_channel3;
   double **d_channel1_ASDinv;
   double **d_channel2_ASDinv;
   double **d_channel3_ASDinv;

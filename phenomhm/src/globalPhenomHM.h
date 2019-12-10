@@ -27,6 +27,7 @@
 
 #include <stdlib.h>
 #include <complex>
+#include "cuda_complex.hpp"
 
 
 #define PI        3.141592653589793238462643383279502884
@@ -84,6 +85,7 @@
 #define PHI_fJoin_INS 0.018
 
 typedef std::complex<double> cmplx;
+typedef gcmplx::complex<double> agcmplx;
 
 typedef struct tagRealVector {
     double* data;

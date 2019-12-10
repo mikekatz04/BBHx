@@ -515,31 +515,6 @@ void PhenomHM::setup_interp_wave(){
 /*
 Get LISA fast Fourier domain response on GPU
 */
-__global__
-void check_response(ModeContainer *mode_vals, int num_modes, int nwalkers, int length){
-    double orig_val, val;
-    int mode_ind;
-    for (int i=0; i< length; i++){
-
-    for (int mode_i=0; mode_i<num_modes; mode_i++){
-        for (int j=0; j<nwalkers; j++){
-            mode_ind = j*num_modes + mode_i;
-            if (j==0) orig_val = mode_vals[mode_ind].transferL1_re[i];
-            else {
-                val = mode_vals[mode_ind].transferL1_re[i];
-                if (val != orig_val){
-                    # if __CUDA_ARCH__>=200
-                        printf("%d, %d, %d, %.12e, %.12e\n", j, mode_i, i, val, orig_val);
-                    #endif //*/
-                }
-            }
-        }
-    }
-    }
-
-
-
-}
 
 void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double* psi_, double* t0_epoch_, double* tRef_wave_frame_, double* tRef_sampling_frame_, double* merger_freq_){
     inc = inc_;
@@ -605,11 +580,6 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
             gpuErrchk(cudaGetLastError());
         }
     }
-
-    /*cudaSetDevice(0);
-    check_response<<<1,1>>>(d_mode_vals[0], num_modes, nwalkers, current_length);
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());*/
 
     if (current_status == 1) current_status = 2;
 }
@@ -803,7 +773,7 @@ void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 /*
 auxillary function for getting amplitude and phase to the CPU
 */
-__global__ void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
+CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
     if (i >= length) return;

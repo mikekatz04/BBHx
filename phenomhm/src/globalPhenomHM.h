@@ -29,6 +29,14 @@
 #include <complex>
 #include "cuda_complex.hpp"
 
+#ifdef __CUDACC__
+#define CUDA_CALLABLE_MEMBER __host__ __device__
+#define CUDA_KERNEL __global__
+#else
+#define CUDA_CALLABLE_MEMBER
+#define CUDA_KERNEL
+#endif
+
 
 #define PI        3.141592653589793238462643383279502884
 #define TWOPI     6.283185307179586476925286766559005768

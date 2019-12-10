@@ -47,13 +47,13 @@ typedef struct tagd_transferL_holder{
     double phaseRdelay;
 } d_transferL_holder;
 
-__device__
+CUDA_CALLABLE_MEMBER
 double d_sinc(double x){
     if (x == 0.0) return 1.0;
     else return sin(x)/x;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double d_dot_product_1d(double arr1[3], double arr2[3]){
     double out = 0.0;
     for (int i=0; i<3; i++){
@@ -62,7 +62,7 @@ double d_dot_product_1d(double arr1[3], double arr2[3]){
     return out;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 agcmplx d_vec_H_vec_product(double arr1[3], agcmplx *H, double arr2[3]){
     agcmplx c_arr1[3] = {agcmplx(arr1[0], 0.0),
                                  agcmplx(arr1[1], 0.0),
@@ -87,8 +87,8 @@ agcmplx d_vec_H_vec_product(double arr1[3], agcmplx *H, double arr2[3]){
 
 /* # Single-link response
 # 'full' does include the orbital-delay term, 'constellation' does not
-# t can be a scalar or a 1D vector */
-__device__
+ */
+CUDA_CALLABLE_MEMBER
 d_Gslr_holder d_EvaluateGslr(double t, double f, agcmplx *H, double k[3], int response){
     // response == 1 is full ,, response anything else is constellation
     //# Trajectories, p0 used only for the full response
@@ -158,7 +158,7 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, agcmplx *H, double k[3], int re
     return Gslr_out;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, int rescaled){
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
@@ -207,7 +207,7 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
     }
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 d_transferL_holder d_JustLISAFDresponseTDI(agcmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
     t = t + t0*YRSID_SI;
 
@@ -242,7 +242,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(agcmplx *H, double f, double t, doubl
 }
 
 
-__global__
+CUDA_KERNEL
 void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, agcmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
     double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
@@ -348,7 +348,7 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, agcmplx *H, dou
 
 }
 
-__global__
+CUDA_KERNEL
 void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers){
 
     double f, tRef_wave_frame;

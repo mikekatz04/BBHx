@@ -54,7 +54,7 @@ using namespace std;
 /*
 fill the B array on the GPU for response transfer functions.
 */
-__global__
+CUDA_KERNEL
 void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 8;
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -102,7 +102,7 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
 /*
 fill B array on GPU for amp and phase
 */
-__global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+CUDA_KERNEL void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 2;
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
          mode_i < num_modes;
@@ -129,7 +129,7 @@ __global__ void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, i
 /*
 find spline constants based on matrix solution for response transfer functions.
 */
-__global__
+CUDA_KERNEL
 void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 8;
@@ -212,7 +212,7 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
 Find spline coefficients after matrix calculation on GPU for amp and phase
 */
 
-__global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+CUDA_KERNEL void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
 
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 2;
@@ -246,7 +246,7 @@ __global__ void set_spline_constants_wave(ModeContainer *mode_vals, double *B, i
 /*
 Interpolate amp, phase, and response transfer functions on GPU.
 */
-__global__
+CUDA_KERNEL
 void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
     double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
@@ -476,7 +476,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
 /*
 setup tridiagonal matrix for interpolation solution
 */
-__global__
+CUDA_KERNEL
 void setup_d_vals(double *dl, double *d, double *du, int m, int n){
     for (int j = blockIdx.y * blockDim.y + threadIdx.y;
          j < n;
@@ -518,7 +518,7 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     Interpolate::gpu_fit_constants(B);
 }
 
-__global__
+CUDA_KERNEL
 void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
 
     //double *x, *d;

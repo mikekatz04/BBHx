@@ -34,7 +34,7 @@
 #include "globalPhenomHM.h"
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 int d_init_useful_powers(UsefulPowers *p, double number)
 {
 	//CHECK(0 != p, PD_EFAULT, "p is NULL");
@@ -56,7 +56,7 @@ int d_init_useful_powers(UsefulPowers *p, double number)
 /**
  * domain mapping function - ringdown
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double d_IMRPhenomHMTrd(
     double Mf,
     double Mf_RD_22,
@@ -86,7 +86,7 @@ double d_IMRPhenomHMTrd(
  * mathematica function Ti
  * domain mapping function - inspiral
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double d_IMRPhenomHMTi(double Mf, const int mm)
 {
     return 2.0 * Mf / mm;
@@ -96,7 +96,7 @@ double d_IMRPhenomHMTi(double Mf, const int mm)
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int d_IMRPhenomHMSlopeAmAndBm(
     double *Am,
     double *Bm,
@@ -124,7 +124,7 @@ int d_IMRPhenomHMSlopeAmAndBm(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int d_IMRPhenomHMMapParams(
     double *a,
     double *b,
@@ -163,7 +163,7 @@ int d_IMRPhenomHMMapParams(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int d_IMRPhenomHMFreqDomainMapParams(
     double *a,             /**< [Out]  */
     double *b,             /**< [Out]  */
@@ -250,7 +250,7 @@ int d_IMRPhenomHMFreqDomainMapParams(
  * and computes what frequency this corresponds
  * to scaled to the 22 mode.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double d_IMRPhenomHMFreqDomainMap(
     double Mflm,
     const int ell,
@@ -276,7 +276,7 @@ double d_IMRPhenomHMFreqDomainMap(
     return Mf22;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double d_IMRPhenomHMOnePointFiveSpinPN(
     double fM,
     int l,
@@ -370,7 +370,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     return ans;
 }
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   double d_AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors) {
     double Mf2 = powers_of_Mf->two;
     double Mf3 = Mf*Mf2;
@@ -382,7 +382,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
   			+ Mf3 * prefactors->three;
   }
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   double d_AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
     double fRD = p->fRD;
     double fDM = p->fDM;
@@ -395,7 +395,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
       * (fDMgamma3*gamma1) / (pow(fminfRD, 2.0) + pow(fDMgamma3, 2.0));
   }
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   double d_AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
     double Mf2 = Mf*Mf;
     double Mf3 = Mf*Mf2;
@@ -409,7 +409,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
    * This function computes the IMR amplitude given phenom coefficients.
    * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
    */
-  __device__ double d_IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
+  CUDA_CALLABLE_MEMBER double d_IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
     // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
     // The inspiral, intermediate and merger-ringdown amplitude parts
 
@@ -439,7 +439,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
     return AmpInt;
   }
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   double d_PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
   {
   	//CHECK(0 != pn, PD_EFAULT, "pn is NULL");
@@ -469,7 +469,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
   }
 
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   double d_PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
   {
     double sqrootf = sqrt(f);
@@ -483,7 +483,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
   		 + p->alpha4 * Rholm * atan((f - p->alpha5 * p->fRD) / (Rholm * p->fDM * Taulm));
   }
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   double d_PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
     // 1./eta in paper omitted and put in when need in the functions:
     // ComputeIMRPhenDPhaseConnectionCoefficients
@@ -493,7 +493,7 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
 
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
@@ -517,7 +517,7 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   return PhiInt;
 }
 
-  __device__
+  CUDA_CALLABLE_MEMBER
    double d_IMRPhenomDPhase_OneFrequency(
       double Mf,
       PhenDAmpAndPhasePreComp pD,
@@ -534,7 +534,7 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   }
 
 
-__device__
+CUDA_CALLABLE_MEMBER
  void calculate_each_mode(int i, ModeContainer mode_val,
      unsigned int ell,
      unsigned int mm,
@@ -694,7 +694,7 @@ __device__
 }
 
 
-__global__
+CUDA_KERNEL
 void kernel_calculate_all_modes(ModeContainer *mode_vals,
       PhenomHMStorage *pHM,
       double *freqs,
@@ -750,7 +750,7 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 
 
 
-  __device__
+  CUDA_CALLABLE_MEMBER
   void calculate_each_mode_PhenomD(int i, ModeContainer mode_val,
        double freq_geom,
        PhenDAmpAndPhasePreComp pDPreComp,
@@ -792,7 +792,7 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 
 
 
-  __global__
+  /*CUDA_KERNEL
   void kernel_calculate_all_modes_PhenomD(ModeContainer *mode_vals,
         double *freqs,
         double M_tot_sec,
@@ -808,10 +808,10 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
         double Mf_ref;
 
         unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-        /* if (mode_i >= num_modes) return;
-         for (int i = blockIdx.y * blockDim.x + threadIdx.x;
-            i < length;
-            i += blockDim.x * gridDim.y)*/
+        // if (mode_i >= num_modes) return;
+         //for (int i = blockIdx.y * blockDim.x + threadIdx.x;
+          //  i < length;
+            //i += blockDim.x * gridDim.y)
         if (i < num_points) // kernel setup should always make second part true
         {
            freq_geom = freqs[i]*M_tot_sec;
@@ -820,3 +820,4 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 
         }
     }
+*/

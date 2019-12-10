@@ -593,7 +593,7 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
 
             // Perform response
 
-            kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals[i], (cuDoubleComplex*)d_H[i], d_freqs[i], d_freqs[i], d_log10f, d_l_vals, d_m_vals,
+            kernel_JustLISAFDresponseTDI_wrap<<<gridDim, NUM_THREADS>>>(d_mode_vals[i], d_H[i], d_freqs[i], d_freqs[i], d_log10f, d_l_vals, d_m_vals,
                         num_modes, current_length, d_inc[i], d_lam[i], d_beta[i], d_psi[i], d_phiRef[i], d_t0_epoch[i],
                         d_tRef_wave_frame[i], d_tRef_sampling_frame[i], d_merger_freq[i], TDItag, 0, nwalkers);
             cudaDeviceSynchronize();

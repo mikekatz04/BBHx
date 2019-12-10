@@ -186,6 +186,7 @@ template<class T, class charT, class traits>
 #include <math.h>
 #include <sstream>
 
+namespace gcmplx {
 template<class _Tp> class  complex;
 
 template<class _Tp> complex<_Tp> operator*(const complex<_Tp>& __z, const complex<_Tp>& __w);
@@ -1298,6 +1299,6 @@ operator<<(std::basic_ostream<_CharT, _Traits>& __os, const complex<_Tp>& __x)
     return __os << __s.str();
 }
 
-//} // close namespace cuda_complex
+} // close namespace cuda_complex
 
 #endif // CUDA_COMPLEX_HPP

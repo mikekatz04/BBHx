@@ -26,6 +26,7 @@
 #define _GLOBAL_HEADER_
 
 #include <stdlib.h>
+#include <complex.h>
 #include "cuda_complex.hpp"
 
 
@@ -83,7 +84,8 @@
  */
 #define PHI_fJoin_INS 0.018
 
-typedef complex<double> cmplx;
+typedef std::complex<double> cmplx;
+typedef gcmplx::complex<double> agcmplx;
 
 typedef struct tagRealVector {
     double* data;

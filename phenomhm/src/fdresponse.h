@@ -26,7 +26,10 @@
 #ifndef _FD_RESPONSE_
 #define _FD_RESPONSE_
 
+#include <complex>
 #include "globalPhenomHM.h"
+
+typedef cmplx cmplx;
 
 typedef struct tagGslr_holder{
     cmplx G21;

@@ -242,48 +242,18 @@ d_transferL_holder d_JustLISAFDresponseTDI(agcmplx *H, double f, double t, doubl
 }
 
 
-CUDA_KERNEL
-void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, agcmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
-    double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers){
+CUDA_CALLABLE_MEMBER
+void kernel_JustLISAFDresponseTDI(ModeContainer *mode_vals, agcmplx *H, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points,
+    double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers,
+    double inc, double lam, double beta, double psi, double phi0, double t0, double tRef_wave_frame, double tRef_sampling_frame, double merger_freq,
+    int mode_index, double f, int i, int walker_i
+    ){
     // TDItag == 1 is XYZ, TDItag == 2 is AET
     double phasetimeshift;
     double phi_up, phi;
 
-    double f, t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
+    double t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
-
-    double inc, lam, beta, psi, phi0, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq;
-
-    int mode_index, freq_ind;
-
-    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
-         walker_i < num_walkers;
-         walker_i += blockDim.z * gridDim.z){
-
-        inc = inc_arr[walker_i];
-        lam = lam_arr[walker_i];
-        beta = beta_arr[walker_i];
-        psi = psi_arr[walker_i];
-        phi0 = phi0_arr[walker_i];
-        t0 = t0_arr[walker_i];
-        tRef_wave_frame = tRef_wave_frame_arr[walker_i];
-        tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
-        merger_freq = merger_freq_arr[walker_i];
-
-     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-          mode_i < num_modes;
-          mode_i += blockDim.y * gridDim.y){
-
-              mode_index = walker_i*num_modes + mode_i;
-
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < num_points;
-         i += blockDim.x * gridDim.x){
-
-             freq_ind = walker_i*num_points + i;
-
-
-            f = frqs[freq_ind];
 
             if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[walker_i*num_points + 1] - old_freqs[walker_i*num_points + 0]);
             else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[walker_i*num_points + num_points-1] - old_freqs[walker_i*num_points + num_points-2]);
@@ -343,17 +313,69 @@ void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, agcmplx *H, dou
             mode_vals[mode_index].phaseRdelay[i] = transferL.phaseRdelay;
 
 }
+
+CUDA_KERNEL
+void kernel_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, agcmplx *H, double *frqs, double *old_freqs, double d_log10f, unsigned int *l_vals, unsigned int *m_vals, int num_modes, int num_points, double *inc_arr, double *lam_arr, double *beta_arr, double *psi_arr, double *phi0_arr, double *t0_arr, double *tRef_wave_frame_arr, double *tRef_sampling_frame_arr,
+    double *merger_freq_arr, int TDItag, int order_fresnel_stencil, int num_walkers
+  ){
+    // TDItag == 1 is XYZ, TDItag == 2 is AET
+    double inc, lam, beta, psi, phi0, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq;
+
+    int mode_index, freq_ind;
+
+    double f;
+
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < num_walkers;
+         walker_i += blockDim.z * gridDim.z){
+
+        inc = inc_arr[walker_i];
+        lam = lam_arr[walker_i];
+        beta = beta_arr[walker_i];
+        psi = psi_arr[walker_i];
+        phi0 = phi0_arr[walker_i];
+        t0 = t0_arr[walker_i];
+        tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+        tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
+        merger_freq = merger_freq_arr[walker_i];
+
+     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+          mode_i < num_modes;
+          mode_i += blockDim.y * gridDim.y){
+
+              mode_index = walker_i*num_modes + mode_i;
+
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < num_points;
+         i += blockDim.x * gridDim.x){
+
+
+          freq_ind = walker_i*num_points + i;
+
+
+         f = frqs[freq_ind];
+
+           kernel_JustLISAFDresponseTDI(mode_vals, H, old_freqs, d_log10f, l_vals, m_vals, num_modes, num_points,
+               merger_freq_arr, TDItag, order_fresnel_stencil, num_walkers,
+               inc, lam, beta, psi, phi0, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq,
+                mode_index, f, i, walker_i
+              );
+    }
+  }
 }
 }
 
+
+CUDA_CALLABLE_MEMBER
+void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double f, int mode_index, double tRef_wave_frame, int i){
+      mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
 }
 
 CUDA_KERNEL
-void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers){
+void kernel_add_tRef_phase_shift_wrap(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers){
 
     double f, tRef_wave_frame;
     int mode_index;
-
 
     for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
          walker_i < num_walkers;
@@ -370,7 +392,7 @@ void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double *frqs, int num
 
              f = frqs[walker_i*num_points + i];
 
-            mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
+            kernel_add_tRef_phase_shift(mode_vals, f, mode_index, tRef_wave_frame, i);
         }
     }
 }

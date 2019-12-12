@@ -54,17 +54,9 @@ using namespace std;
 /*
 fill the B array on the GPU for response transfer functions.
 */
-CUDA_KERNEL
-void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+CUDA_CALLABLE_MEMBER
+void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
     int num_pars = 8;
-    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-         mode_i < num_modes;
-         mode_i += blockDim.y * gridDim.y){
-
-       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < f_length;
-            i += blockDim.x * gridDim.x){
-
             if (i == f_length - 1){
 
                 B[(i*num_pars*num_modes) + 0*num_modes + mode_i] = 3.0* (mode_vals[mode_i].phaseRdelay[i] - mode_vals[mode_i].phaseRdelay[i-1]);
@@ -96,14 +88,10 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
                 B[(i*num_pars*num_modes) + 7*num_modes + mode_i] = 3.0* (mode_vals[mode_i].time_freq_corr[i+1] - mode_vals[mode_i].time_freq_corr[i-1]);
             }
 }
-}
-}
 
-/*
-fill B array on GPU for amp and phase
-*/
-CUDA_KERNEL void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
-    int num_pars = 2;
+CUDA_KERNEL
+void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int num_pars = 8;
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
          mode_i < num_modes;
          mode_i += blockDim.y * gridDim.y){
@@ -111,6 +99,18 @@ CUDA_KERNEL void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, 
        for (int i = blockIdx.x * blockDim.x + threadIdx.x;
             i < f_length;
             i += blockDim.x * gridDim.x){
+
+              fill_B_response(mode_vals, B, f_length, num_modes, mode_i, i);
+
+}
+}
+}
+
+/*
+fill B array on GPU for amp and phase
+*/
+CUDA_CALLABLE_MEMBER void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+    int num_pars = 2;
     if (i == f_length - 1){
         B[i*num_modes + mode_i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
         B[(num_modes*f_length) + i*num_modes + mode_i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
@@ -122,6 +122,21 @@ CUDA_KERNEL void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, 
         B[(num_modes*f_length) + i*num_modes + mode_i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
     }
 }
+
+
+CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int num_pars = 2;
+    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+         mode_i < num_modes;
+         mode_i += blockDim.y * gridDim.y){
+
+       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+            i < f_length;
+            i += blockDim.x * gridDim.x){
+
+              fill_B_wave(mode_vals, B, f_length, num_modes, mode_i, i);
+
+}
 }
 }
 
@@ -129,17 +144,10 @@ CUDA_KERNEL void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, 
 /*
 find spline constants based on matrix solution for response transfer functions.
 */
-CUDA_KERNEL
-void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+CUDA_CALLABLE_MEMBER
+void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 8;
-    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-         mode_i < num_modes;
-         mode_i += blockDim.y * gridDim.y){
-
-       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < f_length-1;
-            i += blockDim.x * gridDim.x){
 
             D_i = B[(i*num_pars*num_modes) + 0*num_modes + mode_i];
             D_ip1 = B[((i+1)*num_pars*num_modes) + 0*num_modes + mode_i];
@@ -204,7 +212,24 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
             mode_vals[mode_i].time_freq_coeff_1[i] = D_i;
             mode_vals[mode_i].time_freq_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
             mode_vals[mode_i].time_freq_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
+
 }
+
+CUDA_KERNEL
+void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    double D_i, D_ip1, y_i, y_ip1;
+    int num_pars = 8;
+    for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+         mode_i < num_modes;
+         mode_i += blockDim.y * gridDim.y){
+
+       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+            i < f_length-1;
+            i += blockDim.x * gridDim.x){
+
+              set_spline_constants_response(mode_vals, B, f_length, num_modes, mode_i, i);
+
+  }
 }
 }
 
@@ -212,17 +237,10 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
 Find spline coefficients after matrix calculation on GPU for amp and phase
 */
 
-CUDA_KERNEL void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+CUDA_CALLABLE_MEMBER void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
 
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 2;
-     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
-          mode_i < num_modes;
-          mode_i += blockDim.y * gridDim.y){
-
-        for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-             i < f_length-1;
-             i += blockDim.x * gridDim.x){
 
     D_i = B[i*num_modes + mode_i];
     D_ip1 = B[(i+1)*num_modes + mode_i];
@@ -240,39 +258,42 @@ CUDA_KERNEL void set_spline_constants_wave(ModeContainer *mode_vals, double *B, 
     mode_vals[mode_i].phase_coeff_2[i] = 3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1;
     mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
+
+CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+
+    double D_i, D_ip1, y_i, y_ip1;
+    int num_pars = 2;
+     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
+          mode_i < num_modes;
+          mode_i += blockDim.y * gridDim.y){
+
+        for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+             i < f_length-1;
+             i += blockDim.x * gridDim.x){
+
+               set_spline_constants_wave(mode_vals, B, f_length, num_modes, mode_i, i);
+}
 }
 }
 
 /*
 Interpolate amp, phase, and response transfer functions on GPU.
 */
-CUDA_KERNEL
+CUDA_CALLABLE_MEMBER
 void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
-    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
-    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length,
+    double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv, int num_walkers,
+    double f_min_limit, double f_max_limit, double t_break_start, double t_break_end, double t_obs_end, int walker_i, int i){
     //int mode_i = blockIdx.y;
 
     double f, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3;
-    double time_check, amp, phase, phaseRdelay, f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end;
+    double time_check, amp, phase, phaseRdelay;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     agcmplx ampphasefactor;
     agcmplx I = agcmplx(0.0, 1.0);
     int old_ind_below;
     agcmplx trans_complex;
-    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
-         walker_i < num_walkers;
-         walker_i += blockDim.z * gridDim.z){
 
-     f_min_limit = old_freqs[walker_i*old_length];
-     f_max_limit = old_freqs[walker_i*old_length + old_length-1];
-     t0 = t0_arr[walker_i];
-     tRef = tRef_arr[walker_i];
-     t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
-     t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
-
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-         i < data_length;
-         i += blockDim.x * gridDim.x){
     //if (mode_i >= num_modes) return;
 
         channel1_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
@@ -289,17 +310,17 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
          i < data_length;
          i += blockDim.x * gridDim.x)
       {*/
+      f = data_freqs[i];
+      old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
+
+      if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
+          return;
+      }
+      x = (f - old_freqs[walker_i*old_length + old_ind_below])/(old_freqs[walker_i*old_length + old_ind_below+1] - old_freqs[walker_i*old_length + old_ind_below]);
+      x2 = x*x;
+      x3 = x*x2;
 
     for (int mode_i=0; mode_i<num_modes; mode_i++){
-            f = data_freqs[i];
-            old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
-
-            if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
-                return;
-            }
-            x = (f - old_freqs[walker_i*old_length + old_ind_below])/(old_freqs[walker_i*old_length + old_ind_below+1] - old_freqs[walker_i*old_length + old_ind_below]);
-            x2 = x*x;
-            x3 = x*x2;
             // interp time frequency to remove less than 0.0
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_corr[old_ind_below];
             coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_1[old_ind_below];
@@ -404,7 +425,37 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
             trans_complex = agcmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             channel3_out[walker_i*data_length + i] += trans_complex;
-    }
+
+          }
+}
+
+CUDA_KERNEL
+void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
+    //int mode_i = blockIdx.y;
+
+    double f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end;
+
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < num_walkers;
+         walker_i += blockDim.z * gridDim.z){
+
+     f_min_limit = old_freqs[walker_i*old_length];
+     f_max_limit = old_freqs[walker_i*old_length + old_length-1];
+     t0 = t0_arr[walker_i];
+     tRef = tRef_arr[walker_i];
+     t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
+     t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
+
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < data_length;
+         i += blockDim.x * gridDim.x){
+
+            interpolate(channel1_out, channel2_out, channel3_out, old_mode_vals, num_modes, d_log10f, old_freqs, old_length,
+                        data_freqs, data_length, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, num_walkers,
+                        f_min_limit, f_max_limit, t_break_start, t_break_end, t_obs_end, walker_i, i);
+
 }
 }
 }
@@ -423,10 +474,11 @@ allocate arrays for interpolation
 
 __host__
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
-    double *w = new double[m];
-    double *a = new double[m];
-    double *b = new double[m];
-    double *c = new double[m];
+    w = new double[m];
+    a = new double[m];
+    b = new double[m];
+    c = new double[m];
+    x = new double[m];
 
     a[0] = 0.0;
     b[0] = 2.0;
@@ -449,6 +501,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
      b[i] = b[i] - w[i]*c[i-1];
  }
 
+    #ifdef __CUDACC__
     gpuErrchk_here(cudaMalloc(&d_b, m*sizeof(double)));
     gpuErrchk_here(cudaMemcpy(d_b, b, m*sizeof(double), cudaMemcpyHostToDevice));
 
@@ -459,12 +512,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
     gpuErrchk_here(cudaMemcpy(d_w, w, m*sizeof(double), cudaMemcpyHostToDevice));
 
     gpuErrchk_here(cudaMalloc(&d_x, m*n*sizeof(double)));
-
-    delete[] w;
-    delete[] a;
-    delete[] b;
-    delete[] c;
-
+    #endif
     //CUSPARSE_CALL( cusparseCreate(&handle) );
     //cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
     //cusparseDestroy(handle);
@@ -473,34 +521,6 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
     //cudaMalloc(&pBuffer, bufferSizeInBytes);
 }
 
-/*
-setup tridiagonal matrix for interpolation solution
-*/
-CUDA_KERNEL
-void setup_d_vals(double *dl, double *d, double *du, int m, int n){
-    for (int j = blockIdx.y * blockDim.y + threadIdx.y;
-         j < n;
-         j += blockDim.y * gridDim.y){
-
-       for (int i = blockIdx.x * blockDim.x + threadIdx.x;
-            i < m;
-            i += blockDim.x * gridDim.x){
-    if (i == 0){
-        dl[j*m + 0] = 0.0;
-        d[j*m + 0] = 2.0;
-        du[j*m + 0] = 1.0;
-    } else if (i == m - 1){
-        dl[j*m + m-1] = 1.0;
-        d[j*m + m-1] = 2.0;
-        du[j*m + m-1] = 0.0;
-    } else{
-        dl[j*m + i] = 1.0;
-        d[j*m + i] = 4.0;
-        du[j*m + i] = 1.0;
-    }
-}
-}
-}
 
 /*
 solve matrix solution for tridiagonal matrix for cublic spline.
@@ -509,14 +529,10 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     m = m_;
     n = n_;
     to_gpu = to_gpu_;
-    int NUM_THREADS = 256;
 
-    int num_blocks = std::ceil((m + NUM_THREADS -1)/NUM_THREADS);
-    //setup_d_vals<<<dim3(num_blocks, n), NUM_THREADS>>>(d_dl, d_d, d_du, m, n);
-    cudaDeviceSynchronize();
-    gpuErrchk_here(cudaGetLastError());
     Interpolate::gpu_fit_constants(B);
 }
+
 
 CUDA_KERNEL
 void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
@@ -543,6 +559,37 @@ void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, dou
     }
 }
 
+CUDA_CALLABLE_MEMBER
+void fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in, int j){
+
+        # pragma unroll
+        for (int i=2; i<m; i++){
+            //printf("%d\n", i);
+            d_in[i*n + j] = d_in[i*n + j] - w[i]*d_in[(i-1)*n + j];
+            //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
+        }
+
+        x_in[(m-1)*n + j] = d_in[(m-1)*n + j]/b[m-1];
+        d_in[(m-1)*n + j] = x_in[(m-1)*n + j];
+        # pragma unroll
+        for (int i=(m-2); i>=0; i--){
+            x_in[i*n + j] = (d_in[i*n + j] - c[i]*x_in[(i+1)*n + j])/b[i];
+            d_in[i*n + j] = x_in[i*n + j];
+        }
+}
+
+CUDA_KERNEL
+void fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
+
+    //double *x, *d;
+    for (int j = blockIdx.x * blockDim.x + threadIdx.x;
+         j < n;
+         j += blockDim.x * gridDim.x){
+
+           fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
+    }
+}
+
 /*
 Use cuSparse to perform matrix calcuation.
 */
@@ -553,7 +600,7 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
     //cusparseDestroy(handle);
     int NUM_THREADS = 256;
     int num_blocks = std::ceil((n + NUM_THREADS -1)/NUM_THREADS);
-    gpu_fit_constants_serial<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_b, d_c, B, d_x);
+    fit_constants_serial_wrap<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_b, d_c, B, d_x);
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
 
@@ -564,9 +611,15 @@ __host__ void Interpolate::gpu_fit_constants(double *B){
 Deallocate
 */
 __host__ Interpolate::~Interpolate(){
+  delete[] w;
+  delete[] a;
+  delete[] b;
+  delete[] c;
+  delete[] x;
     cudaFree(d_b);
     cudaFree(d_c);
     cudaFree(d_w);
     cudaFree(d_x);
+
     cudaFree(pBuffer);
 }

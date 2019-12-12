@@ -30,6 +30,11 @@ class Interpolate{
     double *w;
     double *D;
 
+    double *a;
+    double *b;
+    double *c;
+    double *x;
+
     double *d_b;
     double *d_c;
     double *d_w;

@@ -193,6 +193,9 @@ def test():
     tRef_wave_frame_in = np.full(nwalkers, tRef_wave_frame)
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
+    import pdb
+
+    pdb.set_trace()
 
     like2 = phenomHM.WaveformThroughLikelihood(
         freqs_in,

@@ -89,6 +89,7 @@ void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_
             }
 }
 
+#ifdef __CUDACC__
 CUDA_KERNEL
 void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 8;
@@ -105,6 +106,23 @@ void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int
 }
 }
 }
+#else
+void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int num_pars = 8;
+    for (int mode_i = ;
+         mode_i < num_modes;
+         mode_i += 1){
+
+       for (int i = 0;
+            i < f_length;
+            i += 1){
+
+              fill_B_response(mode_vals, B, f_length, num_modes, mode_i, i);
+
+}
+}
+}
+#endif
 
 /*
 fill B array on GPU for amp and phase
@@ -123,7 +141,7 @@ CUDA_CALLABLE_MEMBER void fill_B_wave(ModeContainer *mode_vals, double *B, int f
     }
 }
 
-
+#ifdef __CUDACC__
 CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 2;
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -139,7 +157,23 @@ CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_len
 }
 }
 }
+#else
+void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    int num_pars = 2;
+    for (int 0;
+         mode_i < num_modes;
+         mode_i += 1){
 
+       for (int i = 0;
+            i < f_length;
+            i += 1){
+
+              fill_B_wave(mode_vals, B, f_length, num_modes, mode_i, i);
+
+}
+}
+}
+#endif
 
 /*
 find spline constants based on matrix solution for response transfer functions.
@@ -215,6 +249,7 @@ void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_le
 
 }
 
+#ifdef __CUDACC__
 CUDA_KERNEL
 void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     double D_i, D_ip1, y_i, y_ip1;
@@ -232,6 +267,24 @@ void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int
   }
 }
 }
+#else
+void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+    double D_i, D_ip1, y_i, y_ip1;
+    int num_pars = 8;
+    for (int mode_i = 0;
+         mode_i < num_modes;
+         mode_i += 1){
+
+       for (int i = 0;
+            i < f_length-1;
+            i += 1){
+
+              set_spline_constants_response(mode_vals, B, f_length, num_modes, mode_i, i);
+
+  }
+}
+}
+#endif
 
 /*
 Find spline coefficients after matrix calculation on GPU for amp and phase
@@ -259,6 +312,7 @@ CUDA_CALLABLE_MEMBER void set_spline_constants_wave(ModeContainer *mode_vals, do
     mode_vals[mode_i].phase_coeff_3[i] = 2.0 * (y_i - y_ip1) + D_i + D_ip1;
 }
 
+#ifdef __CUDACC__
 CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
 
     double D_i, D_ip1, y_i, y_ip1;
@@ -275,6 +329,24 @@ CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double
 }
 }
 }
+#else
+void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+
+    double D_i, D_ip1, y_i, y_ip1;
+    int num_pars = 2;
+     for (int mode_i = 0;
+          mode_i < num_modes;
+          mode_i += 1){
+
+        for (int i = 0;
+             i < f_length-1;
+             i += 1){
+
+               set_spline_constants_wave(mode_vals, B, f_length, num_modes, mode_i, i);
+}
+}
+}
+#endif
 
 /*
 Interpolate amp, phase, and response transfer functions on GPU.
@@ -429,6 +501,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
           }
 }
 
+#ifdef __CUDACC__
 CUDA_KERNEL
 void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
@@ -459,6 +532,38 @@ void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *cha
 }
 }
 }
+
+#else
+void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double *channel1_ASDinv,
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
+    //int mode_i = blockIdx.y;
+
+    double f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end;
+
+    for (int walker_i = 0;
+         walker_i < num_walkers;
+         walker_i += 1){
+
+     f_min_limit = old_freqs[walker_i*old_length];
+     f_max_limit = old_freqs[walker_i*old_length + old_length-1];
+     t0 = t0_arr[walker_i];
+     tRef = tRef_arr[walker_i];
+     t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
+     t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
+
+    for (int i = 0;
+         i < data_length;
+         i += 1){
+
+            interpolate(channel1_out, channel2_out, channel3_out, old_mode_vals, num_modes, d_log10f, old_freqs, old_length,
+                        data_freqs, data_length, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, num_walkers,
+                        f_min_limit, f_max_limit, t_break_start, t_break_end, t_obs_end, walker_i, i);
+
+}
+}
+}
+#endif
 
 /*
 Interpolation class initializer
@@ -522,43 +627,6 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
 }
 
 
-/*
-solve matrix solution for tridiagonal matrix for cublic spline.
-*/
-void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
-    m = m_;
-    n = n_;
-    to_gpu = to_gpu_;
-
-    Interpolate::gpu_fit_constants(B);
-}
-
-
-CUDA_KERNEL
-void gpu_fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
-
-    //double *x, *d;
-    for (int j = blockIdx.x * blockDim.x + threadIdx.x;
-         j < n;
-         j += blockDim.x * gridDim.x){
-
-        # pragma unroll
-        for (int i=2; i<m; i++){
-            //printf("%d\n", i);
-            d_in[i*n + j] = d_in[i*n + j] - w[i]*d_in[(i-1)*n + j];
-            //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
-        }
-
-        x_in[(m-1)*n + j] = d_in[(m-1)*n + j]/b[m-1];
-        d_in[(m-1)*n + j] = x_in[(m-1)*n + j];
-        # pragma unroll
-        for (int i=(m-2); i>=0; i--){
-            x_in[i*n + j] = (d_in[i*n + j] - c[i]*x_in[(i+1)*n + j])/b[i];
-            d_in[i*n + j] = x_in[i*n + j];
-        }
-    }
-}
-
 CUDA_CALLABLE_MEMBER
 void fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in, int j){
 
@@ -578,6 +646,7 @@ void fit_constants_serial(int m, int n, double *w, double *b, double *c, double 
         }
 }
 
+#ifdef __CUDACC__
 CUDA_KERNEL
 void fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
 
@@ -590,20 +659,38 @@ void fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, do
     }
 }
 
+#else
+void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
+
+    //double *x, *d;
+    for (int j = 0;
+         j < n;
+         j += 1){
+
+           fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
+    }
+}
+#endif
+
+
+
 /*
-Use cuSparse to perform matrix calcuation.
+solve matrix solution for tridiagonal matrix for cublic spline.
 */
-__host__ void Interpolate::gpu_fit_constants(double *B){
-    //CUSPARSE_CALL( cusparseCreate(&handle) );
-    //cusparseStatus_t status = cusparseDgtsv2_nopivot(handle, m, n, d_dl, d_d, d_du, B, m, pBuffer);
-    //if (status !=  CUSPARSE_STATUS_SUCCESS) assert(0);
-    //cusparseDestroy(handle);
+void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
+    m = m_;
+    n = n_;
+    to_gpu = to_gpu_;
+
+    #ifdef __CUDACC__
     int NUM_THREADS = 256;
     int num_blocks = std::ceil((n + NUM_THREADS -1)/NUM_THREADS);
     fit_constants_serial_wrap<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_b, d_c, B, d_x);
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
-
+    #else
+    cpu_fit_constants_serial_wrap<<<num_blocks, NUM_THREADS>>>(m, n, w, b, c, B, x);
+    #endif
 }
 
 
@@ -616,10 +703,13 @@ __host__ Interpolate::~Interpolate(){
   delete[] b;
   delete[] c;
   delete[] x;
+
+  #ifdef __CUDACC__
     cudaFree(d_b);
     cudaFree(d_c);
     cudaFree(d_w);
     cudaFree(d_x);
 
     cudaFree(pBuffer);
+  #endif
 }

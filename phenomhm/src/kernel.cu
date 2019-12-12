@@ -790,6 +790,60 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 	}
 	}
 	  }
+#else
+void cpu_calculate_all_modes_wrap(ModeContainer *mode_vals,
+			PhenomHMStorage *pHM,
+			double *freqs,
+			double *M_tot_sec,
+			IMRPhenomDAmplitudeCoefficients *pAmp,
+			AmpInsPrefactors *amp_prefactors,
+			PhenDAmpAndPhasePreComp *pDPreComp_all,
+			HMPhasePreComp *q_all,
+			double *amp0,
+			int num_modes,
+			double *t0,
+			double *phi0,
+			double *cshift,
+		int nwalkers,
+		int length
+				){
+			unsigned int mm, ell;
+			double Rholm, Taulm;
+			double freq_geom;
+			for (int walker_i = 0;
+					 walker_i < nwalkers;
+					 walker_i += 1){
+
+			 for (int mode_i = 0;
+						mode_i < num_modes;
+						mode_i += 1){
+
+			for (int i = 0;
+					 i < length;
+					 i += 1){
+
+						 kernel_calculate_all_modes(mode_vals,
+									 pHM,
+									 freqs,
+									 M_tot_sec,
+									 pAmp,
+									 amp_prefactors,
+									 pDPreComp_all,
+									 q_all,
+									 amp0,
+									 mode_i,
+									 t0,
+									 phi0,
+									 cshift,
+									 walker_i,
+									 i,
+									num_modes,
+								length);
+
+}
+}
+}
+	}
 #endif
 
 

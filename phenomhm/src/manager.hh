@@ -98,6 +98,8 @@ class PhenomHM {
   ModeContainer **d_mode_vals;
   int ndevices;
 
+  double *cShift;
+
   double *data_freqs;
   cmplx *data_channel1;
   cmplx *data_channel2;
@@ -141,6 +143,14 @@ class PhenomHM {
   double** d_merger_freq;
   double** d_phiRef;
   double d_log10f;
+
+  double *template_channel1;
+  double *template_channel2;
+  double *template_channel3;
+
+  agcmplx *h_data_channel1;
+  agcmplx *h_data_channel2;
+  agcmplx *h_data_channel3;
 
 
 public:
@@ -211,37 +221,5 @@ public:
   void GetAmpPhase(double* amp_, double* phase_);
 };
 
-
-static char *_cudaGetErrorEnum(cublasStatus_t error)
-{
-    switch (error)
-    {
-        case CUBLAS_STATUS_SUCCESS:
-            return "CUBLAS_STATUS_SUCCESS";
-
-        case CUBLAS_STATUS_NOT_INITIALIZED:
-            return "CUBLAS_STATUS_NOT_INITIALIZED";
-
-        case CUBLAS_STATUS_ALLOC_FAILED:
-            return "CUBLAS_STATUS_ALLOC_FAILED";
-
-        case CUBLAS_STATUS_INVALID_VALUE:
-            return "CUBLAS_STATUS_INVALID_VALUE";
-
-        case CUBLAS_STATUS_ARCH_MISMATCH:
-            return "CUBLAS_STATUS_ARCH_MISMATCH";
-
-        case CUBLAS_STATUS_MAPPING_ERROR:
-            return "CUBLAS_STATUS_MAPPING_ERROR";
-
-        case CUBLAS_STATUS_EXECUTION_FAILED:
-            return "CUBLAS_STATUS_EXECUTION_FAILED";
-
-        case CUBLAS_STATUS_INTERNAL_ERROR:
-            return "CUBLAS_STATUS_INTERNAL_ERROR";
-    }
-
-    return "<unknown>";
-}
 
 #endif //__MANAGER_H__

@@ -27,19 +27,33 @@
  *  MA  02111-1307  USA
  */
 
+#ifdef __CUDACC__
+
+#include "cuComplex.h"
+#include "cublas_v2.h"
 #include <kernel.cu>
 #include <likelihood.cu>
+#include "createGPUHolders.cu"
+#include "kernel_response.cu"
+#include "interpolate.cu"
+
+#else
+
+#include <kernel.cpp>
+#include <likelihood.cpp>
+#include "createGPUHolders.cpp"
+#include "kernel_response.cpp"
+#include "interpolate.cpp"
+
+#endif
+
 #include <manager.hh>
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
 #include <complex>
-#include "cuComplex.h"
-#include "cublas_v2.h"
-#include "interpolate.cu"
 #include "fdresponse.h"
-#include "createGPUHolders.cu"
-#include "kernel_response.cu"
+
 #include "omp.h"
 #include "cuda_complex.hpp"
 // TODO: CUTOFF PHASE WHEN IT STARTS TO GO BACK UP!!!

@@ -29,10 +29,14 @@
 
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
-#include "globalPhenomHM.h"
-#include <complex>
+
+#ifdef __CUDACC__
 #include "cuComplex.h"
 #include "cublas_v2.h"
+#endif
+
+#include "globalPhenomHM.h"
+#include <complex>
 #include "PhenomHM.h"
 #include "interpolate.hh"
 
@@ -83,12 +87,14 @@ class PhenomHM {
   double** d_amp0;
   double** d_M_tot_sec;
 
+  #ifdef __CUDACC__
   dim3 gridDim;
   int NUM_THREADS;
   int num_blocks;
 
   cublasHandle_t *handle;
   cublasStatus_t stat;
+  #endif
 
   // Interpolate related stuff
   Interpolate *interp;

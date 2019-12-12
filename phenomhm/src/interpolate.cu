@@ -26,7 +26,10 @@
 #include <assert.h>
 #include <cusparse_v2.h>
 #include "globalPhenomHM.h"
+#include "interpolate.hh"
 
+
+#ifdef __CUDACC__
 /*
 GPU error checking
 */
@@ -50,6 +53,7 @@ CuSparse error checking
 #define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
 #define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
 using namespace std;
+#endif
 
 /*
 fill the B array on the GPU for response transfer functions.
@@ -618,12 +622,6 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
 
     gpuErrchk_here(cudaMalloc(&d_x, m*n*sizeof(double)));
     #endif
-    //CUSPARSE_CALL( cusparseCreate(&handle) );
-    //cusparseDgtsv2_nopivot_bufferSizeExt(handle, m, n, d_dl, d_d, d_du, d_B, m, &bufferSizeInBytes);
-    //cusparseDestroy(handle);
-    //printf("buffer: %d\n", bufferSizeInBytes);
-
-    //cudaMalloc(&pBuffer, bufferSizeInBytes);
 }
 
 
@@ -710,6 +708,5 @@ __host__ Interpolate::~Interpolate(){
     cudaFree(d_w);
     cudaFree(d_x);
 
-    cudaFree(pBuffer);
   #endif
 }

@@ -83,13 +83,6 @@ class PhenomHM {
   double** d_amp0;
   double** d_M_tot_sec;
 
-  agcmplx *template_channel1;
-  agcmplx *template_channel2;
-  agcmplx *template_channel3;
-  agcmplx *h_data_channel1;
-  agcmplx *h_data_channel2;
-  agcmplx *h_data_channel3;
-
   dim3 gridDim;
   int NUM_THREADS;
   int num_blocks;
@@ -109,7 +102,6 @@ class PhenomHM {
   cmplx *data_channel1;
   cmplx *data_channel2;
   cmplx *data_channel3;
-  double *cShift;
 
   double *channel1_ASDinv;
   double *channel2_ASDinv;

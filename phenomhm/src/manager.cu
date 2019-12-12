@@ -45,7 +45,6 @@
 
 using namespace std;
 
-#ifdef __CUDACC__
 void print_mem_info(){
         // show memory usage of GPU
 
@@ -77,7 +76,6 @@ void print_mem_info(){
 
             used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 }
-#endif
 
 PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
@@ -112,15 +110,12 @@ PhenomHM::PhenomHM (int max_length_init_,
     TDItag = TDItag_;
     t_obs_start = t_obs_start_;
     t_obs_end = t_obs_end_;
+    to_gpu = 1;
 
     ndevices = ndevices_;
 
-    #ifdef __CUDACC__
-    to_gpu = 1;
-    #else
-    to_gpu = 0;
-    assert(ndevices == 1);
-    #endif
+
+    cudaError_t err;
 
     // DECLARE ALL THE  NECESSARY STRUCTS
     pHM_trans = new PhenomHMStorage[nwalkers*ndevices];
@@ -144,22 +139,18 @@ PhenomHM::PhenomHM (int max_length_init_,
   mode_vals = cpu_create_modes(num_modes, nwalkers*ndevices, l_vals, m_vals, max_length_init, to_gpu, 1);
 
   // phase shifts for each m mode
-  cShift = new double[7];
-
-  cShift[0] = 0.0;
-  cShift[1] = PI_2; /* i shift */
-  cShift[2] = 0.0;
-  cShift[3] = -PI_2; /* -i shift */
-  cShift[4] = PI; /* 1 shift */
-  cShift[5] = PI_2;/* -1 shift */
-  cShift[6] = 0.0;
+  double cShift[7] = {0.0,
+                       PI_2 /* i shift */,
+                       0.0,
+                       -PI_2 /* -i shift */,
+                       PI /* 1 shift */,
+                       PI_2 /* -1 shift */,
+                       0.0};
 
    H = new cmplx[9*nwalkers*num_modes*ndevices];
 
    M_tot_sec = new double[nwalkers*ndevices];
 
-  #ifdef __CUDACC__
-  cudaError_t err;
   d_mode_vals = new ModeContainer*[ndevices];
   d_freqs = new double*[ndevices];
   d_H = new agcmplx*[ndevices];
@@ -210,6 +201,7 @@ PhenomHM::PhenomHM (int max_length_init_,
   d_phiRef = new double*[ndevices];
 
   handle = new cublasHandle_t[ndevices];
+  interp = new Interpolate[ndevices];
 
   for (int i=0; i<ndevices; i++){
       cudaSetDevice(i);
@@ -280,24 +272,10 @@ PhenomHM::PhenomHM (int max_length_init_,
           }
           // ----------------
 
-    #else
+    // initialize values needed for GPU waveform creation
+      //double t0_;
 
-    assert(ndevices == 1);
-    template_channel1 = new agcmplx[data_stream_length*nwalkers];
-    template_channel2 = new agcmplx[data_stream_length*nwalkers];
-    template_channel3 = new agcmplx[data_stream_length*nwalkers];
-
-    #endif
-
-    h_data_channel1 = new agcmplx[data_stream_length];
-    h_data_channel2 = new agcmplx[data_stream_length];
-    h_data_channel3 = new agcmplx[data_stream_length];
-
-
-    interp = new Interpolate[ndevices];
-
-
-
+      // alocate GPU arrays for interpolation
       interp[i].alloc_arrays(max_length_init, 8*num_modes*nwalkers, d_B[i]);
   }
 
@@ -315,22 +293,15 @@ void PhenomHM::input_data(double *data_freqs, cmplx *data_channel1,
 
     assert(data_stream_length_ == data_stream_length);
 
-
-    for (int i=0; i<data_stream_length; i++){
-        h_data_channel1[i] = agcmplx(data_channel1[i].real(), data_channel1[i].imag());
-        h_data_channel2[i] = agcmplx(data_channel2[i].real(), data_channel2[i].imag());
-        h_data_channel3[i] = agcmplx(data_channel3[i].real(), data_channel3[i].imag());
-    }
-    #ifdef __CUDACC__
     for (int i=0; i<ndevices; i++){
         cudaSetDevice(i);
         gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel1[i], h_data_channel1, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel2[i], h_data_channel1, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel3[i], h_data_channel1, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
 
         gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
@@ -338,8 +309,6 @@ void PhenomHM::input_data(double *data_freqs, cmplx *data_channel1,
 
         gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
     }
-    #endif
-
 }
 
 /*
@@ -840,7 +809,6 @@ void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
 Destructor
 */
 PhenomHM::~PhenomHM() {
-  delete[] cShift;
   delete[] pHM_trans;
   delete[] pAmp_trans;
   delete[] amp_prefactors_trans;
@@ -852,14 +820,6 @@ PhenomHM::~PhenomHM() {
   delete[] M_tot_sec;
   cpu_destroy_modes(mode_vals);
   delete[] H;
-
-  delete[] h_data_channel1;
-  delete[] h_data_channel2;
-  delete[] h_data_channel3;
-
-    delete[] interp;
-
-  #ifdef __CUDACC__
 
   gpuErrchk(cudaFree(d_data_freqs));
   for (int i=0; i<ndevices; i++){
@@ -940,11 +900,6 @@ PhenomHM::~PhenomHM() {
   delete[] d_merger_freq;
   delete[] d_phiRef;
 
-  delete[] handle;
-
-  #else
-  delete[] template_channel1;
-  delete[] template_channel2;
-  delete[] template_channel3;
-  #endif
+    delete[] handle;
+    delete[] interp;
 }

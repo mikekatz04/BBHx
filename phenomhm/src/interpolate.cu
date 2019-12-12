@@ -24,7 +24,6 @@
 #include "manager.hh"
 #include "stdio.h"
 #include <assert.h>
-#include <cusparse_v2.h>
 #include "globalPhenomHM.h"
 #include "interpolate.hh"
 
@@ -43,16 +42,6 @@ inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool ab
    }
 }
 
-/*
-CuSparse error checking
-*/
-#define ERR_NE(X,Y) do { if ((X) != (Y)) { \
-                             fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
-                             exit(-1);}} while(0)
-
-#define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
-#define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
-using namespace std;
 #endif
 
 /*
@@ -113,7 +102,7 @@ void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int
 #else
 void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 8;
-    for (int mode_i = ;
+    for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
 
@@ -164,7 +153,7 @@ CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_len
 #else
 void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 2;
-    for (int 0;
+    for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
 
@@ -272,7 +261,7 @@ void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int
 }
 }
 #else
-void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+void cpu_set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 8;
     for (int mode_i = 0;
@@ -334,7 +323,7 @@ CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double
 }
 }
 #else
-void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+void cpu_set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
 
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 2;
@@ -581,7 +570,6 @@ Interpolate::Interpolate(){
 allocate arrays for interpolation
 */
 
-__host__
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
     w = new double[m];
     a = new double[m];
@@ -687,7 +675,7 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
     #else
-    cpu_fit_constants_serial_wrap<<<num_blocks, NUM_THREADS>>>(m, n, w, b, c, B, x);
+    cpu_fit_constants_serial_wrap(m, n, w, b, c, B, x);
     #endif
 }
 
@@ -695,7 +683,7 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
 /*
 Deallocate
 */
-__host__ Interpolate::~Interpolate(){
+Interpolate::~Interpolate(){
   delete[] w;
   delete[] a;
   delete[] b;

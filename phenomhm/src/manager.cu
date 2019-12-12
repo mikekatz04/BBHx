@@ -41,7 +41,6 @@
 
 #include <kernel.cpp>
 #include <likelihood.cpp>
-#include "createGPUHolders.cpp"
 #include "kernel_response.cpp"
 #include "interpolate.cpp"
 
@@ -671,7 +670,7 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
         }
     }
     #else
-    cpu_JustLISAFDresponseTDI_wrap(mode_vals, H, freqs, freqs, d_log10f, l_vals, m_vals,
+    cpu_JustLISAFDresponseTDI_wrap(mode_vals, (agcmplx*)H, freqs, freqs, d_log10f, l_vals, m_vals,
                 num_modes, current_length, inc, lam, beta, psi, phiRef, t0_epoch,
                 tRef_wave_frame, tRef_sampling_frame, merger_freq, TDItag, 0, nwalkers);
 
@@ -842,7 +841,7 @@ void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
       gpuErrchk(cudaFree(phase));
   }
   #else
-  for (int walker_i=0; walker_i<num_walkers; walker_i++){
+  for (int walker_i=0; walker_i<nwalkers; walker_i++){
     for (int mode_i=0; mode_i<num_modes; mode_i++){
       memcpy(&amp_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].amp, current_length*sizeof(double));
       memcpy(&phase_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].phase, current_length*sizeof(double));

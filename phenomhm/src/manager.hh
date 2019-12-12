@@ -99,6 +99,7 @@ class PhenomHM {
   // Interpolate related stuff
   Interpolate *interp;
   double **d_B;
+  double *B;
 
   ModeContainer *mode_vals;
   ModeContainer **d_mode_vals;
@@ -150,9 +151,9 @@ class PhenomHM {
   double** d_phiRef;
   double d_log10f;
 
-  double *template_channel1;
-  double *template_channel2;
-  double *template_channel3;
+  agcmplx *template_channel1;
+  agcmplx *template_channel2;
+  agcmplx *template_channel3;
 
   agcmplx *h_data_channel1;
   agcmplx *h_data_channel2;

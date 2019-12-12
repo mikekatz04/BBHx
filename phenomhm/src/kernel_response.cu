@@ -424,6 +424,7 @@ void kernel_add_tRef_phase_shift(ModeContainer *mode_vals, double f, int mode_in
       mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
 }
 
+#ifdef __CUDACC__
 CUDA_KERNEL
 void kernel_add_tRef_phase_shift_wrap(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers){
 
@@ -450,6 +451,35 @@ void kernel_add_tRef_phase_shift_wrap(ModeContainer *mode_vals, double *frqs, in
     }
 }
 }
+
+#else
+
+void cpu_add_tRef_phase_shift_wrap(ModeContainer *mode_vals, double *frqs, int num_modes, int num_points, double *tRef_wave_frame_arr, int num_walkers){
+
+    double f, tRef_wave_frame;
+    int mode_index;
+
+    for (int walker_i = 0;
+         walker_i < num_walkers;
+         walker_i += 1){
+             tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+     for (int mode_i = 0;
+          mode_i < num_modes;
+          mode_i += 1){
+
+          mode_index = walker_i*num_modes + mode_i;
+    for (int i = 0;
+         i < num_points;
+         i += 1){
+
+             f = frqs[walker_i*num_points + i];
+
+            kernel_add_tRef_phase_shift(mode_vals, f, mode_index, tRef_wave_frame, i);
+        }
+    }
+}
+}
+#endif
 
 
 

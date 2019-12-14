@@ -36,6 +36,8 @@
 #include "createGPUHolders.cu"
 #include "kernel_response.cu"
 #include "interpolate.cu"
+#include <cuda_runtime_api.h>
+#include <cuda.h>
 
 #else
 
@@ -316,7 +318,7 @@ PhenomHM::PhenomHM (int max_length_init_,
   }
 
   #else
-  B = new double[8*num_modes*nwalkers];
+  B = new double[8*max_length_init*num_modes*nwalkers];
   interp[0].alloc_arrays(max_length_init, 8*num_modes*nwalkers, B);
 
   template_channel1 = new agcmplx[data_stream_length*nwalkers];
@@ -963,4 +965,16 @@ PhenomHM::~PhenomHM() {
   #endif
 
   delete[] interp;
+}
+
+int GetDeviceCount(){
+    int num_device_check;
+    #ifdef __CUDACC__
+    cudaError_t cuda_status = cudaGetDeviceCount(&num_device_check);
+    if (cudaSuccess != cuda_status) num_device_check = 0;
+    #else
+    num_device_check = 0;
+    #endif
+    printf("NUMBER OF DEVICES: %d\n", num_device_check);
+    return num_device_check;
 }

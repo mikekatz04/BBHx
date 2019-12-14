@@ -228,5 +228,6 @@ public:
   void GetAmpPhase(double* amp_, double* phase_);
 };
 
+int GetDeviceCount();
 
 #endif //__MANAGER_H__

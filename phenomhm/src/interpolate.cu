@@ -152,6 +152,7 @@ CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_len
 }
 #else
 void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+
     int num_pars = 2;
     for (int mode_i = 0;
          mode_i < num_modes;
@@ -160,7 +161,6 @@ void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int
        for (int i = 0;
             i < f_length;
             i += 1){
-
               fill_B_wave(mode_vals, B, f_length, num_modes, mode_i, i);
 
 }
@@ -575,7 +575,7 @@ void Interpolate::alloc_arrays(int m, int n, double *d_B){
     a = new double[m];
     b = new double[m];
     c = new double[m];
-    x = new double[m];
+    x = new double[m*n];
 
     a[0] = 0.0;
     b[0] = 2.0;
@@ -620,7 +620,7 @@ void fit_constants_serial(int m, int n, double *w, double *b, double *c, double 
         for (int i=2; i<m; i++){
             //printf("%d\n", i);
             d_in[i*n + j] = d_in[i*n + j] - w[i]*d_in[(i-1)*n + j];
-            //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
+            //printf("in1: %d, %lf, %lf\n", i, w[i], d_in[i*n + j]);
         }
 
         x_in[(m-1)*n + j] = d_in[(m-1)*n + j]/b[m-1];
@@ -629,6 +629,7 @@ void fit_constants_serial(int m, int n, double *w, double *b, double *c, double 
         for (int i=(m-2); i>=0; i--){
             x_in[i*n + j] = (d_in[i*n + j] - c[i]*x_in[(i+1)*n + j])/b[i];
             d_in[i*n + j] = x_in[i*n + j];
+            //printf("in2: %d, %lf, %lf\n", i, d_in[i], x_in[i]);
         }
 }
 
@@ -652,7 +653,6 @@ void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c
     for (int j = 0;
          j < n;
          j += 1){
-
            fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
     }
 }

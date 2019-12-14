@@ -339,35 +339,39 @@ PhenomHM::PhenomHM (int max_length_init_,
 }
 
 
-void PhenomHM::input_data(double *data_freqs, cmplx *data_channel1,
-                          cmplx *data_channel2, cmplx *data_channel3,
-                          double *channel1_ASDinv, double *channel2_ASDinv,
-                          double *channel3_ASDinv, int data_stream_length_){
+void PhenomHM::input_data(double *data_freqs_, cmplx *data_channel1_,
+                          cmplx *data_channel2_, cmplx *data_channel3_,
+                          double *channel1_ASDinv_, double *channel2_ASDinv_,
+                          double *channel3_ASDinv_, int data_stream_length_){
 
     assert(data_stream_length_ == data_stream_length);
 
     #if __CUDACC__
     for (int i=0; i<ndevices; i++){
         cudaSetDevice(i);
-        gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel1[i], data_channel1_, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel2[i], data_channel2_, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_data_channel3[i], data_channel3_, data_stream_length*sizeof(agcmplx), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_channel1_ASDinv[i], channel1_ASDinv_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_channel2_ASDinv[i], channel2_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_channel2_ASDinv[i], channel2_ASDinv_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
 
-        gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(d_channel3_ASDinv[i], channel3_ASDinv_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
     }
 
     #else
-    memcpy(h_data_channel1, data_channel1, data_stream_length*sizeof(agcmplx));
-    memcpy(h_data_channel2, data_channel2, data_stream_length*sizeof(agcmplx));
-    memcpy(h_data_channel3, data_channel3, data_stream_length*sizeof(agcmplx));
+    memcpy(h_data_channel1, data_channel1_, data_stream_length*sizeof(agcmplx));
+    memcpy(h_data_channel2, data_channel2_, data_stream_length*sizeof(agcmplx));
+    memcpy(h_data_channel3, data_channel3_, data_stream_length*sizeof(agcmplx));
+
+    channel1_ASDinv = channel1_ASDinv_;
+    channel2_ASDinv = channel2_ASDinv_;
+    channel3_ASDinv = channel3_ASDinv_;
     #endif
 }
 

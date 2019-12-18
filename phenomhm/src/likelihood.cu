@@ -11,6 +11,11 @@
 #include "cuda_complex.hpp"
 #include "likelihood.hh"
 
+#ifdef __CUDACC__
+#else
+#include "omp.h"
+#endif
+
 
 #ifdef __CUDACC__
 void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1, agcmplx **d_data_channel2, agcmplx **d_data_channel3,
@@ -142,9 +147,11 @@ void cpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx *h_data_channel1, 
          char * status;
          double res;
          agcmplx temp;
+         int i=0;
          //nthreads = omp_get_num_threads();
          //th_id = omp_get_thread_num();
-         for (int i=0; i<nwalkers; i++){
+         #pragma omp parallel for private(d_h, h_h, temp, i)
+         for (i=0; i<nwalkers; i++){
                  d_h = 0.0;
                  h_h = 0.0;
                  // get data - template terms

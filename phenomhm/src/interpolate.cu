@@ -27,6 +27,11 @@
 #include "globalPhenomHM.h"
 #include "interpolate.hh"
 
+#ifdef __CUDACC__
+#else
+#include "omp.h"
+#endif
+
 
 #ifdef __CUDACC__
 /*
@@ -102,6 +107,7 @@ void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int
 #else
 void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     int num_pars = 8;
+    #pragma omp parallel for collapse(2)
     for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
@@ -154,6 +160,7 @@ CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_len
 void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
 
     int num_pars = 2;
+    #pragma omp parallel for collapse(2)
     for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
@@ -264,6 +271,7 @@ void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int
 void cpu_set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 8;
+    #pragma omp parallel for collapse(2)
     for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
@@ -327,6 +335,7 @@ void cpu_set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int
 
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 2;
+    #pragma omp parallel for collapse(2)
      for (int mode_i = 0;
           mode_i < num_modes;
           mode_i += 1){
@@ -534,20 +543,21 @@ void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx 
 
     double f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end;
 
+    #pragma omp parallel for collapse(2)
     for (int walker_i = 0;
          walker_i < num_walkers;
          walker_i += 1){
 
-     f_min_limit = old_freqs[walker_i*old_length];
-     f_max_limit = old_freqs[walker_i*old_length + old_length-1];
-     t0 = t0_arr[walker_i];
-     tRef = tRef_arr[walker_i];
-     t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
-     t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
-
     for (int i = 0;
          i < data_length;
          i += 1){
+
+           f_min_limit = old_freqs[walker_i*old_length];
+           f_max_limit = old_freqs[walker_i*old_length + old_length-1];
+           t0 = t0_arr[walker_i];
+           tRef = tRef_arr[walker_i];
+           t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
+           t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
 
             interpolate(channel1_out, channel2_out, channel3_out, old_mode_vals, num_modes, d_log10f, old_freqs, old_length,
                         data_freqs, data_length, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, num_walkers,
@@ -650,6 +660,7 @@ void fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, do
 void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
 
     //double *x, *d;
+    #pragma omp parallel for
     for (int j = 0;
          j < n;
          j += 1){

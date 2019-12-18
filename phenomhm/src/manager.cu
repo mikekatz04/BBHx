@@ -111,6 +111,11 @@ PhenomHM::PhenomHM (int max_length_init_,
     int nwalkers_,
     int ndevices_){
 
+    #pragma omp parallel
+    {
+      if (omp_get_thread_num() == 1) printf("NUM OMP THREADS: %d\n", omp_get_num_threads());
+    }
+
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;
@@ -402,12 +407,8 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     f_ref = f_ref_;
 
     int i, th_id, nthreads;
-    #pragma omp parallel private(th_id, i)
-    {
-    //for (int i=0; i<ndevices*nwalkers; i++){
-        nthreads = omp_get_num_threads();
-        th_id = omp_get_thread_num();
-        for (int i=th_id; i<ndevices*nwalkers; i+=nthreads){
+    #pragma omp parallel for
+    for (int i=0; i<ndevices*nwalkers; i+=1){
             PhenomHM::gen_amp_phase_prep(i, &freqs[i*current_length], current_length_,
                 m1_[i], //solar masses
                 m2_[i], //solar masses
@@ -419,7 +420,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
 
             M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
       }
-    }
 
     #ifdef __CUDACC__
     /* main: evaluate model at given frequencies on GPU */

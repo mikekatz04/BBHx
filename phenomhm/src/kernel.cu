@@ -33,6 +33,11 @@
 
 #include "globalPhenomHM.h"
 
+#ifdef __CUDACC__
+#else
+#include "omp.h"
+#endif
+
 
 CUDA_CALLABLE_MEMBER
 int d_init_useful_powers(UsefulPowers *p, double number)
@@ -810,6 +815,8 @@ void cpu_calculate_all_modes_wrap(ModeContainer *mode_vals,
 			unsigned int mm, ell;
 			double Rholm, Taulm;
 			double freq_geom;
+
+			#pragma omp parallel for collapse(3)
 			for (int walker_i = 0;
 					 walker_i < nwalkers;
 					 walker_i += 1){

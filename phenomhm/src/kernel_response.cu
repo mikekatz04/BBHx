@@ -29,6 +29,11 @@
 #include <stdlib.h>
 #include "fdresponse.h"
 
+#ifdef __CUDACC__
+#else
+#include "omp.h"
+#endif
+
 using namespace std;
 
 typedef struct tagd_Gslr_holder{
@@ -377,31 +382,30 @@ void cpu_JustLISAFDresponseTDI_wrap(ModeContainer *mode_vals, agcmplx *H, double
 
     double f;
 
+    #pragma omp parallel for collapse(3)
     for (int walker_i = 0;
          walker_i < num_walkers;
          walker_i += 1){
-
-        inc = inc_arr[walker_i];
-        lam = lam_arr[walker_i];
-        beta = beta_arr[walker_i];
-        psi = psi_arr[walker_i];
-        phi0 = phi0_arr[walker_i];
-        t0 = t0_arr[walker_i];
-        tRef_wave_frame = tRef_wave_frame_arr[walker_i];
-        tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
-        merger_freq = merger_freq_arr[walker_i];
 
      for (int mode_i = 0;
           mode_i < num_modes;
           mode_i += 1){
 
-              mode_index = walker_i*num_modes + mode_i;
-
     for (int i = 0;
          i < num_points;
          i += 1){
 
+           inc = inc_arr[walker_i];
+           lam = lam_arr[walker_i];
+           beta = beta_arr[walker_i];
+           psi = psi_arr[walker_i];
+           phi0 = phi0_arr[walker_i];
+           t0 = t0_arr[walker_i];
+           tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+           tRef_sampling_frame = tRef_sampling_frame_arr[walker_i];
+           merger_freq = merger_freq_arr[walker_i];
 
+          mode_index = walker_i*num_modes + mode_i;
           freq_ind = walker_i*num_points + i;
 
 
@@ -458,20 +462,21 @@ void cpu_add_tRef_phase_shift_wrap(ModeContainer *mode_vals, double *frqs, int n
 
     double f, tRef_wave_frame;
     int mode_index;
-
+    #pragma omp parallel for collapse(3)
     for (int walker_i = 0;
          walker_i < num_walkers;
          walker_i += 1){
-             tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+
      for (int mode_i = 0;
           mode_i < num_modes;
           mode_i += 1){
 
-          mode_index = walker_i*num_modes + mode_i;
+
     for (int i = 0;
          i < num_points;
          i += 1){
-
+           tRef_wave_frame = tRef_wave_frame_arr[walker_i];
+           mode_index = walker_i*num_modes + mode_i;
              f = frqs[walker_i*num_points + i];
 
             kernel_add_tRef_phase_shift(mode_vals, f, mode_index, tRef_wave_frame, i);

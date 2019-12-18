@@ -21,16 +21,17 @@ if __name__ == "__main__":
         "num_data_points": int(2 ** 19),
         "df": None,
         "tLtoSSB": True,
-        "noise_kwargs": {"model": "SciRDv1"},
+        "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
     }
 
     max_length_init = 2 ** 12
-    nwalkers, ndevices = 64, 1
+    nwalkers, ndevices = 24, 1
     l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32)
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)
     data_freqs, data_stream = None, None
     t0 = 1.0
     t_obs_start = 0.9
+    t_obs_end = 0.0
 
     data_params = {
         "ln_mT": np.log(4e7),
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         t0,
         key_order,
         t_obs_start,
-        t_obs_end=3 / 365.0,
+        t_obs_end=t_obs_end,
         **prop_defaults
     )
 

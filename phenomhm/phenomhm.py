@@ -276,7 +276,10 @@ class pyPhenomHM(Converter):
             return_TDI=return_TDI,
         )
 
-        if return_amp_phase or return_TDI:
+        if return_amp_phase:
+            return (freqs.reshape(len(lower_freq), -1),) + out
+
+        if return_TDI:
             return out
 
         d_h, h_h = out

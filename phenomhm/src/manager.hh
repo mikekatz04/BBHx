@@ -29,15 +29,16 @@
 
 #ifndef __MANAGER_H__
 #define __MANAGER_H__
-#include "globalPhenomHM.h"
-#include "PhenomHM.h"
-#include "interpolate.hh"
 
 #ifdef __CUDACC__
-#include<cuda_runtime_api.h>
-#include <cuda.h>
+#include "cuComplex.h"
 #include "cublas_v2.h"
 #endif
+
+#include "globalPhenomHM.h"
+#include <complex>
+#include "PhenomHM.h"
+#include "interpolate.hh"
 
 class PhenomHM {
   // pointer to the GPU memory where the array is stored
@@ -54,7 +55,6 @@ class PhenomHM {
   double* distance;
   double* phiRef;
   double* f_ref;
-  double* cShift;
   unsigned int *l_vals;
   unsigned int *m_vals;
   int num_modes;
@@ -81,16 +81,17 @@ class PhenomHM {
   PhenDAmpAndPhasePreComp **d_pDPreComp_all_trans;
   HMPhasePreComp **d_q_all_trans;
   double **d_cShift;
-  cmplx **d_H;
+  agcmplx **d_H;
   double** d_t0;
   double** d_phi0;
   double** d_amp0;
   double** d_M_tot_sec;
 
+  #ifdef __CUDACC__
+  dim3 gridDim;
   int NUM_THREADS;
   int num_blocks;
 
-  #ifdef __CUDACC__
   cublasHandle_t *handle;
   cublasStatus_t stat;
   #endif
@@ -104,9 +105,7 @@ class PhenomHM {
   ModeContainer **d_mode_vals;
   int ndevices;
 
-  cmplx * template_channel1;
-  cmplx * template_channel2;
-  cmplx * template_channel3;
+  double *cShift;
 
   double *data_freqs;
   cmplx *data_channel1;
@@ -117,14 +116,14 @@ class PhenomHM {
   double *channel2_ASDinv;
   double *channel3_ASDinv;
 
-    double **d_data_freqs;
-  cmplx **d_data_channel1;
-  cmplx **d_data_channel2;
-  cmplx **d_data_channel3;
+  double **d_data_freqs;
+  agcmplx **d_data_channel1;
+  agcmplx **d_data_channel2;
+  agcmplx **d_data_channel3;
 
-  cmplx **d_template_channel1;
-  cmplx **d_template_channel2;
-  cmplx **d_template_channel3;
+  agcmplx **d_template_channel1;
+  agcmplx **d_template_channel2;
+  agcmplx **d_template_channel3;
   double **d_channel1_ASDinv;
   double **d_channel2_ASDinv;
   double **d_channel3_ASDinv;
@@ -137,7 +136,8 @@ class PhenomHM {
   double* tRef_wave_frame;
   double* tRef_sampling_frame;
   int TDItag;
-  double t_obs_dur;
+  double t_obs_start;
+  double t_obs_end;
   double* merger_freq;
 
   double** d_inc;
@@ -150,6 +150,14 @@ class PhenomHM {
   double** d_merger_freq;
   double** d_phiRef;
   double d_log10f;
+
+  agcmplx *template_channel1;
+  agcmplx *template_channel2;
+  agcmplx *template_channel3;
+
+  agcmplx *h_data_channel1;
+  agcmplx *h_data_channel2;
+  agcmplx *h_data_channel3;
 
 
 public:
@@ -168,16 +176,22 @@ public:
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
+      double *data_freqs_,
+      cmplx *data_channel1_,
+      cmplx *data_channel2_,
+      cmplx *data_channel3_,
       int data_stream_length_,
+      double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_,
       int TDItag,
-      double t_obs_dur_,
+      double t_obs_start_,
+      double t_obs_end_,
       int nwalkers_,
       int ndevices_); // constructor (copies to GPU)
 
   ~PhenomHM(); // destructor
 
-  void input_data(double *data_freqs, double *data_channel1,
-                            double *data_channel2, double *data_channel3,
+  void input_data(double *data_freqs, cmplx *data_channel1,
+                            cmplx *data_channel2, cmplx *data_channel3,
                             double *channel1_ASDinv, double *channel2_ASDinv,
                             double *channel3_ASDinv, int data_stream_length_);
 
@@ -209,10 +223,9 @@ public:
 
   void Likelihood (double *d_h_arr, double *h_h_arr);
 
-  void GetTDI (double* X_, double* Y_, double* Z_);
+  void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
 
   void GetAmpPhase(double* amp_, double* phase_);
-
 };
 
 int GetDeviceCount();

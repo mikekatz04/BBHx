@@ -192,15 +192,15 @@ ext_cpu = Extension(
         "phenomhm/cpuPhenomHM.pyx",
     ],
     library_dirs=[lib_gsl_dir],
-    libraries=["gsl", "gslcblas", "gomp"],
+    libraries=["gsl", "gslcblas", "pthread"],
     language="c++",
     # sruntime_library_dirs = [CUDA['lib64']],
     # This syntax is specific to this build system
     # we're only going to use certain compiler args with nvcc
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
-    extra_compile_args={"gcc": ["-O3", "-fopenmp"]},
-    extra_link_args=["-lgomp", "-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
+    extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC"]},
+    extra_link_args=["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
     include_dirs=[numpy_include, include_gsl_dir, "phenomhm/src"],
 )
 

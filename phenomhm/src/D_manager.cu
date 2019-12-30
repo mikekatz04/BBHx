@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <iostream>
 #include "globalPhenomHM.h"
-
+#include <complex>
 #include "cuComplex.h"
 #include "cublas_v2.h"
 #include "interpolate.cu"

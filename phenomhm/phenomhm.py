@@ -28,7 +28,6 @@ except ImportError:
 if import_cpu:
     from cpuPhenomHM import PhenomHM
 
-
 import time
 
 MTSUN = 1.989e30 * ct.G / ct.c ** 3
@@ -45,8 +44,9 @@ class pyPhenomHM(Converter):
         data_freqs,
         data_stream,
         t0,
-        t_obs_dur,
         key_order,
+        t_obs_start,
+        t_obs_end=0.0,
         **kwargs
     ):
         """
@@ -65,7 +65,7 @@ class pyPhenomHM(Converter):
             "num_data_points": int(2 ** 19),
             "df": None,
             "tLtoSSB": True,
-            "noise_kwargs": {"model": "SciRDv1"},
+            "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
         }
 
         for prop, default in prop_defaults.items():
@@ -79,7 +79,8 @@ class pyPhenomHM(Converter):
 
         self.generator = None
         self.t0 = np.full(nwalkers * ndevices, t0)
-        self.t_obs_dur = t_obs_dur
+        self.t_obs_start = t_obs_start
+        self.t_obs_end = t_obs_end
         self.max_length_init = max_length_init
         self.l_vals, self.m_vals = l_vals, m_vals
         self.data_freqs, self.data_stream = data_freqs, data_stream
@@ -98,7 +99,8 @@ class pyPhenomHM(Converter):
                     + "dict with params for data stream."
                 )
             kwargs["data_params"]["t0"] = t0
-            kwargs["data_params"]["t_obs_dur"] = t_obs_dur
+            kwargs["data_params"]["t_obs_start"] = t_obs_start
+            kwargs["data_params"]["t_obs_end"] = t_obs_end
 
             self.data_freqs, self.data_stream, self.generator = create_data_set(
                 nwalkers,
@@ -155,7 +157,11 @@ class pyPhenomHM(Converter):
             )
             self.channel3_ASDinv = (
                 1.0
-                / np.sqrt(tdi.noisepsd_T(self.data_freqs, **self.noise_kwargs))
+                / np.sqrt(
+                    tdi.noisepsd_T(
+                        self.data_freqs, model=kwargs["noise_kwargs"]["model"]
+                    )
+                )
                 * additional_factor
             )
 
@@ -186,22 +192,32 @@ class pyPhenomHM(Converter):
         if self.generator is None:
             self.generator = PhenomHM(
                 self.max_length_init,
-                len(self.data_freqs),
                 self.l_vals,
                 self.m_vals,
+                self.data_freqs,
+                self.data_channel1,
+                self.data_channel2,
+                self.data_channel3,
+                self.channel1_ASDinv,
+                self.channel2_ASDinv,
+                self.channel3_ASDinv,
                 self.TDItag_in,
-                self.t_obs_dur,
+                self.t_obs_start,
+                self.t_obs_end,
+                self.nwalkers,
+                self.ndevices,
             )
 
-        self.generator.input_data(
-            self.data_freqs,
-            self.data_channel1,
-            self.data_channel2,
-            self.data_channel3,
-            self.channel1_ASDinv,
-            self.channel2_ASDinv,
-            self.channel3_ASDinv,
-        )
+        else:
+            self.generator.input_data(
+                self.data_freqs,
+                self.data_channel1,
+                self.data_channel2,
+                self.data_channel3,
+                self.channel1_ASDinv,
+                self.channel2_ASDinv,
+                self.channel3_ASDinv,
+            )
 
         self.fRef = np.zeros(nwalkers * ndevices)
 
@@ -260,7 +276,10 @@ class pyPhenomHM(Converter):
             return_TDI=return_TDI,
         )
 
-        if return_amp_phase or return_TDI:
+        if return_amp_phase:
+            return (freqs.reshape(len(lower_freq), -1),) + out
+
+        if return_TDI:
             return out
 
         d_h, h_h = out
@@ -339,36 +358,6 @@ class pyPhenomHM(Converter):
 
         return Mij
 
-    def gradNLL(self, x):
-        grad = np.zeros_like(x)
-        for i in range(len(self.test_inds)):
-            x_in = x.copy()
-
-            x_in[i] = x[i] + self.eps
-            like_up = self.getNLL(x_in)
-
-            x_in[i] = x[i] - self.eps
-            like_down = self.getNLL(x_in)
-
-            grad[i] = (like_up - like_down) / (2 * self.eps)
-        return grad
-
-    def deriv_2_of_NLL(self, x):
-        Mij = np.zeros_like(x)
-        f_x = self.getNLL(x)
-        for i in range(len(self.test_inds)):
-            x_in = x.copy()
-
-            x_in[i] = x[i] + 2 * self.eps
-            like_up = self.getNLL(x_in)
-
-            x_in[i] = x[i] - 2 * self.eps
-            like_down = self.getNLL(x_in)
-
-            Mij[i] = (like_up - 2 * f_x + like_down) / (4 * self.eps ** 2)
-
-        return Mij
-
 
 def create_data_set(
     nwalkers,
@@ -432,9 +421,10 @@ def create_data_set(
     if data_freqs is None:
         if add_noise is not None:
             fs = add_noise["fs"]
-            t_obs_dur = waveform_params["t_obs_dur"]
-            df = 1.0 / (t_obs_dur * ct.Julian_year)
-            num_data_points = int(t_obs_dur * ct.Julian_year * fs)
+            t_obs_start = waveform_params["t_obs_start"]
+            t_obs_end = waveform_params["t_obs_end"]
+            df = 1.0 / ((t_obs_start - t_obs_end) * ct.Julian_year)
+            num_data_points = int((t_obs_start - t_obs_end) * ct.Julian_year * fs)
             noise_freqs = np.fft.rfftfreq(num_data_points, 1 / fs)
             data_freqs = noise_freqs[noise_freqs >= add_noise["min_freq"]]
 
@@ -465,17 +455,16 @@ def create_data_set(
             noise_channel1 = (
                 np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[0]
-                * 0.125
             )
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
-                * 0.125
             )
             noise_channel3 = (
-                np.sqrt(tdi.noisepsd_T(data_freqs, **kwargs["noise_kwargs"]))
+                np.sqrt(
+                    tdi.noisepsd_T(data_freqs, model=kwargs["noise_kwargs"]["model"])
+                )
                 * htilde[2]
-                * 0.125
             )
 
         else:
@@ -483,17 +472,14 @@ def create_data_set(
             noise_channel1 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[0]
-                * 0.125
             )
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
-                * 0.125
             )
             noise_channel3 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[2]
-                * 0.125
             )
 
     generate_freqs = np.logspace(
@@ -511,17 +497,20 @@ def create_data_set(
 
     phenomHM = PhenomHM(
         len(generate_freqs),
-        len(data_freqs),
         l_vals,
         m_vals,
+        data_freqs,
+        fake_data,
+        fake_data,
+        fake_data,
+        fake_ASD,
+        fake_ASD,
+        fake_ASD,
         TDItag_in,
-        waveform_params["t_obs_dur"],
+        waveform_params["t_obs_start"],
+        waveform_params["t_obs_end"],
         nwalkers,
         ndevices,
-    )
-
-    phenomHM.input_data(
-        data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD
     )
 
     freqs = np.tile(generate_freqs, nwalkers * ndevices)

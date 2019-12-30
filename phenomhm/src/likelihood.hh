@@ -1,19 +1,18 @@
 #ifndef __LIKELIHOOD_H__
 #define __LIKELIHOOD_H__
 
-#include "omp.h"
-#include "globalPhenomHM.h"
-
 #ifdef __CUDACC__
 #include "cuComplex.h"
 #include "cublas_v2.h"
+#endif
 
-void GetLikelihood_GPU (double *d_h_arr, double *h_h_arr, int nwalkers, int ndevices, cublasHandle_t *handle,
-                cmplx **d_template_channel1, cmplx **d_data_channel1,
-                cmplx **d_template_channel2, cmplx **d_data_channel2,
-                cmplx **d_template_channel3, cmplx **d_data_channel3,
-                int data_stream_length);
+#include <assert.h>
+#include <iostream>
+#include "globalPhenomHM.h"
+#include <complex>
+#include "cuda_complex.hpp"
 
+#ifdef __CUDACC__
 static char *_cudaGetErrorEnum(cublasStatus_t error)
 {
     switch (error)
@@ -46,13 +45,5 @@ static char *_cudaGetErrorEnum(cublasStatus_t error)
     return "<unknown>";
 }
 #endif
-
-cmplx complex_dot_product(cmplx *arr1, cmplx *arr2, int n);
-
-void GetLikelihood_CPU(double *d_h_arr, double *h_h_arr, int nwalkers,
-                cmplx *template_channel1, cmplx *data_channel1,
-                cmplx *template_channel2, cmplx *data_channel2,
-                cmplx *template_channel3, cmplx *data_channel3,
-                int data_stream_length);
 
 #endif //__LIKELIHOOD_H__

@@ -15,7 +15,7 @@ except ImportError:
 
 def test():
     df = 1e-5
-    length = int(2 ** 22)
+    length = int(2 ** 16)
     data_length = int(2 * length)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2 * np.pi * 1e-3 * np.arange(data_length) * 0.1))
@@ -112,7 +112,8 @@ def test():
     # AE_ASDinv = np.ones_like(data_freqs)
     # T_ASDinv = np.ones_like(data_freqs)
 
-    t_obs_dur = 0.9
+    t_obs_start = 0.9
+    t_obs_end = 0.0
 
     inc = np.cos(2.98553920)
     lam = 5.900332547
@@ -132,18 +133,25 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print("init:", inc, lam, beta, psi, tRef_wave_frame)
-    nwalkers = 1
+    nwalkers = 150
     ndevices = 1
 
     # data_A, data_E, data_T = np.load('data_set.npy')
     data_A, data_E, data_T = data, data, data
     phenomHM = PhenomHM.PhenomHM(
         len(freq),
-        len(data_freqs),
         l_vals,
         m_vals,
+        data_freqs,
+        data_A,
+        data_E,
+        data_T,
+        AE_ASDinv,
+        AE_ASDinv,
+        T_ASDinv,
         TDItag,
-        t_obs_dur,
+        t_obs_start,
+        t_obs_end,
         nwalkers,
         ndevices,
     )
@@ -185,10 +193,9 @@ def test():
     tRef_wave_frame_in = np.full(nwalkers, tRef_wave_frame)
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
+    import pdb
 
-    phenomHM.input_data(
-        data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
-    )
+    pdb.set_trace()
 
     like2 = phenomHM.WaveformThroughLikelihood(
         freqs_in,
@@ -208,6 +215,10 @@ def test():
         tRef_sampling_frame_in,
         merger_freq_in,
         return_TDI=False,
+    )
+
+    phenomHM.input_data(
+        data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
     )
 
     for i in range(num):

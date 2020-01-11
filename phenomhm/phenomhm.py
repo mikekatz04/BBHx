@@ -248,6 +248,7 @@ class pyPhenomHM(Converter):
         return_amp_phase=False,
         return_TDI=False,
         return_snr=False,
+        return_response=False,
     ):
 
         Msec = (m1 + m2) * MTSUN
@@ -286,9 +287,13 @@ class pyPhenomHM(Converter):
             merger_freq,
             return_amp_phase=return_amp_phase,
             return_TDI=return_TDI,
+            return_response=return_response,
         )
 
         if return_amp_phase:
+            return (freqs.reshape(len(lower_freq), -1),) + out
+
+        if return_response:
             return (freqs.reshape(len(lower_freq), -1),) + out
 
         if return_TDI:

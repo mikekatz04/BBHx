@@ -13,7 +13,7 @@ cdef extern from "src/manager.hh":
         int, np.float64_t*,
         np.complex128_t *,
         np.complex128_t *,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, double, double, int, int)
+        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, np.float64_t, np.float64_t, int, int)
 
         void gen_amp_phase(np.float64_t *, int,
                             np.float64_t *,
@@ -39,6 +39,8 @@ cdef extern from "src/manager.hh":
 
         void Likelihood(np.float64_t*, np.float64_t*)
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
+        void GetResponse(np.complex128_t* transferL1_, np.complex128_t* transferL2_, np.complex128_t* transferL3_,
+                          np.float64_t* phaseRdelay_, np.float64_t* time_freq_corr_)
         void GetAmpPhase(np.float64_t*, np.float64_t*)
 
 cdef class PhenomHM:
@@ -162,6 +164,22 @@ cdef class PhenomHM:
 
         return (amp_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim), phase_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim))
 
+    def GetResponse(self):
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] transferL1_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] transferL2_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.complex128_t] transferL3_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.complex128)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phaseRdelay_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] time_freq_corr_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+
+        self.g.GetResponse(&transferL1_[0], &transferL2_[0], &transferL3_[0], &phaseRdelay_[0], &time_freq_corr_[0])
+
+        return (transferL1_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim),
+                transferL2_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim),
+                transferL3_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim),
+                phaseRdelay_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim),
+                time_freq_corr_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim))
+
+
     def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses
                         np.ndarray[ndim=1, dtype=np.float64_t] m2, #solar masses
@@ -178,7 +196,7 @@ cdef class PhenomHM:
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_wave_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] merger_freq,
-                        return_amp_phase=False, return_TDI=False):
+                        return_amp_phase=False, return_TDI=False, return_response=False):
 
         self.gen_amp_phase(freqs,
                             m1, #solar masses
@@ -194,6 +212,9 @@ cdef class PhenomHM:
             return self.GetAmpPhase()
 
         self.LISAresponseFD(inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq)
+        if return_response:
+            return self.GetResponse()
+
         self.setup_interp_wave()
         self.setup_interp_response()
         self.perform_interp()

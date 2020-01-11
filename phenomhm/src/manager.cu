@@ -810,6 +810,97 @@ void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
   #endif
 }
 
+
+/*
+auxillary function for getting amplitude and phase to the CPU
+*/
+#ifdef __CUDACC__
+CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, agcmplx *transferL1, agcmplx *transferL2, agcmplx *transferL3,
+                                    double* phaseRdelay, double *time_freq_corr, int num_modes, int length){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    if (i >= length) return;
+    if (mode_i >= num_modes) return;
+    transferL1[mode_i*length + i] = agcmplx(mode_vals[mode_i].transferL1_re[i], mode_vals[mode_i].transferL1_im[i]);
+    transferL2[mode_i*length + i] = agcmplx(mode_vals[mode_i].transferL2_re[i], mode_vals[mode_i].transferL2_im[i]);
+    transferL3[mode_i*length + i] = agcmplx(mode_vals[mode_i].transferL3_re[i], mode_vals[mode_i].transferL3_im[i]);
+    phaseRdelay[mode_i*length + i] = mode_vals[mode_i].phaseRdelay[i];
+    time_freq_corr[mode_i*length + i] = mode_vals[mode_i].time_freq_corr[i];
+
+}
+#endif
+
+/*
+Return amplitude and phase in python on CPU
+*/
+void PhenomHM::GetResponse(cmplx* transferL1_, cmplx* transferL2_, cmplx* transferL3_, double* phaseRdelay_, double* time_freq_corr_) {
+  assert(current_status >= 1);
+
+  #ifdef __CUDACC__
+  agcmplx *transferL1, *transferL2, *transferL3;
+  double *phaseRdelay, *time_freq_corr;
+
+  dim3 readOutDim(num_blocks, num_modes*nwalkers);
+  for (int i=0; i<ndevices; i++){
+      cudaSetDevice(i);
+      gpuErrchk(cudaMalloc(&transferL1, nwalkers*num_modes*current_length*sizeof(agcmplx)));
+      gpuErrchk(cudaMalloc(&transferL2, nwalkers*num_modes*current_length*sizeof(agcmplx)));
+      gpuErrchk(cudaMalloc(&transferL3, nwalkers*num_modes*current_length*sizeof(agcmplx)));
+      gpuErrchk(cudaMalloc(&phaseRdelay, nwalkers*num_modes*current_length*sizeof(double)));
+      gpuErrchk(cudaMalloc(&time_freq_corr, nwalkers*num_modes*current_length*sizeof(double)));
+      read_out_response<<<readOutDim, NUM_THREADS>>>(d_mode_vals[i], transferL1, transferL2, transferL3, phaseRdelay, time_freq_corr,
+                                                      nwalkers*num_modes, current_length);
+      cudaDeviceSynchronize();
+      gpuErrchk(cudaGetLastError());
+      gpuErrchk(cudaMemcpy(&transferL1_[i*nwalkers*num_modes*current_length], transferL1, nwalkers*num_modes*current_length*sizeof(agcmplx), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&transferL2_[i*nwalkers*num_modes*current_length], transferL2, nwalkers*num_modes*current_length*sizeof(agcmplx), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&transferL3_[i*nwalkers*num_modes*current_length], transferL3, nwalkers*num_modes*current_length*sizeof(agcmplx), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&phaseRdelay_[i*nwalkers*num_modes*current_length], phaseRdelay, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&time_freq_corr_[i*nwalkers*num_modes*current_length], time_freq_corr, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk( cudaFree(transferL1));
+      gpuErrchk(cudaFree(transferL2));
+      gpuErrchk(cudaFree(transferL3));
+      gpuErrchk(cudaFree(phaseRdelay));
+      gpuErrchk(cudaFree(time_freq_corr));
+  }
+  #else
+  double *transferL1_re = new double[nwalkers*num_modes*current_length];
+  double *transferL1_im = new double[nwalkers*num_modes*current_length];
+  double *transferL2_re = new double[nwalkers*num_modes*current_length];
+  double *transferL2_im = new double[nwalkers*num_modes*current_length];
+  double *transferL3_re = new double[nwalkers*num_modes*current_length];
+  double *transferL3_im = new double[nwalkers*num_modes*current_length];
+
+  for (int walker_i=0; walker_i<nwalkers; walker_i++){
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+      memcpy(&transferL1_re[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].transferL1_re, current_length*sizeof(double));
+      memcpy(&transferL1_im[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].transferL1_im, current_length*sizeof(double));
+      memcpy(&transferL2_re[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].transferL2_re, current_length*sizeof(double));
+      memcpy(&transferL2_im[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].transferL2_im, current_length*sizeof(double));
+      memcpy(&transferL3_re[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].transferL3_re, current_length*sizeof(double));
+      memcpy(&transferL3_im[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].transferL3_im, current_length*sizeof(double));
+
+      memcpy(&phaseRdelay_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].phaseRdelay, current_length*sizeof(double));
+      memcpy(&time_freq_corr_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].time_freq_corr, current_length*sizeof(double));
+
+  }
+}
+
+  for (int i=0; i<nwalkers*num_modes*current_length; i++){
+      transferL1_[i] = cmplx(transferL1_re[i], transferL1_im[i]);
+      transferL2_[i] = cmplx(transferL2_re[i], transferL2_im[i]);
+      transferL3_[i] = cmplx(transferL3_re[i], transferL3_im[i]);
+  }
+  delete[] transferL1_re;
+  delete[] transferL1_im;
+  delete[] transferL2_re;
+  delete[] transferL2_im;
+  delete[] transferL3_re;
+  delete[] transferL3_im;
+
+  #endif
+}
+
 /*
 auxillary function for getting amplitude and phase to the CPU
 */

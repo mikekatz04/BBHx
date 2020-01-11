@@ -226,6 +226,8 @@ public:
   void GetTDI (cmplx* X_, cmplx* Y_, cmplx* Z_);
 
   void GetAmpPhase(double* amp_, double* phase_);
+
+  void GetResponse(cmplx* transferL1_, cmplx* transferL2_, cmplx* transferL3_, double* phaseRdelay_, double* time_freq_corr_);
 };
 
 int GetDeviceCount();

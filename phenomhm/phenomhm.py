@@ -30,7 +30,7 @@ if import_cpu:
 
 import time
 
-MTSUN = 1.989e30 * ct.G / ct.c ** 3
+MTSUN = 1.988546954961461467461011951140572744e30 * ct.G / ct.c ** 3
 
 
 class pyPhenomHM(Converter):
@@ -461,7 +461,7 @@ def create_data_set(
                     np.log10(lower_freq), np.log10(upper_freq), num_data_points
                 )
             else:
-                data_freqs = np.arange(fmin, fmax + df, df)
+                data_freqs = np.arange(lower_freq, upper_freq + df, df)
 
     if add_noise is not None:
 

@@ -53,6 +53,7 @@ class pyPhenomHM(Converter):
         data_stream (dict): keys X, Y, Z or A, E, T
         """
         prop_defaults = {
+            "fRef": 0.0,
             "TDItag": "AET",  # AET or XYZ
             "max_dimensionless_freq": 0.5,
             "min_dimensionless_freq": 1e-4,
@@ -219,7 +220,15 @@ class pyPhenomHM(Converter):
                 self.channel3_ASDinv,
             )
 
-        self.fRef = np.zeros(nwalkers * ndevices)
+        if isinstance(self.fRef, str):
+            if self.fRef == "merger freq":
+                self.fRef_merger_freq = True
+            else:
+                raise ValueError("If fRef kwarg is a string, it must be merger freq.")
+
+        else:
+            self.fRef = np.full(nwalkers * ndevices, self.fRef)
+            self.fRef_merger_freq = False
 
     def NLL(
         self,
@@ -244,6 +253,9 @@ class pyPhenomHM(Converter):
         Msec = (m1 + m2) * MTSUN
         # merger frequency for 22 mode amplitude in phenomD
         merger_freq = 0.018 / Msec
+
+        if self.fRef_merger_freq:
+            self.fRef = self.fRef_merger_freq
 
         if freqs is None:
             upper_freq = self.max_dimensionless_freq / Msec
@@ -373,6 +385,7 @@ def create_data_set(
     num_data_points=int(2 ** 19),
     num_generate_points=int(2 ** 18),
     df=None,
+    fRef=0.0,
     min_dimensionless_freq=1e-4,
     max_dimensionless_freq=1.0,
     add_noise=None,
@@ -411,12 +424,20 @@ def create_data_set(
 
     waveform_params["distance"] = waveform_params["ln_distance"]
     waveform_params["tRef_wave_frame"] = waveform_params["ln_tRef"]
-    waveform_params["fRef"] = 0.0
 
     m1 = waveform_params["m1"]
     m2 = waveform_params["m2"]
     Msec = (m1 + m2) * MTSUN
     merger_freq = 0.018 / Msec
+
+    if isinstance(fRef, str):
+        if fRef == "merger freq":
+            waveform_params["fRef"] = merger_freq
+        else:
+            raise ValueError("If fRef kwarg is a string, it must be merger freq.")
+
+    else:
+        waveform_params["fRef"] = fRef
 
     if data_freqs is None:
         if add_noise is not None:

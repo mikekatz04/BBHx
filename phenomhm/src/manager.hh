@@ -228,6 +228,7 @@ public:
   void GetAmpPhase(double* amp_, double* phase_);
 
   void GetResponse(cmplx* transferL1_, cmplx* transferL2_, cmplx* transferL3_, double* phaseRdelay_, double* time_freq_corr_);
+  void GetPhaseSpline(double* phase_, double* coeff1_, double* coeff2_, double* coeff3_);
 };
 
 int GetDeviceCount();

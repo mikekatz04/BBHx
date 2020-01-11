@@ -42,6 +42,7 @@ cdef extern from "src/manager.hh":
         void GetResponse(np.complex128_t* transferL1_, np.complex128_t* transferL2_, np.complex128_t* transferL3_,
                           np.float64_t* phaseRdelay_, np.float64_t* time_freq_corr_)
         void GetAmpPhase(np.float64_t*, np.float64_t*)
+        void GetPhaseSpline(np.float64_t* phase, np.float64_t* coeff1_, np.float64_t* coeff2_, np.float64_t* coeff3_)
 
 cdef class PhenomHM:
     cdef PhenomHMwrap* g
@@ -164,6 +165,19 @@ cdef class PhenomHM:
 
         return (amp_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim), phase_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim))
 
+    def GetPhaseSpline(self):
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] phase_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] coeff1_ = np.zeros(((self.f_dim-1)*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] coeff2_ = np.zeros(((self.f_dim-1)*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+        cdef np.ndarray[ndim=1, dtype=np.float64_t] coeff3_ = np.zeros(((self.f_dim-1)*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.float64)
+
+        self.g.GetPhaseSpline(&phase_[0], &coeff1_[0], &coeff2_[0], &coeff3_[0])
+
+        return (phase_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim),
+                coeff1_.reshape(self.nwalkers*self.ndevices, self.num_modes, (self.f_dim-1)),
+                coeff2_.reshape(self.nwalkers*self.ndevices, self.num_modes, (self.f_dim-1)),
+                coeff3_.reshape(self.nwalkers*self.ndevices, self.num_modes, (self.f_dim-1)))
+
     def GetResponse(self):
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] transferL1_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.complex128)
         cdef np.ndarray[ndim=1, dtype=np.complex128_t] transferL2_ = np.zeros((self.f_dim*self.num_modes*self.nwalkers*self.ndevices,), dtype=np.complex128)
@@ -196,7 +210,7 @@ cdef class PhenomHM:
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_wave_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] merger_freq,
-                        return_amp_phase=False, return_TDI=False, return_response=False):
+                        return_amp_phase=False, return_TDI=False, return_response=False, return_phase_spline=False):
 
         self.gen_amp_phase(freqs,
                             m1, #solar masses
@@ -210,6 +224,10 @@ cdef class PhenomHM:
 
         if return_amp_phase:
             return self.GetAmpPhase()
+
+        if return_phase_spline:
+            self.setup_interp_wave()
+            return self.GetPhaseSpline()
 
         self.LISAresponseFD(inc, lam, beta, psi, t0, tRef_wave_frame, tRef_sampling_frame, merger_freq)
         if return_response:

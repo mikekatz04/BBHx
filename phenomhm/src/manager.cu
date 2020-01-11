@@ -918,6 +918,23 @@ CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, double *amp, doubl
 /*
 Return amplitude and phase in python on CPU
 */
+void PhenomHM::GetPhaseSpline(double* phase_, double* coeff1_, double* coeff2_, double* coeff3_) {
+  assert(current_status >= 1);
+
+  for (int walker_i=0; walker_i<nwalkers; walker_i++){
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+      memcpy(&phase_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].phase, current_length*sizeof(double));
+      memcpy(&coeff1_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_1, (current_length-1)*sizeof(double));
+      memcpy(&coeff2_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_2, (current_length-1)*sizeof(double));
+      memcpy(&coeff3_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_3, (current_length-1)*sizeof(double));
+    }
+}
+}
+
+
+/*
+Return amplitude and phase in python on CPU
+*/
 void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
   assert(current_status >= 1);
 

@@ -566,7 +566,7 @@ Setup interpolation of amp and phase
 */
 void PhenomHM::setup_interp_wave(){
 
-    assert(current_status >= 2);
+    //assert(current_status >= 2);
 
     #ifdef __CUDACC__
     dim3 waveInterpDim(num_blocks, num_modes*nwalkers);
@@ -623,7 +623,7 @@ void PhenomHM::LISAresponseFD(double* inc_, double* lam_, double* beta_, double*
 
     //printf("extrinsic: %e, %e, %e, %e, %e, %e, %e\n", inc, lam, beta, psi, t0_epoch, tRef_wave_frame, tRef_sampling_frame, merger_freq);
 
-    assert(current_status >= 1);
+    //assert(current_status >= 1);
     // get H on the CPU
     int i, th_id, nthreads;
     #pragma omp parallel private(th_id, i)
@@ -694,7 +694,7 @@ setup interpolation for the response transfer functions
 */
 void PhenomHM::setup_interp_response(){
 
-    assert(current_status >= 3);
+    //assert(current_status >= 3);
 
     #ifdef __CUDACC__
     dim3 responseInterpDim(num_blocks, num_modes*nwalkers);
@@ -735,7 +735,7 @@ void PhenomHM::setup_interp_response(){
 interpolate amp and phase up to frequencies of the data stream.
 */
 void PhenomHM::perform_interp(){
-    assert(current_status >= 4);
+    //assert(current_status >= 4);
 
     #ifdef __CUDACC__
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
@@ -785,7 +785,7 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
                                    data_stream_length, nwalkers, ndevices);
 
     #endif
-     assert(current_status == 5);
+     //assert(current_status == 5);
 
     //}
 }
@@ -795,7 +795,7 @@ Copy TDI channels to CPU and return to python.
 */
 void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 
-  assert(current_status > 4);
+  //assert(current_status > 4);
 
   #ifdef __CUDACC__
   for (int i=0; i<ndevices; i++){
@@ -836,7 +836,7 @@ CUDA_KERNEL void read_out_response(ModeContainer *mode_vals, agcmplx *transferL1
 Return amplitude and phase in python on CPU
 */
 void PhenomHM::GetResponse(cmplx* transferL1_, cmplx* transferL2_, cmplx* transferL3_, double* phaseRdelay_, double* time_freq_corr_) {
-  assert(current_status >= 1);
+  //assert(current_status >= 1);
 
   #ifdef __CUDACC__
   agcmplx *transferL1, *transferL2, *transferL3;
@@ -921,7 +921,7 @@ CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, double *amp, doubl
 Return amplitude and phase in python on CPU
 */
 void PhenomHM::GetPhaseSpline(double* phase_, double* coeff1_, double* coeff2_, double* coeff3_) {
-  assert(current_status >= 1);
+  //assert(current_status >= 1);
 
   for (int walker_i=0; walker_i<nwalkers; walker_i++){
     for (int mode_i=0; mode_i<num_modes; mode_i++){
@@ -938,7 +938,7 @@ void PhenomHM::GetPhaseSpline(double* phase_, double* coeff1_, double* coeff2_, 
 Return amplitude and phase in python on CPU
 */
 void PhenomHM::GetAmpPhase(double* amp_, double* phase_) {
-  assert(current_status >= 1);
+  //assert(current_status >= 1);
 
   #ifdef __CUDACC__
   double *amp, *phase;

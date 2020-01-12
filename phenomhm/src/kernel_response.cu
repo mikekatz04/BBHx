@@ -260,45 +260,20 @@ void kernel_JustLISAFDresponseTDI(ModeContainer *mode_vals, agcmplx *H, double *
     double t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
     int old_ind_below;
 
-            if (i == 0) dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[walker_i*num_points + 1] - old_freqs[walker_i*num_points + 0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[walker_i*num_points + num_points-1] - old_freqs[walker_i*num_points + num_points-2]);
-            else {dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[walker_i*num_points + i+1] - old_freqs[walker_i*num_points + i]);
-            /*# if __CUDA_ARCH__>=200
-                if ((i == 1183) && (walker_i == 20))
-                printf("%d, %d, %d, %.12e, %.12e, %.12e, %.12e\n", walker_i, mode_i, i, mode_vals[mode_index].phase[i+1], mode_vals[mode_index].phase[i],
-                old_freqs[walker_i*num_points + i+1],
-                old_freqs[walker_i*num_points + i]);
-            #endif //*/
-        }
 
+            if(i == num_points-1){
+              coeff_1 = mode_vals[mode_index].phase_coeff_1[num_points-2];
+              coeff_2 = mode_vals[mode_index].phase_coeff_2[num_points-2];
+              coeff_3 = mode_vals[mode_index].phase_coeff_3[num_points-2];
 
-            /*old_ind_below = i;
-            if (old_ind_below >= num_points-1) old_ind_below = num_points -2;
-            x = (f - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-            x2 = x*x;
-            x3 = x2*x;
-            coeff_0 = mode_vals[mode_index].phase[old_ind_below];
-            coeff_1 = mode_vals[mode_index].phase_coeff_1[old_ind_below];
-            coeff_2 = mode_vals[mode_index].phase_coeff_2[old_ind_below];
-            coeff_3 = mode_vals[mode_index].phase_coeff_3[old_ind_below];
+              x = old_freqs[walker_i*num_points + i] - old_freqs[walker_i*num_points + (i-1)];
+              x2 = x*x;
+              dphidf = coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2;
 
-            phi = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
+            } else{
+              dphidf = mode_vals[mode_index].phase_coeff_1[i];
 
-            x = (f + 1e-6 - old_freqs[old_ind_below])/(old_freqs[old_ind_below+1] - old_freqs[old_ind_below]);
-            phi_up = coeff_0 + coeff_1*x + 2.0*coeff_2*x2 + 3.0*coeff_3*x3;
-
-            dphidf = (phi_up - phi)/1e-6;*/
-
-
-            /*dphidf = (mode_vals[mode_index].phase[1] - mode_vals[mode_index].phase[0])/(old_freqs[1] - old_freqs[0]);
-            else if(i == num_points-1) dphidf = (mode_vals[mode_index].phase[num_points-1] - mode_vals[mode_index].phase[num_points-2])/(old_freqs[num_points-1] - old_freqs[num_points-2]);
-            else dphidf = (mode_vals[mode_index].phase[i+1] - mode_vals[mode_index].phase[i])/(old_freqs[i+1] - old_freqs[i]);*/
-
-
-            // Right now, it assumes same points for initial sampling of the response and the waveform
-            // linear term in cubic spline is the first derivative of phase at each node point
-
-            //dphidf = mode_vals[mode_index].phase_coeff_1[i];
+            }
 
             t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;

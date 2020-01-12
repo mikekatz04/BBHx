@@ -590,7 +590,7 @@ void PhenomHM::setup_interp_wave(){
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
-            set_spline_constants_wave_wrap<<<fill_waveInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs);
+            set_spline_constants_wave_wrap<<<fill_waveInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs[i]);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
         }
@@ -716,7 +716,7 @@ void PhenomHM::setup_interp_response(){
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
-            set_spline_constants_response_wrap<<<fill_responseInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs);
+            set_spline_constants_response_wrap<<<fill_responseInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs[i]);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
         }
@@ -817,7 +817,7 @@ void PhenomHM::GetTDI (cmplx* channel1_, cmplx* channel2_, cmplx* channel3_) {
 auxillary function for getting amplitude and phase to the CPU
 */
 #ifdef __CUDACC__
-CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, agcmplx *transferL1, agcmplx *transferL2, agcmplx *transferL3,
+CUDA_KERNEL void read_out_response(ModeContainer *mode_vals, agcmplx *transferL1, agcmplx *transferL2, agcmplx *transferL3,
                                     double* phaseRdelay, double *time_freq_corr, int num_modes, int length){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;

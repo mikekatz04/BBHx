@@ -257,7 +257,7 @@ void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int
     double D_i, D_ip1, y_i, y_ip1;
     int num_pars = 8;
     int mode_index;
-    double df
+    double df;
 
     for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
          walker_i < nwalkers;

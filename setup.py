@@ -192,7 +192,7 @@ ext_cpu = Extension(
         "phenomhm/cpuPhenomHM.pyx",
     ],
     library_dirs=[lib_gsl_dir],
-    libraries=["gsl", "gslcblas", "pthread"],
+    libraries=["gsl", "gslcblas", "pthread", "lapack"],
     language="c++",
     # sruntime_library_dirs = [CUDA['lib64']],
     # This syntax is specific to this build system
@@ -201,7 +201,12 @@ ext_cpu = Extension(
     # customize_compiler()
     extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC"]},
     extra_link_args=["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
-    include_dirs=[numpy_include, include_gsl_dir, "phenomhm/src"],
+    include_dirs=[
+        numpy_include,
+        include_gsl_dir,
+        "/usr/local/opt/lapack/include",
+        "phenomhm/src",
+    ],
 )
 
 if run_cuda_install:

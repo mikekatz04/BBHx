@@ -32,6 +32,8 @@
 #include "omp.h"
 #endif
 
+#include "lapacke.h"
+
 
 #ifdef __CUDACC__
 /*
@@ -49,41 +51,92 @@ inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool ab
 
 #endif
 
+
+CUDA_CALLABLE_MEMBER void prep_splines(int i, int length, double *b, double *ud, double *diag, double *ld, double *x, double *y){
+  double dx1, dx2, d, slope1, slope2;
+  if (i == length - 1){
+    dx1 = x[length - 2] - x[length - 3];
+    dx2 = x[length - 1] - x[length - 2];
+    d = x[length - 1] - x[length - 3];
+
+    slope1 = (y[length - 2] - y[length - 3])/dx1;
+    slope2 = (y[length - 1] - y[length - 2])/dx2;
+
+    b[length - 1] = ((dx2*dx2*slope1 +
+                             (2*d + dx2)*dx1*slope2) / d);
+    diag[length - 1] = dx1;
+    ld[length - 2] = d;
+
+  } else if (i == 0){
+      dx1 = x[1] - x[0];
+      dx2 = x[2] - x[1];
+      d = x[2] - x[0];
+
+      //amp
+      slope1 = (y[1] - y[0])/dx1;
+      slope2 = (y[2] - y[1])/dx2;
+
+      b[0] = ((dx1 + 2*d) * dx2 * slope1 +
+                          dx1*dx1 * slope2) / d;
+      diag[0] = dx2;
+      ud[1] = d;
+
+  } else{
+    dx1 = x[i] - x[i-1];
+    dx2 = x[i+1] - x[i];
+
+    //amp
+    slope1 = (y[i] - y[i-1])/dx1;
+    slope2 = (y[i+1] - y[i])/dx2;
+
+    b[i] = 3.0* (dx2*slope1 + dx1*slope2);
+    diag[i] = 2*(dx1 + dx2);
+    ud[i + 1] = dx1;
+    ld[i - 1] = dx2;
+  }
+}
+
 /*
 fill the B array on the GPU for response transfer functions.
 */
 CUDA_CALLABLE_MEMBER
-void fill_B_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+void fill_B_response(ModeContainer *mode_vals, double *B, double *freqs, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int mode_i, int i){
     int num_pars = 8;
-    if (i == f_length - 1){
-        B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i] - mode_vals[mode_i].phaseRdelay[i-1]);
-        B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i] - mode_vals[mode_i].transferL1_re[i-1]);
-        B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i] - mode_vals[mode_i].transferL1_im[i-1]);
-        B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i] - mode_vals[mode_i].transferL2_re[i-1]);
-        B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i] - mode_vals[mode_i].transferL2_im[i-1]);
-        B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i] - mode_vals[mode_i].transferL3_re[i-1]);
-        B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i] - mode_vals[mode_i].transferL3_im[i-1]);
-        B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i] - mode_vals[mode_i].time_freq_corr[i-1]);
+    int lead_ind;
 
-    } else if (i == 0){
-        B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[1] - mode_vals[mode_i].phaseRdelay[0]);
-        B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[1] - mode_vals[mode_i].transferL1_re[0]);
-        B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[1] - mode_vals[mode_i].transferL1_im[0]);
-        B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[1] - mode_vals[mode_i].transferL2_re[0]);
-        B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[1] - mode_vals[mode_i].transferL2_im[0]);
-        B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[1] - mode_vals[mode_i].transferL3_re[0]);
-        B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[1] - mode_vals[mode_i].transferL3_im[0]);
-        B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[1] - mode_vals[mode_i].time_freq_corr[0]);
-    } else{
-        B[(0*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phaseRdelay[i+1] - mode_vals[mode_i].phaseRdelay[i-1]);
-        B[(1*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_re[i+1] - mode_vals[mode_i].transferL1_re[i-1]);
-        B[(2*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL1_im[i+1] - mode_vals[mode_i].transferL1_im[i-1]);
-        B[(3*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_re[i+1] - mode_vals[mode_i].transferL2_re[i-1]);
-        B[(4*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL2_im[i+1] - mode_vals[mode_i].transferL2_im[i-1]);
-        B[(5*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_re[i+1] - mode_vals[mode_i].transferL3_re[i-1]);
-        B[(6*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].transferL3_im[i+1] - mode_vals[mode_i].transferL3_im[i-1]);
-        B[(7*num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].time_freq_corr[i+1] - mode_vals[mode_i].time_freq_corr[i-1]);
-    }
+    // phaseRdelay
+    lead_ind = (0*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].phaseRdelay);
+
+    // transferL1_re
+    lead_ind = (1*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].transferL1_re);
+
+    // transferL1_im
+    lead_ind = (2*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].transferL1_im);
+
+    // transferL2_re
+    lead_ind = (3*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].transferL2_re);
+
+    // transfer2_im
+    lead_ind = (4*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].transferL2_im);
+
+    // transferL3_re
+    lead_ind = (5*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].transferL3_re);
+
+    // transferL3_im
+    lead_ind = (6*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].transferL3_im);
+
+    // time_freq_corr
+    lead_ind = (7*num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].time_freq_corr);
+
+
 }
 
 #ifdef __CUDACC__
@@ -104,9 +157,12 @@ void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int
 }
 }
 #else
-void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers){
     int num_pars = 8;
     #pragma omp parallel for collapse(2)
+    for (int walker_i = 0;
+         walker_i < nwalkers;
+         walker_i += 1){
     for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
@@ -114,29 +170,32 @@ void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length,
        for (int i = 0;
             i < f_length;
             i += 1){
+              int mode_index = walker_i*num_modes + mode_i;
 
-              fill_B_response(mode_vals, B, f_length, num_modes, mode_i, i);
+              fill_B_response(mode_vals, B, &freqs[walker_i*f_length], upper_diag, diag, lower_diag, f_length, num_modes*nwalkers, mode_index, i);
 
+}
 }
 }
 }
 #endif
 
+
 /*
 fill B array on GPU for amp and phase
 */
-CUDA_CALLABLE_MEMBER void fill_B_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i){
+CUDA_CALLABLE_MEMBER void fill_B_wave(ModeContainer *mode_vals, double *B, double *freqs, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int mode_i, int i){
     int num_pars = 2;
-    if (i == f_length - 1){
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i] - mode_vals[mode_i].amp[i-1]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i] - mode_vals[mode_i].phase[i-1]);
-    } else if (i == 0){
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[1] - mode_vals[mode_i].amp[0]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[1] - mode_vals[mode_i].phase[0]);
-    } else{
-        B[mode_i*f_length + i] = 3.0* (mode_vals[mode_i].amp[i+1] - mode_vals[mode_i].amp[i-1]);
-        B[(num_modes*f_length) + mode_i*f_length + i] = 3.0* (mode_vals[mode_i].phase[i+1] - mode_vals[mode_i].phase[i-1]);
-    }
+    int lead_ind;
+
+    // amp
+    lead_ind = mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].amp);
+
+    // phase
+    lead_ind = (num_modes*f_length) + mode_i*f_length;
+    prep_splines(i, f_length, &B[lead_ind], &upper_diag[lead_ind], &diag[lead_ind], &lower_diag[lead_ind], freqs, mode_vals[mode_i].phase);
+
 }
 
 #ifdef __CUDACC__
@@ -156,10 +215,13 @@ CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_len
 }
 }
 #else
-void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers){
 
     int num_pars = 2;
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for collapse(3)
+    for (int walker_i = 0;
+         walker_i < nwalkers;
+         walker_i += 1){
     for (int mode_i = 0;
          mode_i < num_modes;
          mode_i += 1){
@@ -167,87 +229,70 @@ void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int
        for (int i = 0;
             i < f_length;
             i += 1){
-              fill_B_wave(mode_vals, B, f_length, num_modes, mode_i, i);
+              int mode_index = walker_i*num_modes + mode_i;
+
+              fill_B_wave(mode_vals, B, &freqs[walker_i*f_length], upper_diag, diag, lower_diag, f_length, num_modes*nwalkers, mode_index, i);
 
 }
 }
 }
+}
 #endif
+
+CUDA_CALLABLE_MEMBER
+void fill_coefficients(int i, int length, double *dydx, double dx, double *y, double *coeff1, double *coeff2, double *coeff3){
+  double slope, t, dydx_i;
+
+  slope = (y[i+1] - y[i])/dx;
+
+  dydx_i = dydx[i];
+
+  t = (dydx_i + dydx[i+1] - 2*slope)/dx;
+
+  coeff1[i] = dydx_i;
+  coeff2[i] = (slope - dydx_i) / dx - t;
+  coeff3[i] = t/dx;
+}
 
 /*
 find spline constants based on matrix solution for response transfer functions.
 */
 CUDA_CALLABLE_MEMBER
 void set_spline_constants_response(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i, double df){
-    double D_i, D_ip1, y_i, y_ip1;
-    int num_pars = 8;
 
-    double df2 = df*df;
-    double df3 = df2*df;
+    int lead_ind;
 
-    D_i = B[(0*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(0*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].phaseRdelay[i];
-    y_ip1 = mode_vals[mode_i].phaseRdelay[i+1];
-    mode_vals[mode_i].phaseRdelay_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].phaseRdelay_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].phaseRdelay_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // phaseRdelay
+    lead_ind = (0*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].phaseRdelay, mode_vals[mode_i].phaseRdelay_coeff_1, mode_vals[mode_i].phaseRdelay_coeff_2, mode_vals[mode_i].phaseRdelay_coeff_3);
 
-    D_i = B[(1*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(1*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].transferL1_re[i];
-    y_ip1 = mode_vals[mode_i].transferL1_re[i+1];
-    mode_vals[mode_i].transferL1_re_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].transferL1_re_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].transferL1_re_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // transferL1_re
+    lead_ind = (1*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].transferL1_re, mode_vals[mode_i].transferL1_re_coeff_1, mode_vals[mode_i].transferL1_re_coeff_2, mode_vals[mode_i].transferL1_re_coeff_3);
 
-    D_i = B[(2*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(2*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].transferL1_im[i];
-    y_ip1 = mode_vals[mode_i].transferL1_im[i+1];
-    mode_vals[mode_i].transferL1_im_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].transferL1_im_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].transferL1_im_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // transferL1_im
+    lead_ind = (2*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].transferL1_im, mode_vals[mode_i].transferL1_im_coeff_1, mode_vals[mode_i].transferL1_im_coeff_2, mode_vals[mode_i].transferL1_im_coeff_3);
 
-    D_i = B[(3*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(3*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].transferL2_re[i];
-    y_ip1 = mode_vals[mode_i].transferL2_re[i+1];
-    mode_vals[mode_i].transferL2_re_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].transferL2_re_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].transferL2_re_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // transferL2_re
+    lead_ind = (3*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].transferL2_re, mode_vals[mode_i].transferL2_re_coeff_1, mode_vals[mode_i].transferL2_re_coeff_2, mode_vals[mode_i].transferL2_re_coeff_3);
 
-    D_i = B[(4*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(4*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].transferL2_im[i];
-    y_ip1 = mode_vals[mode_i].transferL2_im[i+1];
-    mode_vals[mode_i].transferL2_im_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].transferL2_im_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].transferL2_im_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // transferL2_im
+    lead_ind = (4*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].transferL2_im, mode_vals[mode_i].transferL2_im_coeff_1, mode_vals[mode_i].transferL2_im_coeff_2, mode_vals[mode_i].transferL2_im_coeff_3);
 
-    D_i = B[(5*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(5*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].transferL3_re[i];
-    y_ip1 = mode_vals[mode_i].transferL3_re[i+1];
-    mode_vals[mode_i].transferL3_re_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].transferL3_re_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].transferL3_re_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // transferL3_re
+    lead_ind = (5*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].transferL3_re, mode_vals[mode_i].transferL3_re_coeff_1, mode_vals[mode_i].transferL3_re_coeff_2, mode_vals[mode_i].transferL3_re_coeff_3);
 
-    D_i = B[(6*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(6*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].transferL3_im[i];
-    y_ip1 = mode_vals[mode_i].transferL3_im[i+1];
-    mode_vals[mode_i].transferL3_im_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].transferL3_im_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].transferL3_im_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // transferL3_img
+    lead_ind = (6*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].transferL3_im, mode_vals[mode_i].transferL3_im_coeff_1, mode_vals[mode_i].transferL3_im_coeff_2, mode_vals[mode_i].transferL3_im_coeff_3);
 
-    D_i = B[(7*num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(7*num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].time_freq_corr[i];
-    y_ip1 = mode_vals[mode_i].time_freq_corr[i+1];
-    mode_vals[mode_i].time_freq_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].time_freq_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].time_freq_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+    // time_freq_corr
+    lead_ind = (7*num_modes*f_length) + mode_i*f_length;
+    fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].time_freq_corr, mode_vals[mode_i].time_freq_coeff_1, mode_vals[mode_i].time_freq_coeff_2, mode_vals[mode_i].time_freq_coeff_3);
 
 }
 
@@ -314,26 +359,15 @@ Find spline coefficients after matrix calculation on GPU for amp and phase
 
 CUDA_CALLABLE_MEMBER void set_spline_constants_wave(ModeContainer *mode_vals, double *B, int f_length, int num_modes, int mode_i, int i, double df){
 
-    double D_i, D_ip1, y_i, y_ip1;
-    int num_pars = 2;
-    double df2 = df*df;
-    double df3 = df2*df;
+  int lead_ind;
 
-    D_i = B[mode_i*f_length + i];
-    D_ip1 = B[mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].amp[i];
-    y_ip1 = mode_vals[mode_i].amp[i+1];
-    mode_vals[mode_i].amp_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].amp_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].amp_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+  // amp
+  lead_ind = mode_i*f_length;
+  fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].amp, mode_vals[mode_i].amp_coeff_1, mode_vals[mode_i].amp_coeff_2, mode_vals[mode_i].amp_coeff_3);
 
-    D_i = B[(num_modes*f_length) + mode_i*f_length + i];
-    D_ip1 = B[(num_modes*f_length) + mode_i*f_length + i + 1];
-    y_i = mode_vals[mode_i].phase[i];
-    y_ip1 = mode_vals[mode_i].phase[i+1];
-    mode_vals[mode_i].phase_coeff_1[i] = D_i/df;
-    mode_vals[mode_i].phase_coeff_2[i] = (3.0 * (y_ip1 - y_i) - 2.0*D_i - D_ip1)/df2;
-    mode_vals[mode_i].phase_coeff_3[i] = (2.0 * (y_i - y_ip1) + D_i + D_ip1)/df3;
+  // phase
+  lead_ind = (num_modes*f_length) + mode_i*f_length;
+  fill_coefficients(i, f_length, &B[lead_ind], df, mode_vals[mode_i].phase, mode_vals[mode_i].phase_coeff_1, mode_vals[mode_i].phase_coeff_2, mode_vals[mode_i].phase_coeff_3);
 }
 
 #ifdef __CUDACC__
@@ -360,7 +394,7 @@ CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double
 
               df = freqs[walker_i*f_length + i + 1] - freqs[walker_i*f_length + i];
 
-               set_spline_constants_wave(mode_vals, B, f_length, num_modes*nwalkers, mode_index, i, df);
+               set_spline_constants_wave(mode_vals, B, &freqs[walker_i*f_length], f_length, num_modes*nwalkers, mode_index, i, df);
 }
 }
 }
@@ -408,7 +442,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
     double time_check, amp, phase, phaseRdelay, phaseShift;
     double transferL1_re, transferL1_im, transferL2_re, transferL2_im, transferL3_re, transferL3_im;
     agcmplx ampphasefactor;
-    agcmplx I = agcmplx(0.0, 1.0);
+    //agcmplx I = agcmplx(0.0, 1.0);
     int old_ind_below;
     agcmplx trans_complex;
 
@@ -462,7 +496,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
             coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_3[old_ind_below];
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
             if (amp < 1e-40){
                 continue;
             }
@@ -490,12 +523,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
             coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_3[old_ind_below];
 
             transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
-
-            /*# if __CUDA_ARCH__>=200
-            if (i == 15000)
-                printf("times: %e, %d, %d, %d, %d, %e, %e, %e, %e, %e, %e\n", f, mode_i, walker_i, old_ind_below, old_length, time_check, t_break_start, t0, tRef, amp, transferL1_re);
-
-            #endif //*/
 
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im[old_ind_below];
             coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_1[old_ind_below];
@@ -629,64 +656,36 @@ allocate arrays for interpolation
 */
 
 void Interpolate::alloc_arrays(int m, int n, double *d_B){
-    w = new double[m];
-    a = new double[m];
-    b = new double[m];
-    c = new double[m];
+    w = new double[m*n];
     x = new double[m*n];
 
-    a[0] = 0.0;
-    b[0] = 2.0;
-    c[0] = 1.0;
-
-    a[m-1] = 1.0;
-    b[m-1] = 2.0;
-    c[m-1] = 0.0;
-
-    for (int i = 1;
-         i < m-1;
-         i += 1){
-     a[i] = 1.0;
-     b[i] = 4.0;
-     c[i] = 1.0;
- }
-
- for (int i=1; i<m; i++){
-     w[i] = a[i]/b[i-1];
-     b[i] = b[i] - w[i]*c[i-1];
- }
-
     #ifdef __CUDACC__
-    gpuErrchk_here(cudaMalloc(&d_b, m*sizeof(double)));
-    gpuErrchk_here(cudaMemcpy(d_b, b, m*sizeof(double), cudaMemcpyHostToDevice));
-
-    gpuErrchk_here(cudaMalloc(&d_c, m*sizeof(double)));
-    gpuErrchk_here(cudaMemcpy(d_c, c, m*sizeof(double), cudaMemcpyHostToDevice));
-
     gpuErrchk_here(cudaMalloc(&d_w, m*sizeof(double)));
-    gpuErrchk_here(cudaMemcpy(d_w, w, m*sizeof(double), cudaMemcpyHostToDevice));
-
     gpuErrchk_here(cudaMalloc(&d_x, m*n*sizeof(double)));
     #endif
 }
 
 
 CUDA_CALLABLE_MEMBER
-void fit_constants_serial(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in, int j){
+void fit_constants_serial(int m, int n, double *w_in, double *a_in, double *b_in, double *c_in, double *d_in, double *x_in, int j){
 
-  double *x, *d;
+  double *x, *d, *a, *b, *c, *w;
 
       d = &d_in[j*m];
       x = &x_in[j*m];
+      a = &a_in[j*m];
+      b = &b_in[j*m];
+      c = &c_in[j*m];
+      w = &w_in[j*m];
 
-      # pragma unroll
-      for (int i=2; i<m; i++){
-          //printf("%d\n", i);
+
+
+      for (int i=1; i<m; i++){
+          w[i] = a[i]/b[i-1];
+          b[i] = b[i] - w[i]*c[i-1];
           d[i] = d[i] - w[i]*d[i-1];
-          //printf("%lf, %lf, %lf\n", w[i], d[i], b[i]);
       }
 
-      # pragma unroll
       x[m-1] = d[m-1]/b[m-1];
       d[m-1] = x[m-1];
       for (int i=(m-2); i>=0; i--){
@@ -709,14 +708,17 @@ void fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, do
 }
 
 #else
-void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
+void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, double *c, double *d_in, double *x_in){
 
     //double *x, *d;
     #pragma omp parallel for
     for (int j = 0;
          j < n;
          j += 1){
-           fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
+           //fit_constants_serial(m, n, w, a, b, c, d_in, x_in, j);
+           int info = LAPACKE_dgtsv(LAPACK_COL_MAJOR, m, 1, &a[j*m], &b[j*m], &c[j*m + 1], &d_in[j*m], m);
+           //if (info != m) printf("lapack info check: %d\n", info);
+
     }
 }
 #endif
@@ -726,7 +728,7 @@ void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c
 /*
 solve matrix solution for tridiagonal matrix for cublic spline.
 */
-void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
+void Interpolate::prep(double *B, double *c, double *b, double *a, int m_, int n_, int to_gpu_){
     m = m_;
     n = n_;
     to_gpu = to_gpu_;
@@ -738,7 +740,8 @@ void Interpolate::prep(double *B, int m_, int n_, int to_gpu_){
     cudaDeviceSynchronize();
     gpuErrchk_here(cudaGetLastError());
     #else
-    cpu_fit_constants_serial_wrap(m, n, w, b, c, B, x);
+
+    cpu_fit_constants_serial_wrap(m, n, w, a, b, c, B, x);
     #endif
 }
 
@@ -748,14 +751,9 @@ Deallocate
 */
 Interpolate::~Interpolate(){
   delete[] w;
-  delete[] a;
-  delete[] b;
-  delete[] c;
   delete[] x;
 
   #ifdef __CUDACC__
-    cudaFree(d_b);
-    cudaFree(d_c);
     cudaFree(d_w);
     cudaFree(d_x);
 

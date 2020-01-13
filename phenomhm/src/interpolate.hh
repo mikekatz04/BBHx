@@ -29,13 +29,8 @@ class Interpolate{
     double *w;
     double *D;
 
-    double *a;
-    double *b;
-    double *c;
     double *x;
 
-    double *d_b;
-    double *d_c;
     double *d_w;
     double *d_x;
 
@@ -48,7 +43,7 @@ public:
     Interpolate();
 
     void alloc_arrays(int m, int n, double *d_B);
-   void prep(double *B, int m_, int n_, int to_gpu_);
+   void prep(double *B, double *c, double *b, double *a, int m_, int n_, int to_gpu_);
 
    ~Interpolate(); //destructor
 

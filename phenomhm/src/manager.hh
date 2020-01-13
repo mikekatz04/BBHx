@@ -159,6 +159,10 @@ class PhenomHM {
   agcmplx *h_data_channel2;
   agcmplx *h_data_channel3;
 
+  double *upper_diag;
+  double *diag;
+  double *lower_diag;
+
 
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header

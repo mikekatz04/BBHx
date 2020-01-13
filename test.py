@@ -15,7 +15,7 @@ except ImportError:
 
 def test():
     df = 1e-5
-    length = int(2 ** 16)
+    length = int(2 ** 21)
     data_length = int(2 * length)
     # FIXME core dump from python is happening at 2e5 - 3e5 ish
     data = np.fft.rfft(np.sin(2 * np.pi * 1e-3 * np.arange(data_length) * 0.1))
@@ -133,7 +133,7 @@ def test():
     array = converter.convert(array)
     inc, lam, beta, psi, tRef_wave_frame = array
     print("init:", inc, lam, beta, psi, tRef_wave_frame)
-    nwalkers = 150
+    nwalkers = 20
     ndevices = 1
 
     # data_A, data_E, data_T = np.load('data_set.npy')
@@ -156,7 +156,7 @@ def test():
         ndevices,
     )
 
-    num = 1000
+    num = 100
     st = time.perf_counter()
     # phiRef = np.linspace(0.0, 2*np.pi, num)
     # snrs = np.zeros_like(phiRef)
@@ -193,9 +193,6 @@ def test():
     tRef_wave_frame_in = np.full(nwalkers, tRef_wave_frame)
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
-    import pdb
-
-    pdb.set_trace()
 
     like2 = phenomHM.WaveformThroughLikelihood(
         freqs_in,
@@ -222,26 +219,24 @@ def test():
     )
 
     for i in range(num):
+        """
+        phenomHM.gen_amp_phase(
+            freqs_in, m1_in, m2_in, chi1z_in, chi2z_in, distance_in, phiRef_in, f_ref_in
+        )
 
-        """phenomHM.gen_amp_phase(freqs_in,
-                             m1_in,
-                             m2_in,
-                             chi1z_in,
-                             chi2z_in,
-                             distance_in,
-                             phiRef_in,
-                             f_ref_in)
+        # phenomHM.Combine()
 
-        #phenomHM.Combine()
+        phenomHM.LISAresponseFD(
+            inc_in,
+            lam_in,
+            beta_in,
+            psi_in,
+            t0_in,
+            tRef_wave_frame_in,
+            tRef_sampling_frame_in,
+            merger_freq_in,
+        )
 
-        phenomHM.LISAresponseFD(inc_in,
-                                lam_in,
-                                beta_in,
-                                psi_in,
-                                t0_in,
-                                tRef_wave_frame_in,
-                                tRef_sampling_frame_in,
-                                merger_freq_in)
 
         phenomHM.setup_interp_wave()
 
@@ -252,6 +247,7 @@ def test():
         like = phenomHM.Likelihood()
 
         """
+
         like2 = phenomHM.WaveformThroughLikelihood(
             freqs_in,
             m1_in,
@@ -309,7 +305,7 @@ def test():
     import pdb
 
     pdb.set_trace()
-    A, E, T = phenomHM.GetTDI()
+    # A, E, T = phenomHM.GetTDI()
     # np.save('wave_test', np.asarray([gpu_X, gpu_Y, gpu_Z]))
     # print('2gpu per waveform:', t/num)
     # import pdb; pdb.set_trace()

@@ -324,6 +324,9 @@ PhenomHM::PhenomHM (int max_length_init_,
 
   #else
   B = new double[8*max_length_init*num_modes*nwalkers];
+  upper_diag = new double[8*max_length_init*num_modes*nwalkers];
+  diag = new double[8*max_length_init*num_modes*nwalkers];
+  lower_diag = new double[8*max_length_init*num_modes*nwalkers];
   interp[0].alloc_arrays(max_length_init, 8*num_modes*nwalkers, B);
 
   template_channel1 = new agcmplx[data_stream_length*nwalkers];
@@ -596,10 +599,10 @@ void PhenomHM::setup_interp_wave(){
         }
     }
     #else
-    cpu_fill_B_wave_wrap(mode_vals, B, current_length, num_modes*nwalkers);
+    cpu_fill_B_wave_wrap(mode_vals, freqs, B, upper_diag, diag, lower_diag, current_length, num_modes, nwalkers);
 
     // perform interpolation
-    interp[0].prep(B, current_length, 2*num_modes*nwalkers, 0);
+    interp[0].prep(B, upper_diag, diag, lower_diag, current_length, 2*num_modes*nwalkers, 0);
 
     cpu_set_spline_constants_wave_wrap(mode_vals, B, current_length, nwalkers, num_modes, freqs);
     #endif
@@ -722,9 +725,9 @@ void PhenomHM::setup_interp_response(){
         }
     }
     #else
-    cpu_fill_B_response_wrap(mode_vals, B, current_length, num_modes*nwalkers);
+    cpu_fill_B_response_wrap(mode_vals, freqs, B, upper_diag, diag, lower_diag, current_length, num_modes, nwalkers);
 
-    interp[0].prep(B, current_length, 8*num_modes*nwalkers, 0);  // TODO check the 8?
+    interp[0].prep(B, upper_diag, diag, lower_diag, current_length, 8*num_modes*nwalkers, 0);  // TODO check the 8?
 
     cpu_set_spline_constants_response_wrap(mode_vals, B, current_length, nwalkers, num_modes, freqs);
     #endif
@@ -1075,6 +1078,10 @@ PhenomHM::~PhenomHM() {
   delete[] h_data_channel1;
   delete[] h_data_channel2;
   delete[] h_data_channel3;
+
+  delete[] upper_diag;
+  delete[] lower_diag;
+  delete[] diag;
 
   #endif
 

@@ -176,6 +176,17 @@ try:
 except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
+cwd = os.getcwd()
+if cwd == "/home/mlk667/GPU4GW":
+    lapack_include = "/software/lapack/3.6.0_gcc/include/"
+    lapack_lib = "/software/lapack/3.6.0_gcc/lib/"
+
+else:
+    lapack_include = "/usr/local/opt/lapack/include"
+    lapack_lib = "/usr/local/opt/lapack/lib"
+
+print(lapack_include)
+
 lib_gsl_dir = "/opt/local/lib"
 include_gsl_dir = "/opt/local/include"
 
@@ -191,7 +202,7 @@ ext_cpu = Extension(
         "phenomhm/src/manager.cpp",
         "phenomhm/cpuPhenomHM.pyx",
     ],
-    library_dirs=[lib_gsl_dir],
+    library_dirs=[lib_gsl_dir, lapack_lib],
     libraries=["gsl", "gslcblas", "pthread", "lapack"],
     language="c++",
     # sruntime_library_dirs = [CUDA['lib64']],
@@ -201,16 +212,12 @@ ext_cpu = Extension(
     # customize_compiler()
     extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC"]},
     extra_link_args=["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
-    include_dirs=[
-        numpy_include,
-        include_gsl_dir,
-        "/usr/local/opt/lapack/include",
-        "phenomhm/src",
-    ],
+    include_dirs=[numpy_include, include_gsl_dir, lapack_include, "phenomhm/src"],
 )
 
 if run_cuda_install:
-    extensions = [ext_gpu, ext_cpu]
+    # extensions = [ext_gpu, ext_cpu]
+    extensions = [ext_gpu]
 else:
     print("Did not locate CUDA binary.")
     extensions = [ext_cpu]

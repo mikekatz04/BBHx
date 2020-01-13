@@ -28,12 +28,11 @@
 #include "interpolate.hh"
 
 #ifdef __CUDACC__
+#include "cusparse.h"
 #else
 #include "omp.h"
-#endif
-
 #include "lapacke.h"
-
+#endif
 
 #ifdef __CUDACC__
 /*
@@ -141,8 +140,13 @@ void fill_B_response(ModeContainer *mode_vals, double *B, double *freqs, double 
 
 #ifdef __CUDACC__
 CUDA_KERNEL
-void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+void fill_B_response_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers){
     int num_pars = 8;
+
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < nwalkers;
+         walker_i += blockDim.z * gridDim.z){
+
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
          mode_i < num_modes;
          mode_i += blockDim.y * gridDim.y){
@@ -151,8 +155,11 @@ void fill_B_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int
             i < f_length;
             i += blockDim.x * gridDim.x){
 
-              fill_B_response(mode_vals, B, f_length, num_modes, mode_i, i);
+              int mode_index = walker_i*num_modes + mode_i;
 
+              fill_B_response(mode_vals, B, &freqs[walker_i*f_length], upper_diag, diag, lower_diag, f_length, num_modes*nwalkers, mode_index, i);
+
+}
 }
 }
 }
@@ -199,8 +206,13 @@ CUDA_CALLABLE_MEMBER void fill_B_wave(ModeContainer *mode_vals, double *B, doubl
 }
 
 #ifdef __CUDACC__
-CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int num_modes){
+CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers){
     int num_pars = 2;
+
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < nwalkers;
+         walker_i += blockDim.z * gridDim.z){
+
     for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
          mode_i < num_modes;
          mode_i += blockDim.y * gridDim.y){
@@ -209,8 +221,10 @@ CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *B, int f_len
             i < f_length;
             i += blockDim.x * gridDim.x){
 
-              fill_B_wave(mode_vals, B, f_length, num_modes, mode_i, i);
+              int mode_index = walker_i*num_modes + mode_i;
 
+              fill_B_wave(mode_vals, B, &freqs[walker_i*f_length], upper_diag, diag, lower_diag, f_length, num_modes*nwalkers, mode_index, i);
+}
 }
 }
 }
@@ -394,7 +408,7 @@ CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double
 
               df = freqs[walker_i*f_length + i + 1] - freqs[walker_i*f_length + i];
 
-               set_spline_constants_wave(mode_vals, B, &freqs[walker_i*f_length], f_length, num_modes*nwalkers, mode_index, i, df);
+               set_spline_constants_wave(mode_vals, B, f_length, num_modes*nwalkers, mode_index, i, df);
 }
 }
 }
@@ -444,14 +458,11 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
     agcmplx ampphasefactor;
     //agcmplx I = agcmplx(0.0, 1.0);
     int old_ind_below;
-    agcmplx trans_complex;
+    agcmplx trans_complex1 = agcmplx(0.0, 0.0);
+    agcmplx trans_complex2 = agcmplx(0.0, 0.0);
+    agcmplx trans_complex3 = agcmplx(0.0, 0.0);
 
     //if (mode_i >= num_modes) return;
-
-        channel1_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
-        channel2_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
-        channel3_out[walker_i*data_length + i] = agcmplx(0.0, 0.0);
-
 
     /*# if __CUDA_ARCH__>=200
     if (i == 200)
@@ -531,9 +542,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = agcmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
-
-            channel1_out[walker_i*data_length + i] += gcmplx::conj(trans_complex);
+            trans_complex1 += gcmplx::conj(agcmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Y or E
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re[old_ind_below];
@@ -550,9 +559,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
-
-            channel2_out[walker_i*data_length + i] += gcmplx::conj(trans_complex);
+            trans_complex2 += gcmplx::conj(agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Z or T
             coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re[old_ind_below];
@@ -569,11 +576,13 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex = agcmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i]; //TODO may be faster to load as complex number with 0.0 for imaginary part
-
-            channel3_out[walker_i*data_length + i] += gcmplx::conj(trans_complex);
+            trans_complex3 += gcmplx::conj(agcmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
           }
+
+        channel1_out[walker_i*data_length + i] = trans_complex1;
+        channel2_out[walker_i*data_length + i] = trans_complex2;
+        channel3_out[walker_i*data_length + i] = trans_complex3;
 }
 
 #ifdef __CUDACC__
@@ -695,16 +704,22 @@ void fit_constants_serial(int m, int n, double *w_in, double *a_in, double *b_in
 }
 
 #ifdef __CUDACC__
-CUDA_KERNEL
-void fit_constants_serial_wrap(int m, int n, double *w, double *b, double *c, double *d_in, double *x_in){
+void fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, double *c, double *d_in, double *x_in){
 
-    //double *x, *d;
-    for (int j = blockIdx.x * blockDim.x + threadIdx.x;
-         j < n;
-         j += blockDim.x * gridDim.x){
+  cusparseStatus_t stat;
+  cusparseHandle_t handle;
 
-           fit_constants_serial(m, n, w, b, c, d_in, x_in, j);
-    }
+  stat = cusparseCreate(&handle);
+
+  stat = cusparseDgtsvStridedBatch(handle,
+                                    m,
+                                    a, // dl
+                                    b, //diag
+                                    c, // du
+                                    d_in,
+                                    n,
+                                    m);
+  cusparseDestroy(handle);
 }
 
 #else
@@ -736,9 +751,7 @@ void Interpolate::prep(double *B, double *c, double *b, double *a, int m_, int n
     #ifdef __CUDACC__
     int NUM_THREADS = 256;
     int num_blocks = std::ceil((n + NUM_THREADS -1)/NUM_THREADS);
-    fit_constants_serial_wrap<<<num_blocks, NUM_THREADS>>>(m, n, d_w, d_b, d_c, B, d_x);
-    cudaDeviceSynchronize();
-    gpuErrchk_here(cudaGetLastError());
+    fit_constants_serial_wrap(m, n, w, a, b, c, B, x);
     #else
 
     cpu_fit_constants_serial_wrap(m, n, w, a, b, c, B, x);

@@ -99,6 +99,9 @@ class PhenomHM {
   // Interpolate related stuff
   Interpolate *interp;
   double **d_B;
+  double **d_upper_diag;
+  double **d_diag;
+  double **d_lower_diag;
   double *B;
 
   ModeContainer *mode_vals;

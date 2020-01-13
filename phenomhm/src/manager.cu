@@ -199,6 +199,9 @@ PhenomHM::PhenomHM (int max_length_init_,
   d_freqs = new double*[ndevices];
   d_H = new agcmplx*[ndevices];
   d_B = new double*[ndevices];
+  d_upper_diag = new double*[ndevices];
+  d_diag = new double*[ndevices];
+  d_lower_diag = new double*[ndevices];
 
   d_template_channel1 = new agcmplx*[ndevices];
   d_template_channel2 = new agcmplx*[ndevices];
@@ -254,6 +257,9 @@ PhenomHM::PhenomHM (int max_length_init_,
       gpuErrchk(cudaMalloc(&d_H[i], 9*num_modes*nwalkers*sizeof(agcmplx)));
 
       gpuErrchk(cudaMalloc(&d_B[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
+      gpuErrchk(cudaMalloc(&d_upper_diag[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
+      gpuErrchk(cudaMalloc(&d_diag[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
+      gpuErrchk(cudaMalloc(&d_lower_diag[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
 
       gpuErrchk(cudaMalloc(&d_template_channel1[i], data_stream_length*nwalkers*sizeof(agcmplx)));
       gpuErrchk(cudaMalloc(&d_template_channel2[i], data_stream_length*nwalkers*sizeof(agcmplx)));
@@ -572,8 +578,7 @@ void PhenomHM::setup_interp_wave(){
     //assert(current_status >= 2);
 
     #ifdef __CUDACC__
-    dim3 waveInterpDim(num_blocks, num_modes*nwalkers);
-    dim3 fill_waveInterpDim(num_blocks, num_modes, nwalkers);
+    dim3 waveInterpDim(num_blocks, num_modes, nwalkers);
 
     int i, th_id, nthreads;
     #pragma omp parallel private(th_id, i)
@@ -584,16 +589,19 @@ void PhenomHM::setup_interp_wave(){
         for (int i=th_id; i<ndevices; i+=nthreads){
             cudaSetDevice(i);
             // fill B array
-            fill_B_wave_wrap<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, num_modes*nwalkers);
+            fill_B_wave_wrap<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_freqs[i],
+                                                             d_B[i], d_upper_diag[i],
+                                                             d_diag[i], d_lower_diag[i],
+                                                             current_length, num_modes, nwalkers);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
             // perform interpolation
-            interp[i].prep(d_B[i], current_length, 2*num_modes*nwalkers, 1);
+            interp[i].prep(d_B[i], d_upper_diag[i], d_diag[i], d_lower_diag[i], current_length, 2*num_modes*nwalkers, 1);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
-            set_spline_constants_wave_wrap<<<fill_waveInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs[i]);
+            set_spline_constants_wave_wrap<<<waveInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs[i]);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
         }
@@ -700,8 +708,7 @@ void PhenomHM::setup_interp_response(){
     //assert(current_status >= 3);
 
     #ifdef __CUDACC__
-    dim3 responseInterpDim(num_blocks, num_modes*nwalkers);
-    dim3 fill_responseInterpDim(num_blocks, num_modes, nwalkers);
+    dim3 responseInterpDim(num_blocks, num_modes, nwalkers);
 
     int i, th_id, nthreads;
     #pragma omp parallel private(th_id, i)
@@ -711,15 +718,18 @@ void PhenomHM::setup_interp_response(){
         th_id = omp_get_thread_num();
         for (int i=th_id; i<ndevices; i+=nthreads){
             cudaSetDevice(i);
-            fill_B_response_wrap<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, num_modes*nwalkers);
+            fill_B_response_wrap<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_freqs[i],
+                                                                     d_B[i], d_upper_diag[i],
+                                                                     d_diag[i], d_lower_diag[i],
+                                                                     current_length, num_modes, nwalkers);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
-            interp[i].prep(d_B[i], current_length, 8*num_modes*nwalkers, 1);  // TODO check the 8?
+            interp[i].prep(d_B[i], d_upper_diag[i], d_diag[i], d_lower_diag[i], current_length, 2*num_modes*nwalkers, 1);  // TODO check the 8?
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
-            set_spline_constants_response_wrap<<<fill_responseInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs[i]);
+            set_spline_constants_response_wrap<<<responseInterpDim, NUM_THREADS>>>(d_mode_vals[i], d_B[i], current_length, nwalkers, num_modes, d_freqs[i]);
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
         }
@@ -1012,6 +1022,9 @@ PhenomHM::~PhenomHM() {
       gpuErrchk(cudaFree(d_channel3_ASDinv[i]));
       cublasDestroy(handle[i]);
       gpuErrchk(cudaFree(d_B[i]));
+      gpuErrchk(cudaFree(d_upper_diag[i]));
+      gpuErrchk(cudaFree(d_diag[i]));
+      gpuErrchk(cudaFree(d_lower_diag[i]));
       gpuErrchk(cudaFree(d_t0[i]));
       gpuErrchk(cudaFree(d_phi0[i]));
       gpuErrchk(cudaFree(d_amp0[i]));
@@ -1051,6 +1064,9 @@ PhenomHM::~PhenomHM() {
   delete[] d_channel3_ASDinv;
   delete[] handle;
   delete[] d_B;
+  delete[] d_upper_diag;
+  delete[] d_diag;
+  delete[] d_lower_diag;
   delete[] d_t0;
   delete[] d_phi0;
   delete[] d_amp0;

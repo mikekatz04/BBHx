@@ -725,7 +725,7 @@ void PhenomHM::setup_interp_response(){
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
-            interp[i].prep(d_B[i], d_upper_diag[i], d_diag[i], d_lower_diag[i], current_length, 2*num_modes*nwalkers, 1);  // TODO check the 8?
+            interp[i].prep(d_B[i], d_upper_diag[i], d_diag[i], d_lower_diag[i], current_length, 8*num_modes*nwalkers, 1);  // TODO check the 8?
             cudaDeviceSynchronize();
             gpuErrchk(cudaGetLastError());
 
@@ -920,6 +920,66 @@ void PhenomHM::GetResponse(cmplx* transferL1_, cmplx* transferL2_, cmplx* transf
 auxillary function for getting amplitude and phase to the CPU
 */
 #ifdef __CUDACC__
+CUDA_KERNEL void read_out_phase_spline(ModeContainer *mode_vals, double *phase, double *coeff1, double *coeff2, double *coeff3, int num_modes, int length){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int mode_i = blockIdx.y;
+    if (i >= length) return;
+    if (mode_i >= num_modes) return;
+    phase[mode_i*length + i] = mode_vals[mode_i].phase[i];
+
+    if (i >= length-1) return;
+    coeff1[mode_i*length + i] = mode_vals[mode_i].phase_coeff_1[i];
+    coeff2[mode_i*length + i] = mode_vals[mode_i].phase_coeff_2[i];
+    coeff3[mode_i*length + i] = mode_vals[mode_i].phase_coeff_3[i];
+}
+#endif
+
+
+/*
+Return amplitude and phase in python on CPU
+*/
+void PhenomHM::GetPhaseSpline(double* phase_, double* coeff1_, double* coeff2_, double* coeff3_) {
+  //assert(current_status >= 1);
+
+  #ifdef __CUDACC__
+  double *phase, *coeff1, *coeff2, *coeff3;
+
+  dim3 readOutDim(num_blocks, num_modes*nwalkers);
+  for (int i=0; i<ndevices; i++){
+      cudaSetDevice(i);
+      gpuErrchk(cudaMalloc(&phase, nwalkers*num_modes*current_length*sizeof(double)));
+      gpuErrchk(cudaMalloc(&coeff1, nwalkers*num_modes*(current_length-1)*sizeof(double)));
+      gpuErrchk(cudaMalloc(&coeff2, nwalkers*num_modes*(current_length-1)*sizeof(double)));
+      gpuErrchk(cudaMalloc(&coeff3, nwalkers*num_modes*(current_length-1)*sizeof(double)));
+      read_out_phase_spline<<<readOutDim, NUM_THREADS>>>(d_mode_vals[i], phase, coeff1, coeff2, coeff3, nwalkers*num_modes, current_length);
+      cudaDeviceSynchronize();
+      gpuErrchk(cudaGetLastError());
+      gpuErrchk(cudaMemcpy(&phase_[i*nwalkers*num_modes*current_length], phase, nwalkers*num_modes*current_length*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&coeff1_[i*nwalkers*num_modes*(current_length-1)], coeff1, nwalkers*num_modes*(current_length-1)*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&coeff2_[i*nwalkers*num_modes*(current_length-1)], coeff2, nwalkers*num_modes*(current_length-1)*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaMemcpy(&coeff3_[i*nwalkers*num_modes*(current_length-1)], coeff3, nwalkers*num_modes*(current_length-1)*sizeof(double), cudaMemcpyDeviceToHost));
+      gpuErrchk(cudaFree(phase));
+      gpuErrchk(cudaFree(coeff1));
+      gpuErrchk(cudaFree(coeff2));
+      gpuErrchk(cudaFree(coeff3));
+  }
+  #else
+  for (int walker_i=0; walker_i<nwalkers; walker_i++){
+    for (int mode_i=0; mode_i<num_modes; mode_i++){
+      memcpy(&phase_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].phase, current_length*sizeof(double));
+      memcpy(&coeff1_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_1, (current_length-1)*sizeof(double));
+      memcpy(&coeff2_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_2, (current_length-1)*sizeof(double));
+      memcpy(&coeff3_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_3, (current_length-1)*sizeof(double));
+    }
+}
+#endif
+}
+
+
+/*
+auxillary function for getting amplitude and phase to the CPU
+*/
+#ifdef __CUDACC__
 CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, double *amp, double *phase, int num_modes, int length){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int mode_i = blockIdx.y;
@@ -929,23 +989,6 @@ CUDA_KERNEL void read_out_amp_phase(ModeContainer *mode_vals, double *amp, doubl
     phase[mode_i*length + i] = mode_vals[mode_i].phase[i];
 }
 #endif
-
-/*
-Return amplitude and phase in python on CPU
-*/
-void PhenomHM::GetPhaseSpline(double* phase_, double* coeff1_, double* coeff2_, double* coeff3_) {
-  //assert(current_status >= 1);
-
-  for (int walker_i=0; walker_i<nwalkers; walker_i++){
-    for (int mode_i=0; mode_i<num_modes; mode_i++){
-      memcpy(&phase_[walker_i*num_modes*current_length + mode_i*current_length], mode_vals[walker_i*num_modes + mode_i].phase, current_length*sizeof(double));
-      memcpy(&coeff1_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_1, (current_length-1)*sizeof(double));
-      memcpy(&coeff2_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_2, (current_length-1)*sizeof(double));
-      memcpy(&coeff3_[walker_i*num_modes*(current_length-1) + mode_i*(current_length-1)], mode_vals[walker_i*num_modes + mode_i].phase_coeff_3, (current_length-1)*sizeof(double));
-    }
-}
-}
-
 
 /*
 Return amplitude and phase in python on CPU

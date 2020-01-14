@@ -64,7 +64,8 @@ CUDA_CALLABLE_MEMBER void prep_splines(int i, int length, double *b, double *ud,
     b[length - 1] = ((dx2*dx2*slope1 +
                              (2*d + dx2)*dx1*slope2) / d);
     diag[length - 1] = dx1;
-    ld[length - 2] = d;
+    ld[length - 1] = d;
+    ud[length - 1] = 0.0;
 
   } else if (i == 0){
       dx1 = x[1] - x[0];
@@ -78,7 +79,8 @@ CUDA_CALLABLE_MEMBER void prep_splines(int i, int length, double *b, double *ud,
       b[0] = ((dx1 + 2*d) * dx2 * slope1 +
                           dx1*dx1 * slope2) / d;
       diag[0] = dx2;
-      ud[1] = d;
+      ud[0] = d;
+      ld[0] = 0.0;
 
   } else{
     dx1 = x[i] - x[i-1];
@@ -90,8 +92,8 @@ CUDA_CALLABLE_MEMBER void prep_splines(int i, int length, double *b, double *ud,
 
     b[i] = 3.0* (dx2*slope1 + dx1*slope2);
     diag[i] = 2*(dx1 + dx2);
-    ud[i + 1] = dx1;
-    ld[i - 1] = dx2;
+    ud[i] = dx1;
+    ld[i] = dx2;
   }
 }
 
@@ -559,6 +561,8 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
+            if (i == 800000) printf("%e, %e, %e, %e, %e \n", transferL2_im, coeff_0, coeff_1, coeff_2, coeff_3);
+
             trans_complex2 += gcmplx::conj(agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Z or T
@@ -704,37 +708,59 @@ void fit_constants_serial(int m, int n, double *w_in, double *a_in, double *b_in
 }
 
 #ifdef __CUDACC__
+__global__
+void printit(int index, double *a, double *b, double *c, double *d_in)
+{
+
+  printf("%e, %e, %e, %e\n", a[index], b[index], c[index], d_in[index]);
+
+}
+#endif
+
+#ifdef __CUDACC__
 void fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, double *c, double *d_in, double *x_in){
 
   cusparseStatus_t stat;
   cusparseHandle_t handle;
+  int index = 10*m + 11;
+  printit<<<1,1>>>(index, a, b, c, d_in);
+  cudaDeviceSynchronize();
 
   stat = cusparseCreate(&handle);
 
-  stat = cusparseDgtsvStridedBatch(handle,
+  for (int j=0; j<n; j++){
+
+    stat = cusparseDgtsv(handle,
                                     m,
-                                    a, // dl
-                                    b, //diag
-                                    c, // du
-                                    d_in,
-                                    n,
+                                    1,
+                                    &a[j*m], // dl
+                                    &b[j*m], //diag
+                                    &c[j*m], // du
+                                    &d_in[j*m],
                                     m);
+
+    if (stat !=  CUSPARSE_STATUS_SUCCESS) assert(0);
+  }
   cusparseDestroy(handle);
+  printit<<<1,1>>>(index, a, b, c, d_in);
 }
 
 #else
 void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, double *c, double *d_in, double *x_in){
 
     //double *x, *d;
+    int index = 10*m + 11;
+    printf("%d, %e, %e, %e, %e\n", index, a[index], b[index], c[index], d_in[index]);
     #pragma omp parallel for
     for (int j = 0;
          j < n;
          j += 1){
            //fit_constants_serial(m, n, w, a, b, c, d_in, x_in, j);
-           int info = LAPACKE_dgtsv(LAPACK_COL_MAJOR, m, 1, &a[j*m], &b[j*m], &c[j*m + 1], &d_in[j*m], m);
+           int info = LAPACKE_dgtsv(LAPACK_COL_MAJOR, m, 1, &a[j*m + 1], &b[j*m], &c[j*m], &d_in[j*m], m);
            //if (info != m) printf("lapack info check: %d\n", info);
 
     }
+    printf("%d, %e, %e, %e, %e\n", index, a[index], b[index], c[index], d_in[index]);
 }
 #endif
 

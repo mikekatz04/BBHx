@@ -735,23 +735,20 @@ void fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, do
   size_t bufferSizeInBytes;
 
   CUSPARSE_CALL(cusparseCreate(&handle));
-  CUSPARSE_CALL( cusparseDgtsv2_bufferSizeExt(handle, m, 1, &a[0*m], &b[0*m], &c[0*m], &d_in[0*m], m, &bufferSizeInBytes));
+  CUSPARSE_CALL( cusparseDgtsv2StridedBatch_bufferSizeExt(handle, m, a, b, c, d_in, n, m, &bufferSizeInBytes));
   gpuErrchk_here(cudaMalloc(&pBuffer, bufferSizeInBytes));
 
-  for (int j=0; j<n; j++){
+    CUSPARSE_CALL(cusparseDgtsv2StridedBatch(handle,
+                                              m,
+                                              a, // dl
+                                              b, //diag
+                                              c, // du
+                                              d_in,
+                                              n,
+                                              m,
+                                              pBuffer));
 
-    CUSPARSE_CALL(cusparseDgtsv2(handle,
-                                    m,
-                                    1,
-                                    &a[j*m], // dl
-                                    &b[j*m], //diag
-                                    &c[j*m], // du
-                                    &d_in[j*m],
-                                    m,
-                                    pBuffer));
 
-    if (stat !=  CUSPARSE_STATUS_SUCCESS) assert(0);
-  }
 CUSPARSE_CALL(cusparseDestroy(handle));
 gpuErrchk_here(cudaFree(pBuffer));
 }

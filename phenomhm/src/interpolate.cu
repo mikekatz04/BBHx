@@ -48,6 +48,16 @@ inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool ab
    }
 }
 
+/*
+CuSparse error checking
+*/
+#define ERR_NE(X,Y) do { if ((X) != (Y)) { \
+                             fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
+                             exit(-1);}} while(0)
+
+#define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
+#define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
+
 #endif
 
 
@@ -561,8 +571,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            if (i == 800000) printf("%e, %e, %e, %e, %e \n", transferL2_im, coeff_0, coeff_1, coeff_2, coeff_3);
-
             trans_complex2 += gcmplx::conj(agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Z or T
@@ -720,37 +728,37 @@ void printit(int index, double *a, double *b, double *c, double *d_in)
 #ifdef __CUDACC__
 void fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, double *c, double *d_in, double *x_in){
 
+  void *pBuffer;
   cusparseStatus_t stat;
   cusparseHandle_t handle;
-  int index = 10*m + 11;
-  printit<<<1,1>>>(index, a, b, c, d_in);
-  cudaDeviceSynchronize();
 
-  stat = cusparseCreate(&handle);
+  size_t bufferSizeInBytes;
+
+  CUSPARSE_CALL(cusparseCreate(&handle));
+  CUSPARSE_CALL( cusparseDgtsv2_bufferSizeExt(handle, m, 1, &a[0*m], &b[0*m], &c[0*m], &d_in[0*m], m, &bufferSizeInBytes));
+  gpuErrchk_here(cudaMalloc(&pBuffer, bufferSizeInBytes));
 
   for (int j=0; j<n; j++){
 
-    stat = cusparseDgtsv(handle,
+    CUSPARSE_CALL(cusparseDgtsv2(handle,
                                     m,
                                     1,
                                     &a[j*m], // dl
                                     &b[j*m], //diag
                                     &c[j*m], // du
                                     &d_in[j*m],
-                                    m);
+                                    m,
+                                    pBuffer));
 
     if (stat !=  CUSPARSE_STATUS_SUCCESS) assert(0);
   }
-  cusparseDestroy(handle);
-  printit<<<1,1>>>(index, a, b, c, d_in);
+CUSPARSE_CALL(cusparseDestroy(handle));
+gpuErrchk_here(cudaFree(pBuffer));
 }
 
 #else
 void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b, double *c, double *d_in, double *x_in){
 
-    //double *x, *d;
-    int index = 10*m + 11;
-    printf("%d, %e, %e, %e, %e\n", index, a[index], b[index], c[index], d_in[index]);
     #pragma omp parallel for
     for (int j = 0;
          j < n;
@@ -760,7 +768,6 @@ void cpu_fit_constants_serial_wrap(int m, int n, double *w, double *a, double *b
            //if (info != m) printf("lapack info check: %d\n", info);
 
     }
-    printf("%d, %e, %e, %e, %e\n", index, a[index], b[index], c[index], d_in[index]);
 }
 #endif
 

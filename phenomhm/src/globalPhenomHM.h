@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <complex>
 #include "cuda_complex.hpp"
+#include "stdio.h"
 
 #ifdef __CUDACC__
 #define CUDA_CALLABLE_MEMBER __host__ __device__

@@ -28,6 +28,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "fdresponse.h"
+#include "kernel_response.hh"
 
 #ifdef __CUDACC__
 #else

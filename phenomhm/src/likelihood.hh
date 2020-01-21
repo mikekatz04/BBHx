@@ -13,6 +13,16 @@
 #include "cuda_complex.hpp"
 
 #ifdef __CUDACC__
+void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1, agcmplx **d_data_channel2, agcmplx **d_data_channel3,
+                                agcmplx **d_template_channel1, agcmplx **d_template_channel2, agcmplx **d_template_channel3,
+                                 int data_stream_length, int nwalkers, int ndevices, cublasHandle_t *handle);
+#else
+void cpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx *h_data_channel1, agcmplx *h_data_channel2, agcmplx *h_data_channel3,
+                                agcmplx *template_channel1, agcmplx *template_channel2, agcmplx *template_channel3,
+                                 int data_stream_length, int nwalkers, int ndevices);
+#endif
+
+#ifdef __CUDACC__
 static char *_cudaGetErrorEnum(cublasStatus_t error)
 {
     switch (error)

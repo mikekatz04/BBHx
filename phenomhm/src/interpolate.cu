@@ -34,32 +34,6 @@
 #include "lapacke.h"
 #endif
 
-#ifdef __CUDACC__
-/*
-GPU error checking
-*/
-#define gpuErrchk_here(ans) { gpuAssert_here((ans), __FILE__, __LINE__); }
-inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess)
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
-
-/*
-CuSparse error checking
-*/
-#define ERR_NE(X,Y) do { if ((X) != (Y)) { \
-                             fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
-                             exit(-1);}} while(0)
-
-#define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
-#define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
-
-#endif
-
 
 CUDA_CALLABLE_MEMBER void prep_splines(int i, int length, double *b, double *ud, double *diag, double *ld, double *x, double *y){
   double dx1, dx2, d, slope1, slope2;

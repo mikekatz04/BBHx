@@ -32,22 +32,16 @@
 #include "cuComplex.h"
 #include "cublas_v2.h"
 
-#include <likelihood.cu>
-#include "createGPUHolders.cu"
-#include "kernel_response.cu"
-#include "interpolate.cu"
+#include "createGPUHolders.hh"
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-
-#else
-
-#include <likelihood.cpp>
-#include "kernel_response.cpp"
-#include "interpolate.cpp"
 
 #endif
 
 #include <kernel.hh>
+#include "kernel_response.hh"
+#include "interpolate.hh"
+#include <likelihood.hh>
 
 #include <manager.hh>
 #include <assert.h>

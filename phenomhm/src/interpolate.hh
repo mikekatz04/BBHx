@@ -25,6 +25,72 @@
 #ifndef __INTERPOLATE_H_
 #define __INTERPOLATE_H_
 
+
+#ifdef __CUDACC__
+/*
+GPU error checking
+*/
+#define gpuErrchk_here(ans) { gpuAssert_here((ans), __FILE__, __LINE__); }
+inline void gpuAssert_here(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
+/*
+CuSparse error checking
+*/
+#define ERR_NE(X,Y) do { if ((X) != (Y)) { \
+                             fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
+                             exit(-1);}} while(0)
+
+#define CUDA_CALL(X) ERR_NE((X),cudaSuccess)
+#define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
+
+#endif
+
+#ifdef __CUDACC__
+CUDA_KERNEL
+void fill_B_response_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers);
+#else
+void cpu_fill_B_response_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers);
+#endif
+
+
+#ifdef __CUDACC__
+CUDA_KERNEL void fill_B_wave_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers);
+#else
+void cpu_fill_B_wave_wrap(ModeContainer *mode_vals, double *freqs, double *B, double *upper_diag, double *diag, double *lower_diag, int f_length, int num_modes, int nwalkers);
+#endif
+
+
+#ifdef __CUDACC__
+CUDA_KERNEL
+void set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int nwalkers, int num_modes, double *freqs);
+#else
+void cpu_set_spline_constants_response_wrap(ModeContainer *mode_vals, double *B, int f_length, int nwalkers, int num_modes, double *freqs);
+#endif
+
+#ifdef __CUDACC__
+CUDA_KERNEL void set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int nwalkers, int num_modes, double *freqs);
+#else
+void cpu_set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int f_length, int nwalkers, int num_modes, double *freqs);
+#endif
+
+#ifdef __CUDACC__
+CUDA_KERNEL
+void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double* tRef_wave_frame_arr, double *channel1_ASDinv,
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers);
+#else
+void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
+    int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double* tRef_wave_frame_arr, double *channel1_ASDinv,
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers);
+#endif
+
 class Interpolate{
     double *w;
     double *D;

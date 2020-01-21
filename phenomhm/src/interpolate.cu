@@ -502,6 +502,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
       x3 = x*x2;
 
     ModeContainer *old_mode_vals_i;
+    double chan1_ASDinv, chan2_ASDinv, chan3_ASDinv;
 
     for (int mode_i=0; mode_i<num_modes; mode_i++){
             old_mode_vals_i = &old_mode_vals[walker_i*num_modes + mode_i];
@@ -563,7 +564,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex1 += gcmplx::conj(agcmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
+            trans_complex1 += gcmplx::conj(agcmplx(transferL1_re, transferL1_im)* ampphasefactor); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Y or E
             coeff_0 = old_mode_vals_i->transferL2_re[old_ind_below];
@@ -580,7 +581,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex2 += gcmplx::conj(agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
+            trans_complex2 += gcmplx::conj(agcmplx(transferL2_re, transferL2_im)* ampphasefactor); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Z or T
             coeff_0 = old_mode_vals_i->transferL3_re[old_ind_below];
@@ -597,21 +598,31 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            trans_complex3 += gcmplx::conj(agcmplx(transferL3_re, transferL3_im)* ampphasefactor * channel3_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
+            trans_complex3 += gcmplx::conj(agcmplx(transferL3_re, transferL3_im)* ampphasefactor); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
           }
 
         #ifdef __GLOBAL_FIT__
         #ifdef __CUDACC__
-        atomicAddComplex(&channel1_out[i], temp_freq_out_1);
-        atomicAddComplex(&channel2_out[i], temp_freq_out_2);
-        atomicAddComplex(&channel3_out[i], temp_freq_out_3);
+        atomicAddComplex(&channel1_out[i], trans_complex1);
+        atomicAddComplex(&channel2_out[i], trans_complex2);
+        atomicAddComplex(&channel3_out[i], trans_complex3);
+        #else
+        #pragma omp atomic update
+        channel1_out[i] += trans_complex1;
+
+        #pragma omp atomic update
+        channel2_out[i] += trans_complex2;
+
+        #pragma omp atomic update
+        channel3_out[i] += trans_complex13
+
         #endif //__CUDACC__
         #else
-        channel1_out[walker_i*data_length + i] = trans_complex1;
-        channel2_out[walker_i*data_length + i] = trans_complex2;
-        channel3_out[walker_i*data_length + i] = trans_complex3;
-        #endif
+        channel1_out[walker_i*data_length + i] = trans_complex1 * channel1_ASDinv[i];
+        channel2_out[walker_i*data_length + i] = trans_complex2 * channel2_ASDinv[i];
+        channel3_out[walker_i*data_length + i] = trans_complex3 * channel3_ASDinv[i];
+        #endif //__GLOBAL_FIT__
 }
 
 #ifdef __CUDACC__

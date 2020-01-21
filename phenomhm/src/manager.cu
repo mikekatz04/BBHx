@@ -131,9 +131,9 @@ PhenomHM::PhenomHM (int max_length_init_,
     t_obs_end = t_obs_end_;
 
     #ifdef __GLOBAL_FIT__
-    is_global_fit = 1;
+    int is_global_fit = 1;
     #else
-    is_global_fit = 0;
+    int is_global_fit = 0;
     #endif
 
     #ifdef __CUDACC__
@@ -249,7 +249,7 @@ PhenomHM::PhenomHM (int max_length_init_,
   d_phiRef = new double*[ndevices];
 
   handle = new cublasHandle_t[ndevices];
-
+  int wtf = 0;
   for (int i=0; i<ndevices; i++){
       cudaSetDevice(i);
       d_mode_vals[i] = gpu_create_modes(num_modes, nwalkers, l_vals, m_vals, max_length_init, to_gpu, 1);
@@ -262,11 +262,15 @@ PhenomHM::PhenomHM (int max_length_init_,
       gpuErrchk(cudaMalloc(&d_diag[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
       gpuErrchk(cudaMalloc(&d_lower_diag[i], 8*max_length_init*num_modes*nwalkers*sizeof(double)));
 
-      gpuErrchk(cudaMalloc(&d_template_channel1[i], data_stream_length*nwalkers*sizeof(agcmplx)));
-      gpuErrchk(cudaMalloc(&d_template_channel2[i], data_stream_length*nwalkers*sizeof(agcmplx)));
-      gpuErrchk(cudaMalloc(&d_template_channel3[i], data_stream_length*nwalkers*sizeof(agcmplx)));
-
       gpuErrchk(cudaMalloc(&d_data_freqs[i], data_stream_length*sizeof(double)));
+
+      #ifdef __GLOBAL_FIT__
+      #else
+
+        gpuErrchk(cudaMalloc(&d_template_channel1[i], data_stream_length*nwalkers*sizeof(agcmplx)));
+        gpuErrchk(cudaMalloc(&d_template_channel2[i], data_stream_length*nwalkers*sizeof(agcmplx)));
+        gpuErrchk(cudaMalloc(&d_template_channel3[i], data_stream_length*nwalkers*sizeof(agcmplx)));
+
 
       gpuErrchk(cudaMalloc(&d_data_channel1[i], data_stream_length*sizeof(agcmplx)));
 
@@ -279,6 +283,8 @@ PhenomHM::PhenomHM (int max_length_init_,
       gpuErrchk(cudaMalloc(&d_channel2_ASDinv[i], data_stream_length*sizeof(double)));
 
       gpuErrchk(cudaMalloc(&d_channel3_ASDinv[i], data_stream_length*sizeof(double)));
+
+      #endif
 
       gpuErrchk(cudaMalloc(&d_pHM_trans[i], nwalkers*sizeof(PhenomHMStorage)));
 
@@ -336,6 +342,8 @@ PhenomHM::PhenomHM (int max_length_init_,
   lower_diag = new double[8*max_length_init*num_modes*nwalkers];
   interp[0].alloc_arrays(max_length_init, 8*num_modes*nwalkers, B);
 
+  #ifdef __GLOBAL_FIT__
+  #else
   template_channel1 = new agcmplx[data_stream_length*nwalkers];
   template_channel2 = new agcmplx[data_stream_length*nwalkers];
   template_channel3 = new agcmplx[data_stream_length*nwalkers];
@@ -343,8 +351,8 @@ PhenomHM::PhenomHM (int max_length_init_,
   h_data_channel1 = new agcmplx[data_stream_length];
   h_data_channel2 = new agcmplx[data_stream_length];
   h_data_channel3 = new agcmplx[data_stream_length];
-
-  #endif
+  #endif // __GLOBAL_FIT__
+  #endif //__CUDACC__
 
 
   PhenomHM::input_data(data_freqs, data_channel1,
@@ -361,7 +369,9 @@ void PhenomHM::input_data(double *data_freqs_, cmplx *data_channel1_,
 
     assert(data_stream_length_ == data_stream_length);
 
-    #if __CUDACC__
+    #ifdef __GLOBAL_FIT__
+    #else
+    #ifdef __CUDACC__
     for (int i=0; i<ndevices; i++){
         cudaSetDevice(i);
         gpuErrchk(cudaMemcpy(d_data_freqs[i], data_freqs_, data_stream_length*sizeof(double), cudaMemcpyHostToDevice));
@@ -387,7 +397,8 @@ void PhenomHM::input_data(double *data_freqs_, cmplx *data_channel1_,
     channel1_ASDinv = channel1_ASDinv_;
     channel2_ASDinv = channel2_ASDinv_;
     channel3_ASDinv = channel3_ASDinv_;
-    #endif
+    #endif // __CUDACC__
+    #endif //__GLOBAL_FIT__
 }
 
 /*
@@ -1053,6 +1064,8 @@ PhenomHM::~PhenomHM() {
       gpuErrchk(cudaFree(d_q_all_trans[i]));
       gpuErrchk(cudaFree(d_cShift[i]));
 
+      #ifdef __GLOBAL_FIT__
+      #else
       gpuErrchk(cudaFree(d_data_channel1[i]));
       gpuErrchk(cudaFree(d_data_channel2[i]));
       gpuErrchk(cudaFree(d_data_channel3[i]));
@@ -1064,6 +1077,7 @@ PhenomHM::~PhenomHM() {
       gpuErrchk(cudaFree(d_channel1_ASDinv[i]));
       gpuErrchk(cudaFree(d_channel2_ASDinv[i]));
       gpuErrchk(cudaFree(d_channel3_ASDinv[i]));
+      #endif
       cublasDestroy(handle[i]);
       gpuErrchk(cudaFree(d_B[i]));
       gpuErrchk(cudaFree(d_upper_diag[i]));
@@ -1131,6 +1145,8 @@ PhenomHM::~PhenomHM() {
   #else
   delete[] B;
 
+  #ifdef __GLOBAL_FIT__
+  #else
   delete[] template_channel1;
   delete[] template_channel2;
   delete[] template_channel3;
@@ -1138,6 +1154,7 @@ PhenomHM::~PhenomHM() {
   delete[] h_data_channel1;
   delete[] h_data_channel2;
   delete[] h_data_channel3;
+  #endif
 
   delete[] upper_diag;
   delete[] lower_diag;

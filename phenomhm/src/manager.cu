@@ -31,7 +31,7 @@
 
 #include "cuComplex.h"
 #include "cublas_v2.h"
-#include <kernel.cu>
+
 #include <likelihood.cu>
 #include "createGPUHolders.cu"
 #include "kernel_response.cu"
@@ -41,12 +41,13 @@
 
 #else
 
-#include <kernel.cpp>
 #include <likelihood.cpp>
 #include "kernel_response.cpp"
 #include "interpolate.cpp"
 
 #endif
+
+#include <kernel.hh>
 
 #include <manager.hh>
 #include <assert.h>

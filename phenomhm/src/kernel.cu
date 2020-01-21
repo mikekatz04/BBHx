@@ -32,6 +32,7 @@
 #include "cuda_complex.hpp"
 
 #include "globalPhenomHM.h"
+#include "kernel.hh"
 
 #ifdef __CUDACC__
 #else

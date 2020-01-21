@@ -156,7 +156,7 @@ def test():
         ndevices,
     )
 
-    num = 1000
+    num = 10
     st = time.perf_counter()
     # phiRef = np.linspace(0.0, 2*np.pi, num)
     # snrs = np.zeros_like(phiRef)

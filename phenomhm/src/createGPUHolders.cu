@@ -27,6 +27,7 @@
 #include "globalPhenomHM.h"
 #include <complex>
 #include "cuComplex.h"
+#include "stdio.h"
 
 /*
 Function for gpu Error checking.

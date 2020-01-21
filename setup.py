@@ -165,6 +165,56 @@ if run_cuda_install:
                 "-lineinfo",
                 "-Xcompiler",
                 "-fopenmp",
+            ],  # ,"-G", "-g"] # for debugging
+        },
+        include_dirs=[numpy_include, include_gsl_dir, CUDA["include"], "phenomhm/src"],
+    )
+
+    shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/gpuPhenomHM_glob.pyx")
+
+    ext_gpu_glob = Extension(
+        "gpuPhenomHM_glob",
+        sources=[
+            "phenomhm/src/createGPUHolders.cu",
+            "phenomhm/src/globalPhenomHM.cpp",
+            "phenomhm/src/RingdownCW.cpp",
+            "phenomhm/src/fdresponse.cpp",
+            "phenomhm/src/IMRPhenomD_internals.cpp",
+            "phenomhm/src/IMRPhenomD.cpp",
+            "phenomhm/src/PhenomHM.cpp",
+            "phenomhm/src/kernel_response.cu",
+            "phenomhm/src/kernel.cu",
+            "phenomhm/src/interpolate.cu",
+            "phenomhm/src/likelihood.cu",
+            "phenomhm/src/manager.cu",
+            "phenomhm/gpuPhenomHM_glob.pyx",
+        ],
+        library_dirs=[lib_gsl_dir, CUDA["lib64"]],
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
+        language="c++",
+        runtime_library_dirs=[CUDA["lib64"]],
+        # This syntax is specific to this build system
+        # we're only going to use certain compiler args with nvcc
+        # and not with gcc the implementation of this trick is in
+        # customize_compiler()
+        extra_compile_args={
+            "gcc": [],  # '-g'],
+            "nvcc": [
+                "-arch=sm_70",
+                "-gencode=arch=compute_35,code=sm_35",
+                "-gencode=arch=compute_50,code=sm_50",
+                "-gencode=arch=compute_52,code=sm_52",
+                "-gencode=arch=compute_60,code=sm_60",
+                "-gencode=arch=compute_61,code=sm_61",
+                "-gencode=arch=compute_70,code=sm_70",
+                "--default-stream=per-thread",
+                "--ptxas-options=-v",
+                "-c",
+                "--compiler-options",
+                "'-fPIC'",
+                "-lineinfo",
+                "-Xcompiler",
+                "-fopenmp",
                 "-D__GLOBAL_FIT__",
             ],  # ,"-G", "-g"] # for debugging
         },
@@ -176,6 +226,7 @@ for file in os.listdir(src_folder):
     if file.split(".")[-1] == "cu":
         shutil.copy(src_folder + file, src_folder + file[:-2] + "cpp")
 shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
+shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM_glob.pyx")
 # Obtain the numpy include directory. This logic works across numpy versions.
 try:
     numpy_include = numpy.get_include()
@@ -220,6 +271,35 @@ ext_cpu = Extension(
     # we're only going to use certain compiler args with nvcc
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
+    extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC"]},
+    extra_link_args=["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
+    include_dirs=[numpy_include, include_gsl_dir, lapack_include, "phenomhm/src"],
+)
+
+ext_cpu_glob = Extension(
+    "cpuPhenomHM_glob",
+    sources=[
+        "phenomhm/src/globalPhenomHM.cpp",
+        "phenomhm/src/RingdownCW.cpp",
+        "phenomhm/src/fdresponse.cpp",
+        "phenomhm/src/IMRPhenomD_internals.cpp",
+        "phenomhm/src/IMRPhenomD.cpp",
+        "phenomhm/src/PhenomHM.cpp",
+        "phenomhm/src/kernel.cpp",
+        "phenomhm/src/kernel_response.cpp",
+        "phenomhm/src/interpolate.cpp",
+        "phenomhm/src/likelihood.cpp",
+        "phenomhm/src/manager.cpp",
+        "phenomhm/cpuPhenomHM_glob.pyx",
+    ],
+    library_dirs=[lib_gsl_dir, lapack_lib],
+    libraries=["gsl", "gslcblas", "pthread", "lapack"],
+    language="c++",
+    # sruntime_library_dirs = [CUDA['lib64']],
+    # This syntax is specific to this build system
+    # we're only going to use certain compiler args with nvcc
+    # and not with gcc the implementation of this trick is in
+    # customize_compiler()
     extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC", "-D__GLOBAL_FIT__"]},
     extra_link_args=["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
     include_dirs=[numpy_include, include_gsl_dir, lapack_include, "phenomhm/src"],
@@ -227,10 +307,10 @@ ext_cpu = Extension(
 
 if run_cuda_install:
     # extensions = [ext_gpu, ext_cpu]
-    extensions = [ext_gpu]
+    extensions = [ext_gpu, ext_gpu_glob]
 else:
     print("Did not locate CUDA binary.")
-    extensions = [ext_cpu]
+    extensions = [ext_cpu, ext_cpu_glob]
 
 setup(
     name="phenomhm",

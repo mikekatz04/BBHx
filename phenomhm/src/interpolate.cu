@@ -520,7 +520,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             time_check = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            if (i == 10000) printf("%d time %e\n", mode_i, time_check);
             if (time_check < t_break_start) {
                 continue;
             }
@@ -537,7 +536,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            if (i == 10000) printf("%d amp %e\n", mode_i, amp);
             if (amp < 1e-40){
                 continue;
             }
@@ -618,7 +616,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
         atomicAddComplex(&channel3_out[i], trans_complex3);
         #else
         #pragma omp critical
-        if (i == 10000) printf("%d, %e, %e, %e\n", i, trans_complex1.real(), trans_complex1.imag(), f);
         channel1_out[i] += trans_complex1;
 
         #pragma omp critical

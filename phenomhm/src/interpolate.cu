@@ -495,12 +495,15 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
       x2 = x*x;
       x3 = x*x2;
 
+    ModeContainer *old_mode_vals_i;
+
     for (int mode_i=0; mode_i<num_modes; mode_i++){
+            old_mode_vals_i = &old_mode_vals[walker_i*num_modes + mode_i];
             // interp time frequency to remove less than 0.0
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_corr[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].time_freq_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->time_freq_corr[old_ind_below];
+            coeff_1 = old_mode_vals_i->time_freq_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->time_freq_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->time_freq_coeff_3[old_ind_below];
 
             time_check = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
@@ -513,78 +516,78 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
             }
 
             // interp amplitude
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].amp[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].amp_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->amp[old_ind_below];
+            coeff_1 = old_mode_vals_i->amp_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->amp_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->amp_coeff_3[old_ind_below];
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             if (amp < 1e-40){
                 continue;
             }
             // interp phase
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phase[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phase_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->phase[old_ind_below];
+            coeff_1 = old_mode_vals_i->phase_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->phase_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->phase_coeff_3[old_ind_below];
 
             phase  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].phaseRdelay_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->phaseRdelay[old_ind_below];
+            coeff_1 = old_mode_vals_i->phaseRdelay_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->phaseRdelay_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->phaseRdelay_coeff_3[old_ind_below];
 
             phaseRdelay  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
             phaseShift = 2.0*PI*f*(tc + tShift); // tc is t0 and tShift if tRef_wave_frame
             ampphasefactor = amp*gcmplx::exp(agcmplx(0.0, phase + phaseRdelay + phaseShift));
 
             // X or A
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_re_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->transferL1_re[old_ind_below];
+            coeff_1 = old_mode_vals_i->transferL1_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->transferL1_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->transferL1_re_coeff_3[old_ind_below];
 
             transferL1_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL1_im_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->transferL1_im[old_ind_below];
+            coeff_1 = old_mode_vals_i->transferL1_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->transferL1_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->transferL1_im_coeff_3[old_ind_below];
 
             transferL1_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
             trans_complex1 += gcmplx::conj(agcmplx(transferL1_re, transferL1_im)* ampphasefactor * channel1_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Y or E
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_re_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->transferL2_re[old_ind_below];
+            coeff_1 = old_mode_vals_i->transferL2_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->transferL2_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->transferL2_re_coeff_3[old_ind_below];
 
             transferL2_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL2_im_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->transferL2_im[old_ind_below];
+            coeff_1 = old_mode_vals_i->transferL2_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->transferL2_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->transferL2_im_coeff_3[old_ind_below];
 
             transferL2_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
             trans_complex2 += gcmplx::conj(agcmplx(transferL2_re, transferL2_im)* ampphasefactor * channel2_ASDinv[i]); //TODO may be faster to load as complex number with 0.0 for imaginary part
 
             // Z or T
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_re_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->transferL3_re[old_ind_below];
+            coeff_1 = old_mode_vals_i->transferL3_re_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->transferL3_re_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->transferL3_re_coeff_3[old_ind_below];
 
             transferL3_re  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
-            coeff_0 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im[old_ind_below];
-            coeff_1 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_1[old_ind_below];
-            coeff_2 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_2[old_ind_below];
-            coeff_3 = old_mode_vals[walker_i*num_modes + mode_i].transferL3_im_coeff_3[old_ind_below];
+            coeff_0 = old_mode_vals_i->transferL3_im[old_ind_below];
+            coeff_1 = old_mode_vals_i->transferL3_im_coeff_1[old_ind_below];
+            coeff_2 = old_mode_vals_i->transferL3_im_coeff_2[old_ind_below];
+            coeff_3 = old_mode_vals_i->transferL3_im_coeff_3[old_ind_below];
 
             transferL3_im  = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 

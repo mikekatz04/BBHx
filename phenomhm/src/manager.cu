@@ -135,6 +135,12 @@ PhenomHM::PhenomHM (int max_length_init_,
     t_obs_start = t_obs_start_;
     t_obs_end = t_obs_end_;
 
+    #ifdef GLOBAL_FIT
+    is_global_fit = 1;
+    #else
+    is_global_fit = 0;
+    #endif
+
     #ifdef __CUDACC__
     to_gpu = 1;
 

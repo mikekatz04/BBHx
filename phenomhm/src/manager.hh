@@ -166,6 +166,8 @@ class PhenomHM {
   double *diag;
   double *lower_diag;
 
+  int is_global_fit;
+
 
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header

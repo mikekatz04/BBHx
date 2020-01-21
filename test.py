@@ -9,8 +9,10 @@ from phenomhm.utils.convert import Converter, Recycler
 
 try:
     import gpuPhenomHM as PhenomHM
+    import cupy as xp
 except ImportError:
     import cpuPhenomHM as PhenomHM
+    import numpy as xp
 
 
 def test():
@@ -150,7 +152,7 @@ def test():
         ndevices,
     )
 
-    num = 10
+    num = 100
     st = time.perf_counter()
     # phiRef = np.linspace(0.0, 2*np.pi, num)
     # snrs = np.zeros_like(phiRef)
@@ -188,10 +190,20 @@ def test():
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
 
-    phenomHM.input_data(
-        data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
+    # phenomHM.input_data(
+    #    data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
+    # )
+
+    data_freqs = xp.asarray(data_freqs)
+    template_channel1 = xp.zeros_like(data_freqs, dtype=xp.complex128)
+    template_channel2 = xp.zeros_like(data_freqs, dtype=xp.complex128)
+    template_channel3 = xp.zeros_like(data_freqs, dtype=xp.complex128)
+
+    phenomHM.input_global_data(
+        data_freqs, template_channel1, template_channel2, template_channel3
     )
 
+    """
     like2 = phenomHM.WaveformThroughLikelihood(
         freqs_in,
         m1_in,
@@ -211,12 +223,19 @@ def test():
         merger_freq_in,
         return_TDI=False,
     )
+    """
 
     for i in range(num):
-        """
+
+        template_channel1[:] = 0.0 + 0.0 * 1j
+        template_channel2[:] = 0.0 + 0.0 * 1j
+        template_channel3[:] = 0.0 + 0.0 * 1j
+
         phenomHM.gen_amp_phase(
             freqs_in, m1_in, m2_in, chi1z_in, chi2z_in, distance_in, phiRef_in, f_ref_in
         )
+
+        phenomHM.setup_interp_wave()
 
         # phenomHM.Combine()
 
@@ -230,15 +249,11 @@ def test():
             tRef_sampling_frame_in,
             merger_freq_in,
         )
-
-
-        phenomHM.setup_interp_wave()
-
         phenomHM.setup_interp_response()
 
         phenomHM.perform_interp()
 
-        like = phenomHM.Likelihood()
+        # like = phenomHM.Likelihood()
 
         """
 
@@ -261,7 +276,7 @@ def test():
             merger_freq_in,
             return_TDI=False,
         )
-
+        """
         """try:
             assert(np.allclose(like2[1], like2[1][0]))
             print('\n\n\n GOOD \n\n\n')

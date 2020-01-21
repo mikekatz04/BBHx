@@ -463,7 +463,13 @@ __device__ void atomicAddComplex(agcmplx* a, agcmplx b){
 /*
 Interpolate amp, phase, and response transfer functions on GPU.
 */
+#ifdef __GLOBAL_FIT__
+#ifdef __CUDACC__
+__device__
+#endif // __CUDACC__
+#else
 CUDA_CALLABLE_MEMBER
+#endif // __GLOBAL_FIT__
 void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length,
     double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv, int num_walkers,
@@ -514,6 +520,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
             time_check = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
 
+            if (i == 10000) printf("%d time %e\n", mode_i, time_check);
             if (time_check < t_break_start) {
                 continue;
             }
@@ -529,6 +536,8 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
             coeff_3 = old_mode_vals_i->amp_coeff_3[old_ind_below];
 
             amp = coeff_0 + (coeff_1*x) + (coeff_2*x2) + (coeff_3*x3);
+
+            if (i == 10000) printf("%d amp %e\n", mode_i, amp);
             if (amp < 1e-40){
                 continue;
             }
@@ -608,14 +617,15 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
         atomicAddComplex(&channel2_out[i], trans_complex2);
         atomicAddComplex(&channel3_out[i], trans_complex3);
         #else
-        #pragma omp atomic update
+        #pragma omp critical
+        if (i == 10000) printf("%d, %e, %e, %e\n", i, trans_complex1.real(), trans_complex1.imag(), f);
         channel1_out[i] += trans_complex1;
 
-        #pragma omp atomic update
+        #pragma omp critical
         channel2_out[i] += trans_complex2;
 
-        #pragma omp atomic update
-        channel3_out[i] += trans_complex13
+        #pragma omp critical
+        channel3_out[i] += trans_complex3;
 
         #endif //__CUDACC__
         #else

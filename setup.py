@@ -165,6 +165,7 @@ if run_cuda_install:
                 "-lineinfo",
                 "-Xcompiler",
                 "-fopenmp",
+                "-D__GLOBAL_FIT__",
             ],  # ,"-G", "-g"] # for debugging
         },
         include_dirs=[numpy_include, include_gsl_dir, CUDA["include"], "phenomhm/src"],
@@ -219,7 +220,7 @@ ext_cpu = Extension(
     # we're only going to use certain compiler args with nvcc
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
-    extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC"]},
+    extra_compile_args={"gcc": ["-O3", "-fopenmp", "-fPIC", "-D__GLOBAL_FIT__"]},
     extra_link_args=["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],
     include_dirs=[numpy_include, include_gsl_dir, lapack_include, "phenomhm/src"],
 )

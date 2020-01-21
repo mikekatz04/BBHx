@@ -378,6 +378,7 @@ void PhenomHM::input_global_data(long ptr_data_freqs_,
   template_channel3 = (agcmplx*) ptr_template_channel3_;
   #endif
 
+  data_added = 1;
 }
 
 
@@ -821,6 +822,46 @@ void PhenomHM::perform_interp(){
     #endif
 
     if (current_status == 4) current_status = 5;
+}
+
+#ifdef __CUDACC__
+__global__
+void gpu_reset_to_zero(int length, agcmplx *template_channel1, agcmplx *template_channel2, agcmplx *template_channel3){
+
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+       i < length;
+       i += blockDim.x * gridDim.x){
+         template_channel1[i] = agcmplx(0.0, 0.0);
+           template_channel2[i] = agcmplx(0.0, 0.0);
+             template_channel3[i] = agcmplx(0.0, 0.0);
+  }
+}
+#else
+void cpu_reset_to_zero(int length, agcmplx *template_channel1, agcmplx *template_channel2, agcmplx *template_channel3){
+  for (int i = 0;
+       i < length;
+       i += 1){
+         template_channel1[i] = agcmplx(0.0, 0.0);
+           template_channel2[i] = agcmplx(0.0, 0.0);
+             template_channel3[i] = agcmplx(0.0, 0.0);
+  }
+}
+#endif
+
+void PhenomHM::ResetGlobalTemplate(){
+
+  #ifdef __CUDACC__
+  int NUM_THREADS = 256;
+  int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
+  dim3 resetDim(num_block_interp, 1, 1);
+  gpu_reset_to_zero<<<resetDim, NUM_THREADS>>>(data_stream_length, d_template_channel1[0], d_template_channel2[0], d_template_channel3[0]);
+  cudaDeviceSynchronize();
+  gpuErrchk(cudaGetLastError());
+  #else
+
+ cpu_reset_to_zero(data_stream_length, template_channel1, template_channel2, template_channel3);
+ #endif
+
 }
 
 /*

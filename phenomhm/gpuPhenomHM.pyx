@@ -45,6 +45,7 @@ cdef extern from "src/manager.hh":
                                     np.int_t ptr_data_channel2_, np.int_t ptr_data_channel3_, int data_stream_length_)
 
         void Likelihood(np.float64_t*, np.float64_t*)
+        void ResetGlobalTemplate()
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
         void GetResponse(np.complex128_t* transferL1_, np.complex128_t* transferL2_, np.complex128_t* transferL3_,
                           np.float64_t* phaseRdelay_, np.float64_t* time_freq_corr_)
@@ -127,10 +128,10 @@ cdef class PhenomHM:
         cdef np.int_t ptr_template_channel3
 
         if isinstance(data_freqs, np.ndarray):
-            ptr_data_freqs = data_freqs.array_interface.get('data')
-            ptr_template_channel1 = template_channel1.array_interface.get('data')
-            ptr_template_channel2 = template_channel2.array_interface.get('data')
-            ptr_template_channel3 = template_channel3.array_interface.get('data')
+            ptr_data_freqs = data_freqs.__array_interface__.get('data')[0]
+            ptr_template_channel1 = template_channel1.__array_interface__.get('data')[0]
+            ptr_template_channel2 = template_channel2.__array_interface__.get('data')[0]
+            ptr_template_channel3 = template_channel3.__array_interface__.get('data')[0]
 
         else:  # assumes cupy array then
             ptr_data_freqs = data_freqs.data.mem.ptr
@@ -221,6 +222,8 @@ cdef class PhenomHM:
                 phaseRdelay_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim),
                 time_freq_corr_.reshape(self.nwalkers*self.ndevices, self.num_modes, self.f_dim))
 
+    def ResetGlobalTemplate(self):
+        self.g.ResetGlobalTemplate()
 
     def WaveformThroughLikelihood(self, np.ndarray[ndim=1, dtype=np.float64_t] freqs,
                         np.ndarray[ndim=1, dtype=np.float64_t] m1, #solar masses

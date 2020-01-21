@@ -7,13 +7,16 @@ cdef extern from "src/manager.hh":
     cdef int GetDeviceCount();
 
     cdef cppclass PhenomHMwrap "PhenomHM":
-        PhenomHMwrap(int,
-        np.uint32_t *,
-        np.uint32_t *,
-        int, np.float64_t*,
-        np.complex128_t *,
-        np.complex128_t *,
-        np.complex128_t *, int, np.float64_t*, np.float64_t*, np.float64_t*, int, np.float64_t, np.float64_t, int, int)
+        PhenomHMwrap(int max_length_init_,
+            unsigned int *l_vals_,
+            unsigned int *m_vals_,
+            int num_modes_,
+            int data_stream_length_,
+            int TDItag,
+            double t_obs_start_,
+            double t_obs_end_,
+            int nwalkers_,
+            int ndevices_)
 
         void gen_amp_phase(np.float64_t *, int,
                             np.float64_t *,
@@ -37,6 +40,10 @@ cdef extern from "src/manager.hh":
                           np.float64_t *, np.float64_t *,
                           np.float64_t *, int)
 
+        void input_global_data(np.int_t ptr_data_freqs_,
+                                          np.int_t ptr_data_channel1_,
+                                    np.int_t ptr_data_channel2_, np.int_t ptr_data_channel3_, int data_stream_length_)
+
         void Likelihood(np.float64_t*, np.float64_t*)
         void GetTDI(np.complex128_t*, np.complex128_t*, np.complex128_t*)
         void GetResponse(np.complex128_t* transferL1_, np.complex128_t* transferL2_, np.complex128_t* transferL3_,
@@ -56,13 +63,7 @@ cdef class PhenomHM:
     def __cinit__(self, max_length_init,
      np.ndarray[ndim=1, dtype=np.uint32_t] l_vals,
      np.ndarray[ndim=1, dtype=np.uint32_t] m_vals,
-     np.ndarray[ndim=1, dtype=np.float64_t] data_freqs,
-     np.ndarray[ndim=1, dtype=np.complex128_t] data_channel1,
-     np.ndarray[ndim=1, dtype=np.complex128_t] data_channel2,
-     np.ndarray[ndim=1, dtype=np.complex128_t] data_channel3,
-     np.ndarray[ndim=1, dtype=np.float64_t] channel1_ASDinv,
-     np.ndarray[ndim=1, dtype=np.float64_t] channel2_ASDinv,
-     np.ndarray[ndim=1, dtype=np.float64_t] channel3_ASDinv,
+     data_stream_length,
      TDItag,
      t_obs_start,
      t_obs_end,
@@ -72,15 +73,13 @@ cdef class PhenomHM:
         self.nwalkers = nwalkers
         self.num_modes = len(l_vals)
         self.ndevices = ndevices
-        self.data_length = len(data_channel1)
+        self.data_length = data_stream_length
         self.max_length_init = max_length_init
         self.g = new PhenomHMwrap(max_length_init,
         &l_vals[0],
         &m_vals[0],
-        self.num_modes, &data_freqs[0],
-        &data_channel1[0],
-        &data_channel2[0],
-        &data_channel3[0], self.data_length, &channel1_ASDinv[0], &channel2_ASDinv[0], &channel3_ASDinv[0], TDItag,
+        self.num_modes,
+        self.data_length, TDItag,
         t_obs_start,
         t_obs_end, nwalkers, ndevices)
 
@@ -115,6 +114,35 @@ cdef class PhenomHM:
                             &data_channel2[0], &data_channel3[0],
                             &channel1_ASDinv[0], &channel2_ASDinv[0],
                             &channel3_ASDinv[0], len(data_freqs))
+
+    def input_global_data(self, data_freqs,
+                            template_channel1,
+                            template_channel2,
+                            template_channel3,
+                            ):
+
+        cdef np.int_t ptr_data_freqs
+        cdef np.int_t ptr_template_channel1
+        cdef np.int_t ptr_template_channel2
+        cdef np.int_t ptr_template_channel3
+
+        if isinstance(data_freqs, np.ndarray):
+            ptr_data_freqs = data_freqs.array_interface.get('data')
+            ptr_template_channel1 = template_channel1.array_interface.get('data')
+            ptr_template_channel2 = template_channel2.array_interface.get('data')
+            ptr_template_channel3 = template_channel3.array_interface.get('data')
+
+        else:  # assumes cupy array then
+            ptr_data_freqs = data_freqs.data.mem.ptr
+            ptr_template_channel1 = template_channel1.data.mem.ptr
+            ptr_template_channel2 = template_channel2.data.mem.ptr
+            ptr_template_channel3 = template_channel3.data.mem.ptr
+
+        self.g.input_global_data(ptr_data_freqs,
+                                ptr_template_channel1,
+                                ptr_template_channel2,
+                                ptr_template_channel3,
+                                len(data_freqs))
 
     def setup_interp_wave(self):
         self.g.setup_interp_wave()

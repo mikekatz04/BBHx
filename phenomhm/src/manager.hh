@@ -42,6 +42,7 @@
 
 class PhenomHM {
   // pointer to the GPU memory where the array is stored
+    int data_added;
   int current_status;
   int max_length_init;
   int data_stream_length;
@@ -168,7 +169,6 @@ class PhenomHM {
 
   int is_global_fit;
 
-
 public:
   /* By using the swig default names INPLACE_ARRAY1, DIM1 in the header
      file (these aren't the names in the implementation file), we're giving
@@ -185,12 +185,7 @@ public:
       unsigned int *l_vals_,
       unsigned int *m_vals_,
       int num_modes_,
-      double *data_freqs_,
-      cmplx *data_channel1_,
-      cmplx *data_channel2_,
-      cmplx *data_channel3_,
       int data_stream_length_,
-      double *X_ASDinv_, double *Y_ASDinv_, double *Z_ASDinv_,
       int TDItag,
       double t_obs_start_,
       double t_obs_end_,
@@ -203,6 +198,10 @@ public:
                             cmplx *data_channel2, cmplx *data_channel3,
                             double *channel1_ASDinv, double *channel2_ASDinv,
                             double *channel3_ASDinv, int data_stream_length_);
+
+  void input_global_data(long ptr_data_freqs_,
+                                    long ptr_data_channel1_,
+                              long ptr_data_channel2_, long ptr_data_channel3_, int data_stream_length_);
 
     void gen_amp_phase(double *freqs_, int current_length_,
         double* m1_, //solar masses

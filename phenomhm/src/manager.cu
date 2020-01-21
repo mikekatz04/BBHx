@@ -95,11 +95,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
     int num_modes_,
-    double *data_freqs_,
-    cmplx *data_channel1_,
-    cmplx *data_channel2_,
-    cmplx *data_channel3_, int data_stream_length_,
-    double *channel1_ASDinv_, double *channel2_ASDinv_, double *channel3_ASDinv_,
+    int data_stream_length_,
     int TDItag_,
     double t_obs_start_,
     double t_obs_end_,
@@ -116,19 +112,15 @@ PhenomHM::PhenomHM (int max_length_init_,
     l_vals = l_vals_;
     m_vals = m_vals_;
     num_modes = num_modes_;
-    data_freqs = data_freqs_;
     data_stream_length = data_stream_length_;
-    channel1_ASDinv = channel1_ASDinv_;
-    channel2_ASDinv = channel2_ASDinv_;
-    channel3_ASDinv = channel3_ASDinv_;
-    data_channel1 = data_channel1_;
-    data_channel2 = data_channel2_;
-    data_channel3 = data_channel3_;
+
     nwalkers = nwalkers_;
 
     TDItag = TDItag_;
     t_obs_start = t_obs_start_;
     t_obs_end = t_obs_end_;
+
+    data_added = 0;
 
     #ifdef __GLOBAL_FIT__
     int is_global_fit = 1;
@@ -353,12 +345,39 @@ PhenomHM::PhenomHM (int max_length_init_,
   h_data_channel3 = new agcmplx[data_stream_length];
   #endif // __GLOBAL_FIT__
   #endif //__CUDACC__
+}
 
+void PhenomHM::input_global_data(long ptr_data_freqs_,
+                                  long ptr_template_channel1_,
+                            long ptr_template_channel2_, long ptr_template_channel3_, int data_stream_length_)
 
-  PhenomHM::input_data(data_freqs, data_channel1,
-                        data_channel2, data_channel3,
-                        channel1_ASDinv, channel2_ASDinv,
-                        channel3_ASDinv, data_stream_length);
+{
+  #ifdef __GLOBAL_FIT__
+  #else
+  printf("Cannot input global data if not working with global fit. Need to use input_data.\n");
+  assert(0);
+  #endif
+
+  assert(data_stream_length_ == data_stream_length);
+
+  #ifdef __CUDACC__
+  d_data_freqs[0] = (double *) ptr_data_freqs_;
+  d_template_channel1[0] = (agcmplx*) ptr_template_channel1_;
+  d_template_channel2[0] = (agcmplx*) ptr_template_channel2_;
+  d_template_channel3[0] = (agcmplx*) ptr_template_channel3_;
+
+  if (ndevices > 1){
+      printf("not implemnted yet\n");
+      assert(0);
+  }
+
+  #else
+  data_freqs = (double *) ptr_data_freqs_;
+  template_channel1 = (agcmplx*) ptr_template_channel1_;
+  template_channel2 = (agcmplx*) ptr_template_channel2_;
+  template_channel3 = (agcmplx*) ptr_template_channel3_;
+  #endif
+
 }
 
 
@@ -367,10 +386,21 @@ void PhenomHM::input_data(double *data_freqs_, cmplx *data_channel1_,
                           double *channel1_ASDinv_, double *channel2_ASDinv_,
                           double *channel3_ASDinv_, int data_stream_length_){
 
+    #ifdef __GLOBAL_FIT__
+    printf("Cannot input data if working with global fit. Need to use input_global_data.\n");
+    assert(0);
+    #endif
+
     assert(data_stream_length_ == data_stream_length);
 
-    #ifdef __GLOBAL_FIT__
-    #else
+    data_freqs = data_freqs_;
+    channel1_ASDinv = channel1_ASDinv_;
+    channel2_ASDinv = channel2_ASDinv_;
+    channel3_ASDinv = channel3_ASDinv_;
+    data_channel1 = data_channel1_;
+    data_channel2 = data_channel2_;
+    data_channel3 = data_channel3_;
+
     #ifdef __CUDACC__
     for (int i=0; i<ndevices; i++){
         cudaSetDevice(i);
@@ -398,7 +428,8 @@ void PhenomHM::input_data(double *data_freqs_, cmplx *data_channel1_,
     channel2_ASDinv = channel2_ASDinv_;
     channel3_ASDinv = channel3_ASDinv_;
     #endif // __CUDACC__
-    #endif //__GLOBAL_FIT__
+
+    data_added = 1;
 }
 
 /*
@@ -761,7 +792,7 @@ interpolate amp and phase up to frequencies of the data stream.
 */
 void PhenomHM::perform_interp(){
     //assert(current_status >= 4);
-
+    assert(data_added == 1);
     #ifdef __CUDACC__
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     //dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
@@ -796,7 +827,12 @@ void PhenomHM::perform_interp(){
 Compute likelihood on the GPU
 */
 void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
+    #ifdef __GLOBAL_FIT__
+    printf("With global fit, need to control likelihood from exterior class.\n");
+    assert(0);
+    #endif
 
+    assert(data_added == 1);
     //printf("like mem\n");
     //print_mem_info();
     #ifdef __CUDACC__

@@ -148,7 +148,7 @@ if run_cuda_install:
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
         extra_compile_args={
-            "gcc": ["-std=c99"],  # '-g'],
+            "gcc": [],  # '-g'],
             "nvcc": [
                 "-arch=sm_70",
                 "-gencode=arch=compute_35,code=sm_35",

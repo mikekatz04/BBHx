@@ -142,13 +142,7 @@ def test():
         len(freq),
         l_vals,
         m_vals,
-        data_freqs,
-        data_A,
-        data_E,
-        data_T,
-        AE_ASDinv,
-        AE_ASDinv,
-        T_ASDinv,
+        len(data),
         TDItag,
         t_obs_start,
         t_obs_end,
@@ -194,6 +188,10 @@ def test():
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
 
+    phenomHM.input_data(
+        data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
+    )
+
     like2 = phenomHM.WaveformThroughLikelihood(
         freqs_in,
         m1_in,
@@ -212,10 +210,6 @@ def test():
         tRef_sampling_frame_in,
         merger_freq_in,
         return_TDI=False,
-    )
-
-    phenomHM.input_data(
-        data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
     )
 
     for i in range(num):

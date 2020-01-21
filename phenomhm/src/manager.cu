@@ -130,7 +130,7 @@ PhenomHM::PhenomHM (int max_length_init_,
     t_obs_start = t_obs_start_;
     t_obs_end = t_obs_end_;
 
-    #ifdef GLOBAL_FIT
+    #ifdef __GLOBAL_FIT__
     is_global_fit = 1;
     #else
     is_global_fit = 0;

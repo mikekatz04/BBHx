@@ -428,6 +428,38 @@ void cpu_set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int
 }
 #endif
 
+#ifdef __GLOBAL_FIT__
+#ifdef __CUDACC__
+__device__ double atomicAddDouble(double* address, double val)
+{
+    unsigned long long* address_as_ull =
+                              (unsigned long long*)address;
+    unsigned long long old = *address_as_ull, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val +
+                               __longlong_as_double(assumed)));
+
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
+
+    return __longlong_as_double(old);
+}
+
+__device__ void atomicAddComplex(agcmplx* a, agcmplx b){
+  //transform the addresses of real and imag. parts to double pointers
+  double *x = (double*)a;
+  double *y = x+1;
+  //use atomicAdd for double variables
+  atomicAddDouble(x, b.real());
+  atomicAddDouble(y, b.imag());
+}
+#endif // __CUDACC__
+#endif // __GLOBAL_FIT__
+
+
 /*
 Interpolate amp, phase, and response transfer functions on GPU.
 */
@@ -569,9 +601,17 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 
           }
 
+        #ifdef __GLOBAL_FIT__
+        #ifdef __CUDACC__
+        atomicAddComplex(&channel1_out[i], temp_freq_out_1);
+        atomicAddComplex(&channel2_out[i], temp_freq_out_2);
+        atomicAddComplex(&channel3_out[i], temp_freq_out_3);
+        #endif //__CUDACC__
+        #else
         channel1_out[walker_i*data_length + i] = trans_complex1;
         channel2_out[walker_i*data_length + i] = trans_complex2;
         channel3_out[walker_i*data_length + i] = trans_complex3;
+        #endif
 }
 
 #ifdef __CUDACC__

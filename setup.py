@@ -313,7 +313,7 @@ if run_cuda_install:
                 "-fopenmp",
             ],  # ,"-G", "-g"] # for debugging
         },
-        include_dirs=[numpy_include, include_gsl_dir, CUDA["include"], "phenomhm/src"],
+        include_dirs=[numpy_include, include_gsl_dir, CUDA["include"], "src"],
     )
 
     shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/gpuPhenomHM_glob.pyx")

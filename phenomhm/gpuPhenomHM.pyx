@@ -3,7 +3,7 @@ cimport numpy as np
 
 assert sizeof(int) == sizeof(np.int32_t)
 
-cdef extern from "src/manager.hh":
+cdef extern from "../src/manager.hh":
     cdef int GetDeviceCount();
 
     cdef cppclass PhenomHMwrap "PhenomHM":

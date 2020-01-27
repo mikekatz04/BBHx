@@ -5,7 +5,7 @@
  *  The comments in the code have been left generally the same. A few comments
  *  have been made for the newer functions added.
 
- 
+
  * Copyright (C) 2015 Michael Puerrer, Sebastian Khan, Frank Ohme, Ofek Birnholtz, Lionel London
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -751,6 +751,7 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
  * IMRPhenomDSetupAmpAndPhaseCoefficients struct
  */
 
+CUDA_CALLABLE_MEMBER
  double IMRPhenomDPhase_OneFrequency(
     double Mf,
     PhenDAmpAndPhasePreComp pD,
@@ -760,7 +761,7 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
 
   UsefulPowers powers_of_f;
   int status = init_useful_powers(&powers_of_f, Mf);
-  assert(1 == status) ; //, status, "Failed to initiate init_useful_powers");
+  //assert(1 == status) ; //, status, "Failed to initiate init_useful_powers");
   double phase = IMRPhenDPhase(Mf, &(pD.pPhi), &(pD.pn), &powers_of_f,
                               &(pD.phi_prefactors), Rholm, Taulm);
   return phase;

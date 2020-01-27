@@ -50,6 +50,7 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
    const double Rholm,
    const double Taulm);
 
+CUDA_CALLABLE_MEMBER
 double IMRPhenomDPhase_OneFrequency(
        double Mf,
        PhenDAmpAndPhasePreComp pD,

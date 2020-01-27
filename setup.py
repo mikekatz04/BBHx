@@ -277,7 +277,7 @@ if run_cuda_install:
             "phenomhm/src/RingdownCW.cpp",
             "phenomhm/src/fdresponse.cpp",
             "phenomhm/src/IMRPhenomD_internals.cu",
-            "phenomhm/src/IMRPhenomD.cpp",
+            "phenomhm/src/IMRPhenomD.cu",
             "phenomhm/src/PhenomHM.cu",
             "phenomhm/src/kernel_response.cu",
             "phenomhm/src/kernel.cu",

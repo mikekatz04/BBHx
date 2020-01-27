@@ -35,28 +35,12 @@
 #include "kernel.hh"
 #include "IMRPhenomD_internals.h"
 #include "PhenomHM.h"
+#include "IMRPhenomD.h"
 
 #ifdef __CUDACC__
 #else
 #include "omp.h"
 #endif
-
-
-  CUDA_CALLABLE_MEMBER
-   double d_IMRPhenomDPhase_OneFrequency(
-      double Mf,
-      PhenDAmpAndPhasePreComp pD,
-      double Rholm,
-      double Taulm)
-  {
-
-    UsefulPowers powers_of_f;
-    int status = init_useful_powers(&powers_of_f, Mf);
-    //CHECK(PD_SUCCESS == status, status, "Failed to initiate init_useful_powers");
-    double phase = IMRPhenDPhase(Mf, &(pD.pPhi), &(pD.pn), &powers_of_f,
-                                &(pD.phi_prefactors), Rholm, Taulm);
-    return phase;
-  }
 
 
 CUDA_CALLABLE_MEMBER
@@ -159,19 +143,19 @@ CUDA_CALLABLE_MEMBER
             if (!(Mf_wf > q.fi))
             { /* in mathematica -> IMRPhenDPhaseA */
                 Mf = q.ai * Mf_wf + q.bi;
-                phase_i += d_IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ai;
+                phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ai;
             }
             else if (!(Mf_wf > q.fr))
             { /* in mathematica -> IMRPhenDPhaseB */
                 Mf = q.am * Mf_wf + q.bm;
-                phase_i += d_IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
+                phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
             }
             else if ((Mf_wf > q.fr))
             { /* in mathematica -> IMRPhenDPhaseC */
                 Mfr = q.am * q.fr + q.bm;
-                tmpphaseC = d_IMRPhenomDPhase_OneFrequency(Mfr, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
+                tmpphaseC = IMRPhenomDPhase_OneFrequency(Mfr, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
                 Mf = q.ar * Mf_wf + q.br;
-                phase_i += d_IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ar - q.PhDCconst + tmpphaseC;
+                phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ar - q.PhDCconst + tmpphaseC;
             }
             else
             {
@@ -406,7 +390,7 @@ void cpu_calculate_all_modes_wrap(ModeContainer *mode_vals,
                mode_val.amp[i] = amp*amp0;
 
               /* Add complex phase shift depending on 'm' mode */
-              phase = d_IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm);
+              phase = IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm);
 
               Mf = freq_geom;
               phase_term1 = - t0 * (Mf - Mf_ref);

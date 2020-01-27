@@ -6,6 +6,10 @@ from setuptools import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import numpy
+from distutils.dep_util import newer_pairwise, newer_group
+from distutils import log
+import subprocess
+from distutils.spawn import spawn
 
 
 def find_in_path(name, path):
@@ -80,15 +84,54 @@ def customize_compiler_for_nvcc(self):
     # Now redefine the _compile method. This gets executed for each
     # object but distutils doesn't have the ability to change compilers
     # based on source extension: we add it.
-    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-        if os.path.splitext(src)[1] == ".cu":
-            # use the cuda for .cu files
+    def _compile(obj, src, ext, cc_args_in, extra_postargs, pp_opts):
+        cc_args = cc_args_in.copy()
+        if obj.split("/")[-1] == "tempGPU.o":
+
+            postargs = extra_postargs["nvcc"].copy()
+
+            if "-c" in cc_args and "-dc" in postargs:
+                cc_args.remove("-c")
+                postargs.remove("-dc")
+
+            postargs.append("-dlink")
+
             self.set_executable("compiler_so", CUDA["nvcc"])
-            # use only a subset of the extra_postargs, which are 1-1
-            # translated from the extra_compile_args in the Extension class
-            postargs = extra_postargs["nvcc"]
+
+            bashCommand = (
+                self.compiler_so
+                + cc_args
+                + postargs
+                + extra_postargs["device_link"]
+                + ["-o", obj]
+            )
+
+            cmd = ""
+            for item in bashCommand:
+                cmd += item + " "
+
+            print(cmd)
+            process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
+            output, error = process.communicate()
+            return
+
         else:
-            postargs = extra_postargs["gcc"]
+            if os.path.splitext(src)[1] == ".cu" or obj.split("/")[-1] == "tempGPU.o":
+                # use the cuda for .cu files
+                try:
+                    self.set_executable("compiler_so", CUDA["nvcc"])
+                    # use only a subset of the extra_postargs, which are 1-1
+                    # translated from the extra_compile_args in the Extension class
+                    postargs = extra_postargs["nvcc"]
+
+                    if "-c" in cc_args and "-dc" in postargs:
+                        cc_args.remove("-c")
+
+                except NameError:
+                    postargs = extra_postargs["gcc"]
+                    # cc_args.insert(0, "-x c")
+            else:
+                postargs = extra_postargs["gcc"]
 
         super(obj, src, ext, cc_args, postargs, pp_opts)
         # Reset the default compiler_so, which we might have changed for cuda
@@ -101,8 +144,112 @@ def customize_compiler_for_nvcc(self):
 # Run the customize_compiler
 class custom_build_ext(build_ext):
     def build_extensions(self):
+        self.force = True
         customize_compiler_for_nvcc(self.compiler)
         build_ext.build_extensions(self)
+
+    def build_extension(self, ext):
+        sources = ext.sources
+        if sources is None or not isinstance(sources, (list, tuple)):
+            raise DistutilsSetupError(
+                "in 'ext_modules' option (extension '%s'), "
+                "'sources' must be present and must be "
+                "a list of source filenames" % ext.name
+            )
+        sources = list(sources)
+
+        ext_path = self.get_ext_fullpath(ext.name)
+        depends = sources + ext.depends
+        if not (self.force or newer_group(depends, ext_path, "newer")):
+            log.debug("skipping '%s' extension (up-to-date)", ext.name)
+            return
+        else:
+            log.info("building '%s' extension", ext.name)
+
+        # First, scan the sources for SWIG definition files (.i), run
+        # SWIG on 'em to create .c files, and modify the sources list
+        # accordingly.
+        sources = self.swig_sources(sources, ext)
+
+        # Next, compile the source code to object files.
+
+        # XXX not honouring 'define_macros' or 'undef_macros' -- the
+        # CCompiler API needs to change to accommodate this, and I
+        # want to do one thing at a time!
+
+        # Two possible sources for extra compiler arguments:
+        #   - 'extra_compile_args' in Extension object
+        #   - CFLAGS environment variable (not particularly
+        #     elegant, but people seem to expect it and I
+        #     guess it's useful)
+        # The environment variable should take precedence, and
+        # any sensible compiler will give precedence to later
+        # command line args.  Hence we combine them in order:
+        extra_args = ext.extra_compile_args or []
+
+        macros = ext.define_macros[:]
+        for undef in ext.undef_macros:
+            macros.append((undef,))
+
+        try:
+            CUDA["lib64"]
+            run_cuda = True
+
+        except NameError:
+            run_cuda = False
+
+        objects = self.compiler.compile(
+            sources,
+            output_dir=self.build_temp,
+            macros=macros,
+            include_dirs=ext.include_dirs,
+            debug=self.debug,
+            extra_postargs=extra_args,
+            depends=ext.depends,
+        )
+
+        # XXX outdated variable, kept here in case third-part code
+        # needs it.
+        self._built_objects = objects[:]
+
+        run_cuda = True
+        if run_cuda:
+            device_link_sources = ["tempGPU.cu"]
+
+            extra_args["device_link"] = self._built_objects
+            objects_device_link = self.compiler.compile(
+                device_link_sources,
+                output_dir=self.build_temp,
+                macros=macros,
+                include_dirs=ext.include_dirs,
+                debug=self.debug,
+                extra_postargs=extra_args,
+                depends=ext.depends,
+            )
+            objects += objects_device_link
+
+        # Now link the object files together into a "shared object" --
+        # of course, first we have to figure out all the other things
+        # that go into the mix.
+        if ext.extra_objects:
+            objects.extend(ext.extra_objects)
+        extra_args = ext.extra_link_args or []
+
+        # Detect target language, if not provided
+        language = ext.language or self.compiler.detect_language(sources)
+
+        self.compiler.link_shared_object(
+            objects,
+            ext_path,
+            libraries=self.get_libraries(ext),
+            library_dirs=ext.library_dirs,
+            runtime_library_dirs=ext.runtime_library_dirs,
+            extra_postargs=extra_args,
+            export_symbols=self.get_export_symbols(ext),
+            debug=self.debug,
+            build_temp=self.build_temp,
+            target_lang=language,
+        )
 
 
 try:
@@ -151,18 +298,17 @@ if run_cuda_install:
             "gcc": [],  # '-g'],
             "nvcc": [
                 "-arch=sm_70",
-                "-gencode=arch=compute_35,code=sm_35",
-                "-gencode=arch=compute_50,code=sm_50",
-                "-gencode=arch=compute_52,code=sm_52",
-                "-gencode=arch=compute_60,code=sm_60",
-                "-gencode=arch=compute_61,code=sm_61",
+                # "-gencode=arch=compute_35,code=sm_35",
+                # "-gencode=arch=compute_50,code=sm_50",
+                # "-gencode=arch=compute_52,code=sm_52",
+                # "-gencode=arch=compute_60,code=sm_60",
+                # "-gencode=arch=compute_61,code=sm_61",
                 "-gencode=arch=compute_70,code=sm_70",
                 "--default-stream=per-thread",
                 "--ptxas-options=-v",
-                "-c",
+                "-dc",
                 "--compiler-options",
                 "'-fPIC'",
-                "-lineinfo",
                 "-Xcompiler",
                 "-fopenmp",
             ],  # ,"-G", "-g"] # for debugging
@@ -201,15 +347,15 @@ if run_cuda_install:
             "gcc": [],  # '-g'],
             "nvcc": [
                 "-arch=sm_70",
-                "-gencode=arch=compute_35,code=sm_35",
-                "-gencode=arch=compute_50,code=sm_50",
-                "-gencode=arch=compute_52,code=sm_52",
-                "-gencode=arch=compute_60,code=sm_60",
-                "-gencode=arch=compute_61,code=sm_61",
+                # "-gencode=arch=compute_35,code=sm_35",
+                # "-gencode=arch=compute_50,code=sm_50",
+                # "-gencode=arch=compute_52,code=sm_52",
+                # "-gencode=arch=compute_60,code=sm_60",
+                # "-gencode=arch=compute_61,code=sm_61",
                 "-gencode=arch=compute_70,code=sm_70",
                 "--default-stream=per-thread",
                 "--ptxas-options=-v",
-                "-c",
+                "-dc",
                 "--compiler-options",
                 "'-fPIC'",
                 "-lineinfo",
@@ -250,6 +396,7 @@ include_gsl_dir = "/opt/local/include"
 ext_cpu = Extension(
     "cpuPhenomHM",
     sources=[
+        "phenomhm/src/manager.cu",
         "phenomhm/src/globalPhenomHM.cpp",
         "phenomhm/src/RingdownCW.cpp",
         "phenomhm/src/fdresponse.cpp",
@@ -260,7 +407,6 @@ ext_cpu = Extension(
         "phenomhm/src/kernel_response.cpp",
         "phenomhm/src/interpolate.cpp",
         "phenomhm/src/likelihood.cpp",
-        "phenomhm/src/manager.cpp",
         "phenomhm/cpuPhenomHM.pyx",
     ],
     library_dirs=[lib_gsl_dir, lapack_lib],
@@ -307,7 +453,7 @@ ext_cpu_glob = Extension(
 
 if run_cuda_install:
     # extensions = [ext_gpu, ext_cpu]
-    extensions = [ext_gpu, ext_gpu_glob]
+    extensions = [ext_gpu]  # , ext_gpu_glob]
 else:
     print("Did not locate CUDA binary.")
     extensions = [ext_cpu, ext_cpu_glob]

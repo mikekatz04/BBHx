@@ -88,6 +88,14 @@ void print_mem_info(){
 
             used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 }
+#endif
+
+#ifdef __CUDACC__
+__global__
+void print_it()
+{
+  print_stuff();
+}
 
 #endif
 
@@ -107,6 +115,13 @@ PhenomHM::PhenomHM (int max_length_init_,
       if (omp_get_thread_num() == 1) printf("NUM OMP THREADS: %d\n", omp_get_num_threads());
     }
 
+    #ifdef __CUDACC__
+    printf("try to print\n");
+    print_it<<<1,1>>>();
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    printf("past printing\n");
+    #endif
 
     max_length_init = max_length_init_;
     l_vals = l_vals_;

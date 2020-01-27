@@ -13,6 +13,11 @@
 #include "cuda_complex.hpp"
 
 #ifdef __CUDACC__
+__device__
+void print_stuff();
+#endif
+
+#ifdef __CUDACC__
 void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1, agcmplx **d_data_channel2, agcmplx **d_data_channel3,
                                 agcmplx **d_template_channel1, agcmplx **d_template_channel2, agcmplx **d_template_channel3,
                                  int data_stream_length, int nwalkers, int ndevices, cublasHandle_t *handle);

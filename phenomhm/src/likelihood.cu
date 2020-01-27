@@ -20,7 +20,7 @@
 __device__
 void print_stuff()
 {
-  printf("PRINT STUFF check it \n");
+  printf("PRINT STUFF yayay check it \n");
 }
 #endif
 

@@ -107,6 +107,7 @@ of this waveform.
 /**
  * calc square of number without floating point 'pow'
  */
+CUDA_CALLABLE_MEMBER
 double pow_2_of(double number)
 {
 	return (number*number);
@@ -115,6 +116,7 @@ double pow_2_of(double number)
 /**
  * calc cube of number without floating point 'pow'
  */
+ CUDA_CALLABLE_MEMBER
 double pow_3_of(double number)
 {
 	return (number*number*number);
@@ -123,6 +125,7 @@ double pow_3_of(double number)
 /**
  * calc fourth power of number without floating point 'pow'
  */
+CUDA_CALLABLE_MEMBER
 double pow_4_of(double number)
 {
 	double pow2 = pow_2_of(number);
@@ -377,7 +380,7 @@ double chiPN(double eta, double chi1, double chi2) {
 size_t NextPow2(const size_t n)
 {
   // use pow here, not bit-wise shift, as the latter seems to run against an upper cutoff long before SIZE_MAX, at least on some platforms
-  return (size_t) pow(2,ceil(log2(n)));
+  return (size_t) pow(2,ceil(log2((double) n)));
 }
 
 ///**
@@ -393,6 +396,7 @@ size_t NextPow2(const size_t n)
 /**
  * Step function in boolean version
  */
+CUDA_CALLABLE_MEMBER
 bool StepFunc_boolean(const double t, const double t1) {
 	return (t >= t1);
 }
@@ -504,6 +508,7 @@ double fdamp(double eta, double chi1, double chi2, double finspin) {
   return return_val;
 }
 
+CUDA_CALLABLE_MEMBER
 int init_useful_powers(UsefulPowers *p, double number)
 {
 	assert(0 != p);
@@ -588,6 +593,7 @@ double rho3_fun(double eta, double chi) {
  * in rho1_fun, rho2_fun, rho3_fun functions.
  * Amplitude is a re-expansion. See 1508.07253 and Equation 29, 30 and Appendix B arXiv:1508.07253 for details
  */
+CUDA_CALLABLE_MEMBER
 double AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors) {
   double Mf2 = powers_of_Mf->two;
   double Mf3 = Mf*Mf2;
@@ -744,6 +750,7 @@ double gamma3_fun(double eta, double chi) {
 /**
  * Ansatz for the merger-ringdown amplitude. Equation 19 arXiv:1508.07253
  */
+ CUDA_CALLABLE_MEMBER
 double AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
   double fRD = p->fRD;
   double fDM = p->fDM;
@@ -803,6 +810,7 @@ double fmaxCalc(IMRPhenomDAmplitudeCoefficients* p) {
 /**
  * Ansatz for the intermediate amplitude. Equation 21 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
   double Mf2 = Mf*Mf;
   double Mf3 = Mf*Mf2;
@@ -1127,6 +1135,7 @@ int  ComputeIMRPhenomDAmplitudeCoefficients_sub(IMRPhenomDAmplitudeCoefficients 
  * This function computes the IMR amplitude given phenom coefficients.
  * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
   // The inspiral, intermediate and merger-ringdown amplitude parts
@@ -1247,6 +1256,7 @@ double alpha5Fit(double eta, double chi) {
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
+CUDA_CALLABLE_MEMBER
 double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
 {
   double sqrootf = sqrt(f);
@@ -1328,6 +1338,7 @@ double beta3Fit(double eta, double chi) {
 /**
  * ansatz for the intermediate phase defined by Equation 16 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
   // 1./eta in paper omitted and put in when need in the functions:
   // ComputeIMRPhenDPhaseConnectionCoefficients
@@ -1429,12 +1440,14 @@ double sigma4Fit(double eta, double chi) {
  * as comments in the top of this file
  * Defined by Equation 27 and 28 arXiv:1508.07253
  */
+
+CUDA_CALLABLE_MEMBER
 double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
 {
-	assert(0 != pn);
+	//assert(0 != pn);
 
   // Assemble PN phasing series
-  const double v = powers_of_Mf->third * powers_of_pi.third;
+  const double v = powers_of_Mf->third * pow(PI, 1./3.);
   const double logv = log(v);
 
   double phasing = prefactors->initial_phasing;
@@ -1632,6 +1645,7 @@ void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, 
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
+ CUDA_CALLABLE_MEMBER
 double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
@@ -2179,7 +2193,7 @@ void PhenomInternal_nudge(double *x, double X, double epsilon)
 size_t PhenomInternal_NextPow2(const size_t n)
 {
     // use pow here, not bit-wise shift, as the latter seems to run against an upper cutoff long before SIZE_MAX, at least on some platforms
-    return (size_t)pow(2, ceil(log2(n)));
+    return (size_t)pow(2, ceil(log2((double)n)));
 }
 
 /**

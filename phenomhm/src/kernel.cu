@@ -33,31 +33,13 @@
 
 #include "globalPhenomHM.h"
 #include "kernel.hh"
+#include "IMRPhenomD_internals.h"
 
 #ifdef __CUDACC__
 #else
 #include "omp.h"
 #endif
 
-
-CUDA_CALLABLE_MEMBER
-int d_init_useful_powers(UsefulPowers *p, double number)
-{
-	//CHECK(0 != p, PD_EFAULT, "p is NULL");
-	//CHECK(number >= 0, PD_EDOM, "number must be non-negative");
-
-	// consider changing pow(x,1/6.0) to cbrt(x) and sqrt(x) - might be faster
-	p->sixth = pow(number, 1/6.0);
-	p->third = p->sixth * p->sixth;
-	p->two_thirds = number / p->third;
-	p->four_thirds = number * (p->third);
-	p->five_thirds = p->four_thirds * (p->third);
-	p->two = number * number;
-	p->seven_thirds = p->third * p->two;
-	p->eight_thirds = p->two_thirds * p->two;
-
-	return 1;
-}
 
 /**
  * domain mapping function - ringdown
@@ -377,153 +359,6 @@ double d_IMRPhenomHMOnePointFiveSpinPN(
 }
 
   CUDA_CALLABLE_MEMBER
-  double d_AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors) {
-    double Mf2 = powers_of_Mf->two;
-    double Mf3 = Mf*Mf2;
-
-    return 1 + powers_of_Mf->two_thirds * prefactors->two_thirds
-  			+ Mf * prefactors->one + powers_of_Mf->four_thirds * prefactors->four_thirds
-  			+ powers_of_Mf->five_thirds * prefactors->five_thirds + Mf2 * prefactors->two
-  			+ powers_of_Mf->seven_thirds * prefactors->seven_thirds + powers_of_Mf->eight_thirds * prefactors->eight_thirds
-  			+ Mf3 * prefactors->three;
-  }
-
-  CUDA_CALLABLE_MEMBER
-  double d_AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
-    double fRD = p->fRD;
-    double fDM = p->fDM;
-    double gamma1 = p->gamma1;
-    double gamma2 = p->gamma2;
-    double gamma3 = p->gamma3;
-    double fDMgamma3 = fDM*gamma3;
-    double fminfRD = f - fRD;
-    return exp( -(fminfRD)*gamma2 / (fDMgamma3) )
-      * (fDMgamma3*gamma1) / (pow(fminfRD, 2.0) + pow(fDMgamma3, 2.0));
-  }
-
-  CUDA_CALLABLE_MEMBER
-  double d_AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
-    double Mf2 = Mf*Mf;
-    double Mf3 = Mf*Mf2;
-    double Mf4 = Mf*Mf3;
-    return p->delta0 + p->delta1*Mf + p->delta2*Mf2 + p->delta3*Mf3 + p->delta4*Mf4;
-  }
-
-
-  // Call ComputeIMRPhenomDAmplitudeCoefficients() first!
-  /**
-   * This function computes the IMR amplitude given phenom coefficients.
-   * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
-   */
-  CUDA_CALLABLE_MEMBER double d_IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
-    // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
-    // The inspiral, intermediate and merger-ringdown amplitude parts
-
-    // Transition frequencies
-    p->fInsJoin = AMP_fJoin_INS;
-    p->fMRDJoin = p->fmaxCalc;
-
-    double f_seven_sixths = f * powers_of_f->sixth;
-    double AmpPreFac = prefactors->amp0 / f_seven_sixths;
-
-    // split the calculation to just 1 of 3 possible mutually exclusive ranges
-
-    if (f <= p->fInsJoin)	// Inspiral range
-    {
-  	  double AmpIns = AmpPreFac * d_AmpInsAnsatz(f, powers_of_f, prefactors);
-  	  return AmpIns;
-    }
-
-    if (f >= p->fMRDJoin)	// MRD range
-    {
-  	  double AmpMRD = AmpPreFac * d_AmpMRDAnsatz(f, p);
-  	  return AmpMRD;
-    }
-
-    //	Intermediate range
-    double AmpInt = AmpPreFac * d_AmpIntAnsatz(f, p);
-    return AmpInt;
-  }
-
-  CUDA_CALLABLE_MEMBER
-  double d_PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
-  {
-  	//CHECK(0 != pn, PD_EFAULT, "pn is NULL");
-
-    // Assemble PN phasing series
-    const double v = powers_of_Mf->third * pow(PI, 1./3.);
-    const double logv = log(v);
-
-    double phasing = prefactors->initial_phasing;
-
-    phasing += prefactors->two_thirds	* powers_of_Mf->two_thirds;
-    phasing += prefactors->third * powers_of_Mf->third;
-    phasing += prefactors->third_with_logv * logv * powers_of_Mf->third;
-    phasing += prefactors->logv * logv;
-    phasing += prefactors->minus_third / powers_of_Mf->third;
-    phasing += prefactors->minus_two_thirds / powers_of_Mf->two_thirds;
-    phasing += prefactors->minus_one / Mf;
-    phasing += prefactors->minus_five_thirds / powers_of_Mf->five_thirds; // * v^0
-
-    // Now add higher order terms that were calibrated for PhenomD
-    phasing += ( prefactors->one * Mf + prefactors->four_thirds * powers_of_Mf->four_thirds
-  			   + prefactors->five_thirds * powers_of_Mf->five_thirds
-  			   + prefactors->two * powers_of_Mf->two
-  			 ) / p->eta;
-
-    return phasing;
-  }
-
-
-  CUDA_CALLABLE_MEMBER
-  double d_PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
-  {
-    double sqrootf = sqrt(f);
-    double fpow1_5 = f * sqrootf;
-    // check if this is any faster: 2 sqrts instead of one pow(x,0.75)
-    double fpow0_75 = sqrt(fpow1_5); // pow(f,0.75);
-
-    return -(p->alpha2/f)
-  		 + (4.0/3.0) * (p->alpha3 * fpow0_75)
-  		 + p->alpha1 * f
-  		 + p->alpha4 * Rholm * atan((f - p->alpha5 * p->fRD) / (Rholm * p->fDM * Taulm));
-  }
-
-  CUDA_CALLABLE_MEMBER
-  double d_PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
-    // 1./eta in paper omitted and put in when need in the functions:
-    // ComputeIMRPhenDPhaseConnectionCoefficients
-    // IMRPhenDPhase
-    return  p->beta1*Mf - p->beta3/(3.*pow(Mf, 3.0)) + p->beta2*log(Mf);
-  }
-
-
-
-CUDA_CALLABLE_MEMBER
-double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
-{
-  // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
-  // The inspiral, intermendiate and merger-ringdown phase parts
-
-  // split the calculation to just 1 of 3 possible mutually exclusive ranges
-  if (f <= p->fInsJoin)	// Inspiral range
-  {
-	  double PhiIns = d_PhiInsAnsatzInt(f, powers_of_f, prefactors, p, pn);
-	  return PhiIns;
-  }
-
-  if (f >= p->fMRDJoin)	// MRD range
-  {
-	  double PhiMRD = p->etaInv * d_PhiMRDAnsatzInt(f, p, Rholm, Taulm) + p->C1MRD + p->C2MRD * f;
-	  return PhiMRD;
-  }
-
-  //	Intermediate range
-  double PhiInt = p->etaInv * d_PhiIntAnsatz(f, p) + p->C1Int + p->C2Int * f;
-  return PhiInt;
-}
-
-  CUDA_CALLABLE_MEMBER
    double d_IMRPhenomDPhase_OneFrequency(
       double Mf,
       PhenDAmpAndPhasePreComp pD,
@@ -532,9 +367,9 @@ double d_IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries
   {
 
     UsefulPowers powers_of_f;
-    int status = d_init_useful_powers(&powers_of_f, Mf);
+    int status = init_useful_powers(&powers_of_f, Mf);
     //CHECK(PD_SUCCESS == status, status, "Failed to initiate init_useful_powers");
-    double phase = d_IMRPhenDPhase(Mf, &(pD.pPhi), &(pD.pn), &powers_of_f,
+    double phase = IMRPhenDPhase(Mf, &(pD.pPhi), &(pD.pn), &powers_of_f,
                                 &(pD.phi_prefactors), Rholm, Taulm);
     return phase;
   }
@@ -573,7 +408,7 @@ CUDA_CALLABLE_MEMBER
           /* Now generate the waveform */
               Mf = freq_amp; //freqs->data[i]; // geometric frequency
 
-              status_in_for = d_init_useful_powers(&powers_of_f, Mf);
+              status_in_for = init_useful_powers(&powers_of_f, Mf);
               /*if (PD_SUCCESS != status_in_for)
               {
                 //printf("init_useful_powers failed for Mf, status_in_for=%d", status_in_for);
@@ -582,7 +417,7 @@ CUDA_CALLABLE_MEMBER
               }
               else
               {*/
-                amp_i = d_IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, amp_prefactors);
+                amp_i = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, amp_prefactors);
              // }
 
 
@@ -872,7 +707,7 @@ void cpu_calculate_all_modes_wrap(ModeContainer *mode_vals,
 
            double Mf = freq_geom;
 
-           status_in_for = d_init_useful_powers(&powers_of_f, Mf);
+           status_in_for = init_useful_powers(&powers_of_f, Mf);
                 /*if (PD_SUCCESS != status_in_for)
                 {
                   //printf("init_useful_powers failed for Mf, status_in_for=%d", status_in_for);
@@ -881,7 +716,7 @@ void cpu_calculate_all_modes_wrap(ModeContainer *mode_vals,
                 }
                 else
                 {*/
-          amp = d_IMRPhenDAmplitude(Mf, &pDPreComp.pAmp, &powers_of_f, &pDPreComp.amp_prefactors);
+          amp = IMRPhenDAmplitude(Mf, &pDPreComp.pAmp, &powers_of_f, &pDPreComp.amp_prefactors);
                // }
 
                mode_val.amp[i] = amp*amp0;

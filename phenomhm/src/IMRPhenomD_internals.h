@@ -302,8 +302,11 @@ double chiPN(double eta, double chi1, double chi2);
 size_t NextPow2(const size_t n);
 bool StepFunc_boolean(const double t, const double t1);
 
+CUDA_CALLABLE_MEMBER
  double pow_2_of(double number);
+CUDA_CALLABLE_MEMBER
  double pow_3_of(double number);
+CUDA_CALLABLE_MEMBER
  double pow_4_of(double number);
 
 double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, double chi2);
@@ -318,6 +321,7 @@ double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, do
 /**
  * must be called before the first usage of *p
  */
+CUDA_CALLABLE_MEMBER
 int init_useful_powers(UsefulPowers *p, double number);
 
 /**
@@ -369,6 +373,8 @@ double amp0Func(double eta);
 double rho1_fun(double eta, double chiPN);
 double rho2_fun(double eta, double chiPN);
 double rho3_fun(double eta, double chiPN);
+
+CUDA_CALLABLE_MEMBER
 double AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors);
 double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p);
 
@@ -377,12 +383,15 @@ double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p);
 double gamma1_fun(double eta, double chiPN);
 double gamma2_fun(double eta, double chiPN);
 double gamma3_fun(double eta, double chiPN);
+
+CUDA_CALLABLE_MEMBER
 double AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p);
 double DAmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p);
 double fmaxCalc(IMRPhenomDAmplitudeCoefficients* p);
 
 //////////////////////////// Amplitude: Intermediate functions ///////////////////////
 
+CUDA_CALLABLE_MEMBER
 double AmpIntAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p);
 double AmpIntColFitCoeff(double eta, double chiPN); //this is the v2 value
 double delta0_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d);
@@ -396,6 +405,7 @@ void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p);
 
 IMRPhenomDAmplitudeCoefficients* ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2, double finspin);
 int ComputeIMRPhenomDAmplitudeCoefficients_sub(IMRPhenomDAmplitudeCoefficients *p, double eta, double chi1, double chi2, double finspin);
+CUDA_CALLABLE_MEMBER
 double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors);
 
 /********************************* Phase functions *********************************/
@@ -407,6 +417,7 @@ double alpha2Fit(double eta, double chiPN);
 double alpha3Fit(double eta, double chiPN);
 double alpha4Fit(double eta, double chiPN);
 double alpha5Fit(double eta, double chiPN);
+CUDA_CALLABLE_MEMBER
 double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm);
 double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm);
 
@@ -415,6 +426,7 @@ double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Ta
 double beta1Fit(double eta, double chiPN);
 double beta2Fit(double eta, double chiPN);
 double beta3Fit(double eta, double chiPN);
+CUDA_CALLABLE_MEMBER
 double PhiIntAnsatz(double f, IMRPhenomDPhaseCoefficients *p);
 double DPhiIntAnsatz(double f, IMRPhenomDPhaseCoefficients *p);
 double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p);
@@ -425,6 +437,8 @@ double sigma1Fit(double eta, double chiPN);
 double sigma2Fit(double eta, double chiPN);
 double sigma3Fit(double eta, double chiPN);
 double sigma4Fit(double eta, double chiPN);
+
+CUDA_CALLABLE_MEMBER
 double PhiInsAnsatzInt(double f, UsefulPowers * powers_of_Mf, PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 double DPhiInsAnsatzInt(double ff, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 
@@ -432,6 +446,7 @@ double DPhiInsAnsatzInt(double ff, IMRPhenomDPhaseCoefficients *p, PNPhasingSeri
 
 IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double eta, double chi1, double chi2, double finspin);
 void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors *prefactors, double Rholm, double Taulm);
+CUDA_CALLABLE_MEMBER
 double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm);
 /*
 void CHECK(bool assertion, ERROR_type e, const char *errstr);

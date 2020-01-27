@@ -148,7 +148,7 @@ static int init_PhenomHM_Storage(
     const double phiRef    /**< orbital phase at f_ref */
 );
 
-
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMTrd(
     double Mf,
     double Mf_RD_22,
@@ -158,10 +158,12 @@ double IMRPhenomHMTrd(
     const int mm,
     PhenomHMStorage *pHM);
 
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMTi(
     double Mf,
     const int mm);
 
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMSlopeAmAndBm(
     double *Am,
     double *Bm,
@@ -174,6 +176,7 @@ int IMRPhenomHMSlopeAmAndBm(
     const int ell,
     PhenomHMStorage *pHM);
 
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMMapParams(
     double *a,
     double *b,
@@ -187,6 +190,7 @@ int IMRPhenomHMMapParams(
     double Ar,
     double Br);
 
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMFreqDomainMapParams(
     double *a,
     double *b,
@@ -199,6 +203,7 @@ int IMRPhenomHMFreqDomainMapParams(
     PhenomHMStorage *pHM,
     const int AmpFlag);
 
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMFreqDomainMap(
     double Mflm,
     const int ell,
@@ -212,6 +217,7 @@ int IMRPhenomHMPhasePreComp(
     const int mm,
     PhenomHMStorage *pHM);
 
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMOnePointFiveSpinPN(
     double fM,
     int l,

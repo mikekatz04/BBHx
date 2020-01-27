@@ -34,329 +34,13 @@
 #include "globalPhenomHM.h"
 #include "kernel.hh"
 #include "IMRPhenomD_internals.h"
+#include "PhenomHM.h"
 
 #ifdef __CUDACC__
 #else
 #include "omp.h"
 #endif
 
-
-/**
- * domain mapping function - ringdown
- */
- CUDA_CALLABLE_MEMBER
-double d_IMRPhenomHMTrd(
-    double Mf,
-    double Mf_RD_22,
-    double Mf_RD_lm,
-    const int AmpFlag,
-    const int ell,
-    const int mm,
-    PhenomHMStorage *pHM)
-{
-    double ans = 0.0;
-    if (AmpFlag == AmpFlagTrue)
-    {
-        /* For amplitude */
-        ans = Mf - Mf_RD_lm + Mf_RD_22; /*Used for the Amplitude as an approx fix for post merger powerlaw slope */
-    }
-    else
-    {
-        /* For phase */
-        double Rholm = pHM->Rholm[ell][mm];
-        ans = Rholm * Mf; /* Used for the Phase */
-    }
-
-    return ans;
-}
-
-/**
- * mathematica function Ti
- * domain mapping function - inspiral
- */
- CUDA_CALLABLE_MEMBER
-double d_IMRPhenomHMTi(double Mf, const int mm)
-{
-    return 2.0 * Mf / mm;
-}
-
-
-/**
- * helper function for IMRPhenomHMFreqDomainMap
- */
-CUDA_CALLABLE_MEMBER
-int d_IMRPhenomHMSlopeAmAndBm(
-    double *Am,
-    double *Bm,
-    const int mm,
-    double fi,
-    double fr,
-    double Mf_RD_22,
-    double Mf_RD_lm,
-    const int AmpFlag,
-    const int ell,
-    PhenomHMStorage *pHM)
-{
-    double Trd = d_IMRPhenomHMTrd(fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, mm, pHM);
-    double Ti = d_IMRPhenomHMTi(fi, mm);
-
-    //Am = ( Trd[fr]-Ti[fi] )/( fr - fi );
-    *Am = (Trd - Ti) / (fr - fi);
-
-    //Bm = Ti[fi] - fi*Am;
-    *Bm = Ti - fi * (*Am);
-
-    return 1;
-}
-
-/**
- * helper function for IMRPhenomHMFreqDomainMap
- */
-CUDA_CALLABLE_MEMBER
-int d_IMRPhenomHMMapParams(
-    double *a,
-    double *b,
-    double flm,
-    double fi,
-    double fr,
-    double Ai,
-    double Bi,
-    double Am,
-    double Bm,
-    double Ar,
-    double Br)
-{
-    // Define function to output map params used depending on
-    if (flm > fi)
-    {
-        if (flm > fr)
-        {
-            *a = Ar;
-            *b = Br;
-        }
-        else
-        {
-            *a = Am;
-            *b = Bm;
-        }
-    }
-    else
-    {
-        *a = Ai;
-        *b = Bi;
-    };
-    return 1;
-}
-
-/**
- * helper function for IMRPhenomHMFreqDomainMap
- */
-CUDA_CALLABLE_MEMBER
-int d_IMRPhenomHMFreqDomainMapParams(
-    double *a,             /**< [Out]  */
-    double *b,             /**< [Out]  */
-    double *fi,            /**< [Out]  */
-    double *fr,            /**< [Out]  */
-    double *f1,            /**< [Out]  */
-    const double flm,      /**< input waveform frequency */
-    const int ell,       /**< spherical harmonics ell mode */
-    const int mm,        /**< spherical harmonics m mode */
-    PhenomHMStorage *pHM, /**< Stores quantities in order to calculate them only once */
-    const int AmpFlag     /**< is ==1 then computes for amplitude, if ==0 then computes for phase */
-)
-{
-
-    /*check output points are NULL*/
-    //CHECK(a != NULL, PD_EFAULT, "a error");
-    //CHECK(b != NULL, PD_EFAULT, "b error");
-    //CHECK(fi != NULL, PD_EFAULT, "fi error");
-    //CHECK(fr != NULL, PD_EFAULT, "fr error");
-    //CHECK(f1 != NULL, PD_EFAULT, "f1 error");
-
-    /* Account for different f1 definition between PhenomD Amplitude and Phase derivative models */
-    double Mf_1_22 = 0.; /* initalise variable */
-    if (AmpFlag == AmpFlagTrue)
-    {
-        /* For amplitude */
-        Mf_1_22 = AMP_fJoin_INS; /* inspiral joining frequency from PhenomD [amplitude model], for the 22 mode */
-    }
-    else
-    {
-        /* For phase */
-        Mf_1_22 = PHI_fJoin_INS; /* inspiral joining frequency from PhenomD [phase model], for the 22 mode */
-    }
-
-    *f1 = Mf_1_22;
-
-    double Mf_RD_22 = pHM->Mf_RD_22;
-    double Mf_RD_lm = pHM->PhenomHMfring[ell][mm];
-
-    // Define a ratio of QNM frequencies to be used for scaling various quantities
-    double Rholm = pHM->Rholm[ell][mm];
-
-    // Given experiments with the l!=m modes, it appears that the QNM scaling rather than the PN scaling may be optimal for mapping f1
-    double Mf_1_lm = Mf_1_22 / Rholm;
-
-    /* Define transition frequencies */
-    *fi = Mf_1_lm;
-    *fr = Mf_RD_lm;
-
-    /*Define the slope and intercepts of the linear transformation used*/
-    double Ai = 2.0 / mm;
-    double Bi = 0.0;
-    double Am;
-    double Bm;
-    d_IMRPhenomHMSlopeAmAndBm(&Am, &Bm, mm, *fi, *fr, Mf_RD_22, Mf_RD_lm, AmpFlag, ell, pHM);
-
-    double Ar = 1.0;
-    double Br = 0.0;
-    if (AmpFlag == AmpFlagTrue)
-    {
-        /* For amplitude */
-        Br = -Mf_RD_lm + Mf_RD_22;
-    }
-    else
-    {
-        /* For phase */
-        Ar = Rholm;
-    }
-
-    /* Define function to output map params used depending on */
-    int ret = d_IMRPhenomHMMapParams(a, b, flm, *fi, *fr, Ai, Bi, Am, Bm, Ar, Br);
-    if (ret != 1)
-    {
-        //printf("IMRPhenomHMMapParams failed in IMRPhenomHMFreqDomainMapParams (1)\n");
-        //ERROR(PD_EDOM, "error");
-    }
-
-    return 1;
-}
-
-/**
- * IMRPhenomHMFreqDomainMap
- * Input waveform frequency in Geometric units (Mflm)
- * and computes what frequency this corresponds
- * to scaled to the 22 mode.
- */
-CUDA_CALLABLE_MEMBER
-double d_IMRPhenomHMFreqDomainMap(
-    double Mflm,
-    const int ell,
-    const int mm,
-    PhenomHMStorage *pHM,
-    const int AmpFlag)
-{
-
-    /* Mflm here has the same meaning as Mf_wf in IMRPhenomHMFreqDomainMapHM (old deleted function). */
-    double a = 0.;
-    double b = 0.;
-    /* Following variables not used in this funciton but are returned in IMRPhenomHMFreqDomainMapParams */
-    double fi = 0.;
-    double fr = 0.;
-    double f1 = 0.;
-    int ret = d_IMRPhenomHMFreqDomainMapParams(&a, &b, &fi, &fr, &f1, Mflm, ell, mm, pHM, AmpFlag);
-    if (ret != 1)
-    {
-        //printf("IMRPhenomHMFreqDomainMapParams failed in IMRPhenomHMFreqDomainMap\n");
-        //ERROR(PD_EDOM, "error");
-    }
-    double Mf22 = a * Mflm + b;
-    return Mf22;
-}
-
-CUDA_CALLABLE_MEMBER
-double d_IMRPhenomHMOnePointFiveSpinPN(
-    double fM,
-    int l,
-    int m,
-    double M1,
-    double M2,
-    double X1z,
-    double X2z)
-{
-
-    // LLondon 2017
-
-    // Define effective intinsic parameters
-		agcmplx Hlm = 0;
-    double M_INPUT = M1 + M2;
-    M1 = M1 / (M_INPUT);
-    M2 = M2 / (M_INPUT);
-    double M = M1 + M2;
-    double eta = M1 * M2 / (M * M);
-    double delta = sqrt(1.0 - 4 * eta);
-    double Xs = 0.5 * (X1z + X2z);
-    double Xa = 0.5 * (X1z - X2z);
-    double ans = 0;
-    agcmplx I(0.0, 1.0);
-
-		// Define PN parameter and realed powers
-    double v = pow(M * 2.0 * PI * fM / m, 1.0 / 3.0);
-    double v2 = v * v;
-    double v3 = v * v2;
-
-		// Define Leading Order Ampitude for each supported multipole
-    if (l == 2 && m == 2)
-    {
-        // (l,m) = (2,2)
-        // THIS IS LEADING ORDER
-        Hlm = 1.0;
-    }
-    else if (l == 2 && m == 1)
-    {
-        // (l,m) = (2,1)
-        // SPIN TERMS ADDED
-
-        // UP TO 4PN
-        double v4 = v * v3;
-        Hlm = (sqrt(2.0) / 3.0) * \
-            ( \
-                v * delta - v2 * 1.5 * (Xa + delta * Xs) + \
-                v3 * delta * ((335.0 / 672.0) + (eta * 117.0 / 56.0)
-            ) \
-            + \
-            v4 * \
-                ( \
-                Xa * (3427.0 / 1344 - eta * 2101.0 / 336) + \
-                delta * Xs * (3427.0 / 1344 - eta * 965 / 336) + \
-                delta * (-I * 0.5 - PI - 2.0 * I * 0.69314718056) \
-                )
-            );
-    }
-    else if (l == 3 && m == 3)
-    {
-        // (l,m) = (3,3)
-        // THIS IS LEADING ORDER
-        Hlm = 0.75 * sqrt(5.0 / 7.0) * (v * delta);
-    }
-    else if (l == 3 && m == 2)
-    {
-        // (l,m) = (3,2)
-        // NO SPIN TERMS to avoid roots
-        Hlm = (1.0 / 3.0) * sqrt(5.0 / 7.0) * (v2 * (1.0 - 3.0 * eta));
-    }
-    else if (l == 4 && m == 4)
-    {
-        // (l,m) = (4,4)
-        // THIS IS LEADING ORDER
-        Hlm = (4.0 / 9.0) * sqrt(10.0 / 7.0) * v2 * (1.0 - 3.0 * eta);
-    }
-    else if (l == 4 && m == 3)
-    {
-        // (l,m) = (4,3)
-        // NO SPIN TERMS TO ADD AT DESIRED ORDER
-        Hlm = 0.75 * sqrt(3.0 / 35.0) * v3 * delta * (1.0 - 2.0 * eta);
-    }
-    //else
-    //{
-    //    printf("requested ell = %i and m = %i mode not available, check documentation for available modes\n", l, m);
-    //    assert(0); //ERROR(PD_EDOM, "error");
-    //}
-    // Compute the final PN Amplitude at Leading Order in fM
-    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * gcmplx::abs(Hlm);
-
-    return ans;
-}
 
   CUDA_CALLABLE_MEMBER
    double d_IMRPhenomDPhase_OneFrequency(
@@ -402,7 +86,7 @@ CUDA_CALLABLE_MEMBER
           // IMRPhenomHMAmplitude
 
 
-        freq_amp = d_IMRPhenomHMFreqDomainMap(freq_geom, ell, mm, pHM, AmpFlagTrue);
+        freq_amp = IMRPhenomHMFreqDomainMap(freq_geom, ell, mm, pHM, AmpFlagTrue);
 
             //status_in_for = PD_SUCCESS;
           /* Now generate the waveform */
@@ -421,7 +105,7 @@ CUDA_CALLABLE_MEMBER
              // }
 
 
-            beta_term1 = d_IMRPhenomHMOnePointFiveSpinPN(
+            beta_term1 = IMRPhenomHMOnePointFiveSpinPN(
                 freq_geom,
                 ell,
                 mm,
@@ -440,11 +124,11 @@ CUDA_CALLABLE_MEMBER
                 beta = 0.;
             } else {
 
-                beta_term2 = d_IMRPhenomHMOnePointFiveSpinPN(2.0 * freq_geom / mm, ell, mm, pHM->m1, pHM->m2, pHM->chi1z, pHM->chi2z);
+                beta_term2 = IMRPhenomHMOnePointFiveSpinPN(2.0 * freq_geom / mm, ell, mm, pHM->m1, pHM->m2, pHM->chi1z, pHM->chi2z);
                 beta = beta_term1 / beta_term2;
 
                 /* LL: Apply steps #1 and #2 */
-                HMamp_term1 = d_IMRPhenomHMOnePointFiveSpinPN(
+                HMamp_term1 = IMRPhenomHMOnePointFiveSpinPN(
                     freq_amp,
                     ell,
                     mm,
@@ -452,7 +136,7 @@ CUDA_CALLABLE_MEMBER
                     pHM->m2,
                     pHM->chi1z,
                     pHM->chi2z);
-                HMamp_term2 = d_IMRPhenomHMOnePointFiveSpinPN(freq_amp, 2, 2, pHM->m1, pHM->m2, 0.0, 0.0);
+                HMamp_term2 = IMRPhenomHMOnePointFiveSpinPN(freq_amp, 2, 2, pHM->m1, pHM->m2, 0.0, 0.0);
 
             }
 

@@ -391,6 +391,7 @@ static int init_PhenomHM_Storage(
 /**
  * domain mapping function - ringdown
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMTrd(
     double Mf,
     double Mf_RD_22,
@@ -420,6 +421,7 @@ double IMRPhenomHMTrd(
  * mathematica function Ti
  * domain mapping function - inspiral
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMTi(double Mf, const int mm)
 {
     return 2.0 * Mf / mm;
@@ -428,6 +430,7 @@ double IMRPhenomHMTi(double Mf, const int mm)
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMSlopeAmAndBm(
     double *Am,
     double *Bm,
@@ -455,6 +458,7 @@ int IMRPhenomHMSlopeAmAndBm(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMMapParams(
     double *a,
     double *b,
@@ -493,6 +497,7 @@ int IMRPhenomHMMapParams(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMFreqDomainMapParams(
     double *a,             /**< [Out]  */
     double *b,             /**< [Out]  */
@@ -508,11 +513,11 @@ int IMRPhenomHMFreqDomainMapParams(
 {
 
     /*check output points are NULL*/
-    assert (a != NULL) ; //, PD_EFAULT, "a error");
-    assert (b != NULL) ; //, PD_EFAULT, "b error");
-    assert (fi != NULL) ; //, PD_EFAULT, "fi error");
-    assert (fr != NULL) ; //, PD_EFAULT, "fr error");
-    assert (f1 != NULL) ; //, PD_EFAULT, "f1 error");
+    //assert (a != NULL) ; //, PD_EFAULT, "a error");
+    //assert (b != NULL) ; //, PD_EFAULT, "b error");
+    //assert (fi != NULL) ; //, PD_EFAULT, "fi error");
+    //assert (fr != NULL) ; //, PD_EFAULT, "fr error");
+    //assert (f1 != NULL) ; //, PD_EFAULT, "f1 error");
 
     /* Account for different f1 definition between PhenomD Amplitude and Phase derivative models */
     double Mf_1_22 = 0.; /* initalise variable */
@@ -579,6 +584,7 @@ int IMRPhenomHMFreqDomainMapParams(
  * and computes what frequency this corresponds
  * to scaled to the 22 mode.
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMFreqDomainMap(
     double Mflm,
     const int ell,
@@ -689,6 +695,7 @@ int IMRPhenomHMPhasePreComp(
 /**
  * Define function for FD PN amplitudes
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMOnePointFiveSpinPN(
     double fM,
     int l,
@@ -700,9 +707,8 @@ double IMRPhenomHMOnePointFiveSpinPN(
 {
 
     // LLondon 2017
-
     // Define effective intinsic parameters
-    cmplx Hlm = 0;
+    agcmplx Hlm(0.0, 0.0);
     double M_INPUT = M1 + M2;
     M1 = M1 / (M_INPUT);
     M2 = M2 / (M_INPUT);
@@ -712,7 +718,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
     double Xs = 0.5 * (X1z + X2z);
     double Xa = 0.5 * (X1z - X2z);
     double ans = 0;
-    cmplx I(0.0, 1.0);
+    agcmplx I(0.0, 1.0);
 
     // Define PN parameter and realed powers
     double v = pow(M * 2.0 * PI * fM / m, 1.0 / 3.0);
@@ -777,7 +783,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
         assert(0); //ERROR(PD_EDOM, "error");
     }
     // Compute the final PN Amplitude at Leading Order in fM
-    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * std::abs(Hlm);
+    ans = M * M * PI * sqrt(eta * 2.0 / 3) * pow(v, -3.5) * gcmplx::abs(Hlm);
 
     return ans;
 }

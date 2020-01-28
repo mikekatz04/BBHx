@@ -91,7 +91,6 @@ def customize_compiler_for_nvcc(self):
     def _compile(obj, src, ext, cc_args_in, extra_postargs, pp_opts):
         cc_args = cc_args_in.copy()
         if obj.split("/")[-1] == "tempGPU.o":
-
             postargs = extra_postargs["nvcc"].copy()
 
             if "-c" in cc_args and "-dc" in postargs:
@@ -132,7 +131,7 @@ def customize_compiler_for_nvcc(self):
 
                 except NameError:
                     postargs = extra_postargs["gcc"]
-                    # cc_args.insert(0, "-x c")
+                    cc_args.insert(0, "-x c++")
             else:
                 postargs = extra_postargs["gcc"]
 
@@ -216,7 +215,6 @@ class custom_build_ext(build_ext):
         # needs it.
         self._built_objects = objects[:]
 
-        run_cuda = True
         if run_cuda:
             device_link_sources = ["tempGPU.cu"]
 
@@ -289,7 +287,26 @@ phenomhm_sources = all_sources + ["src/PhenomHM.cu", "src/manager.cu", "src/kern
 phenomd_sources = all_sources.copy() + ["src/d_manager.cu", "src/d_kernel.cu"]
 
 all_lib_dirs = [lib_gsl_dir]
-gpu_lib_dirs = [CUDA["lib64"]]
+all_include = [numpy_include, include_gsl_dir, "src"]
+try:
+    gpu_lib_dirs = [CUDA["lib64"]]
+    gpu_include = [CUDA["include"]]
+    gpu_extension_dict = dict(
+        sources=phenomhm_sources + gpu_sources,
+        library_dirs=all_lib_dirs + gpu_lib_dirs,
+        libraries=all_libs + gpu_libs,
+        language="c++",
+        runtime_library_dirs=[CUDA["lib64"]],
+        # This syntax is specific to this build system
+        # we're only going to use certain compiler args with nvcc
+        # and not with gcc the implementation of this trick is in
+        # customize_compiler()
+        extra_compile_args=extra_compile_args,
+        include_dirs=all_include + gpu_include,
+    )
+
+except NameError:
+    pass
 
 all_libs = ["gsl", "gslcblas", "gomp"]
 gpu_libs = ["cudart", "cublas", "cusparse"]
@@ -313,24 +330,6 @@ extra_compile_args = {
         "-fopenmp",
     ],  # ,"-G", "-g"] # for debugging
 }
-
-all_include = [numpy_include, include_gsl_dir, "src"]
-gpu_include = [CUDA["include"]]
-
-gpu_extension_dict = dict(
-    sources=phenomhm_sources + gpu_sources,
-    library_dirs=all_lib_dirs + gpu_lib_dirs,
-    libraries=all_libs + gpu_libs,
-    language="c++",
-    runtime_library_dirs=[CUDA["lib64"]],
-    # This syntax is specific to this build system
-    # we're only going to use certain compiler args with nvcc
-    # and not with gcc the implementation of this trick is in
-    # customize_compiler()
-    extra_compile_args=extra_compile_args,
-    include_dirs=all_include + gpu_include,
-)
-
 
 if run_cuda_install:
 
@@ -386,10 +385,19 @@ cpu_libs = ["pthread", "lapack"]
 
 cpu_extra_compile_args = {"gcc": ["-O3", "-fopenmp", "-fPIC"]}
 
-cpu_extra_link_args = (["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"],)
+cpu_extra_link_args = ["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"]
+
+temp_files = []
+for i, source in enumerate(phenomhm_sources):
+    temp = os.path.splitext(source)[0]
+    file_ext = os.path.splitext(source)[1]
+    if file_ext == ".cu":
+        shutil.copy(temp + ".cu", temp + ".cpp")
+        temp_files.append(temp + ".cpp")
+        phenomhm_sources[i] = temp + ".cpp"
 
 cpu_extension_dict = dict(
-    sources=phenomhm_sources + gpu_sources + ["phenomhm/cpuPhenomHM.pyx"],
+    sources=phenomhm_sources,
     library_dirs=all_lib_dirs + lapack_lib,
     libraries=all_libs + cpu_libs,
     language="c++",
@@ -402,6 +410,9 @@ cpu_extension_dict = dict(
     include_dirs=all_include + lapack_include,
 )
 
+import pdb
+
+pdb.set_trace()
 temp_dict = copy.deepcopy(cpu_extension_dict)
 extension_name = "cpuPhenomHM"
 folder = "phenomhm/"
@@ -430,7 +441,7 @@ else:
     if no_global is True:
         extensions = [ext_cpu]
     else:
-        extensions = [ext_cpu, ext_cpu_glob]
+        extensions = [ext_cpu]  # , ext_cpu_glob]
 
 setup(
     name="phenomhm",
@@ -445,3 +456,9 @@ setup(
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
 )
+
+import pdb
+
+pdb.set_trace()
+for source in temp_files:
+    os.remove(source)

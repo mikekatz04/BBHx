@@ -424,7 +424,7 @@ if run_cuda_install:
     if no_global is True:
         extensions = [ext_gpu]
     else:
-        extensions = [ext_gpu, ext_gpu_glob]
+        extensions = [ext_gpu, ext_gpu_glob, ext_gpu_phend]
 else:
     print("Did not locate CUDA binary.")
     if no_global is True:
@@ -432,7 +432,6 @@ else:
     else:
         extensions = [ext_cpu, ext_cpu_glob]
 
-extensions = [ext_gpu_phend]
 setup(
     name="phenomhm",
     # Random metadata. there's more you can supply

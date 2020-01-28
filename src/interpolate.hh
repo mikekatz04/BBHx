@@ -91,6 +91,35 @@ void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx 
     double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers);
 #endif
 
+#ifdef __GLOBAL_FIT__
+#ifdef __CUDACC__
+__device__
+#endif // __CUDACC__
+#else
+CUDA_CALLABLE_MEMBER
+#endif // __GLOBAL_FIT__
+agcmplx combine_information(agcmplx ampphasefactor, double trans_complex_re, double trans_complex_im);
+
+#ifdef __GLOBAL_FIT__
+#ifdef __CUDACC__
+__device__
+#endif // __CUDACC__
+#else
+CUDA_CALLABLE_MEMBER
+#endif // __GLOBAL_FIT__
+agcmplx get_ampphasefactor(double amp, double phase, double phaseRdelay, double phaseShift);
+
+#ifdef __GLOBAL_FIT__
+#ifdef __CUDACC__
+__device__
+#endif // __CUDACC__
+#else
+CUDA_CALLABLE_MEMBER
+#endif // __GLOBAL_FIT__
+void fill_templates(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, int i, int walker_i, int data_length,
+                   agcmplx trans_complex1, agcmplx trans_complex2, agcmplx trans_complex3,
+                   double *channel1_ASDinv, double *channel2_ASDinv, double *channel3_ASDinv);
+
 class Interpolate{
     double *w;
     double *D;

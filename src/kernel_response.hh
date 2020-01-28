@@ -8,6 +8,26 @@
 #include "fdresponse.h"
 
 
+typedef struct tagd_Gslr_holder{
+    agcmplx G21;
+    agcmplx G12;
+    agcmplx G23;
+    agcmplx G32;
+    agcmplx G31;
+    agcmplx G13;
+} d_Gslr_holder;
+
+typedef struct tagd_transferL_holder{
+    agcmplx transferL1;
+    agcmplx transferL2;
+    agcmplx transferL3;
+    double phaseRdelay;
+} d_transferL_holder;
+
+CUDA_CALLABLE_MEMBER
+d_transferL_holder d_JustLISAFDresponseTDI(agcmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil);
+
+
 #ifdef __CUDACC__
 CUDA_KERNEL
 void kernel_JustLISAFDresponseTDI_wrap(

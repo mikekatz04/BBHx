@@ -747,6 +747,77 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
 }
 
 /**
+* created by michael katz for inspiral only stuff
+* Function to compute the amplitude and phase coefficients for PhenomD
+* Used to optimise the calls to IMRPhenDPhase and IMRPhenDAmplitude
+*/
+int ins_IMRPhenomDSetupAmpAndPhaseCoefficients(
+   PhenDAmpAndPhasePreComp *pDPreComp,
+   double m1,
+   double m2,
+   double chi1z,
+   double chi2z)
+{
+
+ /* It's difficult to see in the code but you need to setup the
+    * powers_of_pi.
+    */
+ int retcode = 0;
+ retcode = init_useful_powers(&powers_of_pi, PI);
+ assert(1 == retcode) ; //, retcode, "Failed to initiate useful powers of pi.");
+
+ PhenomInternal_AlignedSpinEnforcePrimaryIsm1(&m1, &m2, &chi1z, &chi2z);
+ const double Mtot = m1 + m2;
+ const double eta = m1 * m2 / (Mtot * Mtot);
+
+ // Calculate phenomenological parameters
+
+ //start phase
+
+ IMRPhenomDPhaseCoefficients *pPhi = inspiral_only_ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z);
+ assert(pPhi);
+ PNPhasingSeries *pn = NULL;
+ TaylorF2AlignedPhasing(&pn, m1, m2, chi1z, chi2z);
+ assert(pn);
+
+ // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
+ // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
+ // was not available when PhenomD was tuned.
+ pn->v[6] -= (Subtract3PNSS(m1, m2, Mtot, eta, chi1z, chi2z) * pn->v[0]);
+
+ PhiInsPrefactors phi_prefactors;
+ retcode = 0;
+ retcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
+ assert(1 == retcode) ; //, retcode, "init_phi_ins_prefactors failed");
+
+ //end phase
+
+ //start amp
+ IMRPhenomDAmplitudeCoefficients *pAmp = inspiral_only_ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z);
+ assert(pAmp);
+
+ AmpInsPrefactors amp_prefactors;
+ retcode = 0;
+ retcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
+ assert(1 == retcode) ; //, retcode, "init_amp_ins_prefactors failed");
+ //end amp
+
+ //output
+ pDPreComp->pn = *pn;
+ pDPreComp->pPhi = *pPhi;
+ pDPreComp->phi_prefactors = phi_prefactors;
+
+ pDPreComp->pAmp = *pAmp;
+ pDPreComp->amp_prefactors = amp_prefactors;
+
+ free(pn);
+ free(pPhi);
+ free(pAmp);
+
+ return 1;
+}
+
+/**
  * Function to return the phenomD phase using the
  * IMRPhenomDSetupAmpAndPhaseCoefficients struct
  */

@@ -78,4 +78,11 @@ double IMRPhenomDFinalMass(
     double chi2z  /**< aligned-spin component on secondary */
 );
 
+int ins_IMRPhenomDSetupAmpAndPhaseCoefficients(
+   PhenDAmpAndPhasePreComp *pDPreComp,
+   double m1,
+   double m2,
+   double chi1z,
+   double chi2z);
+
 #endif /* _LALSIM_IMR_PHENOMD_H */

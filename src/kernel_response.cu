@@ -37,22 +37,6 @@
 
 using namespace std;
 
-typedef struct tagd_Gslr_holder{
-    agcmplx G21;
-    agcmplx G12;
-    agcmplx G23;
-    agcmplx G32;
-    agcmplx G31;
-    agcmplx G13;
-} d_Gslr_holder;
-
-typedef struct tagd_transferL_holder{
-    agcmplx transferL1;
-    agcmplx transferL2;
-    agcmplx transferL3;
-    double phaseRdelay;
-} d_transferL_holder;
-
 CUDA_CALLABLE_MEMBER
 double d_sinc(double x){
     if (x == 0.0) return 1.0;

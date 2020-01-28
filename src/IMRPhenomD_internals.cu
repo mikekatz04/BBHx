@@ -1067,6 +1067,30 @@ void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
  * A struct containing all the parameters that need to be calculated
  * to compute the phenomenological amplitude
  */
+IMRPhenomDAmplitudeCoefficients* inspiral_only_ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2) {
+  IMRPhenomDAmplitudeCoefficients *p = (IMRPhenomDAmplitudeCoefficients *) malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
+
+  p->eta = eta;
+  p->chi1 = chi1;
+  p->chi2 = chi2;
+
+  p->q = (1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta) / (2.0*eta);
+  p->chi = chiPN(eta, chi1, chi2);
+
+  // Compute gamma_i's, rho_i's first then delta_i's
+  p->fmaxCalc = fmaxCalc(p);
+
+  p->rho1 = rho1_fun(eta, p->chi);
+  p->rho2 = rho2_fun(eta, p->chi);
+  p->rho3 = rho3_fun(eta, p->chi);
+
+  return p;
+}
+
+/**
+ * A struct containing all the parameters that need to be calculated
+ * to compute the phenomenological amplitude
+ */
 IMRPhenomDAmplitudeCoefficients* ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2, double finspin) {
   IMRPhenomDAmplitudeCoefficients *p = (IMRPhenomDAmplitudeCoefficients *) malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
 
@@ -1504,6 +1528,7 @@ int init_phi_ins_prefactors(PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoeffi
 /**
  * First frequency derivative of PhiInsAnsatzInt
  */
+CUDA_CALLABLE_MEMBER
 double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn) {
   double sigma1 = p->sigma1;
   double sigma2 = p->sigma2;
@@ -1538,8 +1563,8 @@ double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeri
   // Now add higher order terms that were calibrated for PhenomD
   Dphasing += (
           sigma1
-        + sigma2 * v / powers_of_pi.third
-        + sigma3 * v2 / powers_of_pi.two_thirds
+        + sigma2 * v / pow(PI, 1./3.) //powers_of_pi.third
+        + sigma3 * v2 / pow(PI, 2./3.) //powers_of_pi.two_thirds
         + (sigma4/Pi) * v3
         ) / p->eta;
 
@@ -1547,6 +1572,31 @@ double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeri
 }
 
 ///////////////////////////////// Phase: glueing function ////////////////////////////////
+
+/**
+ * A struct containing all the parameters that need to be calculated
+ * to compute the phenomenological phase
+ */
+IMRPhenomDPhaseCoefficients* inspiral_only_ComputeIMRPhenomDPhaseCoefficients(double eta, double chi1, double chi2) {
+
+  IMRPhenomDPhaseCoefficients *p = (IMRPhenomDPhaseCoefficients *) malloc(sizeof(IMRPhenomDPhaseCoefficients));
+
+  // Convention m1 >= m2
+  p->eta = eta;
+  p->etaInv = 1.0/eta;
+  p->chi1 = chi1;
+  p->chi2 = chi2;
+
+  p->q = (1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta) / (2.0*eta);
+  p->chi = chiPN(eta, chi1, chi2);
+
+  p->sigma1 = sigma1Fit(eta, p->chi);
+  p->sigma2 = sigma2Fit(eta, p->chi);
+  p->sigma3 = sigma3Fit(eta, p->chi);
+  p->sigma4 = sigma4Fit(eta, p->chi);
+
+  return p;
+}
 
 /**
  * A struct containing all the parameters that need to be calculated

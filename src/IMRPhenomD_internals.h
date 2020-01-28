@@ -440,6 +440,7 @@ double sigma4Fit(double eta, double chiPN);
 
 CUDA_CALLABLE_MEMBER
 double PhiInsAnsatzInt(double f, UsefulPowers * powers_of_Mf, PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
+CUDA_CALLABLE_MEMBER
 double DPhiInsAnsatzInt(double ff, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn);
 
 ////////////////////////////// Phase: glueing function //////////////////////////////
@@ -545,6 +546,9 @@ int PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
     double *chi1z, /**< [out] aligned-spin component of body 1 */
     double *chi2z  /**< [out] aligned-spin component of body 2 */
 );
+
+IMRPhenomDAmplitudeCoefficients* inspiral_only_ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2);
+IMRPhenomDPhaseCoefficients* inspiral_only_ComputeIMRPhenomDPhaseCoefficients(double eta, double chi1, double chi2);
 
 
 #endif	// of #ifndef _LALSIM_IMR_PHENOMD_INTERNALS_H

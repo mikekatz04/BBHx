@@ -332,13 +332,13 @@ extra_compile_args = {
 }
 
 if run_cuda_install:
-
+    gpu_extensions = []
     temp_dict = copy.deepcopy(gpu_extension_dict)
     extension_name = "gpuPhenomHM"
     folder = "phenomhm/"
     temp_dict["sources"] += [folder + extension_name + ".pyx"]
 
-    ext_gpu = Extension(extension_name, **temp_dict)
+    gpu_extensions.append(Extension(extension_name, **temp_dict))
 
     shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
 
@@ -349,7 +349,7 @@ if run_cuda_install:
     temp_dict["extra_compile_args"]["nvcc"].append("-D__GLOBAL_FIT__")
     temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
 
-    ext_gpu_glob = Extension(extension_name, **temp_dict)
+    gpu_extensions.append(Extension(extension_name, **temp_dict))
 
     temp_dict = copy.deepcopy(gpu_extension_dict)
     extension_name = "gpuPhenomD"
@@ -358,9 +358,20 @@ if run_cuda_install:
         phenomd_sources + gpu_sources + [folder + extension_name + ".pyx"]
     )
 
-    ext_gpu_phend = Extension(extension_name, **temp_dict)
+    gpu_extensions.append(Extension(extension_name, **temp_dict))
+
+    shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
+
+    temp_dict = copy.deepcopy(cpu_extension_dict)
+    extension_name = "gpuPhenomD_glob"
+    folder = "phenomd/"
+    temp_dict["sources"] += [folder + extension_name + ".pyx"]
+    temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
+
+    gpu_extensions.append(Extension(extension_name, **temp_dict))
 
 shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
+shutil.copy("phenomd/gpuPhenomD.pyx", "phenomd/cpuPhenomD.pyx")
 # Obtain the numpy include directory. This logic works across numpy versions.
 try:
     numpy_include = numpy.get_include()
@@ -396,6 +407,21 @@ for i, source in enumerate(phenomhm_sources):
         temp_files.append(temp + ".cpp")
         phenomhm_sources[i] = temp + ".cpp"
 
+        if temp + ".cu" in phenomd_sources:
+            ind = phenomd_sources.index(temp + ".cu")
+            phenomd_sources[ind] = temp + ".cpp"
+
+for i, source in enumerate(phenomd_sources):
+    temp = os.path.splitext(source)[0]
+    file_ext = os.path.splitext(source)[1]
+
+    if temp + ".cpp" in temp_files:
+        continue
+    if file_ext == ".cu":
+        shutil.copy(temp + ".cu", temp + ".cpp")
+        temp_files.append(temp + ".cpp")
+        phenomd_sources[i] = temp + ".cpp"
+
 cpu_extension_dict = dict(
     sources=phenomhm_sources,
     library_dirs=all_lib_dirs + lapack_lib,
@@ -410,15 +436,14 @@ cpu_extension_dict = dict(
     include_dirs=all_include + lapack_include,
 )
 
-import pdb
+cpu_extensions = []
 
-pdb.set_trace()
 temp_dict = copy.deepcopy(cpu_extension_dict)
 extension_name = "cpuPhenomHM"
 folder = "phenomhm/"
 temp_dict["sources"] += [folder + extension_name + ".pyx"]
 
-ext_cpu = Extension(extension_name, **temp_dict)
+cpu_extensions.append(Extension(extension_name, **temp_dict))
 
 shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
 
@@ -428,20 +453,32 @@ folder = "phenomhm/"
 temp_dict["sources"] += [folder + extension_name + ".pyx"]
 temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
 
-ext_cpu_glob = Extension(extension_name, **temp_dict)
+cpu_extensions.append(Extension(extension_name, **temp_dict))
+
+temp_dict = copy.deepcopy(cpu_extension_dict)
+extension_name = "cpuPhenomD"
+folder = "phenomd/"
+temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
+
+cpu_extensions.append(Extension(extension_name, **temp_dict))
+
+shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
+
+temp_dict = copy.deepcopy(cpu_extension_dict)
+extension_name = "cpuPhenomD_glob"
+folder = "phenomd/"
+temp_dict["sources"] += [folder + extension_name + ".pyx"]
+temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
+
+cpu_extensions.append(Extension(extension_name, **temp_dict))
 
 if run_cuda_install:
     # extensions = [ext_gpu, ext_cpu]
-    if no_global is True:
-        extensions = [ext_gpu]
-    else:
-        extensions = [ext_gpu, ext_gpu_glob, ext_gpu_phend]
+    extensions = gpu_extensions
+
 else:
     print("Did not locate CUDA binary.")
-    if no_global is True:
-        extensions = [ext_cpu]
-    else:
-        extensions = [ext_cpu]  # , ext_cpu_glob]
+    extensions = cpu_extensions
 
 setup(
     name="phenomhm",
@@ -457,8 +494,5 @@ setup(
     zip_safe=False,
 )
 
-import pdb
-
-pdb.set_trace()
 for source in temp_files:
     os.remove(source)

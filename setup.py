@@ -288,7 +288,33 @@ phenomd_sources = all_sources.copy() + ["src/d_manager.cu", "src/d_kernel.cu"]
 
 all_lib_dirs = [lib_gsl_dir]
 all_include = [numpy_include, include_gsl_dir, "src"]
-try:
+
+all_libs = ["gsl", "gslcblas", "gomp"]
+
+
+if run_cuda_install:
+    gpu_libs = ["cudart", "cublas", "cusparse"]
+
+    gpu_extra_compile_args = {
+        "gcc": [],  # '-g'],
+        "nvcc": [
+            "-arch=sm_70",
+            # "-gencode=arch=compute_35,code=sm_35",
+            # "-gencode=arch=compute_50,code=sm_50",
+            # "-gencode=arch=compute_52,code=sm_52",
+            # "-gencode=arch=compute_60,code=sm_60",
+            # "-gencode=arch=compute_61,code=sm_61",
+            "-gencode=arch=compute_70,code=sm_70",
+            "--default-stream=per-thread",
+            "--ptxas-options=-v",
+            "-dc",
+            "--compiler-options",
+            "'-fPIC'",
+            "-Xcompiler",
+            "-fopenmp",
+        ],  # ,"-G", "-g"] # for debugging
+    }
+
     gpu_lib_dirs = [CUDA["lib64"]]
     gpu_include = [CUDA["include"]]
     gpu_extension_dict = dict(
@@ -301,37 +327,9 @@ try:
         # we're only going to use certain compiler args with nvcc
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
-        extra_compile_args=extra_compile_args,
+        extra_compile_args=gpu_extra_compile_args,
         include_dirs=all_include + gpu_include,
     )
-
-except NameError:
-    pass
-
-all_libs = ["gsl", "gslcblas", "gomp"]
-gpu_libs = ["cudart", "cublas", "cusparse"]
-
-extra_compile_args = {
-    "gcc": [],  # '-g'],
-    "nvcc": [
-        "-arch=sm_70",
-        # "-gencode=arch=compute_35,code=sm_35",
-        # "-gencode=arch=compute_50,code=sm_50",
-        # "-gencode=arch=compute_52,code=sm_52",
-        # "-gencode=arch=compute_60,code=sm_60",
-        # "-gencode=arch=compute_61,code=sm_61",
-        "-gencode=arch=compute_70,code=sm_70",
-        "--default-stream=per-thread",
-        "--ptxas-options=-v",
-        "-dc",
-        "--compiler-options",
-        "'-fPIC'",
-        "-Xcompiler",
-        "-fopenmp",
-    ],  # ,"-G", "-g"] # for debugging
-}
-
-if run_cuda_install:
     gpu_extensions = []
     temp_dict = copy.deepcopy(gpu_extension_dict)
     extension_name = "gpuPhenomHM"
@@ -362,10 +360,13 @@ if run_cuda_install:
 
     shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
 
-    temp_dict = copy.deepcopy(cpu_extension_dict)
+    temp_dict = copy.deepcopy(gpu_extension_dict)
     extension_name = "gpuPhenomD_glob"
     folder = "phenomd/"
-    temp_dict["sources"] += [folder + extension_name + ".pyx"]
+    temp_dict["sources"] = (
+        phenomd_sources + gpu_sources + [folder + extension_name + ".pyx"]
+    )
+    temp_dict["extra_compile_args"]["nvcc"].append("-D__GLOBAL_FIT__")
     temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
 
     gpu_extensions.append(Extension(extension_name, **temp_dict))

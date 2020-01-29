@@ -138,6 +138,8 @@ PhenomD::PhenomD (int max_length_init_,
 
     data_added = 0;
 
+    ndevices = ndevices_;
+
     #ifdef __GLOBAL_FIT__
     int is_global_fit = 1;
     #else
@@ -149,10 +151,9 @@ PhenomD::PhenomD (int max_length_init_,
 
     #else
     to_gpu = 0;
+    printf("huhd %d\n", ndevices_);
     assert(ndevices == 1);
     #endif
-
-    ndevices = ndevices_;
 
 
     // DECLARE ALL THE  NECESSARY STRUCTS

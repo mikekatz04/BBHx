@@ -137,6 +137,8 @@ PhenomHM::PhenomHM (int max_length_init_,
 
     data_added = 0;
 
+    ndevices = ndevices_;
+
     #ifdef __GLOBAL_FIT__
     int is_global_fit = 1;
     #else
@@ -150,8 +152,6 @@ PhenomHM::PhenomHM (int max_length_init_,
     to_gpu = 0;
     assert(ndevices == 1);
     #endif
-
-    ndevices = ndevices_;
 
 
     // DECLARE ALL THE  NECESSARY STRUCTS

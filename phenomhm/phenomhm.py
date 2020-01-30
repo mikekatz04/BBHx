@@ -195,13 +195,7 @@ class pyPhenomHM(Converter):
                 self.max_length_init,
                 self.l_vals,
                 self.m_vals,
-                self.data_freqs,
-                self.data_channel1,
-                self.data_channel2,
-                self.data_channel3,
-                self.channel1_ASDinv,
-                self.channel2_ASDinv,
-                self.channel3_ASDinv,
+                len(self.data_freqs),
                 self.TDItag_in,
                 self.t_obs_start,
                 self.t_obs_end,
@@ -209,16 +203,15 @@ class pyPhenomHM(Converter):
                 self.ndevices,
             )
 
-        else:
-            self.generator.input_data(
-                self.data_freqs,
-                self.data_channel1,
-                self.data_channel2,
-                self.data_channel3,
-                self.channel1_ASDinv,
-                self.channel2_ASDinv,
-                self.channel3_ASDinv,
-            )
+        self.generator.input_data(
+            self.data_freqs,
+            self.data_channel1,
+            self.data_channel2,
+            self.data_channel3,
+            self.channel1_ASDinv,
+            self.channel2_ASDinv,
+            self.channel3_ASDinv,
+        )
 
         if isinstance(self.fRef, str):
             if self.fRef == "merger freq":
@@ -530,18 +523,16 @@ def create_data_set(
         len(generate_freqs),
         l_vals,
         m_vals,
-        data_freqs,
-        fake_data,
-        fake_data,
-        fake_data,
-        fake_ASD,
-        fake_ASD,
-        fake_ASD,
+        len(data_freqs),
         TDItag_in,
         waveform_params["t_obs_start"],
         waveform_params["t_obs_end"],
         nwalkers,
         ndevices,
+    )
+
+    phenomHM.input_data(
+        data_freqs, fake_data, fake_data, fake_data, fake_ASD, fake_ASD, fake_ASD
     )
 
     freqs = np.tile(generate_freqs, nwalkers * ndevices)

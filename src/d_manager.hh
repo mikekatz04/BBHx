@@ -39,6 +39,7 @@
 #include <complex>
 #include "PhenomHM.h"
 #include "interpolate.hh"
+#include "manager.hh"
 
 class PhenomD {
   // pointer to the GPU memory where the array is stored

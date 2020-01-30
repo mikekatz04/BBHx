@@ -194,11 +194,10 @@ class custom_build_ext(build_ext):
         for undef in ext.undef_macros:
             macros.append((undef,))
 
-        try:
-            CUDA["lib64"]
+        if "nvcc" in extra_args:
             run_cuda = True
 
-        except NameError:
+        else:
             run_cuda = False
 
         objects = self.compiler.compile(
@@ -379,10 +378,10 @@ try:
 except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
-cwd = os.getcwd()
-if cwd == "/home/mlk667/GPU4GW":
+print("\n\n\n\n\nOn quest:", os.path.isdir("/home/mlk667/GPU4GW"), "\n\n\n\n\n")
+if os.path.isdir("/home/mlk667/GPU4GW"):
     lapack_include = ["/software/lapack/3.6.0_gcc/include/"]
-    lapack_lib = ["/software/lapack/3.6.0_gcc/lib/"]
+    lapack_lib = ["/software/lapack/3.6.0_gcc/lib64/"]
 
 else:
     lapack_include = ["/usr/local/opt/lapack/include"]
@@ -468,14 +467,14 @@ shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.p
 temp_dict = copy.deepcopy(cpu_extension_dict)
 extension_name = "cpuPhenomD_glob"
 folder = "phenomd/"
-temp_dict["sources"] += [folder + extension_name + ".pyx"]
+temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
 temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
 
 cpu_extensions.append(Extension(extension_name, **temp_dict))
 
 if run_cuda_install:
     # extensions = [ext_gpu, ext_cpu]
-    extensions = gpu_extensions
+    extensions = gpu_extensions + cpu_extensions
 
 else:
     print("Did not locate CUDA binary.")

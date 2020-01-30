@@ -9,6 +9,12 @@ from phenomhm.utils.convert import Converter, Recycler
 
 try:
     import gpuPhenomHM as PhenomHM
+
+    ndevices = PhenomHM.getDeviceCount()
+    print(ndevices)
+    if ndevices == 0:
+        raise ImportError
+
 except ImportError:
     import cpuPhenomHM as PhenomHM
 

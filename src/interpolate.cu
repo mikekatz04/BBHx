@@ -560,6 +560,12 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
       old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
 
       if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
+        #ifdef __GLOBAL_FIT__
+        #else
+        channel1_out[walker_i*data_length + i] = trans_complex1;
+        channel2_out[walker_i*data_length + i] = trans_complex2;
+        channel3_out[walker_i*data_length + i] = trans_complex3;
+        #endif //__GLOBAL_FIT__
           return;
       }
       x = (f - old_freqs[walker_i*old_length + old_ind_below]);

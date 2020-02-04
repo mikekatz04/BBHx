@@ -129,7 +129,7 @@ def test():
     key_order = ["cos_inc", "lam", "sin_beta", "psi", "ln_tRef"]
     recycler = Recycler(key_order)
 
-    converter = Converter(key_order, tLtoSSB=True)
+    converter = Converter(key_order, t0, tLtoSSB=True)
 
     tRef_sampling_frame = tRef
 

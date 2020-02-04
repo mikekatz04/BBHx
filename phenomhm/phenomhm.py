@@ -75,7 +75,7 @@ class pyPhenomHM(Converter):
             kwargs[prop] = kwargs.get(prop, default)
 
         self.nwalkers, self.ndevices = nwalkers, ndevices
-        self.converter = Converter(key_order, tLtoSSB=self.tLtoSSB)
+        self.converter = Converter(key_order, t0, tLtoSSB=self.tLtoSSB)
         self.recycler = Recycler(key_order, tLtoSSB=self.tLtoSSB)
 
         self.generator = None

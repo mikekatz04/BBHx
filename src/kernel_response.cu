@@ -260,7 +260,7 @@ void kernel_JustLISAFDresponseTDI(ModeContainer *mode_vals, agcmplx *H, double *
 
             }
 
-            t_wave_frame = 1./(2.0*PI)*dphidf;// + tRef_wave_frame;
+            t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
             // adjust phase values stored in mode vals to reflect the tRef shift

@@ -260,14 +260,15 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 	      double *phi0,
 	      double *cshift,
 		  int nwalkers,
-		  int length
+		  int length,
+      int walker_i
 	        ){
 	      unsigned int mm, ell;
 	      double Rholm, Taulm;
 	      double freq_geom;
-	      for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
-	           walker_i < nwalkers;
-	           walker_i += blockDim.z * gridDim.z){
+	      //for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+	      //     walker_i < nwalkers;
+	       //    walker_i += blockDim.z * gridDim.z){
 
 	       for (int mode_i = blockIdx.y * blockDim.y + threadIdx.y;
 	            mode_i < num_modes;
@@ -297,7 +298,7 @@ void kernel_calculate_all_modes(ModeContainer *mode_vals,
 
 	}
 	}
-	}
+//	}
 	  }
 #else
 void cpu_calculate_all_modes_wrap(ModeContainer *mode_vals,

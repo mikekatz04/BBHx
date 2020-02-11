@@ -368,6 +368,7 @@ typedef struct tagModeContainer{
 
 } ModeContainer;
 
+
 ModeContainer * cpu_create_modes(int num_modes, int num_walkers, unsigned int *l_vals, unsigned int *m_vals, int max_length, int to_gpu, int to_interp);
 void cpu_destroy_modes(ModeContainer * mode_vals);
 

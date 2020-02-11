@@ -282,8 +282,8 @@ all_sources = [
 
 gpu_sources = ["src/createGPUHolders.cu"]
 
-phenomhm_sources = all_sources + ["src/PhenomHM.cu", "src/manager.cu", "src/kernel.cu"]
-phenomd_sources = all_sources.copy() + ["src/d_manager.cu", "src/d_kernel.cu"]
+phenomhm_sources = all_sources + ["src/PhenomHM.cu", "src/kernel.cu", "src/manager.cu"]
+phenomd_sources = all_sources.copy() + ["src/d_kernel.cu",  "src/d_manager.cu"]
 
 all_lib_dirs = [lib_gsl_dir]
 all_include = [numpy_include, include_gsl_dir, "src"]
@@ -479,6 +479,8 @@ if run_cuda_install:
 else:
     print("Did not locate CUDA binary.")
     extensions = cpu_extensions
+
+extensions = gpu_extensions[0:1]
 
 setup(
     name="phenomhm",

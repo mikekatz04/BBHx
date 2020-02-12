@@ -558,6 +558,7 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
       {*/
       f = data_freqs[i];
       old_ind_below = floor((log10(f) - log10(old_freqs[walker_i*old_length + 0]))/d_log10f);
+
       if ((old_ind_below == old_length -1) || (f >= f_max_limit) || (f < f_min_limit) || (old_ind_below >= old_length)){
         #ifdef __GLOBAL_FIT__
         #else
@@ -575,7 +576,6 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
     double chan1_ASDinv, chan2_ASDinv, chan3_ASDinv;
 
     for (int mode_i=0; mode_i<num_modes; mode_i++){
-
             old_mode_vals_i = &old_mode_vals[walker_i*num_modes + mode_i];
             // interp time frequency to remove less than 0.0
             coeff_0 = old_mode_vals_i->time_freq_corr[old_ind_below];
@@ -684,14 +684,14 @@ void interpolate(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3
 CUDA_KERNEL
 void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double* tRef_wave_frame_arr, double *channel1_ASDinv,
-    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers, int walker_i, int start_ind, int end_ind){
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
     //int mode_i = blockIdx.y;
 
     double f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end, tRef_wave_frame;
 
-    //for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
-      //   walker_i < num_walkers;
-      //   walker_i += blockDim.z * gridDim.z){
+    for (int walker_i = blockIdx.z * blockDim.z + threadIdx.z;
+         walker_i < num_walkers;
+         walker_i += blockDim.z * gridDim.z){
 
      f_min_limit = old_freqs[walker_i*old_length];
      f_max_limit = old_freqs[walker_i*old_length + old_length-1];
@@ -701,18 +701,15 @@ void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *cha
      t_break_start = t0*YRSID_SI + tRef - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
      t_break_end = t0*YRSID_SI + tRef - t_obs_end*YRSID_SI;
 
-     int j = blockIdx.x * blockDim.x + threadIdx.x;
-
-    for (int i = start_ind + blockIdx.x * blockDim.x + threadIdx.x;
-         i < end_ind;
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < data_length;
          i += blockDim.x * gridDim.x){
 
             interpolate(channel1_out, channel2_out, channel3_out, old_mode_vals, num_modes, d_log10f, old_freqs, old_length,
                         data_freqs, data_length, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, num_walkers,
                         f_min_limit, f_max_limit, t_break_start, t_break_end, t_obs_end, walker_i, i, tRef_wave_frame, t0);
 
-
-//}
+}
 }
 }
 

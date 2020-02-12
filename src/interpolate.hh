@@ -84,7 +84,7 @@ void cpu_set_spline_constants_wave_wrap(ModeContainer *mode_vals, double *B, int
 CUDA_KERNEL
 void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double* tRef_wave_frame_arr, double *channel1_ASDinv,
-    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers);
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers, int walker_i, int start_ind, int end_ind);
 #else
 void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double* tRef_wave_frame_arr, double *channel1_ASDinv,

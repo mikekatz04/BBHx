@@ -458,7 +458,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     f_ref = f_ref_;
 
     int i, th_id, nthreads;
-    #pragma omp parallel for
+    /*#pragma omp parallel for
     for (int i=0; i<ndevices*nwalkers; i+=1){
             PhenomHM::gen_amp_phase_prep(i, &freqs[i*current_length], current_length_,
                 m1_[i], //solar masses
@@ -470,7 +470,7 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
                 f_ref_[i]);
 
             M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
-      }
+      }//*/
 
     #ifdef __CUDACC__
     /* main: evaluate model at given frequencies on GPU */
@@ -489,6 +489,17 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
         th_id = omp_get_thread_num();
         for (int i=th_id; i<ndevices*nwalkers; i+=nthreads){
             device_i = i / nwalkers;
+
+            PhenomHM::gen_amp_phase_prep(i, &freqs[i*current_length], current_length_,
+                m1_[i], //solar masses
+                m2_[i], //solar masses
+                chi1z_[i],
+                chi2z_[i],
+                distance_[i],
+                phiRef_[i],
+                f_ref_[i]);
+
+            M_tot_sec[i] = (m1[i]+m2[i])*MTSUN_SI;
 
             gpuErrchk(cudaSetDevice(device_i));
 
@@ -537,10 +548,10 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
                   current_length,
                   i
               );
-              cudaStreamSynchronize(0);
-              gpuErrchk(cudaGetLastError());
         }
     }
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
     #else
     cpu_calculate_all_modes_wrap(mode_vals,
           pHM_trans,
@@ -563,9 +574,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
     //printf("intrinsic: %e, %e, %e, %e, %e, %e, %e\n", m1, m2, chi1z, chi2z, distance, phiRef, f_ref);
 
     #endif
-
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());
 
      // ensure calls are run in correct order
      current_status = 1;
@@ -808,23 +816,39 @@ void PhenomHM::perform_interp(){
     #ifdef __CUDACC__
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     //dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
-    dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
+    dim3 mainInterpDim(num_block_interp, 1, 1);//, num_modes);
 
     int i, th_id, nthreads;
-    #pragma omp parallel private(th_id, i)
+    int device_i = 0;
+    int start_ind =0;
+    int end_ind = 0;
+
+    #pragma omp parallel private(th_id, i, device_i, start_ind, end_ind)
     {
     //for (int i=0; i<nwalkers; i++){
-        nthreads = omp_get_num_threads();
-        th_id = omp_get_thread_num();
-        for (int i=th_id; i<ndevices; i+=nthreads){
-            cudaSetDevice(i);
-            interpolate_wrap<<<mainInterpDim, NUM_THREADS>>>(d_template_channel1[i], d_template_channel2[i], d_template_channel3[i], d_mode_vals[i], num_modes,
-                d_log10f, d_freqs[i], current_length, d_data_freqs[i], data_stream_length, d_t0_epoch[i],
-                d_tRef_sampling_frame[i], d_tRef_wave_frame[i], d_channel1_ASDinv[i], d_channel2_ASDinv[i], d_channel3_ASDinv[i], t_obs_start, t_obs_end, nwalkers);
-            cudaDeviceSynchronize();
+    nthreads = omp_get_num_threads();
+    th_id = omp_get_thread_num();
+    for (int i=th_id; i<ndevices*nwalkers; i+=nthreads){
+        device_i = i / nwalkers;
+
+        gpuErrchk(cudaSetDevice(device_i));
+
+        start_ind = 0;
+        end_ind = data_stream_length;
+
+        num_block_interp = std::ceil((end_ind - start_ind + NUM_THREADS - 1)/NUM_THREADS);
+
+            interpolate_wrap<<<num_block_interp, NUM_THREADS>>>(d_template_channel1[device_i], d_template_channel2[device_i], d_template_channel3[device_i], d_mode_vals[device_i], num_modes,
+                d_log10f, d_freqs[device_i], current_length, d_data_freqs[device_i], data_stream_length, d_t0_epoch[device_i],
+                d_tRef_sampling_frame[device_i], d_tRef_wave_frame[device_i], d_channel1_ASDinv[device_i], d_channel2_ASDinv[device_i], d_channel3_ASDinv[device_i], t_obs_start, t_obs_end, nwalkers,
+                i, start_ind, end_ind); //walker index
+            cudaStreamSynchronize(0);
             gpuErrchk(cudaGetLastError());
         }
     }
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
 
     #else
     cpu_interpolate_wrap(template_channel1, template_channel2, template_channel3, mode_vals, num_modes,

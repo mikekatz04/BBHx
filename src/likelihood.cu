@@ -25,6 +25,9 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
      //#pragma omp parallel
      //{
      //for (int i=0; i<nwalkers; i++){
+
+     int start_ind = 0;
+     int end_ind = data_stream_length;
         int j, i, th_id, nthreads;
          double d_h = 0.0;
          double h_h = 0.0;
@@ -32,6 +35,7 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
          double res;
          cuDoubleComplex result;
          cublasStatus_t stat;
+         int like_len = end_ind - start_ind;
          //nthreads = omp_get_num_threads();
          //th_id = omp_get_thread_num();
          for (int j=0; j<ndevices; j+=1){
@@ -40,9 +44,9 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
                  d_h = 0.0;
                  h_h = 0.0;
                  // get data - template terms
-                  stat = cublasZdotc(handle[j], data_stream_length,
-                          (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i], 1,
-                          (cuDoubleComplex*)d_data_channel1[j], 1,
+                  stat = cublasZdotc(handle[j], like_len,
+                          (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i + start_ind], 1,
+                          (cuDoubleComplex*)&d_data_channel1[j][start_ind], 1,
                           &result);
                   status = _cudaGetErrorEnum(stat);
                    cudaDeviceSynchronize();
@@ -52,10 +56,9 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
                        }
                   d_h += cuCreal(result);
                   //printf("channel1 d_h: %e\n", cuCreal(result));
-
-                  stat = cublasZdotc(handle[j], data_stream_length,
-                          (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i], 1,
-                          (cuDoubleComplex*)d_data_channel2[j], 1,
+                  stat = cublasZdotc(handle[j], like_len,
+                          (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i + start_ind], 1,
+                          (cuDoubleComplex*)&d_data_channel2[j][start_ind], 1,
                           &result);
                   status = _cudaGetErrorEnum(stat);
                    cudaDeviceSynchronize();
@@ -66,9 +69,9 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
                   d_h += cuCreal(result);
                   //printf("channel2 d_h: %e\n", cuCreal(result));
 
-                  stat = cublasZdotc(handle[j], data_stream_length,
-                          (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i], 1,
-                          (cuDoubleComplex*)d_data_channel3[j], 1,
+                  stat = cublasZdotc(handle[j], like_len,
+                          (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i + start_ind], 1,
+                          (cuDoubleComplex*)&d_data_channel3[j][start_ind], 1,
                           &result);
                   status = _cudaGetErrorEnum(stat);
                    cudaDeviceSynchronize();
@@ -79,11 +82,10 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
                   d_h += cuCreal(result);
                   //printf("channel3 d_h: %e\n", cuCreal(result));
 
-
                   // get template template terms
-                 stat = cublasZdotc(handle[j], data_stream_length,
-                              (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i], 1,
-                              (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i], 1,
+                 stat = cublasZdotc(handle[j], like_len,
+                              (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i + start_ind], 1,
+                              (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i + start_ind], 1,
                               &result);
                       status = _cudaGetErrorEnum(stat);
                        cudaDeviceSynchronize();
@@ -93,10 +95,9 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
                            }
                       h_h += cuCreal(result);
                       //printf("channel1 h_h: %e\n", cuCreal(result));
-
-                      stat = cublasZdotc(handle[j], data_stream_length,
-                              (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i], 1,
-                              (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i], 1,
+                      stat = cublasZdotc(handle[j], like_len,
+                              (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i + start_ind], 1,
+                              (cuDoubleComplex*)&d_template_channel2[j][data_stream_length*i + start_ind], 1,
                               &result);
                       status = _cudaGetErrorEnum(stat);
                        cudaDeviceSynchronize();
@@ -107,9 +108,9 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
                       h_h += cuCreal(result);
                       //printf("channel2 h_h: %e\n", cuCreal(result));
 
-                      stat = cublasZdotc(handle[j], data_stream_length,
-                              (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i], 1,
-                              (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i], 1,
+                      stat = cublasZdotc(handle[j], like_len,
+                              (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i + start_ind], 1,
+                              (cuDoubleComplex*)&d_template_channel3[j][data_stream_length*i + start_ind], 1,
                               &result);
                       status = _cudaGetErrorEnum(stat);
                        cudaDeviceSynchronize();

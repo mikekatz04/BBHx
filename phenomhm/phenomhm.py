@@ -13,6 +13,12 @@ from phenomhm.utils.convert import Converter, Recycler
 import tdi
 
 try:
+    import cupy as xp
+except ImportError:
+    import numpy as xp
+    print('No cupy')
+
+try:
     from gpuPhenomHM import PhenomHM
     from gpuPhenomHM import getDeviceCount
 
@@ -223,6 +229,9 @@ class pyPhenomHM(Converter):
             self.fRef = np.full(nwalkers * ndevices, self.fRef)
             self.fRef_merger_freq = False
 
+        if import_cpu is False:
+            self.device_data_freqs = xp.asarray(self.data_freqs)
+
     def NLL(
         self,
         m1,
@@ -260,10 +269,20 @@ class pyPhenomHM(Converter):
                     np.logspace(np.log10(lf), np.log10(uf), self.max_length_init)
                     for lf, uf in zip(lower_freq, upper_freq)
                 ]
-            ).flatten()
+            )
+
+        first_freqs = freqs[:, 0]
+        last_freqs = freqs[:, -1]
+
+        if import_cpu is False:
+            first_inds = xp.searchsorted(self.device_data_freqs, xp.asarray(first_freqs), side='left').get()
+            last_inds = xp.searchsorted(self.device_data_freqs, xp.asarray(last_freqs), side='right').get()
+        else:
+            first_inds = np.searchsorted(self.data_freqs, first_freqs, side='left')
+            last_inds = np.searchsorted(self.data_freqs, last_freqs, side='right')
 
         out = self.generator.WaveformThroughLikelihood(
-            freqs,
+            freqs.flatten(),
             m1,
             m2,  # solar masses
             a1,
@@ -279,6 +298,8 @@ class pyPhenomHM(Converter):
             tRef_wave_frame,
             tRef_sampling_frame,
             merger_freq,
+            first_inds.astype(np.int32),
+            last_inds.astype(np.int32),
             return_amp_phase=return_amp_phase,
             return_TDI=return_TDI,
             return_response=return_response,
@@ -554,6 +575,8 @@ def create_data_set(
     )
     merger_freq = np.full(nwalkers * ndevices, merger_freq)
 
+    first_inds = np.full(nwalkers*ndevices, 0, dtype=np.int32)
+    last_inds = np.full(nwalkers*ndevices, len(data_freqs), dtype=np.int32)
     channel1, channel2, channel3 = phenomHM.WaveformThroughLikelihood(
         freqs,
         m1,
@@ -571,6 +594,8 @@ def create_data_set(
         tRef_wave_frame,
         tRef_sampling_frame,
         merger_freq,
+        first_inds.astype(np.int32),
+        last_inds.astype(np.int32),
         return_TDI=True,
     )
 

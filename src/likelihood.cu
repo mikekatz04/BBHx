@@ -20,14 +20,14 @@
 #ifdef __CUDACC__
 void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1, agcmplx **d_data_channel2, agcmplx **d_data_channel3,
                                 agcmplx **d_template_channel1, agcmplx **d_template_channel2, agcmplx **d_template_channel3,
-                                 int data_stream_length, int nwalkers, int ndevices, cublasHandle_t *handle){
+                                 int data_stream_length, int nwalkers, int ndevices, cublasHandle_t *handle, int* first_inds, int* last_inds){
 
      //#pragma omp parallel
      //{
      //for (int i=0; i<nwalkers; i++){
-
      int start_ind = 0;
      int end_ind = data_stream_length;
+     int like_len = data_stream_length;
         int j, i, th_id, nthreads;
          double d_h = 0.0;
          double h_h = 0.0;
@@ -35,7 +35,7 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
          double res;
          cuDoubleComplex result;
          cublasStatus_t stat;
-         int like_len = end_ind - start_ind;
+
          //nthreads = omp_get_num_threads();
          //th_id = omp_get_thread_num();
          for (int j=0; j<ndevices; j+=1){
@@ -43,6 +43,10 @@ void gpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx **d_data_channel1,
              for (int i=0; i<nwalkers; i++){
                  d_h = 0.0;
                  h_h = 0.0;
+                 i = i + j*nwalkers;
+                 start_ind = first_inds[i];
+                 end_ind = last_inds[i];
+                 int like_len = end_ind - start_ind;
                  // get data - template terms
                   stat = cublasZdotc(handle[j], like_len,
                           (cuDoubleComplex*)&d_template_channel1[j][data_stream_length*i + start_ind], 1,

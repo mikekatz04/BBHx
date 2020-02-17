@@ -107,6 +107,7 @@ class PhenomHM {
 
   ModeContainer *mode_vals;
   ModeContainer **d_mode_vals;
+  ModeContainer *h_mode_vals;
   int ndevices;
 
   double *cShift;
@@ -143,6 +144,8 @@ class PhenomHM {
   double t_obs_start;
   double t_obs_end;
   double* merger_freq;
+  int* first_inds;
+  int* last_inds;
 
   double** d_inc;
   double** d_lam;
@@ -210,7 +213,9 @@ public:
         double* chi2z_,
         double* distance_,
         double* phiRef_,
-        double* f_ref_);
+        double* f_ref_,
+        int* first_inds_,
+        int* last_inds_);
 
     void gen_amp_phase_prep(int ind_walker_, double *freqs_, int current_length_,
             double m1_, //solar masses

@@ -25,7 +25,9 @@ cdef extern from "../src/manager.hh":
                             np.float64_t *,
                             np.float64_t *,
                             np.float64_t *,
-                            np.float64_t *)
+                            np.float64_t *,
+                            np.int32_t *,
+                            np.int32_t *)
 
         void setup_interp_wave()
 
@@ -91,7 +93,9 @@ cdef class PhenomHM:
                         np.ndarray[ndim=1, dtype=np.float64_t] chi2z,
                         np.ndarray[ndim=1, dtype=np.float64_t] distance,
                         np.ndarray[ndim=1, dtype=np.float64_t] phiRef,
-                        np.ndarray[ndim=1, dtype=np.float64_t] f_ref):
+                        np.ndarray[ndim=1, dtype=np.float64_t] f_ref,
+                        np.ndarray[ndim=1, dtype=np.int32_t] first_inds,
+                        np.ndarray[ndim=1, dtype=np.int32_t] last_inds):
 
         self.f_dim = self.max_length_init
         self.g.gen_amp_phase(&freqs[0], self.f_dim,
@@ -101,7 +105,9 @@ cdef class PhenomHM:
                                 &chi2z[0],
                                 &distance[0],
                                 &phiRef[0],
-                                &f_ref[0])
+                                &f_ref[0],
+                                &first_inds[0],
+                                &last_inds[0])
 
     def input_data(self, np.ndarray[ndim=1, dtype=np.float64_t] data_freqs,
                             np.ndarray[ndim=1, dtype=np.complex128_t] data_channel1,
@@ -241,6 +247,8 @@ cdef class PhenomHM:
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_wave_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] tRef_sampling_frame,
                         np.ndarray[ndim=1, dtype=np.float64_t] merger_freq,
+                        np.ndarray[ndim=1, dtype=np.int32_t] first_inds,
+                        np.ndarray[ndim=1, dtype=np.int32_t] last_inds,
                         return_amp_phase=False, return_TDI=False, return_response=False, return_phase_spline=False):
 
         self.gen_amp_phase(freqs,
@@ -250,7 +258,9 @@ cdef class PhenomHM:
                             chi2z,
                             distance,
                             phiRef,
-                            f_ref)
+                            f_ref,
+                            first_inds,
+                            last_inds)
 
 
         if return_amp_phase:

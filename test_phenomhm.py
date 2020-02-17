@@ -22,6 +22,10 @@ if __name__ == "__main__":
         "df": None,
         "tLtoSSB": True,
         "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
+        "add_noise":{
+            "fs": 0.3,
+            "min_freq": 1e-6
+        }
     }
 
     max_length_init = 2 ** 12
@@ -47,7 +51,7 @@ if __name__ == "__main__":
         "ln_tRef": np.log(2.39284219993e1),
     }
 
-    """data_params = {
+    data_params = {
         "ln_mT": np.log(2.00000000e06),
         "mr": 1 / 3.00000000e00,
         "a1": 0.0,
@@ -59,7 +63,7 @@ if __name__ == "__main__":
         "sin_beta": np.sin(6.24341583e-01),
         "psi": 2.02958790e00,
         "ln_tRef": np.log(5.02462348e01),
-    }"""
+    }
 
     prop_defaults["data_params"] = data_params
 
@@ -134,6 +138,7 @@ if __name__ == "__main__":
             (et - st) / (args.time * nwalkers * ndevices),
         )
 
+    exit()
     check = phenomhm.getNLL(waveform_params.T)
     fisher = phenomhm.get_Fisher(waveform_params[0])
     print(check[0:3])

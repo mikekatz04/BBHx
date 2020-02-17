@@ -126,6 +126,9 @@ def test():
     beta = np.sin(-1.3748820938)
     psi = 0.139820023
 
+    first_ind = 0
+    last_ind = int(len(data)/2)
+
     key_order = ["cos_inc", "lam", "sin_beta", "psi", "ln_tRef"]
     recycler = Recycler(key_order)
 
@@ -156,7 +159,7 @@ def test():
         ndevices,
     )
 
-    num = 10
+    num = 100
     st = time.perf_counter()
     # phiRef = np.linspace(0.0, 2*np.pi, num)
     # snrs = np.zeros_like(phiRef)
@@ -193,6 +196,8 @@ def test():
     tRef_wave_frame_in = np.full(nwalkers, tRef_wave_frame)
     tRef_sampling_frame_in = np.full(nwalkers, tRef_sampling_frame)
     merger_freq_in = np.full(nwalkers, merger_freq)
+    first_inds_in = np.full(nwalkers, first_ind, dtype=np.int32)
+    last_inds_in = np.full(nwalkers, last_ind, dtype=np.int32)
 
     phenomHM.input_data(
         data_freqs, data_A, data_E, data_T, AE_ASDinv, AE_ASDinv, T_ASDinv
@@ -215,6 +220,8 @@ def test():
         tRef_wave_frame_in,
         tRef_sampling_frame_in,
         merger_freq_in,
+        first_inds_in,
+        last_inds_in,
         return_TDI=False,
     )
 
@@ -265,6 +272,8 @@ def test():
             tRef_wave_frame_in,
             tRef_sampling_frame_in,
             merger_freq_in,
+            first_inds_in,
+            last_inds_in,
             return_TDI=False,
         )
 

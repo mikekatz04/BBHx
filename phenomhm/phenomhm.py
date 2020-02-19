@@ -16,7 +16,8 @@ try:
     import cupy as xp
 except ImportError:
     import numpy as xp
-    print('No cupy')
+
+    print("No cupy")
 
 try:
     from gpuPhenomHM import PhenomHM
@@ -275,11 +276,15 @@ class pyPhenomHM(Converter):
         last_freqs = freqs[:, -1]
 
         if import_cpu is False:
-            first_inds = xp.searchsorted(self.device_data_freqs, xp.asarray(first_freqs), side='left').get()
-            last_inds = xp.searchsorted(self.device_data_freqs, xp.asarray(last_freqs), side='right').get()
+            first_inds = xp.searchsorted(
+                self.device_data_freqs, xp.asarray(first_freqs), side="left"
+            ).get()
+            last_inds = xp.searchsorted(
+                self.device_data_freqs, xp.asarray(last_freqs), side="right"
+            ).get()
         else:
-            first_inds = np.searchsorted(self.data_freqs, first_freqs, side='left')
-            last_inds = np.searchsorted(self.data_freqs, last_freqs, side='right')
+            first_inds = np.searchsorted(self.data_freqs, first_freqs, side="left")
+            last_inds = np.searchsorted(self.data_freqs, last_freqs, side="right")
 
         out = self.generator.WaveformThroughLikelihood(
             freqs.flatten(),
@@ -465,12 +470,19 @@ def create_data_set(
 
     if data_freqs is None:
         if add_noise is not None:
-            fs = add_noise["fs"]
+
+            sampling_frequency = add_noise["fs"]
             t_obs_start = waveform_params["t_obs_start"]
             t_obs_end = waveform_params["t_obs_end"]
-            df = 1.0 / ((t_obs_start - t_obs_end) * ct.Julian_year)
-            num_data_points = int((t_obs_start - t_obs_end) * ct.Julian_year * fs)
-            noise_freqs = np.fft.rfftfreq(num_data_points, 1 / fs)
+            duration = (t_obs_start - t_obs_end) * ct.Julian_year
+            df = 1.0 / duration
+            number_of_samples = int(np.round(duration * sampling_frequency))
+            number_of_frequencies = int(np.round(number_of_samples / 2) + 1)
+
+            noise_freqs = np.linspace(
+                start=0, stop=sampling_frequency / 2, num=number_of_frequencies
+            )
+
             data_freqs = noise_freqs[noise_freqs >= add_noise["min_freq"]]
 
         else:
@@ -489,27 +501,36 @@ def create_data_set(
 
     if add_noise is not None:
 
+        # following bilby convention (?)
         norm1 = 0.5 * (1.0 / df) ** 0.5
         re = np.random.normal(0, norm1, size=(3,) + data_freqs.shape)
         im = np.random.normal(0, norm1, size=(3,) + data_freqs.shape)
         htilde = re + 1j * im
 
-        # the 0.125 is 1/8 to match LDC data #FIXME
         if TDItag == "AET":
             # assumes gaussian noise
             noise_channel1 = (
-                np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
-                * htilde[0]
+                (
+                    np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
+                    * htilde[0]
+                )
+                * 2
+                * df ** 0.5
             )
+
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
+                * 2
+                * df ** 0.5
             )
             noise_channel3 = (
                 np.sqrt(
                     tdi.noisepsd_T(data_freqs, model=kwargs["noise_kwargs"]["model"])
                 )
                 * htilde[2]
+                * 2
+                * df ** 0.5
             )
 
         else:
@@ -517,14 +538,20 @@ def create_data_set(
             noise_channel1 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[0]
+                * 2
+                * df ** 0.5
             )
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
+                * 2
+                * df ** 0.5
             )
             noise_channel3 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[2]
+                * 2
+                * df ** 0.5
             )
 
     generate_freqs = np.logspace(
@@ -575,8 +602,8 @@ def create_data_set(
     )
     merger_freq = np.full(nwalkers * ndevices, merger_freq)
 
-    first_inds = np.full(nwalkers*ndevices, 0, dtype=np.int32)
-    last_inds = np.full(nwalkers*ndevices, len(data_freqs), dtype=np.int32)
+    first_inds = np.full(nwalkers * ndevices, 0, dtype=np.int32)
+    last_inds = np.full(nwalkers * ndevices, len(data_freqs), dtype=np.int32)
     channel1, channel2, channel3 = phenomHM.WaveformThroughLikelihood(
         freqs,
         m1,

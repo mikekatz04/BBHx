@@ -26,6 +26,7 @@
 #include <math.h>
 #include <complex>
 #include <iostream>
+#include "stdio.h"
 
 #include <stdbool.h>
 #include "assert.h"
@@ -260,8 +261,10 @@ static int init_PhenomHM_Storage(
     p->deltaF = deltaF;
     p->freqs = freqs;
 
-    if (p->eta > 0.25)
+    if (p->eta > 0.25){
+        printf("eta: %.10lf\n", p->eta);
         assert(0); //PhenomInternal_nudge(&(p->eta), 0.25, 1e-6);
+    }
     if (p->eta > 0.25 || p->eta < 0.0)
         assert(0); //ERROR(PD_EDOM, "Unphysical eta. Must be between 0. and 0.25\n");
     if (p->eta < MAX_ALLOWED_ETA)

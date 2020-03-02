@@ -90,6 +90,18 @@ void print_mem_info(){
 }
 #endif
 
+
+#define gpuErrchk_kern(ans, num_block_interp, start_ind, end_ind) { gpuAssert_kern((ans), num_block_interp, start_ind, end_ind, __FILE__, __LINE__); }
+inline void gpuAssert_kern(cudaError_t code, int nblocks, int start_ind, int end_ind, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d, blocks: %d, start: %d, end: %d\n", cudaGetErrorString(code), file, line, nblocks, start_ind, end_ind);
+      if (abort) exit(code);
+   }
+}
+
+
 PhenomHM::PhenomHM (int max_length_init_,
     unsigned int *l_vals_,
     unsigned int *m_vals_,
@@ -821,7 +833,7 @@ void PhenomHM::perform_interp(){
     int start_ind =0;
     int end_ind = 0;
 
-    #pragma omp parallel private(th_id, i, device_i, start_ind, end_ind)
+    #pragma omp parallel private(th_id, i, device_i, start_ind, end_ind, num_block_interp)
     {
     //for (int i=0; i<nwalkers; i++){
     nthreads = omp_get_num_threads();
@@ -834,16 +846,21 @@ void PhenomHM::perform_interp(){
         start_ind = first_inds[i];
         end_ind = last_inds[i];
 
-        num_block_interp = std::ceil((end_ind - start_ind + NUM_THREADS - 1)/NUM_THREADS);
+        num_block_interp = (int)std::ceil((end_ind - start_ind + NUM_THREADS - 1)/NUM_THREADS);
 
+        if (num_block_interp == 0) continue;
+        if (num_block_interp < 0) printf("neg num_block: %d %d %d %d\n", start_ind, end_ind, num_block_interp, NUM_THREADS);
+        if (end_ind < start_ind) printf("neg end ind < start_ind: %d %d %d %d\n", start_ind, end_ind, num_block_interp, NUM_THREADS);
+        //printf("%d %d %d %d %.10e %.10e %.10e %.10e\n", start_ind, end_ind, num_block_interp, NUM_THREADS, m1[i], m2[i], chi1z[i], chi2z[i]);
             interpolate_wrap<<<num_block_interp, NUM_THREADS>>>(d_template_channel1[device_i], d_template_channel2[device_i], d_template_channel3[device_i], d_mode_vals[device_i], num_modes,
                 d_log10f, d_freqs[device_i], current_length, d_data_freqs[device_i], data_stream_length, d_t0_epoch[device_i],
                 d_tRef_sampling_frame[device_i], d_tRef_wave_frame[device_i], d_channel1_ASDinv[device_i], d_channel2_ASDinv[device_i], d_channel3_ASDinv[device_i], t_obs_start, t_obs_end, nwalkers,
                 i, start_ind, end_ind); //walker index
+
         }
     }
     cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());
+    gpuErrchk_kern(cudaGetLastError(), num_block_interp, start_ind, end_ind);
 
 
     #else

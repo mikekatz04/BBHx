@@ -509,28 +509,22 @@ def create_data_set(
 
         if TDItag == "AET":
             # assumes gaussian noise
+            # for testing noise for N(0, 1),
+            # need to have minimum frequency encompass all frequencies
             noise_channel1 = (
-                (
-                    np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
-                    * htilde[0]
-                )
-                * 2
-                * df ** 0.5
+                np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
+                * htilde[0]
             )
 
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_AE(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
-                * 2
-                * df ** 0.5
             )
             noise_channel3 = (
                 np.sqrt(
                     tdi.noisepsd_T(data_freqs, model=kwargs["noise_kwargs"]["model"])
                 )
                 * htilde[2]
-                * 2
-                * df ** 0.5
             )
 
         else:
@@ -538,20 +532,14 @@ def create_data_set(
             noise_channel1 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[0]
-                * 2
-                * df ** 0.5
             )
             noise_channel2 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[1]
-                * 2
-                * df ** 0.5
             )
             noise_channel3 = (
                 np.sqrt(tdi.noisepsd_XYZ(data_freqs, **kwargs["noise_kwargs"]))
                 * htilde[2]
-                * 2
-                * df ** 0.5
             )
 
     generate_freqs = np.logspace(

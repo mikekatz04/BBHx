@@ -328,7 +328,8 @@ class pyPhenomHM(Converter):
         if return_snr:
             return np.sqrt(d_h), np.sqrt(h_h)
 
-        return self.d_d + h_h - 2 * d_h
+        # 1/2<d-h|d-h> = 1/2(<d|d> + <h|h> - 2<d|h>)
+        return 1.0 / 2.0 * (self.d_d + h_h - 2 * d_h)
 
     def getNLL(self, x, **kwargs):
         # changes parameters to in range in actual array (not copy)

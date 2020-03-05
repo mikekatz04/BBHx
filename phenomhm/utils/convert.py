@@ -222,6 +222,48 @@ class Converter:
         return x
 
 
+"""
+# Convert SSB-frame params to L-frame params  from sylvain marsat / john baker
+# NOTE: no transformation of the phase -- approximant-dependence with e.g. EOBNRv2HMROM setting phiRef at fRef, and freedom in definition
+def ConvertSSBframeParamsToLframe(
+  tL,
+  lambdaL,
+  betaL,
+  psiL,
+  tSSB,
+  lambdaSSB,
+  betaSSB,
+  psiSSB):
+
+    alpha = 0.
+    cosalpha = 0
+    sinalpha = 0.
+    coslambda = 0
+    sinlambda = 0.
+    cosbeta = 0.
+    sinbeta = 0.
+    cospsi = 0.
+    sinpsi = 0.
+  coszeta = cos(PI/3.);
+  sinzeta = sin(PI/3.);
+  coslambda = cos(lambdaSSB);
+  sinlambda = sin(lambdaSSB);
+  cosbeta = cos(betaSSB);
+  sinbeta = sin(betaSSB);
+  cospsi = cos(psiSSB);
+  sinpsi = sin(psiSSB);
+  alpha = variant->ConstOmega * (tSSB) + variant->ConstPhi0;
+  cosalpha = cos(alpha);
+  sinalpha = sin(alpha);
+  *tL = tLfromSSBframe(variant, tSSB, lambdaSSB, betaSSB);
+  *lambdaL = atan2(cosalpha*cosalpha*cosbeta*sinlambda + sinalpha*sinbeta*sinzeta + cosbeta*coszeta*sinalpha*sinalpha*sinlambda -cosalpha*cosbeta*coslambda*sinalpha + cosalpha*cosbeta*coszeta*coslambda*sinalpha, cosalpha*sinbeta*sinzeta + cosbeta*coslambda*sinalpha*sinalpha + cosalpha*cosalpha*cosbeta*coszeta*coslambda -cosalpha*cosbeta*sinalpha*sinlambda + cosalpha*cosbeta*coszeta*sinalpha*sinlambda);
+  *betaL = asin(coszeta*sinbeta -cosalpha*cosbeta*coslambda*sinzeta -cosbeta*sinalpha*sinzeta*sinlambda);
+  *psiL = modpi(psiSSB + atan2(coslambda*sinalpha*sinzeta -cosalpha*sinzeta*sinlambda, cosbeta*coszeta + cosalpha*coslambda*sinbeta*sinzeta + sinalpha*sinbeta*sinzeta*sinlambda));
+
+  return SUCCESS;
+}
+
+
 def modpi(phase):
     # from sylvan
     return phase - np.floor(phase / np.pi) * np.pi
@@ -240,6 +282,7 @@ def tSSBfromLframe(tL, lambdaSSB, betaSSB, t0):
         + RoC * np.cos(betaSSB) * np.cos(phase)
         - 1.0 / 2 * ConstOmega * pow(RoC * np.cos(betaSSB), 2) * np.sin(2.0 * phase)
     )
+"""
 
 
 class Recycler:

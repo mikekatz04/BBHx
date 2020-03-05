@@ -141,7 +141,7 @@ agcmplx complex_dot_product(agcmplx *arr1, agcmplx *arr2, int n){
 
 void cpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx *h_data_channel1, agcmplx *h_data_channel2, agcmplx *h_data_channel3,
                                 agcmplx *template_channel1, agcmplx *template_channel2, agcmplx *template_channel3,
-                                 int data_stream_length, int nwalkers, int ndevices){
+                                 int data_stream_length, int nwalkers, int ndevices, int* first_inds, int* last_inds){
 
      //#pragma omp parallel
      //{
@@ -153,37 +153,44 @@ void cpu_likelihood(double *d_h_arr, double *h_h_arr, agcmplx *h_data_channel1, 
          double res;
          agcmplx temp;
          int i=0;
+         int start_ind, end_ind, like_len;
          //nthreads = omp_get_num_threads();
          //th_id = omp_get_thread_num();
-         #pragma omp parallel for private(d_h, h_h, temp, i)
+         #pragma omp parallel for private(d_h, h_h, temp, i, start_ind, end_ind, like_len)
          for (i=0; i<nwalkers; i++){
+
+                 start_ind = first_inds[i];
+                 end_ind = last_inds[i];
+                 int like_len = end_ind - start_ind;
+
                  d_h = 0.0;
                  h_h = 0.0;
                  // get data - template terms
 
-                  temp = complex_dot_product(&template_channel1[data_stream_length*i], h_data_channel1, data_stream_length);
+
+                  temp = complex_dot_product(&template_channel1[data_stream_length*i + start_ind], &h_data_channel1[start_ind], like_len);
 
                   d_h += temp.real();
                   //printf("channel1 d_h: %e\n", cuCreal(result));
 
-                  temp = complex_dot_product(&template_channel2[data_stream_length*i], h_data_channel2, data_stream_length);
+                  temp = complex_dot_product(&template_channel2[data_stream_length*i + start_ind], &h_data_channel2[start_ind], like_len);
 
                   d_h += temp.real();
                   //printf("channel2 d_h: %e\n", cuCreal(result));
 
-                  temp = complex_dot_product(&template_channel3[data_stream_length*i], h_data_channel3, data_stream_length);
+                  temp = complex_dot_product(&template_channel3[data_stream_length*i + start_ind], &h_data_channel3[start_ind], like_len);
 
                   d_h += temp.real();
 
-                  temp = complex_dot_product(&template_channel1[data_stream_length*i], &template_channel1[data_stream_length*i], data_stream_length);
+                  temp = complex_dot_product(&template_channel1[data_stream_length*i + start_ind], &template_channel1[data_stream_length*i + start_ind], like_len);
 
                   h_h += temp.real();
 
-                  temp = complex_dot_product(&template_channel2[data_stream_length*i], &template_channel2[data_stream_length*i], data_stream_length);
+                  temp = complex_dot_product(&template_channel2[data_stream_length*i + start_ind], &template_channel2[data_stream_length*i + start_ind], like_len);
 
                   h_h += temp.real();
 
-                  temp = complex_dot_product(&template_channel3[data_stream_length*i], &template_channel3[data_stream_length*i], data_stream_length);
+                  temp = complex_dot_product(&template_channel3[data_stream_length*i + start_ind], &template_channel3[data_stream_length*i + start_ind], like_len);
 
                   h_h += temp.real();
 

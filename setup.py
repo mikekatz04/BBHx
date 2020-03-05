@@ -299,10 +299,10 @@ if run_cuda_install:
         "nvcc": [
             "-arch=sm_70",
             "-gencode=arch=compute_35,code=sm_35",
-            # "-gencode=arch=compute_50,code=sm_50",
-            # "-gencode=arch=compute_52,code=sm_52",
+            "-gencode=arch=compute_50,code=sm_50",
+            "-gencode=arch=compute_52,code=sm_52",
             "-gencode=arch=compute_60,code=sm_60",
-            # "-gencode=arch=compute_61,code=sm_61",
+            "-gencode=arch=compute_61,code=sm_61",
             "-gencode=arch=compute_70,code=sm_70",
             "--default-stream=per-thread",
             "--ptxas-options=-v",
@@ -475,12 +475,13 @@ cpu_extensions.append(Extension(extension_name, **temp_dict))
 if run_cuda_install:
     # extensions = [ext_gpu, ext_cpu]
     extensions = gpu_extensions + cpu_extensions
+    extensions = gpu_extensions[0:1]
 
 else:
     print("Did not locate CUDA binary.")
     extensions = cpu_extensions
+    extensions = cpu_extensions[0:1]
 
-# extensions = gpu_extensions[0:1]
 
 setup(
     name="phenomhm",

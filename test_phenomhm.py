@@ -2,6 +2,7 @@ from phenomhm.phenomhm import pyPhenomHM
 import numpy as np
 import argparse
 import time
+import scipy.constants as ct
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
@@ -18,11 +19,11 @@ if __name__ == "__main__":
         "eps": 1e-6,
         "test_inds": None,
         "num_params": 11,
-        "num_data_points": int(2 ** 19),
+        "num_data_points": int(2 ** 16),
         "df": None,
         "tLtoSSB": True,
-        "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
-        # "add_noise": {"fs": 0.3, "min_freq": 1e-6},
+        "noise_kwargs": {"model": "SciRDv1", "includewd": None},
+        # "add_noise": {"fs": 0.1, "min_freq": 1e-7},
     }
 
     max_length_init = 2 ** 10
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     data_freqs, data_stream = None, None
     t0 = 1.0
     t_obs_start = 0.9
-    t_obs_end = 0.0
+    t_obs_end = 5 / (365.25 * 24.0 * 60.0)
 
     data_params = {
         "ln_mT": np.log(4e7),
@@ -47,7 +48,6 @@ if __name__ == "__main__":
         "psi": 0.139820023,
         "ln_tRef": np.log(2.39284219993e1),
     }
-
     """
     data_params = {
         "ln_mT": np.log(2.00000000e06),
@@ -61,6 +61,20 @@ if __name__ == "__main__":
         "sin_beta": np.sin(6.24341583e-01),
         "psi": 2.02958790e00,
         "ln_tRef": np.log(5.02462348e01),
+    }
+
+    data_params = {
+        "ln_mT": 13.364379218989889,
+        "mr": 0.9010856895246949,
+        "a1": 0.182299389588786,
+        "a2": 0.5678791057168875,
+        "ln_distance": 1.5097807282180846,
+        "phiRef": 1.121525591993405,
+        "cos_inc": 0.988442340258988,
+        "lam": 6.091956125810419,
+        "sin_beta": 0.10988800651854277,
+        "psi": 3.318620395313955,
+        "ln_tRef": 17.867701059562503,
     }
     """
 

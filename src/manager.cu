@@ -88,7 +88,6 @@ void print_mem_info(){
 
             used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 }
-#endif
 
 
 #define gpuErrchk_kern(ans, num_block_interp, start_ind, end_ind) { gpuAssert_kern((ans), num_block_interp, start_ind, end_ind, __FILE__, __LINE__); }
@@ -100,6 +99,7 @@ inline void gpuAssert_kern(cudaError_t code, int nblocks, int start_ind, int end
       if (abort) exit(code);
    }
 }
+#endif
 
 
 PhenomHM::PhenomHM (int max_length_init_,
@@ -477,8 +477,6 @@ void PhenomHM::gen_amp_phase(double *freqs_, int current_length_,
 
     int i, th_id, nthreads;
 
-    WalkerContainer * walkers = new WalkerContainer[nwalkers*ndevices];
-
     int device_i = 0;
     int device_index = 0;
     int start_index = 0;
@@ -823,6 +821,10 @@ interpolate amp and phase up to frequencies of the data stream.
 void PhenomHM::perform_interp(){
     //assert(current_status >= 4);
     assert(data_added == 1);
+    int i, th_id, nthreads;
+    int device_i = 0;
+    int start_ind =0;
+    int end_ind = 0;
     #ifdef __CUDACC__
     int num_block_interp = std::ceil((data_stream_length + NUM_THREADS - 1)/NUM_THREADS);
     //dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
@@ -864,9 +866,19 @@ void PhenomHM::perform_interp(){
 
 
     #else
+    #pragma omp parallel private(th_id, i, device_i, start_ind, end_ind)
+    {
+    //for (int i=0; i<nwalkers; i++){
+    nthreads = omp_get_num_threads();
+    th_id = omp_get_thread_num();
+    for (int i=th_id; i<ndevices*nwalkers; i+=nthreads){
+        device_i = i / nwalkers;
     cpu_interpolate_wrap(template_channel1, template_channel2, template_channel3, mode_vals, num_modes,
         d_log10f, freqs, current_length, data_freqs, data_stream_length, t0_epoch,
-        tRef_sampling_frame, tRef_wave_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_start, t_obs_end, nwalkers);
+        tRef_sampling_frame, tRef_wave_frame, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, t_obs_start, t_obs_end, nwalkers,
+        i, start_ind, end_ind);
+    }
+}
     #endif
 
     if (current_status == 4) current_status = 5;
@@ -932,7 +944,7 @@ void PhenomHM::Likelihood (double *d_h_arr, double *h_h_arr){
     #else
     cpu_likelihood(d_h_arr, h_h_arr, h_data_channel1, h_data_channel2, h_data_channel3,
                                     template_channel1, template_channel2, template_channel3,
-                                   data_stream_length, nwalkers, ndevices);
+                                   data_stream_length, nwalkers, ndevices, first_inds, last_inds);
 
     #endif
      //assert(current_status == 5);

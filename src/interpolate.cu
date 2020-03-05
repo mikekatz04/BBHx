@@ -719,15 +719,12 @@ void interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *cha
 #else
 void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx *channel3_out, ModeContainer* old_mode_vals,
     int num_modes, double d_log10f, double *old_freqs, int old_length, double *data_freqs, int data_length, double* t0_arr, double* tRef_arr, double* tRef_wave_frame_arr, double *channel1_ASDinv,
-    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers){
+    double *channel2_ASDinv, double *channel3_ASDinv, double t_obs_start, double t_obs_end, int num_walkers, int walker_i, int start_ind, int end_ind){
     //int mode_i = blockIdx.y;
 
     double f_min_limit, f_max_limit, t0, tRef, t_break_start, t_break_end, tRef_wave_frame;
 
-    #pragma omp parallel for collapse(2)
-    for (int walker_i = 0;
-         walker_i < num_walkers;
-         walker_i += 1){
+    #pragma omp parallel for
 
     for (int i = 0;
          i < data_length;
@@ -745,7 +742,6 @@ void cpu_interpolate_wrap(agcmplx *channel1_out, agcmplx *channel2_out, agcmplx 
                         data_freqs, data_length, channel1_ASDinv, channel2_ASDinv, channel3_ASDinv, num_walkers,
                         f_min_limit, f_max_limit, t_break_start, t_break_end, t_obs_end, walker_i, i, tRef_wave_frame, t0);
 
-}
 }
 }
 #endif

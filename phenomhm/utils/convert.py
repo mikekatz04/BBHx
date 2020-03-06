@@ -76,6 +76,14 @@ class Converter:
                 self.ind_psi = key_order.index("psi")
                 self.conversions.append(self.LISA_to_SSB)
 
+        if "tSSBtoL" in kwargs:
+            if kwargs["tSSBtoL"]:
+                self.ind_ln_tRef = key_order.index("ln_tRef")
+                self.ind_lam = key_order.index("lam")
+                self.ind_beta = key_order.index("sin_beta")
+                self.ind_psi = key_order.index("psi")
+                self.conversions.append(self.SSB_to_LISA)
+
     def ln_m1(self, x):
         x[self.ind_ln_m1] = np.exp(x[self.ind_ln_m1])
         return x
@@ -202,7 +210,7 @@ class Converter:
             tSSB_approx = tSSBfromLframe(tL, lambdaSSB_approx, betaSSB_approx, self.t0)
 
         x[self.ind_ln_tRef] = tSSB_approx
-        x[self.ind_lam] = lambdaSSB_approx
+        x[self.ind_lam] = lambdaSSB_approx % (2 * np.pi)
         x[self.ind_beta] = betaSSB_approx
         #  /* Polarization */
         x[self.ind_psi] = modpi(
@@ -221,52 +229,78 @@ class Converter:
             x = func(x)
         return x
 
+    # Convert SSB-frame params to L-frame params  from sylvain marsat / john baker
+    # NOTE: no transformation of the phase -- approximant-dependence with e.g. EOBNRv2HMROM setting phiRef at fRef, and freedom in definition
+    def SSB_to_LISA(self, x):
 
-"""
-# Convert SSB-frame params to L-frame params  from sylvain marsat / john baker
-# NOTE: no transformation of the phase -- approximant-dependence with e.g. EOBNRv2HMROM setting phiRef at fRef, and freedom in definition
-def ConvertSSBframeParamsToLframe(
-  tL,
-  lambdaL,
-  betaL,
-  psiL,
-  tSSB,
-  lambdaSSB,
-  betaSSB,
-  psiSSB):
+        ConstPhi0 = ConstOmega * (self.t0)
+        tSSB = x[self.ind_ln_tRef]
+        lambdaSSB = x[self.ind_lam]
+        betaSSB = x[self.ind_beta]
+        psiSSB = x[self.ind_psi]
+        alpha = 0.0
+        cosalpha = 0
+        sinalpha = 0.0
+        coslambda = 0
+        sinlambda = 0.0
+        cosbeta = 0.0
+        sinbeta = 0.0
+        cospsi = 0.0
+        sinpsi = 0.0
+        coszeta = np.cos(np.pi / 3.0)
+        sinzeta = np.sin(np.pi / 3.0)
+        coslambda = np.cos(lambdaSSB)
+        sinlambda = np.sin(lambdaSSB)
+        cosbeta = np.cos(betaSSB)
+        sinbeta = np.sin(betaSSB)
+        cospsi = np.cos(psiSSB)
+        sinpsi = np.sin(psiSSB)
+        alpha = ConstOmega * tSSB + ConstPhi0
+        cosalpha = np.cos(alpha)
+        sinalpha = np.sin(alpha)
+        tL = tLfromSSBframe(tSSB, lambdaSSB, betaSSB, self.t0)
+        lambdaL = np.arctan2(
+            cosalpha * cosalpha * cosbeta * sinlambda
+            + sinalpha * sinbeta * sinzeta
+            + cosbeta * coszeta * sinalpha * sinalpha * sinlambda
+            - cosalpha * cosbeta * coslambda * sinalpha
+            + cosalpha * cosbeta * coszeta * coslambda * sinalpha,
+            cosalpha * sinbeta * sinzeta
+            + cosbeta * coslambda * sinalpha * sinalpha
+            + cosalpha * cosalpha * cosbeta * coszeta * coslambda
+            - cosalpha * cosbeta * sinalpha * sinlambda
+            + cosalpha * cosbeta * coszeta * sinalpha * sinlambda,
+        )
+        betaL = np.arcsin(
+            coszeta * sinbeta
+            - cosalpha * cosbeta * coslambda * sinzeta
+            - cosbeta * sinalpha * sinzeta * sinlambda
+        )
+        psiL = modpi(
+            psiSSB
+            + np.arctan2(
+                coslambda * sinalpha * sinzeta - cosalpha * sinzeta * sinlambda,
+                cosbeta * coszeta
+                + cosalpha * coslambda * sinbeta * sinzeta
+                + sinalpha * sinbeta * sinzeta * sinlambda,
+            )
+        )
+        x[self.ind_ln_tRef] = tL
+        x[self.ind_lam] = lambdaL % (2 * np.pi)
+        x[self.ind_beta] = betaL
+        x[self.ind_psi] = psiL
 
-    alpha = 0.
-    cosalpha = 0
-    sinalpha = 0.
-    coslambda = 0
-    sinlambda = 0.
-    cosbeta = 0.
-    sinbeta = 0.
-    cospsi = 0.
-    sinpsi = 0.
-  coszeta = cos(PI/3.);
-  sinzeta = sin(PI/3.);
-  coslambda = cos(lambdaSSB);
-  sinlambda = sin(lambdaSSB);
-  cosbeta = cos(betaSSB);
-  sinbeta = sin(betaSSB);
-  cospsi = cos(psiSSB);
-  sinpsi = sin(psiSSB);
-  alpha = variant->ConstOmega * (tSSB) + variant->ConstPhi0;
-  cosalpha = cos(alpha);
-  sinalpha = sin(alpha);
-  *tL = tLfromSSBframe(variant, tSSB, lambdaSSB, betaSSB);
-  *lambdaL = atan2(cosalpha*cosalpha*cosbeta*sinlambda + sinalpha*sinbeta*sinzeta + cosbeta*coszeta*sinalpha*sinalpha*sinlambda -cosalpha*cosbeta*coslambda*sinalpha + cosalpha*cosbeta*coszeta*coslambda*sinalpha, cosalpha*sinbeta*sinzeta + cosbeta*coslambda*sinalpha*sinalpha + cosalpha*cosalpha*cosbeta*coszeta*coslambda -cosalpha*cosbeta*sinalpha*sinlambda + cosalpha*cosbeta*coszeta*sinalpha*sinlambda);
-  *betaL = asin(coszeta*sinbeta -cosalpha*cosbeta*coslambda*sinzeta -cosbeta*sinalpha*sinzeta*sinlambda);
-  *psiL = modpi(psiSSB + atan2(coslambda*sinalpha*sinzeta -cosalpha*sinzeta*sinlambda, cosbeta*coszeta + cosalpha*coslambda*sinbeta*sinzeta + sinalpha*sinbeta*sinzeta*sinlambda));
-
-  return SUCCESS;
-}
+        return
 
 
 def modpi(phase):
     # from sylvan
     return phase - np.floor(phase / np.pi) * np.pi
+
+
+def mod2pi(phase):
+    # from sylvan
+    return phase - np.floor(phase / (2 * np.pi)) * 2 * np.pi
 
 
 # Compute Solar System Barycenter time tSSB from retarded time at the center of the LISA constellation tL */
@@ -282,7 +316,16 @@ def tSSBfromLframe(tL, lambdaSSB, betaSSB, t0):
         + RoC * np.cos(betaSSB) * np.cos(phase)
         - 1.0 / 2 * ConstOmega * pow(RoC * np.cos(betaSSB), 2) * np.sin(2.0 * phase)
     )
-"""
+
+
+# Compute retarded time at the center of the LISA constellation tL from Solar System Barycenter time tSSB */
+def tLfromSSBframe(tSSB, lambdaSSB, betaSSB, t0):
+    ConstPhi0 = ConstOmega * t0
+    OrbitR = 1.4959787066e11  # AU_SI
+    C_SI = 299792458.0
+    phase = ConstOmega * tSSB + ConstPhi0 - lambdaSSB
+    RoC = OrbitR / C_SI
+    return tSSB - RoC * np.cos(betaSSB) * np.cos(phase)
 
 
 class Recycler:

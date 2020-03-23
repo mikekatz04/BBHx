@@ -78,6 +78,7 @@ class pyPhenomHM(Converter):
             "df": None,
             "tLtoSSB": True,
             "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
+            "add_noise": None,  # if added should be dict with fs
         }
 
         for prop, default in prop_defaults.items():
@@ -250,7 +251,7 @@ class pyPhenomHM(Converter):
     def determine_freqs_noise(self, **kwargs):
         self.added_noise = [0.0 for _ in range(3)]
         if self.data_freqs is None:
-            if "add_noise" in kwargs:
+            if self.add_noise is not None:
                 fs = kwargs["add_noise"]["fs"]
                 Tobs = (self.t_obs_start - self.t_obs_end) * YRSID_SI
                 noise_freqs = generate_noise_frequencies(Tobs, fs)

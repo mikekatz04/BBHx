@@ -95,6 +95,7 @@ if __name__ == "__main__":
     ]
 
     phenomhm = pyPhenomHM(
+        data_params,
         max_length_init,
         nwalkers,
         ndevices,

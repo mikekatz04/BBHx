@@ -488,7 +488,7 @@ setup(
     # Random metadata. there's more you can supply
     author="Michael Katz",
     version="0.1",
-    packages=["phenomhm", "phenomhm.utils"],
+    packages=["phenomhm"],
     py_modules=["phenomhm.phenomhm"],
     ext_modules=extensions,
     # Inject our custom trigger

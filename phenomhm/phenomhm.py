@@ -110,45 +110,7 @@ class pyPhenomHM(Converter):
         self.injection_transformed = self.converter.recycle(self.injection_array.copy())
         self.injection_transformed = self.converter.convert(self.injection_transformed)
 
-        added_noise = [0.0 for _ in range(3)]
-        if self.data_freqs is None:
-            if "add_noise" in kwargs:
-                fs = kwargs["add_noise"]["fs"]
-                Tobs = (t_obs_start - t_obs_end) * YRSID_SI
-                noise_freqs = generate_noise_frequencies(Tobs, fs)
-
-                self.data_freqs = data_freqs = noise_freqs[
-                    noise_freqs >= kwargs["add_noise"]["min_freq"]
-                ]
-
-                df = data_freqs[1] - data_freqs[0]
-
-                added_noise[0] = generate_noise_single_channel(
-                    tdi.noisepsd_AE, [], self.noise_kwargs, df, data_freqs
-                )
-
-                added_noise[1] = generate_noise_single_channel(
-                    tdi.noisepsd_AE, [], self.noise_kwargs, df, data_freqs
-                )
-
-                added_noise[2] = generate_noise_single_channel(
-                    tdi.noisepsd_T,
-                    [],
-                    dict(model=kwargs["noise_kwargs"]["model"]),
-                    df,
-                    data_freqs,
-                )
-
-            else:
-                # assumes m1 and m2 are first two entries in converted array
-                m1 = self.injection_transformed[0]
-                m2 = self.injection_transformed[1]
-                Msec = (m1 + m2) * MTSUN
-                upper_freq = self.max_dimensionless_freq / Msec
-                lower_freq = self.min_dimensionless_freq / Msec
-                self.data_freqs = data_freqs = np.logspace(
-                    np.log10(lower_freq), np.log10(upper_freq), self.num_data_points
-                )
+        self.determine_freqs_noise(**kwargs)
 
         if import_cpu is False:
             self.device_data_freqs = xp.asarray(self.data_freqs)
@@ -182,30 +144,13 @@ class pyPhenomHM(Converter):
                     + "dict with params for data stream."
                 )
 
-            data_channel = np.ones_like(data_freqs, dtype=np.complex128)
-            channel_ASDinv = np.ones_like(data_freqs)
-
-            self.generator.input_data(
-                self.data_freqs,
-                data_channel,
-                data_channel,
-                data_channel,
-                channel_ASDinv,
-                channel_ASDinv,
-                channel_ASDinv,
-            )
-
-            tiled_injection = np.tile(self.injection_array, (nwalkers * ndevices, 1))
-
-            data_stream_out = self.getNLL(tiled_injection.T, return_TDI=True)
-
-            self.data_stream = {
-                key: val[0] + an
-                for key, val, an in zip(self.TDItag, data_stream_out, added_noise)
-            }
+            self.inject_signal()
 
             self.data_stream_whitened = False
 
+        self.create_input_data(**kwargs)
+
+    def create_input_data(self, **kwargs):
         for i, channel in enumerate(self.TDItag):
             if channel not in self.data_stream:
                 raise KeyError("{} not in TDItag {}.".format(channel, self.TDItag))
@@ -276,6 +221,72 @@ class pyPhenomHM(Converter):
             self.channel2_ASDinv,
             self.channel3_ASDinv,
         )
+
+    def inject_signal(self):
+        data_channel = np.ones_like(self.data_freqs, dtype=np.complex128)
+        channel_ASDinv = np.ones_like(self.data_freqs)
+
+        self.generator.input_data(
+            self.data_freqs,
+            data_channel,
+            data_channel,
+            data_channel,
+            channel_ASDinv,
+            channel_ASDinv,
+            channel_ASDinv,
+        )
+
+        tiled_injection = np.tile(
+            self.injection_array, (self.nwalkers * self.ndevices, 1)
+        )
+
+        data_stream_out = self.getNLL(tiled_injection.T, return_TDI=True)
+
+        self.data_stream = {
+            key: val[0] + an
+            for key, val, an in zip(self.TDItag, data_stream_out, self.added_noise)
+        }
+
+    def determine_freqs_noise(self, **kwargs):
+        self.added_noise = [0.0 for _ in range(3)]
+        if self.data_freqs is None:
+            if "add_noise" in kwargs:
+                fs = kwargs["add_noise"]["fs"]
+                Tobs = (self.t_obs_start - self.t_obs_end) * YRSID_SI
+                noise_freqs = generate_noise_frequencies(Tobs, fs)
+
+                self.data_freqs = data_freqs = noise_freqs[
+                    noise_freqs >= kwargs["add_noise"]["min_freq"]
+                ]
+
+                df = data_freqs[1] - data_freqs[0]
+
+                self.added_noise[0] = generate_noise_single_channel(
+                    tdi.noisepsd_AE, [], self.noise_kwargs, df, data_freqs
+                )
+
+                self.added_noise[1] = generate_noise_single_channel(
+                    tdi.noisepsd_AE, [], self.noise_kwargs, df, data_freqs
+                )
+
+                self.added_noise[2] = generate_noise_single_channel(
+                    tdi.noisepsd_T,
+                    [],
+                    dict(model=kwargs["noise_kwargs"]["model"]),
+                    df,
+                    data_freqs,
+                )
+
+            else:
+                # assumes m1 and m2 are first two entries in converted array
+                m1 = self.injection_transformed[0]
+                m2 = self.injection_transformed[1]
+                Msec = (m1 + m2) * MTSUN
+                upper_freq = self.max_dimensionless_freq / Msec
+                lower_freq = self.min_dimensionless_freq / Msec
+                self.data_freqs = data_freqs = np.logspace(
+                    np.log10(lower_freq), np.log10(upper_freq), self.num_data_points
+                )
 
     def NLL(
         self,

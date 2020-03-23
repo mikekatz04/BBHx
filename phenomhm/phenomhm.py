@@ -110,6 +110,7 @@ class pyPhenomHM(Converter):
         self.injection_transformed = self.converter.recycle(self.injection_array.copy())
         self.injection_transformed = self.converter.convert(self.injection_transformed)
 
+        added_noise = [0.0 for _ in range(3)]
         if self.data_freqs is None:
             if "add_noise" in kwargs:
                 fs = kwargs["add_noise"]["fs"]
@@ -117,12 +118,11 @@ class pyPhenomHM(Converter):
                 noise_freqs = generate_noise_frequencies(Tobs, fs)
 
                 self.data_freqs = data_freqs = noise_freqs[
-                    noise_freqs >= add_noise["min_freq"]
+                    noise_freqs >= kwargs["add_noise"]["min_freq"]
                 ]
 
                 df = data_freqs[1] - data_freqs[0]
 
-                added_noise = [None for _ in range(3)]
                 added_noise[0] = generate_noise_single_channel(
                     tdi.noisepsd_AE, [], self.noise_kwargs, df, data_freqs
                 )
@@ -132,7 +132,11 @@ class pyPhenomHM(Converter):
                 )
 
                 added_noise[2] = generate_noise_single_channel(
-                    tdi.noisepsd_T, [], kwargs["noise_kwargs"]["model"], df, data_freqs
+                    tdi.noisepsd_T,
+                    [],
+                    dict(model=kwargs["noise_kwargs"]["model"]),
+                    df,
+                    data_freqs,
                 )
 
             else:
@@ -196,7 +200,8 @@ class pyPhenomHM(Converter):
             data_stream_out = self.getNLL(tiled_injection.T, return_TDI=True)
 
             self.data_stream = {
-                key: val[0] for key, val in zip(self.TDItag, data_stream_out)
+                key: val[0] + an
+                for key, val, an in zip(self.TDItag, data_stream_out, added_noise)
             }
 
             self.data_stream_whitened = False

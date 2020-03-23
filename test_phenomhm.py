@@ -22,8 +22,8 @@ if __name__ == "__main__":
         "num_data_points": int(2 ** 16),
         "df": None,
         "tLtoSSB": True,
-        "noise_kwargs": {"model": "SciRDv1", "includewd": None},
-        # "add_noise": {"fs": 0.1, "min_freq": 1e-7},
+        "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
+        "add_noise": {"fs": 0.1, "min_freq": 1e-7},
     }
 
     max_length_init = 2 ** 10
@@ -32,23 +32,23 @@ if __name__ == "__main__":
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)
     data_freqs, data_stream = None, None
     t0 = 1.0
-    t_obs_start = 0.9
-    t_obs_end = 5 / (365.25 * 24.0 * 60.0)
+    t_obs_start = 1.0
+    t_obs_end = 0.0
 
     data_params = {
         "ln_mT": np.log(4e7),
-        "q": 0.2,
+        "q": 1.0 / 5.0,
         "a1": 0.0,
         "a2": 0.0,
         "ln_distance": np.log(15.93461637),  # Gpc z=2
         "phiRef": 3.09823412789,
-        "cos_inc": np.cos(2.98553920),
-        "lam": 5.900332547,
-        "sin_beta": np.sin(-1.3748820938),
+        "cos_inc": np.cos(1.342937847),
+        "lam": 4.21039847344,
+        "sin_beta": np.sin(-0.7328920398),
         "psi": 0.139820023,
         "ln_tRef": np.log(2.39284219993e1),
     }
-    """
+
     data_params = {
         "ln_mT": np.log(2.00000000e06),
         "q": 1 / 3.00000000e00,
@@ -62,6 +62,9 @@ if __name__ == "__main__":
         "psi": 2.02958790e00,
         "ln_tRef": np.log(5.02462348e01),
     }
+
+    """
+
 
     data_params = {
         "ln_mT": 13.364379218989889,

@@ -8,7 +8,8 @@ and calculates likelihood.
 
 import numpy as np
 from scipy import constants as ct
-from phenomhm.utils.convert import Converter, Recycler
+
+from katzsamplertools.utils.convert import Converter
 
 import tdi
 
@@ -82,8 +83,15 @@ class pyPhenomHM(Converter):
             kwargs[prop] = kwargs.get(prop, default)
 
         self.nwalkers, self.ndevices = nwalkers, ndevices
-        self.converter = Converter(key_order, t0, tLtoSSB=self.tLtoSSB)
-        self.recycler = Recycler(key_order, tLtoSSB=self.tLtoSSB)
+
+        if self.tLtoSSB is True:
+            transform_frame = "tLtoSSB"
+        else:
+            transform_frame = None
+
+        self.converter = Converter(
+            "mbh", key_order, t0=t0, transform_frame=transform_frame
+        )
 
         self.generator = None
         self.t0 = np.full(nwalkers * ndevices, t0)
@@ -118,7 +126,6 @@ class pyPhenomHM(Converter):
                 t0,
                 self.data_params,
                 self.converter,
-                self.recycler,
                 num_generate_points=max_length_init,
                 data_freqs=data_freqs,
                 **kwargs
@@ -409,7 +416,6 @@ def create_data_set(
     t0,
     waveform_params,
     converter,
-    recycler,
     data_freqs=None,
     TDItag="AET",
     num_data_points=int(2 ** 19),
@@ -427,7 +433,7 @@ def create_data_set(
 
     tRef_sampling_frame = np.exp(vals[10])
 
-    vals = recycler.recycle(vals)
+    vals = converter.recycle(vals)
     vals = converter.convert(vals)
 
     waveform_params = {key: vals[i] for i, key in enumerate(key_list)}
@@ -452,7 +458,11 @@ def create_data_set(
     if "sin_beta" in waveform_params:
         waveform_params["beta"] = waveform_params["sin_beta"]
 
-    waveform_params["distance"] = waveform_params["ln_distance"]
+    try:
+        waveform_params["distance"] = waveform_params["ln_distance"]
+    except KeyError:
+        pass
+
     waveform_params["tRef_wave_frame"] = waveform_params["ln_tRef"]
 
     m1 = waveform_params["m1"]

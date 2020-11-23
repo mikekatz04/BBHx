@@ -1,19 +1,13 @@
 # from future.utils import iteritems
 import os
-import shutil
+import sys
 from os.path import join as pjoin
 from setuptools import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import numpy
-from distutils.dep_util import newer_pairwise, newer_group
-from distutils import log
-import subprocess
-import copy
+import shutil
 import argparse
-
-
-no_global = False
 
 
 def find_in_path(name, path):
@@ -88,55 +82,17 @@ def customize_compiler_for_nvcc(self):
     # Now redefine the _compile method. This gets executed for each
     # object but distutils doesn't have the ability to change compilers
     # based on source extension: we add it.
-    def _compile(obj, src, ext, cc_args_in, extra_postargs, pp_opts):
-        cc_args = cc_args_in.copy()
-        if obj.split("/")[-1] == "tempGPU.o":
-            postargs = extra_postargs["nvcc"].copy()
-
-            if "-c" in cc_args and "-dc" in postargs:
-                cc_args.remove("-c")
-                postargs.remove("-dc")
-
-            postargs.append("-dlink")
-
+    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+        if os.path.splitext(src)[1] == ".cu":
+            # use the cuda for .cu files
             self.set_executable("compiler_so", CUDA["nvcc"])
-
-            bashCommand = (
-                self.compiler_so
-                + cc_args
-                + postargs
-                + extra_postargs["device_link"]
-                + ["-o", obj]
-            )
-
-            cmd = ""
-            for item in bashCommand:
-                cmd += item + " "
-
-            print(cmd)
-            process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
-            output, error = process.communicate()
-
+            # use only a subset of the extra_postargs, which are 1-1
+            # translated from the extra_compile_args in the Extension class
+            postargs = extra_postargs["nvcc"]
         else:
-            if os.path.splitext(src)[1] == ".cu":
-                # use the cuda for .cu files
-                try:
-                    self.set_executable("compiler_so", CUDA["nvcc"])
-                    # use only a subset of the extra_postargs, which are 1-1
-                    # translated from the extra_compile_args in the Extension class
-                    postargs = extra_postargs["nvcc"]
+            postargs = extra_postargs["gcc"]
 
-                    if "-c" in cc_args and "-dc" in postargs:
-                        cc_args.remove("-c")
-
-                except NameError:
-                    postargs = extra_postargs["gcc"]
-                    cc_args.insert(0, "-x c++")
-            else:
-                postargs = extra_postargs["gcc"]
-
-            super(obj, src, ext, cc_args, postargs, pp_opts)
-
+        super(obj, src, ext, cc_args, postargs, pp_opts)
         # Reset the default compiler_so, which we might have changed for cuda
         self.compiler_so = default_compiler_so
 
@@ -147,110 +103,8 @@ def customize_compiler_for_nvcc(self):
 # Run the customize_compiler
 class custom_build_ext(build_ext):
     def build_extensions(self):
-        self.force = True
         customize_compiler_for_nvcc(self.compiler)
         build_ext.build_extensions(self)
-
-    def build_extension(self, ext):
-        sources = ext.sources
-        if sources is None or not isinstance(sources, (list, tuple)):
-            raise DistutilsSetupError(
-                "in 'ext_modules' option (extension '%s'), "
-                "'sources' must be present and must be "
-                "a list of source filenames" % ext.name
-            )
-        sources = list(sources)
-
-        ext_path = self.get_ext_fullpath(ext.name)
-        depends = sources + ext.depends
-        if not (self.force or newer_group(depends, ext_path, "newer")):
-            log.debug("skipping '%s' extension (up-to-date)", ext.name)
-            return
-        else:
-            log.info("building '%s' extension", ext.name)
-
-        # First, scan the sources for SWIG definition files (.i), run
-        # SWIG on 'em to create .c files, and modify the sources list
-        # accordingly.
-        sources = self.swig_sources(sources, ext)
-
-        # Next, compile the source code to object files.
-
-        # XXX not honouring 'define_macros' or 'undef_macros' -- the
-        # CCompiler API needs to change to accommodate this, and I
-        # want to do one thing at a time!
-
-        # Two possible sources for extra compiler arguments:
-        #   - 'extra_compile_args' in Extension object
-        #   - CFLAGS environment variable (not particularly
-        #     elegant, but people seem to expect it and I
-        #     guess it's useful)
-        # The environment variable should take precedence, and
-        # any sensible compiler will give precedence to later
-        # command line args.  Hence we combine them in order:
-        extra_args = ext.extra_compile_args or []
-
-        macros = ext.define_macros[:]
-        for undef in ext.undef_macros:
-            macros.append((undef,))
-
-        if "nvcc" in extra_args:
-            run_cuda = True
-
-        else:
-            run_cuda = False
-
-        objects = self.compiler.compile(
-            sources,
-            output_dir=self.build_temp,
-            macros=macros,
-            include_dirs=ext.include_dirs,
-            debug=self.debug,
-            extra_postargs=extra_args,
-            depends=ext.depends,
-        )
-
-        # XXX outdated variable, kept here in case third-part code
-        # needs it.
-        self._built_objects = objects[:]
-
-        if run_cuda:
-            device_link_sources = ["tempGPU.cu"]
-
-            extra_args["device_link"] = self._built_objects
-            objects_device_link = self.compiler.compile(
-                device_link_sources,
-                output_dir=self.build_temp,
-                macros=macros,
-                include_dirs=ext.include_dirs,
-                debug=self.debug,
-                extra_postargs=extra_args,
-                depends=ext.depends,
-            )
-            objects += objects_device_link
-
-        # Now link the object files together into a "shared object" --
-        # of course, first we have to figure out all the other things
-        # that go into the mix.
-        if ext.extra_objects:
-            objects.extend(ext.extra_objects)
-        extra_args = ext.extra_link_args or []
-
-        # Detect target language, if not provided
-        language = ext.language or self.compiler.detect_language(sources)
-
-        self.compiler.link_shared_object(
-            objects,
-            ext_path,
-            libraries=self.get_libraries(ext),
-            library_dirs=ext.library_dirs,
-            runtime_library_dirs=ext.runtime_library_dirs,
-            extra_postargs=extra_args,
-            export_symbols=self.get_export_symbols(ext),
-            debug=self.debug,
-            build_temp=self.build_temp,
-            target_lang=language,
-        )
 
 
 try:
@@ -259,243 +113,166 @@ try:
 except OSError:
     run_cuda_install = False
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--no_omp",
+    help="If provided, install without OpenMP.",
+    action="store_true",
+    default=False,
+)
+
+parser.add_argument(
+    "--lapack_lib",
+    help="Directory of the lapack lib.",
+    default="/usr/local/opt/lapack/lib",
+)
+
+parser.add_argument(
+    "--lapack_include",
+    help="Directory of the lapack include.",
+    default="/usr/local/opt/lapack/include",
+)
+
+parser.add_argument(
+    "--lapack",
+    help="Directory of both lapack lib and include. '/include' and '/lib' will be added to the end of this string.",
+)
+
+parser.add_argument(
+    "--gsl_lib", help="Directory of the gsl lib.", default="/usr/local/opt/gsl/lib"
+)
+
+parser.add_argument(
+    "--gsl_include",
+    help="Directory of the gsl include.",
+    default="/usr/local/opt/gsl/include",
+)
+
+parser.add_argument(
+    "--gsl",
+    help="Directory of both gsl lib and include. '/include' and '/lib' will be added to the end of this string.",
+)
+
+args, unknown = parser.parse_known_args()
+
+for key in [
+    args.gsl_include,
+    args.gsl_lib,
+    args.gsl,
+    "--gsl",
+    "--gsl_include",
+    "--gsl_lib",
+    args.lapack_include,
+    args.lapack_lib,
+    args.lapack,
+    "--lapack",
+    "--lapack_lib",
+    "--lapack_include",
+]:
+    try:
+        sys.argv.remove(key)
+    except ValueError:
+        pass
+
+use_omp = not args.no_omp
+
+
 # Obtain the numpy include directory. This logic works across numpy versions.
 try:
     numpy_include = numpy.get_include()
 except AttributeError:
     numpy_include = numpy.get_numpy_include()
 
+if args.lapack is None:
+    lapack_include = [args.lapack_include]
+    lapack_lib = [args.lapack_lib]
 
-lib_gsl_dir = "/opt/local/lib"
-include_gsl_dir = "/opt/local/include"
+else:
+    lapack_include = [args.lapack + "/include"]
+    lapack_lib = [args.lapack + "/lib"]
 
-all_sources = [
-    "src/globalPhenomHM.cpp",
-    "src/RingdownCW.cpp",
-    "src/fdresponse.cpp",
-    "src/IMRPhenomD_internals.cu",
-    "src/IMRPhenomD.cu",
-    "src/kernel_response.cu",
-    "src/interpolate.cu",
-    "src/likelihood.cu",
-]
+if args.gsl is None:
+    gsl_include = [args.gsl_include]
+    gsl_lib = [args.gsl_lib]
 
-gpu_sources = ["src/createGPUHolders.cu"]
-
-phenomhm_sources = all_sources + ["src/PhenomHM.cu", "src/kernel.cu", "src/manager.cu"]
-phenomd_sources = all_sources.copy() + ["src/d_kernel.cu", "src/d_manager.cu"]
-
-all_lib_dirs = [lib_gsl_dir]
-all_include = [numpy_include, include_gsl_dir, "src"]
-
-all_libs = ["gsl", "gslcblas", "gomp"]
+else:
+    gsl_include = [args.gsl + "/include"]
+    gsl_lib = [args.gsl + "/lib"]
 
 
+if "--no_omp" in sys.argv:
+    use_omp = False
+    sys.argv.remove("--no_omp")
+
+else:
+    use_omp = True
+
+
+# if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:
-    gpu_libs = ["cudart", "cublas", "cusparse"]
 
-    gpu_extra_compile_args = {
-        "gcc": [],  # '-g'],
-        "nvcc": [
-            "-arch=sm_70",
-            "-gencode=arch=compute_35,code=sm_35",
-            "-gencode=arch=compute_50,code=sm_50",
-            "-gencode=arch=compute_52,code=sm_52",
-            "-gencode=arch=compute_60,code=sm_60",
-            "-gencode=arch=compute_61,code=sm_61",
-            "-gencode=arch=compute_70,code=sm_70",
-            "--default-stream=per-thread",
-            "--ptxas-options=-v",
-            "-dc",
-            "--compiler-options",
-            "'-fPIC'",
-            "-Xcompiler",
-            "-fopenmp",
-        ],  # ,"-G", "-g"] # for debugging
-    }
-
-    gpu_lib_dirs = [CUDA["lib64"]]
-    gpu_include = [CUDA["include"]]
-    gpu_extension_dict = dict(
-        sources=phenomhm_sources + gpu_sources,
-        library_dirs=all_lib_dirs + gpu_lib_dirs,
-        libraries=all_libs + gpu_libs,
-        language="c++",
+    gpu_extension = dict(
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
+        library_dirs=[CUDA["lib64"]] + gsl_lib,
         runtime_library_dirs=[CUDA["lib64"]],
+        language="c++",
         # This syntax is specific to this build system
         # we're only going to use certain compiler args with nvcc
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
-        extra_compile_args=gpu_extra_compile_args,
-        include_dirs=all_include + gpu_include,
+        extra_compile_args={
+            "gcc": ["-std=c++11", "-fopenmp", "-D__USE_OMP__"],  # '-g'],
+            "nvcc": [
+                "-arch=sm_70",
+                # "-gencode=arch=compute_30,code=sm_30",
+                # "-gencode=arch=compute_50,code=sm_50",
+                # "-gencode=arch=compute_52,code=sm_52",
+                # "-gencode=arch=compute_60,code=sm_60",
+                # "-gencode=arch=compute_61,code=sm_61",
+                "-gencode=arch=compute_70,code=sm_70",
+                #'-gencode=arch=compute_75,code=sm_75',
+                #'-gencode=arch=compute_75,code=compute_75',
+                "-std=c++11",
+                "--default-stream=per-thread",
+                "--ptxas-options=-v",
+                "-c",
+                "--compiler-options",
+                "'-fPIC'",
+                "-Xcompiler",
+                "-fopenmp",
+                "-D__USE_OMP__",
+                # "-G",
+                # "-g",
+                # "-O0",
+                # "-lineinfo",
+            ],  # for debugging
+        },
+        include_dirs=[numpy_include, CUDA["include"], "include", "./"] + gsl_include,
     )
-    gpu_extensions = []
-    temp_dict = copy.deepcopy(gpu_extension_dict)
-    extension_name = "gpuPhenomHM"
-    folder = "phenomhm/"
-    temp_dict["sources"] += [folder + extension_name + ".pyx"]
 
-    gpu_extensions.append(Extension(extension_name, **temp_dict))
+    if use_omp is False:
+        gpu_extension["extra_compile_args"]["nvcc"].remove("-fopenmp")
+        gpu_extension["extra_compile_args"]["gcc"].remove("-fopenmp")
+        gpu_extension["extra_compile_args"]["nvcc"].remove("-D__USE_OMP__")
+        gpu_extension["extra_compile_args"]["gcc"].remove("-D__USE_OMP__")
 
-    shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
-
-    temp_dict = copy.deepcopy(gpu_extension_dict)
-    extension_name = "gpuPhenomHM_glob"
-    folder = "phenomhm/"
-    temp_dict["sources"] += [folder + extension_name + ".pyx"]
-    temp_dict["extra_compile_args"]["nvcc"].append("-D__GLOBAL_FIT__")
-    temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
-
-    gpu_extensions.append(Extension(extension_name, **temp_dict))
-
-    temp_dict = copy.deepcopy(gpu_extension_dict)
-    extension_name = "gpuPhenomD"
-    folder = "phenomd/"
-    temp_dict["sources"] = (
-        phenomd_sources + gpu_sources + [folder + extension_name + ".pyx"]
+    pyHdynBBH_ext = Extension(
+        "pyHdynBBH", sources=["full.cu", "hdyn.pyx"], **gpu_extension
     )
 
-    gpu_extensions.append(Extension(extension_name, **temp_dict))
-
-    shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
-
-    temp_dict = copy.deepcopy(gpu_extension_dict)
-    extension_name = "gpuPhenomD_glob"
-    folder = "phenomd/"
-    temp_dict["sources"] = (
-        phenomd_sources + gpu_sources + [folder + extension_name + ".pyx"]
-    )
-    temp_dict["extra_compile_args"]["nvcc"].append("-D__GLOBAL_FIT__")
-    temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
-
-    gpu_extensions.append(Extension(extension_name, **temp_dict))
-
-shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
-shutil.copy("phenomd/gpuPhenomD.pyx", "phenomd/cpuPhenomD.pyx")
-# Obtain the numpy include directory. This logic works across numpy versions.
-try:
-    numpy_include = numpy.get_include()
-except AttributeError:
-    numpy_include = numpy.get_numpy_include()
-
-print("\n\n\n\n\nOn quest:", os.path.isdir("/home/mlk667/GPU4GW"), "\n\n\n\n\n")
-if os.path.isdir("/home/mlk667/GPU4GW"):
-    lapack_include = ["/software/lapack/3.6.0_gcc/include/"]
-    lapack_lib = ["/software/lapack/3.6.0_gcc/lib64/"]
-
-else:
-    lapack_include = ["/usr/local/opt/lapack/include"]
-    lapack_lib = ["/usr/local/opt/lapack/lib"]
-
-print(lapack_include)
-
-lib_gsl_dir = "/opt/local/lib"
-include_gsl_dir = "/opt/local/include"
-
-cpu_libs = ["pthread", "lapack"]
-
-cpu_extra_compile_args = {"gcc": ["-O3", "-fopenmp", "-fPIC"]}
-
-cpu_extra_link_args = ["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"]
-
-temp_files = []
-for i, source in enumerate(phenomhm_sources):
-    temp = os.path.splitext(source)[0]
-    file_ext = os.path.splitext(source)[1]
-    if file_ext == ".cu":
-        shutil.copy(temp + ".cu", temp + ".cpp")
-        temp_files.append(temp + ".cpp")
-        phenomhm_sources[i] = temp + ".cpp"
-
-        if temp + ".cu" in phenomd_sources:
-            ind = phenomd_sources.index(temp + ".cu")
-            phenomd_sources[ind] = temp + ".cpp"
-
-for i, source in enumerate(phenomd_sources):
-    temp = os.path.splitext(source)[0]
-    file_ext = os.path.splitext(source)[1]
-
-    if temp + ".cpp" in temp_files:
-        continue
-    if file_ext == ".cu":
-        shutil.copy(temp + ".cu", temp + ".cpp")
-        temp_files.append(temp + ".cpp")
-        phenomd_sources[i] = temp + ".cpp"
-
-cpu_extension_dict = dict(
-    sources=phenomhm_sources,
-    library_dirs=all_lib_dirs + lapack_lib,
-    libraries=all_libs + cpu_libs,
-    language="c++",
-    # This syntax is specific to this build system
-    # we're only going to use certain compiler args with nvcc
-    # and not with gcc the implementation of this trick is in
-    # customize_compiler()
-    extra_compile_args=cpu_extra_compile_args,
-    extra_link_args=cpu_extra_link_args,
-    include_dirs=all_include + lapack_include,
-)
-
-cpu_extensions = []
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomHM"
-folder = "phenomhm/"
-temp_dict["sources"] += [folder + extension_name + ".pyx"]
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-
-shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomHM_glob"
-folder = "phenomhm/"
-temp_dict["sources"] += [folder + extension_name + ".pyx"]
-temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomD"
-folder = "phenomd/"
-temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-
-shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomD_glob"
-folder = "phenomd/"
-temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
-temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
 
 if run_cuda_install:
-    # extensions = [ext_gpu, ext_cpu]
-    extensions = gpu_extensions + cpu_extensions
-    extensions = gpu_extensions[0:1]
-
-else:
-    print("Did not locate CUDA binary.")
-    extensions = cpu_extensions
-    extensions = cpu_extensions[0:1]
-
+    extensions = [pyHdynBBH_ext]
 
 setup(
-    name="phenomhm",
-    # Random metadata. there's more you can supply
+    name="hdyn",
     author="Michael Katz",
-    version="0.1",
-    packages=["phenomhm"],
-    py_modules=["phenomhm.phenomhm"],
+    author_email="mikekatz04@gmail.com",
     ext_modules=extensions,
     # Inject our custom trigger
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
+    python_requires=">=3.6",
 )
-
-for source in temp_files:
-    os.remove(source)

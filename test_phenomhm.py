@@ -23,10 +23,10 @@ if __name__ == "__main__":
         "df": None,
         "tLtoSSB": True,
         "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
-        "add_noise": {"fs": 0.1, "min_freq": 1e-7},
+        # "add_noise": {"fs": 0.1, "min_freq": 1e-7},
     }
 
-    max_length_init = 2 ** 10
+    max_length_init = 2 ** 14
     nwalkers, ndevices = 24, 1
     l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32)
     m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)

@@ -66,7 +66,7 @@ of this waveform.
     pfa->v[4] = 5.L*(3058.673L/7.056L + 5429.L/7.L * eta
                      + 617.L * eta*eta)/72.L;
     pfa->v[5] = 5.L/9.L * (7729.L/84.L - 13.L * eta) * PI;
-    pfa->vlogv[5] = 5.L/3.L * (7729.L/84.L - 13.L * eta) * PI;
+    pfa->vlogv5] = 5.L/3.L * (7729.L/84.L - 13.L * eta) * PI;
     pfa->v[6] = (11583.231236531L/4.694215680L
                      - 640.L/3.L * PI * PI - 6848.L/21.L*GAMMA)
                  + eta * (-15737.765635L/3.048192L
@@ -74,7 +74,7 @@ of this waveform.
                  + eta*eta * 76055.L/1728.L
                  - eta*eta*eta * 127825.L/1296.L;
     pfa->v[6] += (-6848.L/21.L)*log(4.);
-    pfa->vlogv[6] = -6848.L/21.L;
+    pfa->vlogv6] = -6848.L/21.L;
     pfa->v[7] = PI * ( 77096675.L/254016.L
                      + 378515.L/1512.L * eta - 74045.L/756.L * eta*eta);
 
@@ -237,24 +237,17 @@ extern void DestroyRealVector(RealVector *v) {
 /** \brief Returns structure containing TaylorF2 phasing coefficients for given
  *  physical parameters.
  */
+ CUDA_CALLABLE_MEMBER
 int TaylorF2AlignedPhasing(
-        PNPhasingSeries **pn,   /**< phasing coefficients (output) */
+        PNPhasingSeries *pn,   /**< phasing coefficients (output) */
         const double m1,         /**< mass of body 1 */
         const double m2,		/**< mass of body 2 */
         const double chi1,	/**< aligned spin parameter of body 1 */
         const double chi2	/**< aligned spin parameter of body 2 */
 	)
 {
-    PNPhasingSeries *pfa;
-
-    assert(pn);
-    assert(!*pn);
-
-    pfa = (PNPhasingSeries *) malloc(sizeof(PNPhasingSeries));
 
     PNPhasing_F2(pfa, m1, m2, chi1, chi2, chi1*chi1, chi2*chi2, chi1*chi2);
-
-    *pn = pfa;
 
     return 1;
 }
@@ -264,6 +257,7 @@ int TaylorF2AlignedPhasing(
  * This function is tested in ../test/PNCoefficients.c for consistency
  * with the energy and flux in this file.
  */
+ CUDA_CALLABLE_MEMBER
 void PNPhasing_F2(
 	PNPhasingSeries *pfa, /**< \todo UNDOCUMENTED */
 	const double m1, /**< Mass of body 1, in Msol */
@@ -290,27 +284,25 @@ void PNPhasing_F2(
 
     const double pfaN = 3.L/(128.L * eta);
 
-    memset(pfa, 0, sizeof(PNPhasingSeries));
-
     /* Non-spin phasing terms - see arXiv:0907.0700, Eq. 3.18 */
-    pfa->v[0] = 1.L;
-    pfa->v[1] = 0.L;
-    pfa->v[2] = 5.L*(743.L/84.L + 11.L * eta)/9.L;
-    pfa->v[3] = -16.L*PI;
-    pfa->v[4] = 5.L*(3058.673L/7.056L + 5429.L/7.L * eta
-                     + 617.L * eta*eta)/72.L;
-    pfa->v[5] = 5.L/9.L * (7729.L/84.L - 13.L * eta) * PI;
-    pfa->vlogv[5] = 5.L/3.L * (7729.L/84.L - 13.L * eta) * PI;
-    pfa->v[6] = (11583.231236531L/4.694215680L
+    pfa->v0 = 1.L * pfaN;
+    pfa->v1 = 0.L * pfaN;
+    pfa->v2 = pfaN * (5.L*(743.L/84.L + 11.L * eta)/9.L);
+    pfa->v3 = pfaN * (-16.L*PI));
+    pfa->v4 = pfaN * (5.L*(3058.673L/7.056L + 5429.L/7.L * eta
+                     + 617.L * eta*eta)/72.L);
+    pfa->v5 = pfaN * (5.L/9.L * (7729.L/84.L - 13.L * eta) * PI);
+    pfa->vlogv5 = pfaN * (5.L/3.L * (7729.L/84.L - 13.L * eta) * PI);
+    pfa->v6 = pfaN * ((11583.231236531L/4.694215680L
                      - 640.L/3.L * PI * PI - 6848.L/21.L*GAMMA)
                  + eta * (-15737.765635L/3.048192L
                      + 2255./12. * PI * PI)
                  + eta*eta * 76055.L/1728.L
-                 - eta*eta*eta * 127825.L/1296.L;
-    pfa->v[6] += (-6848.L/21.L)*log(4.);
-    pfa->vlogv[6] = -6848.L/21.L;
-    pfa->v[7] = PI * ( 77096675.L/254016.L
-                     + 378515.L/1512.L * eta - 74045.L/756.L * eta*eta);
+                 - eta*eta*eta * 127825.L/1296.L);
+    pfa->v6 += pfaN * (-6848.L/21.L)*log(4.));
+    pfa->vlogv6 = pfaN * (-6848.L/21.L);
+    pfa->v7 = pfaN * (PI * ( 77096675.L/254016.L
+                     + 378515.L/1512.L * eta - 74045.L/756.L * eta*eta));
 
     double qm_def1=1.0;
     double qm_def2=1.0;
@@ -330,34 +322,8 @@ void PNPhasing_F2(
 
     /* Spin-orbit terms - can be derived from arXiv:1303.7412, Eq. 3.15-16 */
     const double pn_gamma = (554345.L/1134.L + 110.L*eta/9.L)*SL + (13915.L/84.L - 10.L*eta/3.L)*dSigmaL;
-    int spinorder = SPIN_ORDER_35PN; // Hardwired for simplicity
-    switch( spinorder )
-    {
-        case SPIN_ORDER_ALL:
-        case SPIN_ORDER_35PN:
-            pfa->v[7] += (-8980424995.L/762048.L + 6586595.L*eta/756.L - 305.L*eta*eta/36.L)*SL - (170978035.L/48384.L - 2876425.L*eta/672.L - 4735.L*eta*eta/144.L) * dSigmaL;
-        case SPIN_ORDER_3PN:
-            pfa->v[6] += PI * (3760.L*SL + 1490.L*dSigmaL)/3.L + pn_ss3;
-        case SPIN_ORDER_25PN:
-            pfa->v[5] += -1.L * pn_gamma;
-            pfa->vlogv[5] += -3.L * pn_gamma;
-        case SPIN_ORDER_2PN:
-            pfa->v[4] += -10.L * pn_sigma;
-        case SPIN_ORDER_15PN:
-            pfa->v[3] += 188.L*SL/3.L + 25.L*dSigmaL;
-        case SPIN_ORDER_1PN:
-        case SPIN_ORDER_05PN:
-        case SPIN_ORDER_0PN:
-            break;
-    }
-    int ii;
-    /* At the very end, multiply everything in the series by pfaN */
-    for (ii = 0; ii <= PN_PHASING_SERIES_MAX_ORDER; ii++)
-    {
-        pfa->v[ii] *= pfaN;
-        pfa->vlogv[ii] *= pfaN;
-        pfa->vlogvsq[ii] *= pfaN;
-    }
+    pfa->v7 += pfaN * ((-8980424995.L/762048.L + 6586595.L*eta/756.L - 305.L*eta*eta/36.L)*SL - (170978035.L/48384.L - 2876425.L*eta/672.L - 4735.L*eta*eta/144.L) * dSigmaL);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -532,6 +498,7 @@ int init_useful_powers(UsefulPowers *p, double number)
 /**
  * amplitude scaling factor defined by eq. 17 in 1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double amp0Func(double eta) {
   return (sqrt(2.0/3.0)*sqrt(eta))/powers_of_pi.sixth;
 }
@@ -544,6 +511,7 @@ double amp0Func(double eta) {
 /**
  * rho_1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double rho1_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -559,6 +527,7 @@ double rho1_fun(double eta, double chi) {
 /**
  * rho_2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double rho2_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -574,6 +543,7 @@ double rho2_fun(double eta, double chi) {
 /**
  * rho_3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double rho3_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -605,11 +575,9 @@ double AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * p
 			+ Mf3 * prefactors->three;
 }
 
+CUDA_CALLABLE_MEMBER
 int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmplitudeCoefficients* p)
 {
-	assert(0 != p); // PD_EFAULT, "p is NULL");
-	assert(0 != prefactors); // PD_EFAULT, "prefactors is NULL");
-
 	double eta = p->eta;
 
 	prefactors->amp0 = amp0Func(p->eta);
@@ -664,6 +632,7 @@ int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmplitudeCo
  * Take the AmpInsAnsatz expression and compute the first derivative
  * with respect to frequency to get the expression below.
  */
+CUDA_CALLABLE_MEMBER
 double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
   double eta = p->eta;
   double chi1 = p->chi1;
@@ -705,6 +674,7 @@ double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
 /**
  * gamma 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double gamma1_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -720,6 +690,7 @@ double gamma1_fun(double eta, double chi) {
 /**
  * gamma 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double gamma2_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -735,6 +706,7 @@ double gamma2_fun(double eta, double chi) {
 /**
  * gamma 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double gamma3_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -766,6 +738,7 @@ double AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
 /**
  * first frequency derivative of AmpMRDAnsatz
  */
+CUDA_CALLABLE_MEMBER
 double DAmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
   double fRD = p->fRD;
   double fDM = p->fDM;
@@ -787,6 +760,7 @@ double DAmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
  * Equation 20 arXiv:1508.07253 (called f_peak in paper)
  * analytic location of maximum of AmpMRDAnsatz
  */
+CUDA_CALLABLE_MEMBER
 double fmaxCalc(IMRPhenomDAmplitudeCoefficients* p) {
   double fRD = p->fRD;
   double fDM = p->fDM;
@@ -822,6 +796,7 @@ double AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
  * The function name stands for 'Amplitude Intermediate Collocation Fit Coefficient'
  * This is the 'v2' value in Table 5 of arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double AmpIntColFitCoeff(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -843,6 +818,7 @@ double AmpIntColFitCoeff(double eta, double chi) {
   * Can be rederived by solving Equation 21 for the constraints
   * given in Equations 22-26 in arXiv:1508.07253
   */
+CUDA_CALLABLE_MEMBER
 double delta0_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -876,6 +852,7 @@ double delta0_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   + 8*f13*f22*f32*v3 - 4*f12*f23*f32*v3) / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(f3-f2)));
 }
 
+CUDA_CALLABLE_MEMBER
 double delta1_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -909,6 +886,7 @@ double delta1_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(-f2 + f3)));
 }
 
+CUDA_CALLABLE_MEMBER
 double delta2_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -941,6 +919,7 @@ double delta2_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(-f2 + f3)));
 }
 
+CUDA_CALLABLE_MEMBER
 double delta3_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -971,6 +950,7 @@ double delta3_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(-f2 + f3)));
 }
 
+CUDA_CALLABLE_MEMBER
 double delta4_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -1000,6 +980,7 @@ double delta4_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
  * Calculates delta_i's
  * Method described in arXiv:1508.07253 section 'Region IIa - intermediate'
  */
+CUDA_CALLABLE_MEMBER
 void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
   // Three evenly spaced collocation points in the interval [f1,f3].
   double f1 = AMP_fJoin_INS;
@@ -1009,12 +990,9 @@ void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
 
   UsefulPowers powers_of_f1;
   int status = init_useful_powers(&powers_of_f1, f1);
-  assert( status == 1); //, PD_EFUNC); //, "Failed to initialize useful powers of f1.");
 
   AmpInsPrefactors prefactors;
   status = init_amp_ins_prefactors(&prefactors, p);
-  assert( status == 1); //, PD_EFUNC); //, "Failed to initialize amplitude prefactors for inspiral range.");
-
 
   // v1 is inspiral model evaluated at f1
   // d1 is derivative of inspiral model evaluated at f1
@@ -1091,9 +1069,8 @@ IMRPhenomDAmplitudeCoefficients* inspiral_only_ComputeIMRPhenomDAmplitudeCoeffic
  * A struct containing all the parameters that need to be calculated
  * to compute the phenomenological amplitude
  */
-IMRPhenomDAmplitudeCoefficients* ComputeIMRPhenomDAmplitudeCoefficients(double eta, double chi1, double chi2, double finspin) {
-  IMRPhenomDAmplitudeCoefficients *p = (IMRPhenomDAmplitudeCoefficients *) malloc(sizeof(IMRPhenomDAmplitudeCoefficients));
-
+CUDA_CALLABLE_MEMBER
+void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficients* p, double eta, double chi1, double chi2, double finspin) {
   p->eta = eta;
   p->chi1 = chi1;
   p->chi2 = chi2;
@@ -1200,6 +1177,7 @@ double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPow
 /**
  * alpha 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double alpha1Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1215,6 +1193,7 @@ double alpha1Fit(double eta, double chi) {
 /**
  * alpha 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double alpha2Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1230,6 +1209,7 @@ double alpha2Fit(double eta, double chi) {
 /**
  * alpha 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double alpha3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1245,6 +1225,7 @@ double alpha3Fit(double eta, double chi) {
 /**
  * alpha 4 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double alpha4Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1260,6 +1241,7 @@ double alpha4Fit(double eta, double chi) {
 /**
  * alpha 5 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double alpha5Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1302,6 +1284,7 @@ double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, d
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
+ CUDA_CALLABLE_MEMBER
 double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm) {
   return ( p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25)+ p->alpha4/(p->fDM * Taulm * (1 + pow_2_of(f - p->alpha5 * p->fRD)/(pow_2_of(p->fDM * Taulm * Rholm)))) ) * p->etaInv;
 }
@@ -1317,6 +1300,7 @@ double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Ta
 /**
  * beta 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double beta1Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1332,6 +1316,7 @@ double beta1Fit(double eta, double chi) {
 /**
  * beta 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double beta2Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1347,6 +1332,7 @@ double beta2Fit(double eta, double chi) {
 /**
  * beta 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double beta3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1374,6 +1360,7 @@ double PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
  * First frequency derivative of PhiIntAnsatz
  * (this time with 1./eta explicitly factored in)
  */
+CUDA_CALLABLE_MEMBER
 double DPhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
   return (p->beta1 + p->beta3/pow_4_of(Mf) + p->beta2/Mf) / p->eta;
 }
@@ -1382,6 +1369,7 @@ double DPhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
  * temporary instance of DPhiIntAnsatz used when computing
  * coefficients to make the phase C(1) continuous between regions.
  */
+ CUDA_CALLABLE_MEMBER
 double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p) {
   double eta = p->eta;
   double beta1 = p->beta1;
@@ -1400,6 +1388,7 @@ double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p) {
 /**
  * sigma 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double sigma1Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1415,6 +1404,7 @@ double sigma1Fit(double eta, double chi) {
 /**
  * sigma 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double sigma2Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1430,6 +1420,7 @@ double sigma2Fit(double eta, double chi) {
 /**
  * sigma 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double sigma3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1445,6 +1436,7 @@ double sigma3Fit(double eta, double chi) {
 /**
  * sigma 4 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
+CUDA_CALLABLE_MEMBER
 double sigma4Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1494,10 +1486,9 @@ double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *
   return phasing;
 }
 
+CUDA_CALLABLE_MEMBER
 int init_phi_ins_prefactors(PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoefficients* p, PNPhasingSeries *pn)
 {
-	assert(0 != p);
-	assert(0 != prefactors);
 
 	double sigma1 = p->sigma1;
 	double sigma2 = p->sigma2;
@@ -1506,15 +1497,15 @@ int init_phi_ins_prefactors(PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoeffi
 	double Pi = PI;
 
   // PN phasing series
-	prefactors->initial_phasing = pn->v[5] - PI_4;
-	prefactors->two_thirds = pn->v[7] * powers_of_pi.two_thirds;
-	prefactors->third = pn->v[6] * powers_of_pi.third;
-	prefactors->third_with_logv = pn->vlogv[6] * powers_of_pi.third;
-	prefactors->logv = pn->vlogv[5];
-	prefactors->minus_third = pn->v[4] / powers_of_pi.third;
-	prefactors->minus_two_thirds = pn->v[3] / powers_of_pi.two_thirds;
-	prefactors->minus_one = pn->v[2] / Pi;
-	prefactors->minus_five_thirds = pn->v[0] / powers_of_pi.five_thirds; // * v^0
+	prefactors->initial_phasing = pn->v5 - PI_4;
+	prefactors->two_thirds = pn->v7 * powers_of_pi.two_thirds;
+	prefactors->third = pn->v6 * powers_of_pi.third;
+	prefactors->third_with_logv = pn->vlogv6 * powers_of_pi.third;
+	prefactors->logv = pn->vlogv5;
+	prefactors->minus_third = pn->v4 / powers_of_pi.third;
+	prefactors->minus_two_thirds = pn->v3 / powers_of_pi.two_thirds;
+	prefactors->minus_one = pn->v2 / Pi;
+	prefactors->minus_five_thirds = pn->v0 / powers_of_pi.five_thirds; // * v^0
 
   // higher order terms that were calibrated for PhenomD
 	prefactors->one = sigma1;
@@ -1550,14 +1541,14 @@ double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeri
   // Apply the correct prefactors to LAL phase coefficients to get the
   // phase derivative dphi / dMf = dphi/dv * dv/dMf
   double Dphasing = 0.0;
-  Dphasing += +2.0 * pn->v[7] * v7;
-  Dphasing += (pn->v[6] + pn->vlogv[6] * (1.0 + logv)) * v6;
-  Dphasing += pn->vlogv[5] * v5;
-  Dphasing += -1.0 * pn->v[4] * v4;
-  Dphasing += -2.0 * pn->v[3] * v3;
-  Dphasing += -3.0 * pn->v[2] * v2;
-  Dphasing += -4.0 * pn->v[1] * v;
-  Dphasing += -5.0 * pn->v[0];
+  Dphasing += +2.0 * pn->v7 * v7;
+  Dphasing += (pn->v6 + pn->vlogv6 * (1.0 + logv)) * v6;
+  Dphasing += pn->vlogv5 * v5;
+  Dphasing += -1.0 * pn->v4 * v4;
+  Dphasing += -2.0 * pn->v3 * v3;
+  Dphasing += -3.0 * pn->v2 * v2;
+  Dphasing += -4.0 * pn->v1 * v;
+  Dphasing += -5.0 * pn->v0;
   Dphasing /= v8 * 3.0/Pi;
 
   // Now add higher order terms that were calibrated for PhenomD
@@ -1602,9 +1593,7 @@ IMRPhenomDPhaseCoefficients* inspiral_only_ComputeIMRPhenomDPhaseCoefficients(do
  * A struct containing all the parameters that need to be calculated
  * to compute the phenomenological phase
  */
-IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double eta, double chi1, double chi2, double finspin) {
-
-  IMRPhenomDPhaseCoefficients *p = (IMRPhenomDPhaseCoefficients *) malloc(sizeof(IMRPhenomDPhaseCoefficients));
+ void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients* p, double eta, double chi1, double chi2, double finspin) {
 
   // Convention m1 >= m2
   p->eta = eta;
@@ -1633,7 +1622,6 @@ IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double eta, doub
   p->fRD = fring(eta, chi1, chi2, finspin);
   p->fDM = fdamp(eta, chi1, chi2, finspin);
 
-  return p;
 }
 
 /**
@@ -1646,6 +1634,7 @@ IMRPhenomDPhaseCoefficients* ComputeIMRPhenomDPhaseCoefficients(double eta, doub
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
+CUDA_CALLABLE_MEMBER
 void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   double etaInv = p->etaInv;
@@ -1724,6 +1713,7 @@ double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *
  * (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
  * was not available when PhenomD was tuned.
  */
+CUDA_CALLABLE_MEMBER
 double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, double chi2){
   double m1M = m1 / M;
   double m2M = m2 / M;
@@ -1769,6 +1759,7 @@ void DestroyCOMPLEX2dArray(COMPLEX2dArray *tmp) {
 /**
  * Convert from geometric frequency to frequency in Hz
  */
+ CUDA_CALLABLE_MEMBER
 double PhenomUtilsMftoHz(
     double Mf,       /**< Geometric frequency */
     double Mtot_Msun /**< Total mass in solar masses */
@@ -1791,6 +1782,7 @@ double PhenomUtilsHztoMf(
 /**
  * compute the frequency domain amplitude pre-factor
  */
+CUDA_CALLABLE_MEMBER
 double PhenomUtilsFDamp0(
     double Mtot_Msun, /**< total mass in solar masses */
     double distance   /**< distance (m) */
@@ -2253,6 +2245,7 @@ size_t PhenomInternal_NextPow2(const size_t n)
  * To be used with aligned-spin waveform models.
  * TODO: There is another function for precessing waveform models
  */
+CUDA_CALLABLE_MEMBER
 int PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
     double *m1,    /**< [out] mass of body 1 */
     double *m2,    /**< [out] mass of body 2 */

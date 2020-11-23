@@ -60,6 +60,10 @@ class Converter:
             self.ind_ln_distance = key_order.index("ln_distance")
             self.conversions.append(self.ln_distance)
 
+        if "distance" in key_order:
+            self.ind_distance = key_order.index("distance")
+            self.conversions.append(self.distance)
+
         if "ln_tRef" in key_order:
             self.ind_ln_tRef = key_order.index("ln_tRef")
             self.conversions.append(self.ln_tRef)
@@ -140,6 +144,10 @@ class Converter:
         x[self.ind_ln_distance] = (
             np.exp(x[self.ind_ln_distance]) * 1e9 * ct.parsec
         )  # Gpc
+        return x
+
+    def distance(self, x):
+        x[self.ind_distance] = x[self.ind_distance] * 1e9 * ct.parsec
         return x
 
     def ln_tRef(self, x):

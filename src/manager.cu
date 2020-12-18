@@ -830,11 +830,6 @@ void PhenomHM::perform_interp(){
     //dim3 mainInterpDim(num_block_interp, 1, nwalkers);//, num_modes);
     dim3 mainInterpDim(num_block_interp, 1, 1);//, num_modes);
 
-    int i, th_id, nthreads;
-    int device_i = 0;
-    int start_ind =0;
-    int end_ind = 0;
-
     #pragma omp parallel private(th_id, i, device_i, start_ind, end_ind, num_block_interp)
     {
     //for (int i=0; i<nwalkers; i++){

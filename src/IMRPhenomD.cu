@@ -670,6 +670,7 @@ int IMRPhenomDGenerateh22FDAmpPhase_internal(
 * Function to compute the amplitude and phase coefficients for PhenomD
 * Used to optimise the calls to IMRPhenDPhase and IMRPhenDAmplitude
 */
+CUDA_CALLABLE_MEMBER
 int IMRPhenomDSetupAmpAndPhaseCoefficients(
    PhenDAmpAndPhasePreComp *pDPreComp,
    double m1,
@@ -685,7 +686,6 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
     */
  int retcode = 0;
  retcode = init_useful_powers(&powers_of_pi, PI);
- assert(1 == retcode) ; //, retcode, "Failed to initiate useful powers of pi.");
 
  PhenomInternal_AlignedSpinEnforcePrimaryIsm1(&m1, &m2, &chi1z, &chi2z);
  const double Mtot = m1 + m2;
@@ -694,55 +694,39 @@ int IMRPhenomDSetupAmpAndPhaseCoefficients(
  // Calculate phenomenological parameters
  const double finspin = FinalSpin0815(eta, chi1z, chi2z); //FinalSpin0815 - 0815 is like a version number
 
- if (finspin < MIN_FINAL_SPIN)
-   printf("Final spin (Mf=%g) and ISCO frequency of this system are small, \
-                           the model might misbehave here.",
-                      finspin);
+ // Left in for historical record
+
+ //if (finspin < MIN_FINAL_SPIN)
+   //printf("Final spin (Mf=%g) and ISCO frequency of this system are small, \
+    //                       the model might misbehave here.",
+    //                  finspin);
 
  //start phase
 
- IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin);
- assert(pPhi);
- PNPhasingSeries *pn = NULL;
- TaylorF2AlignedPhasing(&pn, m1, m2, chi1z, chi2z);
- assert(pn);
+ComputeIMRPhenomDPhaseCoefficients(&pDPreComp->pPhi, eta, chi1z, chi2z, finspin);
+
+ TaylorF2AlignedPhasing(&pDPreComp->pn, m1, m2, chi1z, chi2z);
 
  // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
  // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
  // was not available when PhenomD was tuned.
- pn->v[6] -= (Subtract3PNSS(m1, m2, Mtot, eta, chi1z, chi2z) * pn->v[0]);
+ &(pDPreComp->pn)->v6 -= (Subtract3PNSS(m1, m2, Mtot, eta, chi1z, chi2z) * pDPreComp.pn.v0);
 
- PhiInsPrefactors phi_prefactors;
  retcode = 0;
- retcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
- assert(1 == retcode) ; //, retcode, "init_phi_ins_prefactors failed");
+ retcode = init_phi_ins_prefactors(&pDPreComp->phi_prefactors, pPhi, pn);
 
  // Compute coefficients to make phase C^1 continuous (phase and first derivative)
  ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, Rholm, Taulm);
  //end phase
 
  //start amp
- IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
- assert(pAmp);
+ ComputeIMRPhenomDAmplitudeCoefficients(&pDPreComp->pAmp, eta, chi1z, chi2z, finspin);
 
- AmpInsPrefactors amp_prefactors;
  retcode = 0;
- retcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
- assert(1 == retcode) ; //, retcode, "init_amp_ins_prefactors failed");
- //end amp
+ retcode = init_amp_ins_prefactors(&pDPreComp->amp_prefactors, pAmp);
+//end amp
 
  //output
- pDPreComp->pn = *pn;
- pDPreComp->pPhi = *pPhi;
- pDPreComp->phi_prefactors = phi_prefactors;
-
- pDPreComp->pAmp = *pAmp;
- pDPreComp->amp_prefactors = amp_prefactors;
-
- free(pn);
- free(pPhi);
- free(pAmp);
-
  return 1;
 }
 
@@ -841,31 +825,22 @@ CUDA_CALLABLE_MEMBER
 /**
  * computes the time shift as the approximate time of the peak of the 22 mode.
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenomDComputet0(
     double eta,           /**< symmetric mass-ratio */
     double chi1z,         /**< dimensionless aligned-spin of primary */
     double chi2z,         /**< dimensionless aligned-spin of secondary */
-    double finspin       /**< final spin */
+    double finspin,       /**< final spin */
+    IMRPhenomDPhaseCoefficients *pPhi,
+    IMRPhenomDAmplitudeCoefficients *pAmp
 )
 {
-
-IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1z, chi2z, finspin);
-  assert(pPhi);
-
-  IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1z, chi2z, finspin);
-  assert(pAmp);
-
-  // double Rholm = XLALSimIMRPhenomHMRholm(eta, chi1z, chi2z, ell, mm);
-  // double Taulm = XLALSimIMRPhenomHMTaulm(eta, chi1z, chi2z, ell, mm);
 
   //time shift so that peak amplitude is approximately at t=0
   //For details see https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/WaveformsReview/IMRPhenomDCodeReview/timedomain
   //NOTE: All modes will have the same time offset. So we use the 22 mode.
   //If we just use the 22 mode then we pass 1.0, 1.0 into DPhiMRD.
   double t0 = DPhiMRD(pAmp->fmaxCalc, pPhi, 1.0, 1.0);
-
-  free(pPhi);
-  free(pAmp);
 
   return t0;
 }
@@ -1006,6 +981,7 @@ size_t i;
  * Helper function used in PhenomHM and PhenomPv3HM
  * Returns the final mass from the fit used in PhenomD
  */
+CUDA_CALLABLE_MEMBER
 double IMRPhenomDFinalMass(
     double m1,    /**< mass of primary in solar masses */
     double m2,    /**< mass of secondary in solar masses */

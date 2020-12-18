@@ -22,17 +22,17 @@ if __name__ == "__main__":
         "num_data_points": int(2 ** 16),
         "df": None,
         "tLtoSSB": True,
-        "noise_kwargs": {"model": "SciRDv1", "includewd": 1},
+        "noise_kwargs": {"model": "SciRDv1", "includewd": None},
         # "add_noise": {"fs": 0.1, "min_freq": 1e-7},
     }
 
     max_length_init = 2 ** 14
     nwalkers, ndevices = 24, 1
-    l_vals = np.array([2, 3, 4, 2, 3, 4], dtype=np.uint32)
-    m_vals = np.array([2, 3, 4, 1, 2, 3], dtype=np.uint32)
+    l_vals = np.array([2], dtype=np.uint32)  # , 3, 4, 2, 3, 4], dtype=np.uint32)
+    m_vals = np.array([2], dtype=np.uint32)  # , 3, 4, 1, 2, 3], dtype=np.uint32)
     data_freqs, data_stream = None, None
-    t0 = 1.0
-    t_obs_start = 1.0
+    t0 = 0.0
+    t_obs_start = 24959512.543446492
     t_obs_end = 0.0
 
     data_params = {
@@ -81,6 +81,20 @@ if __name__ == "__main__":
     }
     """
 
+    data_params = {
+        "ln_mT": np.log(2599137.035 + 1242860.685),
+        "q": 1242860.685 / 2599137.035,
+        "a1": 0.7534821857057837,
+        "a2": 0.6215875279643664,
+        "ln_distance": np.log(56005.783662877526 / 1e3),
+        "cos_inc": np.cos(1.2245321255939288),
+        "phiRef": 6.247897265570264,
+        "lam": -2.5765925991650085,
+        "sin_beta": np.sin(0.05294026120170111),
+        "psi": 0.8346797841575135,
+        "ln_tRef": np.log(24959512.543446492),
+    }
+
     prop_defaults["data_params"] = data_params
 
     key_order = [
@@ -113,6 +127,7 @@ if __name__ == "__main__":
         **prop_defaults
     )
 
+    orig_params = np.array([data_params[key] for key in key_order])
     waveform_params = np.tile(
         np.array([data_params[key] for key in key_order]), (nwalkers, 1)
     )
@@ -157,7 +172,30 @@ if __name__ == "__main__":
 
     check = phenomhm.getNLL(waveform_params.T)
     fisher = phenomhm.get_Fisher(waveform_params[0])
+
+    snr_check = phenomhm.getNLL(waveform_params.T, return_snr=True)
     print(check[0:3])
+
+    new_pars = np.array(
+        [
+            np.log(2599137.035 + 1242860.685),
+            1242860.685 / 2599137.035,
+            0.7534821857057837,
+            0.6215875279643664,
+            np.log(164401.62761742485 / 1e3),
+            6.247897265570264,
+            np.cos(0.0),
+            -2.5676962200986537,
+            np.sin(0.08599977626833821),
+            0.8346797841575135,
+            np.log(24959512.543446492),
+        ]
+    )
+
+    waveform_params[0] = orig_params
+    waveform_params[1] = new_pars
+    snr_check = phenomhm.getNLL(waveform_params.T, return_snr=True)
+    check_new = phenomhm.getNLL(waveform_params.T)
     import pdb
 
     pdb.set_trace()

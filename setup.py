@@ -370,8 +370,8 @@ if run_cuda_install:
 
     gpu_extensions.append(Extension(extension_name, **temp_dict))
 
-shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
-shutil.copy("phenomd/gpuPhenomD.pyx", "phenomd/cpuPhenomD.pyx")
+#shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
+#shutil.copy("phenomd/gpuPhenomD.pyx", "phenomd/cpuPhenomD.pyx")
 # Obtain the numpy include directory. This logic works across numpy versions.
 try:
     numpy_include = numpy.get_include()
@@ -411,6 +411,7 @@ for i, source in enumerate(phenomhm_sources):
             ind = phenomd_sources.index(temp + ".cu")
             phenomd_sources[ind] = temp + ".cpp"
 
+"""
 for i, source in enumerate(phenomd_sources):
     temp = os.path.splitext(source)[0]
     file_ext = os.path.splitext(source)[1]
@@ -421,6 +422,7 @@ for i, source in enumerate(phenomd_sources):
         shutil.copy(temp + ".cu", temp + ".cpp")
         temp_files.append(temp + ".cpp")
         phenomd_sources[i] = temp + ".cpp"
+"""
 
 cpu_extension_dict = dict(
     sources=phenomhm_sources,
@@ -445,6 +447,7 @@ temp_dict["sources"] += [folder + extension_name + ".pyx"]
 
 cpu_extensions.append(Extension(extension_name, **temp_dict))
 
+"""
 shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
 
 temp_dict = copy.deepcopy(cpu_extension_dict)
@@ -471,6 +474,7 @@ temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
 temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
 
 cpu_extensions.append(Extension(extension_name, **temp_dict))
+"""
 
 if run_cuda_install:
     # extensions = [ext_gpu, ext_cpu]

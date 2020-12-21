@@ -763,6 +763,135 @@ class BBHWaveform:
             return out
 
 
+class RelativeBinning:
+    def __init__(
+        self,
+        template_gen,
+        f_dense,
+        d,
+        template_gen_args,
+        length_f_rel,
+        template_gen_kwargs={},
+        use_gpu=False,
+    ):
+
+        self.template_gen = template_gen
+        self.f_dense = f_dense
+        self.d = d
+        self.length_f_rel = length_f_rel
+
+        self.use_gpu = use_gpu
+        if use_gpu:
+            self.xp = xp
+        else:
+            self.xp = np
+
+        self._init_rel_bin_info(template_gen_args, template_gen_kwargs)
+
+    def _init_rel_bin_info(self, template_gen_args, template_gen_kwargs={}):
+
+        template_gen_kwargs["squeeze"] = True
+        template_gen_kwargs["compress"] = True
+        template_gen_kwargs["direct"] = True
+
+        minF = self.f_dense.min()
+        maxF = self.f_dense.max()
+
+        freqs = xp.logspace(xp.log10(minF), np.log10(maxF), self.length_f_rel)
+
+        h0 = self.template_gen(
+            *template_gen_args, freqs=self.f_dense, **template_gen_kwargs
+        )
+
+        self.h0_short = self.template_gen(
+            *template_gen_args, freqs=freqs, **template_gen_kwargs
+        )[:, :, xp.newaxis]
+
+        bins = xp.searchsorted(freqs, self.f_dense, "right") - 1
+
+        f_m = (freqs[1:] + freqs[:-1]) / 2
+
+        df = self.f_dense[1] - self.f_dense[0]
+
+        # TODO: make adjustable
+        S_n = xp.asarray(get_sensitivity(self.f_dense.get(), sens_fn="noisepsd_AE"))
+
+        A0_flat = 4 * (h0.conj() * self.d) / S_n * df
+        A1_flat = 4 * (h0.conj() * self.d) / S_n * df * (self.f_dense - f_m[bins])
+
+        B0_flat = 4 * (h0.conj() * h0) / S_n * df
+        B1_flat = 4 * (h0.conj() * h0) / S_n * df * (self.f_dense - f_m[bins])
+
+        self.A0 = xp.zeros((3, self.length_f_rel - 1), dtype=np.complex128)
+        self.A1 = xp.zeros_like(self.A0)
+        self.B0 = xp.zeros_like(self.A0)
+        self.B1 = xp.zeros_like(self.A0)
+
+        for ind in xp.unique(bins[:-1]):
+            inds_keep = bins == ind
+
+            # TODO: check this
+            inds_keep[-1] = False
+
+            self.A0[:, ind] = xp.sum(A0_flat[:, inds_keep], axis=1)
+            self.A1[:, ind] = xp.sum(A1_flat[:, inds_keep], axis=1)
+            self.B0[:, ind] = xp.sum(B0_flat[:, inds_keep], axis=1)
+            self.B1[:, ind] = xp.sum(B1_flat[:, inds_keep], axis=1)
+
+        self.base_d_d = xp.sum(4 * (self.d.conj() * self.d) / S_n * df).real
+
+        self.base_h_h = xp.sum(B0_flat).real
+
+        self.base_d_h = xp.sum(A0_flat).real
+
+        self.base_ll = 1 / 2 * (self.base_d_d + self.base_h_h - 2 * self.base_d_h)
+
+        self.freqs = freqs
+        self.f_m = f_m
+
+    def __call__(self, *params, **waveform_kwargs):
+
+        waveform_kwargs["direct"] = True
+        waveform_kwargs["compress"] = True
+        waveform_kwargs["squeeze"] = False
+
+        waveform_kwargs["freqs"] = self.freqs
+
+        h_short = self.template_gen(*params, **waveform_kwargs)
+
+        r = h_short / self.h0_short
+
+        r1 = (r[:, 1:] - r[:, :-1]) / (
+            self.freqs[1:][xp.newaxis, :, xp.newaxis]
+            - self.freqs[:-1][xp.newaxis, :, xp.newaxis]
+        )
+
+        r0 = r[:, :-1] - r1 * (
+            self.freqs[:-1][xp.newaxis, :, xp.newaxis]
+            - self.f_m[xp.newaxis, :, xp.newaxis]
+        )
+
+        self.Z_d_h = xp.sum(
+            (
+                xp.conj(r0) * self.A0[:, :, xp.newaxis]
+                + xp.conj(r1) * self.A1[:, :, xp.newaxis]
+            ),
+            axis=(0, 1),
+        )
+
+        self.Z_h_h = xp.sum(
+            (
+                self.B0[:, :, xp.newaxis] * np.abs(r0) ** 2
+                + 2 * self.B1[:, :, xp.newaxis] * xp.real(r0 * xp.conj(r1))
+            ),
+            axis=(0, 1),
+        )
+
+        like = 1 / 2 * (self.base_d_d + self.Z_h_h - 2 * self.Z_d_h).real
+
+        return like
+
+
 def test_phenomhm(
     m1,
     m2,
@@ -806,6 +935,10 @@ def test_phenomhm(
 
     f_n = xp.arange(1e-3, 1e-1 + df * 100, df * 100)
 
+    df = f_n[1] - f_n[0]
+
+    S_n = xp.asarray(get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"))
+
     data_length = len(f_n)
 
     d = bbh(
@@ -832,12 +965,45 @@ def test_phenomhm(
         compress=True,
     )
 
-    minF = bbh.amp_phase_gen.freqs_shaped[0].min()
-    maxF = bbh.amp_phase_gen.freqs_shaped[0].max()
-
-    out_buffer = xp.zeros((num_interp_params * data_length * num_modes * 1))
-
     m1 *= 1.00001
+
+    template_gen_args = (
+        m1[:1],
+        m2[:1],
+        chi1z[:1],
+        chi2z[:1],
+        distance[:1],
+        phiRef[:1],
+        f_ref[:1],
+        inc[:1],
+        lam[:1],
+        beta[:1],
+        psi[:1],
+        tRef_wave_frame[:1],
+        tRef_sampling_frame[:1],
+    )
+
+    template_gen_kwargs = dict(
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
+    )
+
+    relbin = RelativeBinning(
+        bbh,
+        f_n,
+        d,
+        template_gen_args,
+        length,
+        template_gen_kwargs=template_gen_kwargs,
+        use_gpu=use_gpu,
+    )
+
+    d_d = relbin.base_d_d
 
     h0 = bbh(
         m1[:1],
@@ -863,100 +1029,10 @@ def test_phenomhm(
         compress=True,
     )
 
-    from lisatools.diagnostic import inner_product
-
-    freqs = xp.logspace(xp.log10(minF), np.log10(maxF), length)
-
-    bins = xp.searchsorted(freqs, f_n, "right") - 1
-
-    f_m = (freqs[1:] + freqs[:-1]) / 2
-
-    df = f_n[1] - f_n[0]
-
-    S_n = xp.asarray(get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"))
-
-    A0_flat = 4 * (h0.conj() * d) / S_n * df
-    A1_flat = 4 * (h0.conj() * d) / S_n * df * (f_n - f_m[bins])
-
-    B0_flat = 4 * (h0.conj() * h0) / S_n * df
-    B1_flat = 4 * (h0.conj() * h0) / S_n * df * (f_n - f_m[bins])
-
-    A0 = xp.zeros((3, length - 1), dtype=np.complex128)
-    A1 = xp.zeros_like(A0)
-    B0 = xp.zeros_like(A0)
-    B1 = xp.zeros_like(A0)
-
-    for ind in xp.unique(bins[:-1]):
-        inds_keep = bins == ind
-
-        inds_keep[-1] = False
-
-        A0[:, ind] = xp.sum(A0_flat[:, inds_keep], axis=1)
-        A1[:, ind] = xp.sum(A1_flat[:, inds_keep], axis=1)
-        B0[:, ind] = xp.sum(B0_flat[:, inds_keep], axis=1)
-        B1[:, ind] = xp.sum(B1_flat[:, inds_keep], axis=1)
-
-    d_d = xp.sum(4 * (d.conj() * d) / S_n * df).real
-
-    h_h = xp.sum(B0_flat).real
-
-    d_h = xp.sum(A0_flat).real
-
-    d_h_2 = xp.sum(
-        xp.asarray(
-            [inner_product(d[i], h0[i], f_arr=f_n, PSD="noisepsd_AE") for i in range(3)]
-        )
-    )
-    d_d_2 = xp.sum(
-        xp.asarray(
-            [inner_product(d[i], d[i], f_arr=f_n, PSD="noisepsd_AE") for i in range(3)]
-        )
-    )
-    h_h_2 = xp.sum(
-        xp.asarray(
-            [
-                inner_product(h0[i], h0[i], f_arr=f_n, PSD="noisepsd_AE")
-                for i in range(3)
-            ]
-        )
-    )
-
-    base_ll = 1 / 2 * (d_d + h_h - 2 * d_h)
-
-    num_bin_all = len(m1)
-
-    out_buffer = xp.zeros((num_interp_params * length * num_modes * num_bin_all))
-
-    freqs = xp.logspace(xp.log10(minF), np.log10(maxF), length)
-
-    h0_short = bbh(
-        m1[:1],
-        m2[:1],
-        chi1z[:1],
-        chi2z[:1],
-        distance[:1],
-        phiRef[:1],
-        f_ref[:1],
-        inc[:1],
-        lam[:1],
-        beta[:1],
-        psi[:1],
-        tRef_wave_frame[:1],
-        tRef_sampling_frame[:1],
-        tBase=tBase,
-        t_obs_start=t_obs_start,
-        t_obs_end=t_obs_end,
-        freqs=freqs,
-        length=None,
-        modes=None,
-        direct=True,
-        compress=True,
-    )
-
     m1 *= 1.0001
     m2 *= 1.001
 
-    h_short = bbh(
+    ll_res = relbin(
         m1[:1],
         m2[:1],
         chi1z[:1],
@@ -973,38 +1049,13 @@ def test_phenomhm(
         tBase=tBase,
         t_obs_start=t_obs_start,
         t_obs_end=t_obs_end,
-        freqs=freqs,
+        freqs=None,
         length=None,
         modes=None,
         direct=True,
         compress=True,
         squeeze=False,
     )
-
-    r = h_short / h0_short[:, :, xp.newaxis]
-
-    r1 = (r[:, 1:] - r[:, :-1]) / (
-        freqs[1:][xp.newaxis, :, xp.newaxis] - freqs[:-1][xp.newaxis, :, xp.newaxis]
-    )
-
-    r0 = r[:, :-1] - r1 * (
-        freqs[:-1][xp.newaxis, :, xp.newaxis] - f_m[xp.newaxis, :, xp.newaxis]
-    )
-
-    Z_d_h = xp.sum(
-        (xp.conj(r0) * A0[:, :, xp.newaxis] + xp.conj(r1) * A1[:, :, xp.newaxis]),
-        axis=(0, 1),
-    )
-
-    Z_h_h = xp.sum(
-        (
-            B0[:, :, xp.newaxis] * np.abs(r0) ** 2
-            + 2 * B1[:, :, xp.newaxis] * xp.real(r0 * xp.conj(r1))
-        ),
-        axis=(0, 1),
-    )
-
-    out_buffer = xp.zeros((num_interp_params * data_length * num_modes * 1))
 
     h_test = bbh(
         m1[:1],
@@ -1028,13 +1079,13 @@ def test_phenomhm(
         modes=None,
         direct=True,
         compress=True,
+        squeeze=True,
     )
 
     d_h_test = xp.sum(4 * (h_test.conj() * d) / S_n * df).real
 
     h_h_test = xp.sum(4 * (h_test.conj() * h_test) / S_n * df).real
 
-    ll_res = 1 / 2 * (d_d + Z_h_h - 2 * Z_d_h)
     ll_test = 1 / 2 * (d_d + h_h_test - 2 * d_h_test)
     breakpoint()
 
@@ -1092,23 +1143,22 @@ if __name__ == "__main__":
     t_obs_start = 1.0
     t_obs_end = 0.0
 
-    for _ in range(10):
-        test_phenomhm(
-            m1,
-            m2,
-            chi1z,
-            chi2z,
-            distance,
-            phiRef,
-            f_ref,
-            length,
-            inc,
-            lam,
-            beta,
-            psi,
-            tRef_wave_frame,
-            tRef_sampling_frame,
-            tBase,
-            t_obs_start,
-            t_obs_end,
-        )
+    test_phenomhm(
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        distance,
+        phiRef,
+        f_ref,
+        length,
+        inc,
+        lam,
+        beta,
+        psi,
+        tRef_wave_frame,
+        tRef_sampling_frame,
+        tBase,
+        t_obs_start,
+        t_obs_end,
+    )

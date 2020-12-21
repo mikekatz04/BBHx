@@ -887,7 +887,7 @@ def test_phenomhm(
     ).squeeze()
 
     m1 *= 1.0001
-    m2 *= 1.0001
+    m2 *= 1.001
     phenomhm(
         m1,
         m2,
@@ -1052,7 +1052,7 @@ def test_phenomhm(
 if __name__ == "__main__":
 
     num_bin_all = 3
-    length = 1024
+    length = 128
 
     m1 = np.array([4.000000e6])  # , 4.01e6, 4.0001e6])
     m2 = np.full_like(m1, 1e6)

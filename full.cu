@@ -3318,10 +3318,10 @@ void responseCore(
 
     int binNum = threadIdx.x + blockDim.x * blockIdx.x;
 
-    if (binNum < numBinAll)
-    {
-        IMRPhenomHMCore(ells, mms, amps, phases, phases_deriv, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], phiRef[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift);
-    }
+    //if (binNum < numBinAll)
+    //{
+    //    IMRPhenomHMCore(ells, mms, amps, phases, phases_deriv, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], phiRef[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift);
+    //}
 }
 
 

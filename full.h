@@ -54,8 +54,6 @@
   */
 #define MAX_ALLOWED_MASS_RATIO 5000
 
-typedef gcmplx::complex<double> cmplx;
-
 
 
 /**
@@ -141,6 +139,8 @@ typedef gcmplx::complex<double> cmplx;
  * switches to the intermediate phase
  */
 #define PHI_fJoin_INS 0.018
+
+typedef gcmplx::complex<double> cmplx;
 
 typedef struct tagPNPhasingSeries
 {

@@ -630,6 +630,139 @@ class TemplateInterp:
         )
 
 
+class BBHWaveform:
+    def __init__(self, amp_phase_kwargs={}, response_kwargs={}, use_gpu=False):
+
+        self.response_gen = LISATDIResponse(**response_kwargs, use_gpu=use_gpu)
+
+        self.amp_phase_gen = PhenomHMAmpPhase(**amp_phase_kwargs, use_gpu=use_gpu)
+
+        self.use_gpu = use_gpu
+        if use_gpu:
+            self.xp = xp
+        else:
+            self.xp = np
+
+        self.num_interp_params = 9
+
+    def __call__(
+        self,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        distance,
+        phiRef,
+        f_Ref,
+        inc,
+        lam,
+        beta,
+        psi,
+        tRef_wave_frame,
+        tRef_sampling_frame,
+        tBase=0.0,
+        t_obs_start=1.0,
+        t_obs_end=0.0,
+        freqs=None,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
+        squeeze=True,
+    ):
+
+        if freqs is None and length is None:
+            raise ValueError("Must input freqs or length.")
+
+        elif freqs is not None:
+            length = len(freqs)
+
+        self.length = length
+
+        m1 = np.atleast_1d(m1)
+        m2 = np.atleast_1d(m2)
+        chi1z = np.atleast_1d(chi1z)
+        chi2z = np.atleast_1d(chi2z)
+        distance = np.atleast_1d(distance)
+        phiRef = np.atleast_1d(phiRef)
+        inc = np.atleast_1d(inc)
+        lam = np.atleast_1d(lam)
+        beta = np.atleast_1d(beta)
+        psi = np.atleast_1d(psi)
+        tRef_wave_frame = np.atleast_1d(tRef_wave_frame)
+        tRef_sampling_frame = np.atleast_1d(tRef_sampling_frame)
+
+        if modes is None:
+            self.num_modes = len(self.amp_phase_gen.allowable_modes)
+        else:
+            self.num_modes = len(modes)
+
+        self.num_bin_all = len(m1)
+
+        out_buffer = self.xp.zeros(
+            (self.num_interp_params * self.length * self.num_modes * self.num_bin_all)
+        )
+
+        self.amp_phase_gen(
+            m1,
+            m2,
+            chi1z,
+            chi2z,
+            distance,
+            phiRef,
+            f_ref,
+            length,
+            freqs=freqs,
+            out_buffer=out_buffer,
+        )
+
+        self.response_gen(
+            freqs,
+            inc,
+            lam,
+            beta,
+            psi,
+            tRef_wave_frame,
+            tRef_sampling_frame,
+            phiRef,
+            f_ref,
+            tBase,
+            length,
+            includes_amps=True,
+            out_buffer=out_buffer,
+        )
+
+        temp = out_buffer.reshape(
+            self.num_interp_params, self.length, self.num_modes, self.num_bin_all
+        )
+
+        if direct:
+            amp = temp[0]
+            phase = temp[1]
+            phase_deriv = temp[2]
+            transfer_L1 = temp[3] + 1j * temp[4]
+            transfer_L2 = temp[5] + 1j * temp[6]
+            transfer_L3 = temp[7] + 1j * temp[8]
+
+            # TODO: check this combination
+            amp_phase = amp * self.xp.exp(-1j * phase)
+
+            out = self.xp.asarray(
+                [
+                    amp_phase * transfer_L1,
+                    amp_phase * transfer_L2,
+                    amp_phase * transfer_L3,
+                ]
+            )
+            if compress:
+                out = out.sum(axis=2)
+
+            if squeeze:
+                out = out.squeeze()
+
+            return out
+
+
 def test_phenomhm(
     m1,
     m2,
@@ -655,10 +788,18 @@ def test_phenomhm(
 
     num_interp_params = 9
     num_modes = 6
+    num_bin_all = len(m1)
 
-    phenomhm = PhenomHMAmpPhase(use_gpu=use_gpu)
-    response = LISATDIResponse(
-        max_init_len=-1, TDItag="AET", order_fresnel_stencil=0, use_gpu=use_gpu
+    amp_phase_kwargs = dict()
+    response_kwargs = dict(max_init_len=-1, TDItag="AET", order_fresnel_stencil=0)
+
+    phenomhm = PhenomHMAmpPhase(use_gpu=use_gpu, **amp_phase_kwargs)
+    response = LISATDIResponse(use_gpu=use_gpu, **response_kwargs)
+
+    bbh = BBHWaveform(
+        response_kwargs=response_kwargs,
+        amp_phase_kwargs=amp_phase_kwargs,
+        use_gpu=use_gpu,
     )
 
     df = 1.0 / YRSID_SI
@@ -666,9 +807,8 @@ def test_phenomhm(
     f_n = xp.arange(1e-3, 1e-1 + df * 100, df * 100)
 
     data_length = len(f_n)
-    out_buffer = xp.zeros((num_interp_params * data_length * num_modes * 1))
 
-    test_phen = phenomhm(
+    d = bbh(
         m1[:1],
         m2[:1],
         chi1z[:1],
@@ -676,53 +816,30 @@ def test_phenomhm(
         distance[:1],
         phiRef[:1],
         f_ref[:1],
-        len(f_n),
-        freqs=f_n,
-        out_buffer=out_buffer,
-    )
-
-    minF = phenomhm.freqs_shaped[0].min()
-    maxF = phenomhm.freqs_shaped[0].max()
-
-    test_resp = response(
-        f_n,
         inc[:1],
         lam[:1],
         beta[:1],
         psi[:1],
         tRef_wave_frame[:1],
         tRef_sampling_frame[:1],
-        phiRef[:1],
-        f_ref[:1],
-        tBase,
-        len(f_n),
-        includes_amps=True,
-        out_buffer=out_buffer,
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
+        freqs=f_n,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
     )
 
-    data_info = out_buffer.reshape(num_interp_params, data_length, num_modes, 1)
+    minF = bbh.amp_phase_gen.freqs_shaped[0].min()
+    maxF = bbh.amp_phase_gen.freqs_shaped[0].max()
 
-    amp = data_info[0]
-    phase = data_info[1]
-    phase_deriv = data_info[2]
-    transfer_L1 = data_info[3] + 1j * data_info[4]
-    transfer_L2 = data_info[5] + 1j * data_info[6]
-    transfer_L3 = data_info[7] + 1j * data_info[8]
-
-    d = xp.sum(
-        xp.asarray(
-            [
-                amp * xp.exp(-1j * phase) * transfer_L1,
-                amp * xp.exp(-1j * phase) * transfer_L2,
-                amp * xp.exp(-1j * phase) * transfer_L3,
-            ]
-        ),
-        axis=2,
-    ).squeeze()
+    out_buffer = xp.zeros((num_interp_params * data_length * num_modes * 1))
 
     m1 *= 1.00001
 
-    test_phen = phenomhm(
+    h0 = bbh(
         m1[:1],
         m2[:1],
         chi1z[:1],
@@ -730,46 +847,21 @@ def test_phenomhm(
         distance[:1],
         phiRef[:1],
         f_ref[:1],
-        len(f_n),
-        freqs=f_n,
-        out_buffer=out_buffer,
-    )
-
-    test_resp = response(
-        f_n,
         inc[:1],
         lam[:1],
         beta[:1],
         psi[:1],
         tRef_wave_frame[:1],
         tRef_sampling_frame[:1],
-        phiRef[:1],
-        f_ref[:1],
-        tBase,
-        len(f_n),
-        includes_amps=True,
-        out_buffer=out_buffer,
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
+        freqs=f_n,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
     )
-
-    data_info = out_buffer.reshape(num_interp_params, data_length, num_modes, 1)
-
-    amp = data_info[0]
-    phase = data_info[1]
-    phase_deriv = data_info[2]
-    transfer_L1 = data_info[3] + 1j * data_info[4]
-    transfer_L2 = data_info[5] + 1j * data_info[6]
-    transfer_L3 = data_info[7] + 1j * data_info[8]
-
-    h0 = xp.sum(
-        xp.asarray(
-            [
-                amp * xp.exp(-1j * phase) * transfer_L1,
-                amp * xp.exp(-1j * phase) * transfer_L2,
-                amp * xp.exp(-1j * phase) * transfer_L3,
-            ]
-        ),
-        axis=2,
-    ).squeeze()
 
     from lisatools.diagnostic import inner_product
 
@@ -837,7 +929,7 @@ def test_phenomhm(
 
     freqs = xp.logspace(xp.log10(minF), np.log10(maxF), length)
 
-    phenomhm(
+    h0_short = bbh(
         m1[:1],
         m2[:1],
         chi1z[:1],
@@ -845,96 +937,48 @@ def test_phenomhm(
         distance[:1],
         phiRef[:1],
         f_ref[:1],
-        length,
-        freqs=freqs,
-        out_buffer=out_buffer,
-    )
-
-    response(
-        freqs,
         inc[:1],
         lam[:1],
         beta[:1],
         psi[:1],
         tRef_wave_frame[:1],
         tRef_sampling_frame[:1],
-        phiRef[:1],
-        f_ref[:1],
-        tBase,
-        length,
-        includes_amps=True,
-        out_buffer=out_buffer,
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
+        freqs=freqs,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
     )
-
-    data_info = out_buffer.reshape(num_interp_params, length, num_modes, num_bin_all)
-
-    amp = data_info[0]
-    phase = data_info[1]
-    phase_deriv = data_info[2]
-    transfer_L1 = data_info[3] + 1j * data_info[4]
-    transfer_L2 = data_info[5] + 1j * data_info[6]
-    transfer_L3 = data_info[7] + 1j * data_info[8]
-
-    h0_short = xp.sum(
-        xp.asarray(
-            [
-                amp * xp.exp(-1j * phase) * transfer_L1,
-                amp * xp.exp(-1j * phase) * transfer_L2,
-                amp * xp.exp(-1j * phase) * transfer_L3,
-            ]
-        ),
-        axis=2,
-    ).squeeze()
 
     m1 *= 1.0001
     m2 *= 1.001
-    phenomhm(
-        m1,
-        m2,
-        chi1z,
-        chi2z,
-        distance,
-        phiRef,
-        f_ref,
-        length,
+
+    h_short = bbh(
+        m1[:1],
+        m2[:1],
+        chi1z[:1],
+        chi2z[:1],
+        distance[:1],
+        phiRef[:1],
+        f_ref[:1],
+        inc[:1],
+        lam[:1],
+        beta[:1],
+        psi[:1],
+        tRef_wave_frame[:1],
+        tRef_sampling_frame[:1],
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
         freqs=freqs,
-        out_buffer=out_buffer,
-    )
-
-    response(
-        freqs,
-        inc,
-        lam,
-        beta,
-        psi,
-        tRef_wave_frame,
-        tRef_sampling_frame,
-        phiRef,
-        f_ref,
-        tBase,
-        length,
-        includes_amps=True,
-        out_buffer=out_buffer,
-    )
-
-    data_info = out_buffer.reshape(num_interp_params, length, num_modes, num_bin_all)
-
-    amp = data_info[0]
-    phase = data_info[1]
-    phase_deriv = data_info[2]
-    transfer_L1 = data_info[3] + 1j * data_info[4]
-    transfer_L2 = data_info[5] + 1j * data_info[6]
-    transfer_L3 = data_info[7] + 1j * data_info[8]
-
-    h_short = xp.sum(
-        xp.asarray(
-            [
-                amp * xp.exp(-1j * phase) * transfer_L1,
-                amp * xp.exp(-1j * phase) * transfer_L2,
-                amp * xp.exp(-1j * phase) * transfer_L3,
-            ]
-        ),
-        axis=2,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
+        squeeze=False,
     )
 
     r = h_short / h0_short[:, :, xp.newaxis]
@@ -962,7 +1006,7 @@ def test_phenomhm(
 
     out_buffer = xp.zeros((num_interp_params * data_length * num_modes * 1))
 
-    test_phen = phenomhm(
+    h_test = bbh(
         m1[:1],
         m2[:1],
         chi1z[:1],
@@ -970,46 +1014,21 @@ def test_phenomhm(
         distance[:1],
         phiRef[:1],
         f_ref[:1],
-        len(f_n),
-        freqs=f_n,
-        out_buffer=out_buffer,
-    )
-
-    test_resp = response(
-        f_n,
         inc[:1],
         lam[:1],
         beta[:1],
         psi[:1],
         tRef_wave_frame[:1],
         tRef_sampling_frame[:1],
-        phiRef[:1],
-        f_ref[:1],
-        tBase,
-        len(f_n),
-        includes_amps=True,
-        out_buffer=out_buffer,
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
+        freqs=f_n,
+        length=None,
+        modes=None,
+        direct=True,
+        compress=True,
     )
-
-    data_info = out_buffer.reshape(num_interp_params, data_length, num_modes, 1)
-
-    amp = data_info[0]
-    phase = data_info[1]
-    phase_deriv = data_info[2]
-    transfer_L1 = data_info[3] + 1j * data_info[4]
-    transfer_L2 = data_info[5] + 1j * data_info[6]
-    transfer_L3 = data_info[7] + 1j * data_info[8]
-
-    h_test = xp.sum(
-        xp.asarray(
-            [
-                amp * xp.exp(-1j * phase) * transfer_L1,
-                amp * xp.exp(-1j * phase) * transfer_L2,
-                amp * xp.exp(-1j * phase) * transfer_L3,
-            ]
-        ),
-        axis=2,
-    ).squeeze()
 
     d_h_test = xp.sum(4 * (h_test.conj() * d) / S_n * df).real
 
@@ -1052,7 +1071,7 @@ def test_phenomhm(
 if __name__ == "__main__":
 
     num_bin_all = 3
-    length = 128
+    length = 512
 
     m1 = np.array([4.000000e6])  # , 4.01e6, 4.0001e6])
     m2 = np.full_like(m1, 1e6)

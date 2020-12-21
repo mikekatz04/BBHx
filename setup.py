@@ -248,7 +248,7 @@ if run_cuda_install:
                 # "-lineinfo",
             ],  # for debugging
         },
-        include_dirs=[numpy_include, CUDA["include"], "include", "./"] + gsl_include,
+        include_dirs=[numpy_include, CUDA["include"], "include"] + gsl_include,
     )
 
     if use_omp is False:
@@ -258,11 +258,12 @@ if run_cuda_install:
         gpu_extension["extra_compile_args"]["gcc"].remove("-D__USE_OMP__")
 
     pyHdynBBH_ext = Extension(
-        "pyHdynBBH", sources=["full.cu", "hdyn.pyx"], **gpu_extension
+        "pyHdynBBH", sources=["src2/full.cu", "src2/hdyn.pyx"], **gpu_extension
     )
 
-    gpu_extensions.append(Extension(extension_name, **temp_dict))
+    # gpu_extensions.append(Extension(extension_name, **temp_dict))
 
+"""
 # shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
 # shutil.copy("phenomd/gpuPhenomD.pyx", "phenomd/cpuPhenomD.pyx")
 # Obtain the numpy include directory. This logic works across numpy versions.
@@ -304,7 +305,6 @@ for i, source in enumerate(phenomhm_sources):
             ind = phenomd_sources.index(temp + ".cu")
             phenomd_sources[ind] = temp + ".cpp"
 
-"""
 for i, source in enumerate(phenomd_sources):
     temp = os.path.splitext(source)[0]
     file_ext = os.path.splitext(source)[1]
@@ -315,7 +315,6 @@ for i, source in enumerate(phenomd_sources):
         shutil.copy(temp + ".cu", temp + ".cpp")
         temp_files.append(temp + ".cpp")
         phenomd_sources[i] = temp + ".cpp"
-"""
 
 cpu_extension_dict = dict(
     sources=phenomhm_sources,
@@ -340,7 +339,6 @@ temp_dict["sources"] += [folder + extension_name + ".pyx"]
 
 cpu_extensions.append(Extension(extension_name, **temp_dict))
 
-"""
 shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
 
 temp_dict = copy.deepcopy(cpu_extension_dict)
@@ -377,6 +375,7 @@ setup(
     author="Michael Katz",
     author_email="mikekatz04@gmail.com",
     ext_modules=extensions,
+    packages=["phenomhm", "phenomhm.utils"],
     # Inject our custom trigger
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped

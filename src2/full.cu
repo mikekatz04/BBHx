@@ -2700,10 +2700,13 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
          int retcode = 0;
          double eps = 1e-9;
 
-         for (int i = 0; i < length; i += 1)
+         for (int i = threadIdx.x; i < length; i += blockDim.x)
          {
-             int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
-             int freq_index = i * numBinAll + binNum;
+             //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
+             //int freq_index = i * numBinAll + binNum;
+
+             int mode_index = (binNum * numModes + mode_i) * length + i;
+             int freq_index = binNum * length + i;
 
              double freq = freqs[freq_index];
              double freq_geom = freq*M_tot_sec;
@@ -2786,10 +2789,13 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
          double eps = 1e-9;
          int start_ind = 0;
 
-         for (int i = 0; i < length; i += 1)
+         for (int i = threadIdx.x; i < length; i += blockDim.x)
          {
-             int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
-             int freq_index = i * numBinAll + binNum;
+             //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
+             //int freq_index = i * numBinAll + binNum;
+
+             int mode_index = (binNum * numModes + mode_i) * length + i;
+             int freq_index = binNum * length + i;
 
              double freq = freqs[freq_index];
              //double freq_geom = freq*M_tot_sec;
@@ -3316,7 +3322,7 @@ void responseCore(
 
     __syncthreads();
 
-    int binNum = threadIdx.x + blockDim.x * blockIdx.x;
+    int binNum = blockIdx.x; // threadIdx.x + blockDim.x * blockIdx.x;
 
     if (binNum < numBinAll)
     {
@@ -3366,7 +3372,7 @@ void responseCore(
 
     __syncthreads();
 
-    int binNum = threadIdx.x + blockDim.x * blockIdx.x;
+    int binNum = blockIdx.x; // threadIdx.x + blockDim.x * blockIdx.x;
 
     if (binNum < numBinAll)
     {
@@ -3972,7 +3978,7 @@ void LISA_response(
     double* phases_deriv = &response_out[(start_param + 1) * numBinAll * numModes * length];
     double* response_vals = &response_out[(start_param + 2) * numBinAll * numModes * length];
 
-    int nblocks2 = std::ceil((numBinAll + NUM_THREADS2 -1)/NUM_THREADS2);
+    int nblocks2 = numBinAll; //std::ceil((numBinAll + NUM_THREADS2 -1)/NUM_THREADS2);
 
     response<<<nblocks2, NUM_THREADS2>>>(
         phases,
@@ -4021,8 +4027,14 @@ void waveform_amp_phase(
     double* phases = &waveformOut[numBinAll * numModes * length];
     double* phases_deriv = &waveformOut[2 * numBinAll * numModes * length];
 
-    int nblocks = std::ceil((numBinAll + NUM_THREADS -1)/NUM_THREADS);
+    //int nblocks = std::ceil((numBinAll + NUM_THREADS -1)/NUM_THREADS);
+    int nblocks = numBinAll; //std::ceil((numBinAll + NUM_THREADS -1)/NUM_THREADS);
+    /*
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
 
+    cudaEventRecord(start);*/
         //printf("%d begin\n", jj);
     IMRPhenomHM<<<nblocks, NUM_THREADS>>>(
         amps, /**< [out] Frequency-domain waveform hx */
@@ -4044,6 +4056,14 @@ void waveform_amp_phase(
     );
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    /*
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    printf("%e\n", milliseconds);*/
 
 }
 

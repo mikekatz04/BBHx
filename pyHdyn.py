@@ -97,7 +97,7 @@ class PhenomHMAmpPhase:
 
         self.freqs = (
             base_freqs[:, self.xp.newaxis] / M_tot_sec[self.xp.newaxis, :]
-        ).flatten()
+        ).T.flatten()
 
     @property
     def amp(self):
@@ -128,7 +128,7 @@ class PhenomHMAmpPhase:
 
     @property
     def freqs_shaped(self):
-        return self._freqs.reshape(self.length, self.num_bin_all).T
+        return self._freqs.reshape(self.num_bin_all, self.length)
 
     @property
     def freqs(self):
@@ -194,7 +194,7 @@ class PhenomHMAmpPhase:
             self._initialize_freqs(m1, m2)
 
         else:
-            self.freqs = self.xp.tile(freqs, (self.num_bin_all, 1)).T.flatten()
+            self.freqs = self.xp.tile(freqs, (self.num_bin_all, 1)).flatten()
 
         m1_SI = m1 * MSUN_SI
         m2_SI = m2 * MSUN_SI
@@ -763,8 +763,12 @@ class BBHWaveform:
 
             return out
         """
-        temp = out_buffer.reshape(
-            self.num_interp_params, self.length, self.num_modes, self.num_bin_all
+        temp = self.xp.swapaxes(
+            out_buffer.reshape(
+                self.num_interp_params, self.num_bin_all, self.num_modes, self.length
+            ),
+            1,
+            3,
         )
 
         if direct:
@@ -904,9 +908,9 @@ class RelativeBinning:
 
         waveform_kwargs["freqs"] = self.freqs
 
-        h_short = self.template_gen(*params, **waveform_kwargs)
+        self.h_short = self.template_gen(*params, **waveform_kwargs)
 
-        r = h_short / self.h0_short
+        r = self.h_short / self.h0_short
 
         """
         r1 = (r[:, 1:] - r[:, :-1]) / (
@@ -1103,7 +1107,7 @@ def test_phenomhm(
     import time
 
     st = time.perf_counter()
-    num = 250
+    num = 2
 
     for _ in range(num):
         ll_res = relbin(

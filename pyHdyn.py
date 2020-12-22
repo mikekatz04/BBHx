@@ -734,6 +734,35 @@ class BBHWaveform:
             out_buffer=out_buffer,
         )
 
+        """
+        if direct and compress:
+
+            channel1 = self.xp.zeros(
+                (self.length * self.num_bin_all), dtype=self.xp.complex128
+            )
+            channel2 = self.xp.zeros_like(channel1)
+            channel3 = self.xp.zeros_like(channel1)
+
+            direct_sum_wrap(
+                channel1,
+                channel2,
+                channel3,
+                out_buffer,
+                self.num_bin_all,
+                self.length,
+                3,
+                self.num_modes,
+            )
+
+            out = xp.asarray([channel1, channel2, channel3]).reshape(
+                3, self.length, self.num_bin_all
+            )
+
+            if squeeze:
+                out = out.squeeze()
+
+            return out
+        """
         temp = out_buffer.reshape(
             self.num_interp_params, self.length, self.num_modes, self.num_bin_all
         )
@@ -756,6 +785,7 @@ class BBHWaveform:
                     amp_phase * transfer_L3,
                 ]
             )
+
             if compress:
                 out = out.sum(axis=2)
 
@@ -829,6 +859,11 @@ class RelativeBinning:
         self.B0 = xp.zeros_like(self.A0)
         self.B1 = xp.zeros_like(self.A0)
 
+        A0_in = xp.zeros((3, self.length_f_rel), dtype=np.complex128)
+        A1_in = xp.zeros_like(A0_in)
+        B0_in = xp.zeros_like(A0_in)
+        B1_in = xp.zeros_like(A0_in)
+
         for ind in xp.unique(bins[:-1]):
             inds_keep = bins == ind
 
@@ -839,6 +874,16 @@ class RelativeBinning:
             self.A1[:, ind] = xp.sum(A1_flat[:, inds_keep], axis=1)
             self.B0[:, ind] = xp.sum(B0_flat[:, inds_keep], axis=1)
             self.B1[:, ind] = xp.sum(B1_flat[:, inds_keep], axis=1)
+
+            A0_in[:, ind + 1] = xp.sum(A0_flat[:, inds_keep], axis=1)
+            A1_in[:, ind + 1] = xp.sum(A1_flat[:, inds_keep], axis=1)
+            B0_in[:, ind + 1] = xp.sum(B0_flat[:, inds_keep], axis=1)
+            B1_in[:, ind + 1] = xp.sum(B1_flat[:, inds_keep], axis=1)
+
+        # PAD As with a zero in the front
+        self.dataConstants = self.xp.concatenate(
+            [A0_in.flatten(), A1_in.flatten(), B0_in.flatten(), B1_in.flatten()]
+        )
 
         self.base_d_d = xp.sum(4 * (self.d.conj() * self.d) / S_n * df).real
 
@@ -863,6 +908,7 @@ class RelativeBinning:
 
         r = h_short / self.h0_short
 
+        """
         r1 = (r[:, 1:] - r[:, :-1]) / (
             self.freqs[1:][xp.newaxis, :, xp.newaxis]
             - self.freqs[:-1][xp.newaxis, :, xp.newaxis]
@@ -889,8 +935,28 @@ class RelativeBinning:
             axis=(0, 1),
         )
 
-        like = 1 / 2 * (self.base_d_d + self.Z_h_h - 2 * self.Z_d_h).real
+        test_like = 1 / 2 * (self.base_d_d + self.Z_h_h - 2 * self.Z_d_h).real
+        """
+        self.hdyn_d_h = self.xp.zeros(
+            self.template_gen.num_bin_all, dtype=self.xp.complex128
+        )
+        self.hdyn_h_h = self.xp.zeros(
+            self.template_gen.num_bin_all, dtype=self.xp.complex128
+        )
 
+        templates_in = r.transpose((1, 0, 2)).flatten()
+        hdyn_wrap(
+            self.hdyn_d_h,
+            self.hdyn_h_h,
+            templates_in,
+            self.dataConstants,
+            self.freqs,
+            self.template_gen.num_bin_all,
+            len(self.freqs),
+            3,
+        )
+
+        like = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h)
         return like
 
 
@@ -1034,30 +1100,38 @@ def test_phenomhm(
     m1 *= 1.0001
     m2 *= 1.001
 
-    ll_res = relbin(
-        m1,
-        m2,
-        chi1z,
-        chi2z,
-        distance,
-        phiRef,
-        f_ref,
-        inc,
-        lam,
-        beta,
-        psi,
-        tRef_wave_frame,
-        tRef_sampling_frame,
-        tBase=tBase,
-        t_obs_start=t_obs_start,
-        t_obs_end=t_obs_end,
-        freqs=None,
-        length=None,
-        modes=None,
-        direct=True,
-        compress=True,
-        squeeze=False,
-    )
+    import time
+
+    st = time.perf_counter()
+    num = 250
+
+    for _ in range(num):
+        ll_res = relbin(
+            m1,
+            m2,
+            chi1z,
+            chi2z,
+            distance,
+            phiRef,
+            f_ref,
+            inc,
+            lam,
+            beta,
+            psi,
+            tRef_wave_frame,
+            tRef_sampling_frame,
+            tBase=tBase,
+            t_obs_start=t_obs_start,
+            t_obs_end=t_obs_end,
+            freqs=None,
+            length=None,
+            modes=None,
+            direct=True,
+            compress=True,
+            squeeze=False,
+        )
+    et = time.perf_counter()
+    print((et - st) / num / num_bin_all, num, num_bin_all)
 
     h_test = bbh(
         m1[:1],
@@ -1123,11 +1197,11 @@ def test_phenomhm(
 
 if __name__ == "__main__":
 
-    num_bin_all = 1000
+    num_bin_all = 20000
     length = 512
 
     m1 = np.full(num_bin_all, 4.000000e6)
-    m1[1:] += np.random.randn(num_bin_all - 1) * 100
+    # m1[1:] += np.random.randn(num_bin_all - 1) * 100
     m2 = np.full_like(m1, 1e6)
     chi1z = np.full_like(m1, 0.2)
     chi2z = np.full_like(m1, 0.2)

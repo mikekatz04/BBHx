@@ -3859,7 +3859,9 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
     cmplx r0, r1, r1Conj, tempLike1, tempLike2;
     double mag_r0, midFreq;
 
-    for (int binNum = threadIdx.x + blockDim.x * blockIdx.x; binNum < numBinAll; binNum += blockDim.x * gridDim.x)
+    int binNum = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (true) // for (int binNum = threadIdx.x + blockDim.x * blockIdx.x; binNum < numBinAll; binNum += blockDim.x * gridDim.x)
     {
         tempLike1 = 0.0;
         tempLike2 = 0.0;
@@ -3879,36 +3881,46 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
                     B1temp[jj] = dataConstants[(3 * nChannels + channel) * data_length + currentStart + jj];
 
                     dataFreqs[jj] = dataFreqsIn[currentStart + jj];
+
+                    //if ((jj + currentStart < 3) && (binNum == 0) & (channel == 0))
+                    //    printf("check %e %e, %e %e, %e %e, %e %e, %e \n", A0temp[jj], A1temp[jj], B0temp[jj], B1temp[jj], dataFreqs[jj]);
+
                 }
                 __syncthreads();
-                for (int jj = 0; jj < DATA_BLOCK2; jj += 1)
+                if (binNum < numBinAll)
                 {
-                    if ((jj + currentStart) >= data_length) continue;
-                    freq = dataFreqs[jj];
-                    trans_complex = templateChannels[((jj + currentStart) * nChannels + channel) * numBinAll + binNum];
-
-                    if ((prevFreq != 0.0) && (jj + currentStart > 0))
+                    for (int jj = 0; jj < DATA_BLOCK2; jj += 1)
                     {
-                        A0 = A0temp[jj]; // constants will need to be aligned with 1..n-1 because there are data_length - 1 bins
-                        A1 = A1temp[jj];
-                        B0 = B0temp[jj];
-                        B1 = B1temp[jj];
+                        if ((jj + currentStart) >= data_length) continue;
+                        freq = dataFreqs[jj];
+                        trans_complex = templateChannels[((jj + currentStart) * nChannels + channel) * numBinAll + binNum];
 
-                        r1 = (trans_complex - prev_trans_complex)/(freq - prevFreq);
-                        midFreq = (freq + prevFreq)/2.0;
+                        if ((prevFreq != 0.0) && (jj + currentStart > 0))
+                        {
+                            A0 = A0temp[jj]; // constants will need to be aligned with 1..n-1 because there are data_length - 1 bins
+                            A1 = A1temp[jj];
+                            B0 = B0temp[jj];
+                            B1 = B1temp[jj];
 
-                        r0 = trans_complex - r1 * (freq - midFreq);
+                            r1 = (trans_complex - prev_trans_complex)/(freq - prevFreq);
+                            midFreq = (freq + prevFreq)/2.0;
 
-                        r1Conj = gcmplx::conj(r1);
+                            r0 = trans_complex - r1 * (freq - midFreq);
 
-                        tempLike1 += A0 * gcmplx::conj(r0) + A1 * r1Conj;
+                            //if (((binNum == 767) || (binNum == 768)) & (channel == 0))
+                            //    printf("CHECK2: %d %d %d %e %e\n", jj + currentStart, binNum, jj, A0); // , %e %e, %e %e, %e %e, %e %e,  %e %e,  %e %e , %e\n", ind, binNum, jj + currentStart, A0, A1, B0, B1, freq, prevFreq, trans_complex, prev_trans_complex, midFreq);
 
-                        mag_r0 = gcmplx::abs(r0);
-                        tempLike2 += B0 * (mag_r0 * mag_r0) + 2. * B1 * gcmplx::real(r0 * r1Conj);
+                            r1Conj = gcmplx::conj(r1);
+
+                            tempLike1 += A0 * gcmplx::conj(r0) + A1 * r1Conj;
+
+                            mag_r0 = gcmplx::abs(r0);
+                            tempLike2 += B0 * (mag_r0 * mag_r0) + 2. * B1 * gcmplx::real(r0 * r1Conj);
+                        }
+
+                        prev_trans_complex = trans_complex;
+                        prevFreq = freq;
                     }
-
-                    prev_trans_complex = trans_complex;
-                    prevFreq = freq;
                 }
                 currentStart += DATA_BLOCK2;
             }
@@ -4078,6 +4090,81 @@ void InterpTDI(cmplx* templateChannels, cmplx* dataChannels, double* dataFreqs, 
 
     dim3 gridDim(nblocks3, numModes);
     TDI<<<gridDim, NUM_THREADS3>>>(templateChannels, dataChannels, dataFreqs, freqs, propArrays, c1, c2, c3, tBase, tRef_sampling_frame, tRef_wave_frame, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+}
+
+CUDA_KERNEL
+void fill_waveform(cmplx* channel1, cmplx* channel2, cmplx* channel3,
+                double* bbh_buffer,
+                int numBinAll, int data_length, int nChannels, int numModes)
+{
+
+    cmplx I(0.0, 1.0);
+
+    cmplx temp_channel1 = 0.0, temp_channel2 = 0.0, temp_channel3 = 0.0;
+    for (int binNum = threadIdx.x + blockDim.x * blockIdx.x; binNum < numBinAll; binNum += gridDim.x * blockDim.x)
+    {
+        for (int i = 0; i < data_length; i += 1)
+        {
+
+            temp_channel1 = 0.0 + 0.0 * I;
+            temp_channel2 = 0.0 + 0.0 * I;
+            temp_channel3 = 0.0 + 0.0 * I;
+
+            for (int mode_i = 0; mode_i < numModes; mode_i += 1)
+            {
+                int ind = ((0 * data_length + i) * numModes + mode_i) * numBinAll + binNum;
+                double amp = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double phase = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                //double phase_deriv = bb_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double transferL1_re = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double transferL1_im = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double transferL2_re = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double transferL2_im = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double transferL3_re = bbh_buffer[ind];
+
+                ind += data_length * numModes * numBinAll;
+                double transferL3_im = bbh_buffer[ind];
+
+                cmplx amp_phase = amp * gcmplx::exp(-I * phase);
+
+                temp_channel1 += amp * cmplx(transferL1_re, transferL1_im);
+                temp_channel2 += amp * cmplx(transferL2_re, transferL2_im);
+                temp_channel3 += amp * cmplx(transferL3_re, transferL3_im);
+
+            }
+
+            channel1[i * numBinAll + binNum] = temp_channel1;
+            channel2[i * numBinAll + binNum] = temp_channel2;
+            channel3[i * numBinAll + binNum] = temp_channel3;
+
+        }
+    }
+}
+
+void direct_sum(cmplx* channel1, cmplx* channel2, cmplx* channel3,
+                double* bbh_buffer,
+                int numBinAll, int data_length, int nChannels, int numModes)
+{
+
+    int nblocks5 = std::ceil((numBinAll + NUM_THREADS4 -1)/NUM_THREADS4);
+
+    fill_waveform<<<nblocks5, NUM_THREADS4>>>(channel1, channel2, channel3, bbh_buffer, numBinAll, data_length, nChannels, numModes);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 }

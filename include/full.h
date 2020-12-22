@@ -457,5 +457,9 @@ void hdyn(cmplx* likeOut1, cmplx* likeOut2,
                     double* dataFreqs,
                     int numBinAll, int data_length, int nChannels);
 
+void direct_sum(cmplx* channel1, cmplx* channel2, cmplx* channel3,
+                double* bbh_buffer,
+                int numBinAll, int data_length, int nChannels, int numModes);
+
 
 #endif // __GLOBAL_H__

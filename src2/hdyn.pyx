@@ -56,6 +56,10 @@ cdef extern from "full.h":
                         double* dataFreqs,
                         int numBinAll, int data_length, int nChannels);
 
+    void direct_sum(cmplx* channel1, cmplx* channel2, cmplx* channel3,
+                    double* bbh_buffer,
+                    int numBinAll, int data_length, int nChannels, int numModes);
+
 
 @pointer_adjust
 def waveform_amp_phase_wrap(
@@ -209,3 +213,17 @@ def hdyn_wrap(likeOut1, likeOut2,
             <cmplx*> templateChannels_in, <cmplx*> dataConstants_in,
             <double*> dataFreqs_in,
             numBinAll, data_length, nChannels);
+
+@pointer_adjust
+def direct_sum_wrap(channel1, channel2, channel3,
+                bbh_buffer,
+                numBinAll, data_length, nChannels, numModes):
+
+    cdef size_t channel1_in = channel1
+    cdef size_t channel2_in = channel2
+    cdef size_t channel3_in = channel3
+    cdef size_t bbh_buffer_in = bbh_buffer
+
+    direct_sum(<cmplx*> channel1_in, <cmplx*> channel2_in, <cmplx*> channel3_in,
+                    <double*> bbh_buffer_in,
+                    numBinAll, data_length, nChannels, numModes)

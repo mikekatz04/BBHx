@@ -194,7 +194,7 @@ class PhenomHMAmpPhase:
             self._initialize_freqs(m1, m2)
 
         else:
-            self.freqs = freqs
+            self.freqs = self.xp.tile(freqs, (self.num_bin_all, 1)).T.flatten()
 
         m1_SI = m1 * MSUN_SI
         m2_SI = m2 * MSUN_SI
@@ -671,14 +671,6 @@ class BBHWaveform:
         squeeze=True,
     ):
 
-        if freqs is None and length is None:
-            raise ValueError("Must input freqs or length.")
-
-        elif freqs is not None:
-            length = len(freqs)
-
-        self.length = length
-
         m1 = np.atleast_1d(m1)
         m2 = np.atleast_1d(m2)
         chi1z = np.atleast_1d(chi1z)
@@ -691,6 +683,16 @@ class BBHWaveform:
         psi = np.atleast_1d(psi)
         tRef_wave_frame = np.atleast_1d(tRef_wave_frame)
         tRef_sampling_frame = np.atleast_1d(tRef_sampling_frame)
+
+        self.num_bin_all = len(m1)
+
+        if freqs is None and length is None:
+            raise ValueError("Must input freqs or length.")
+
+        elif freqs is not None:
+            length = len(freqs)
+
+        self.length = length
 
         if modes is None:
             self.num_modes = len(self.amp_phase_gen.allowable_modes)
@@ -717,7 +719,7 @@ class BBHWaveform:
         )
 
         self.response_gen(
-            freqs,
+            self.amp_phase_gen.freqs,
             inc,
             lam,
             beta,
@@ -1033,19 +1035,19 @@ def test_phenomhm(
     m2 *= 1.001
 
     ll_res = relbin(
-        m1[:1],
-        m2[:1],
-        chi1z[:1],
-        chi2z[:1],
-        distance[:1],
-        phiRef[:1],
-        f_ref[:1],
-        inc[:1],
-        lam[:1],
-        beta[:1],
-        psi[:1],
-        tRef_wave_frame[:1],
-        tRef_sampling_frame[:1],
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        distance,
+        phiRef,
+        f_ref,
+        inc,
+        lam,
+        beta,
+        psi,
+        tRef_wave_frame,
+        tRef_sampling_frame,
         tBase=tBase,
         t_obs_start=t_obs_start,
         t_obs_end=t_obs_end,
@@ -1121,10 +1123,11 @@ def test_phenomhm(
 
 if __name__ == "__main__":
 
-    num_bin_all = 3
+    num_bin_all = 1000
     length = 512
 
-    m1 = np.array([4.000000e6])  # , 4.01e6, 4.0001e6])
+    m1 = np.full(num_bin_all, 4.000000e6)
+    m1[1:] += np.random.randn(num_bin_all - 1) * 100
     m2 = np.full_like(m1, 1e6)
     chi1z = np.full_like(m1, 0.2)
     chi2z = np.full_like(m1, 0.2)

@@ -503,6 +503,8 @@ class CubicSplineInterpolant:
         ninterps = num_modes * num_interp_params * num_bin_all
         self.degree = 3
 
+        self.length = length
+
         self.reshape_shape = (num_interp_params, length, num_modes, num_bin_all)
 
         B = self.xp.zeros((ninterps * length,))
@@ -524,7 +526,10 @@ class CubicSplineInterpolant:
             num_bin_all,
         )
 
+        # TODO: need to fix last point
         self.x = x
+
+        breakpoint()
 
     @property
     def y_shaped(self):
@@ -564,24 +569,19 @@ class TemplateInterp:
             self.use_buffers = False
 
     def _initialize_template_container(self):
-
         self.template_carrier = self.xp.zeros(
-            (self.data_length * self.num_bin_all * self.nChannels),
+            (self.num_bin_all * self.nChannels * self.data_length),
             dtype=self.xp.complex128,
         )
 
     @property
     def template_channels(self):
-        return self.xp.transpose(
-            self.template_carrier.reshape(
-                self.data_length, self.nChannels, self.num_bin_all
-            ),
-            axes=(1, 2, 0),
+        return self.template_carrier.reshape(
+            self.num_bin_all, self.nChannels, self.data_length
         )
 
     def __call__(
         self,
-        dataChannels,
         dataFreqs,
         interp_container,
         tBase,
@@ -606,13 +606,49 @@ class TemplateInterp:
 
         (freqs, y, c1, c2, c3) = interp_container
 
-        tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame)
-        tRef_wave_frame = self.xp.asarray(tRef_wave_frame)
+        freqs_shaped = freqs.reshape(self.num_bin_all, -1)
+
+        start_and_end = self.xp.asarray([freqs_shaped[:, 0], freqs_shaped[:, -1],]).T
+
+        inds_start_and_end = self.xp.asarray(
+            [
+                self.xp.searchsorted(dataFreqs, temp, side="right")
+                for temp in start_and_end
+            ]
+        )
+
+        inds = [
+            self.xp.searchsorted(
+                freqs_shaped[i], dataFreqs[st:et], side="right"
+            ).astype(self.xp.int32)
+            - 1
+            for i, (st, et) in enumerate(inds_start_and_end)
+        ]
+
+        lengths = np.asarray([len(inds_i) for inds_i in inds], dtype=self.xp.int32)
+
+        start_inds = inds_start_and_end[:, 0].get().copy()
+
+        ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
+
+        self.template_carrier = [
+            self.xp.zeros(int(self.nChannels * temp_length), dtype=self.xp.complex128,)
+            for temp_length in lengths
+        ]
+
+        template_carrier_ptrs = np.asarray(
+            [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
+        )
+
+        # tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame)
+        # tRef_wave_frame = self.xp.asarray(tRef_wave_frame)
+
+        dlog10f = 1.0
 
         InterpTDI_wrap(
-            self.template_carrier,
-            dataChannels,
+            template_carrier_ptrs,
             dataFreqs,
+            dlog10f,
             freqs,
             y,
             c1,
@@ -627,15 +663,24 @@ class TemplateInterp:
             self.num_modes,
             t_obs_start,
             t_obs_end,
+            ptrs,
+            start_inds,
+            lengths,
         )
+
+        breakpoint()
 
 
 class BBHWaveform:
-    def __init__(self, amp_phase_kwargs={}, response_kwargs={}, use_gpu=False):
+    def __init__(
+        self, amp_phase_kwargs={}, response_kwargs={}, interp_kwargs={}, use_gpu=False
+    ):
 
         self.response_gen = LISATDIResponse(**response_kwargs, use_gpu=use_gpu)
 
         self.amp_phase_gen = PhenomHMAmpPhase(**amp_phase_kwargs, use_gpu=use_gpu)
+
+        self.interp_tdi = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
 
         self.use_gpu = use_gpu
         if use_gpu:
@@ -689,8 +734,11 @@ class BBHWaveform:
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")
 
-        elif freqs is not None:
+        elif freqs is not None and direct is True:
             length = len(freqs)
+
+        elif direct is False:
+            self.data_length = len(freqs)
 
         self.length = length
 
@@ -705,6 +753,8 @@ class BBHWaveform:
             (self.num_interp_params * self.length * self.num_modes * self.num_bin_all)
         )
 
+        freqs_temp = freqs if direct else None
+
         self.amp_phase_gen(
             m1,
             m2,
@@ -714,7 +764,7 @@ class BBHWaveform:
             phiRef,
             f_ref,
             length,
-            freqs=freqs,
+            freqs=freqs_temp,
             out_buffer=out_buffer,
         )
 
@@ -763,15 +813,19 @@ class BBHWaveform:
 
             return out
         """
-        temp = self.xp.swapaxes(
-            out_buffer.reshape(
-                self.num_interp_params, self.num_bin_all, self.num_modes, self.length
-            ),
-            1,
-            3,
-        )
 
         if direct:
+            temp = self.xp.swapaxes(
+                out_buffer.reshape(
+                    self.num_interp_params,
+                    self.num_bin_all,
+                    self.num_modes,
+                    self.length,
+                ),
+                1,
+                3,
+            )
+
             amp = temp[0]
             phase = temp[1]
             phase_deriv = temp[2]
@@ -797,6 +851,35 @@ class BBHWaveform:
                 out = out.squeeze()
 
             return out
+
+        else:
+            spline = CubicSplineInterpolant(
+                self.amp_phase_gen.freqs,
+                out_buffer,
+                self.length,
+                self.num_interp_params,
+                self.num_modes,
+                self.num_bin_all,
+                use_gpu=use_gpu,
+            )
+
+            # TODO: need to determine start and end inds
+            # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
+
+            self.interp_tdi(
+                freqs,
+                spline.container,
+                tBase,
+                tRef_sampling_frame,
+                tRef_wave_frame,
+                self.length,
+                self.data_length,
+                self.num_modes,
+                t_obs_start,
+                t_obs_end,
+                3,
+            )
+            breakpoint()
 
 
 class RelativeBinning:
@@ -1031,9 +1114,9 @@ def test_phenomhm(
         t_obs_start=t_obs_start,
         t_obs_end=t_obs_end,
         freqs=f_n,
-        length=None,
+        length=1024,
         modes=None,
-        direct=True,
+        direct=False,
         compress=True,
     )
 

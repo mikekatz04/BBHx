@@ -32,12 +32,22 @@
 #include <stdbool.h>
 #include "full.h"
 
-#define  NUM_THREADS 128
+#include "cusparse_v2.h"
+
+#define  NUM_THREADS 256
 #define  NUM_THREADS2 64
 #define  NUM_THREADS3 128
 #define  NUM_THREADS4 256
 
-
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 /////////////////////////
 
@@ -3390,19 +3400,19 @@ void prep_splines(int i, int length, int interp_i, int ninterps, int num_interme
   double xval0, xval1, xval2, yval1;
 
   int numFreqarrs = int(ninterps / num_intermediates);
-  int freqArr_i = interp_i % numBinAll;
+  int freqArr_i = int(interp_i / num_intermediates);
 
   //if ((threadIdx.x == 10) && (blockIdx.x == 1)) printf("numFreqarrs %d %d %d %d %d\n", ninterps, interp_i, num_intermediates, numFreqarrs, freqArr_i);
   if (i == length - 1){
-    ind0y = (param * length + (length - 3)) * nsub + sub_i;
-    ind1y = (param * length + (length - 2)) * nsub + sub_i;
-    ind2y = (param * length + (length - 1)) * nsub + sub_i;
+    ind0y = (param * nsub + sub_i) * length + (length - 3);
+    ind1y = (param * nsub + sub_i) * length + (length - 2);
+    ind2y = (param * nsub + sub_i) * length + (length - 1);
 
-    ind0x = (length - 3) * numFreqarrs + freqArr_i;
-    ind1x = (length - 2) * numFreqarrs + freqArr_i;
-    ind2x = (length - 1) * numFreqarrs + freqArr_i;
+    ind0x = freqArr_i * length + (length - 3);
+    ind1x = freqArr_i * length + (length - 2);
+    ind2x = freqArr_i * length + (length - 1);
 
-    ind_out = (param * length + (length - 1)) * nsub + sub_i;
+    ind_out = (param * nsub + sub_i) * length + (length - 1);
 
     xval0 = x[ind0x];
     xval1 = x[ind1x];
@@ -3425,15 +3435,15 @@ void prep_splines(int i, int length, int interp_i, int ninterps, int num_interme
 
   } else if (i == 0){
 
-      ind0y = (param * length + 0) * nsub + sub_i;
-      ind1y = (param * length + 1) * nsub + sub_i;
-      ind2y = (param * length + 2) * nsub + sub_i;
+      ind0y = (param * nsub + sub_i) * length + 0;
+      ind1y = (param * nsub + sub_i) * length + 1;
+      ind2y = (param * nsub + sub_i) * length + 2;
 
-      ind0x = 0 * numFreqarrs + freqArr_i;
-      ind1x = 1 * numFreqarrs + freqArr_i;
-      ind2x = 2 * numFreqarrs + freqArr_i;
+      ind0x = freqArr_i * length + 0;
+      ind1x = freqArr_i * length + 1;
+      ind2x = freqArr_i * length + 2;
 
-      ind_out = (param * length + 0) * nsub + sub_i;
+      ind_out = (param * nsub + sub_i) * length + 0;
 
       xval0 = x[ind0x];
       xval1 = x[ind1x];
@@ -3458,15 +3468,15 @@ void prep_splines(int i, int length, int interp_i, int ninterps, int num_interme
 
   } else{
 
-      ind0y = (param * length + (i - 1)) * nsub + sub_i;
-      ind1y = (param * length + (i + 0)) * nsub + sub_i;
-      ind2y = (param * length + (i + 1)) * nsub + sub_i;
+      ind0y = (param * nsub + sub_i) * length + (i - 1);
+      ind1y = (param * nsub + sub_i) * length + (i + 0);
+      ind2y = (param * nsub + sub_i) * length + (i + 1);
 
-      ind0x = (i - 1) * numFreqarrs + freqArr_i;
-      ind1x = (i - 0) * numFreqarrs + freqArr_i;
-      ind2x = (i + 1) * numFreqarrs + freqArr_i;
+      ind0x = freqArr_i * length + (i - 1);
+      ind1x = freqArr_i * length + (i - 0);
+      ind2x = freqArr_i * length + (i + 1);
 
-      ind_out = (param * length + i) * nsub + sub_i;
+      ind_out = (param * nsub + sub_i) * length + i;
 
       xval0 = x[ind0x];
       xval1 = x[ind1x];
@@ -3500,9 +3510,9 @@ void fill_B(double *freqs_arr, double *y_all, double *B, double *upper_diag, dou
     int sub_i = 0;
     #ifdef __CUDACC__
 
-    int start1 = blockIdx.x*blockDim.x + threadIdx.x;
+    int start1 = blockIdx.x;
     int end1 = ninterps;
-    int diff1 = blockDim.x*gridDim.x;
+    int diff1 = gridDim.x;
 
     #else
 
@@ -3515,13 +3525,27 @@ void fill_B(double *freqs_arr, double *y_all, double *B, double *upper_diag, dou
          interp_i<end1; // 2 for re and im
          interp_i+= diff1){
 
+         #ifdef __CUDACC__
+
+         int start2 = threadIdx.x;
+         int end2 = length;
+         int diff2 = blockDim.x;
+
+         #else
+
+         int start2 = 0;
+         int end2 = length;
+         int diff2 = 1;
+
+         #endif
+
         param = int((double) interp_i/(numModes * numBinAll));
         nsub = numModes * numBinAll;
         sub_i = interp_i % (numModes * numBinAll);
 
-       for (int i = 0;
-            i < length;
-            i += 1){
+       for (int i = start2;
+            i < end2;
+            i += diff2){
 
             int lead_ind = interp_i*length;
             prep_splines(i, length, interp_i, ninterps, num_intermediates, B, upper_diag, diag, lower_diag, freqs_arr, y_all, numBinAll, param, nsub, sub_i);
@@ -3530,10 +3554,58 @@ void fill_B(double *freqs_arr, double *y_all, double *B, double *upper_diag, dou
 }
 }
 
-CUDA_KERNEL
-void interpolate_kern(double* a, double* b, double* c, double* d, int ninterps, int n, int numModes, int numBinAll, int nParams)
-{
+/*
+CuSparse error checking
+*/
+#define ERR_NE(X,Y) do { if ((X) != (Y)) { \
+                             fprintf(stderr,"Error in %s at %s:%d\n",__func__,__FILE__,__LINE__); \
+                             exit(-1);}} while(0)
 
+#define CUSPARSE_CALL(X) ERR_NE((X),CUSPARSE_STATUS_SUCCESS)
+
+void interpolate_kern(int m, int n, double *a, double *b, double *c, double *d_in)
+{
+        #ifdef __CUDACC__
+        size_t bufferSizeInBytes;
+
+        cusparseHandle_t handle;
+        void *pBuffer;
+
+        CUSPARSE_CALL(cusparseCreate(&handle));
+        CUSPARSE_CALL( cusparseDgtsv2StridedBatch_bufferSizeExt(handle, m, a, b, c, d_in, n, m, &bufferSizeInBytes));
+        gpuErrchk(cudaMalloc(&pBuffer, bufferSizeInBytes));
+
+        CUSPARSE_CALL(cusparseDgtsv2StridedBatch(handle,
+                                                  m,
+                                                  a, // dl
+                                                  b, //diag
+                                                  c, // du
+                                                  d_in,
+                                                  n,
+                                                  m,
+                                                  pBuffer));
+
+      CUSPARSE_CALL(cusparseDestroy(handle));
+      gpuErrchk(cudaFree(pBuffer));
+
+      #else
+
+    #ifdef __USE_OMP__
+    #pragma omp parallel for
+    #endif
+    for (int j = 0;
+         j < n;
+         j += 1){
+           //fit_constants_serial(m, n, w, a, b, c, d_in, x_in, j);
+           int info = LAPACKE_dgtsv(LAPACK_COL_MAJOR, m, 1, &a[j*m + 1], &b[j*m], &c[j*m], &d_in[j*m], m);
+           //if (info != m) printf("lapack info check: %d\n", info);
+
+       }
+
+      #endif
+
+
+    /*
     int interp_i = threadIdx.x + blockDim.x * blockIdx.x;
 
     int param = (int) (interp_i / (numModes * numBinAll));
@@ -3568,6 +3640,7 @@ void interpolate_kern(double* a, double* b, double* c, double* d, int ninterps, 
 
         }
     }
+    */
 }
 
 
@@ -3575,8 +3648,8 @@ CUDA_CALLABLE_MEMBER
 void fill_coefficients(int i, int length, int sub_i, int nsub, double *dydx, double dx, double *y, double *coeff1, double *coeff2, double *coeff3, int param){
   double slope, t, dydx_i;
 
-  int ind_i = (param * length + i) * nsub + sub_i;
-  int ind_ip1 = (param * length + (i + 1)) * nsub + sub_i;
+  int ind_i = (param * nsub + sub_i) * length + i;
+  int ind_ip1 = (param * nsub + sub_i) * length + (i + 1);
 
   slope = (y[ind_ip1] - y[ind_i])/dx;
 
@@ -3588,7 +3661,8 @@ void fill_coefficients(int i, int length, int sub_i, int nsub, double *dydx, dou
   coeff2[ind_i] = (slope - dydx_i) / dx - t;
   coeff3[ind_i] = t/dx;
 
-  //if ((param == 0) && (i < 20) && (sub_i ==0)) printf("fill check: %d %d %e  \n", sub_i, i, coeff1[ind_i]);
+  //if ((param == 1) && (i == length - 3) && (sub_i == 0)) printf("freq check: %d %d %d %d %d\n", i, dydx[ind_i], dydx[ind_ip1]);
+
 
 }
 
@@ -3598,9 +3672,9 @@ void set_spline_constants(double *f_arr, double* y, double *c1, double* c2, doub
 
     double df;
     #ifdef __CUDACC__
-    int start1 = blockIdx.x*blockDim.x + threadIdx.x;
+    int start1 = blockIdx.x;
     int end1 = ninterps;
-    int diff1 = blockDim.x*gridDim.x;
+    int diff1 = gridDim.x;
     #else
 
     int start1 = 0;
@@ -3614,18 +3688,29 @@ void set_spline_constants(double *f_arr, double* y, double *c1, double* c2, doub
          interp_i+= diff1){
 
      int numFreqarrs = int(ninterps / num_intermediates);
-     int freqArr_i = int(interp_i / numBinAll);
+     int freqArr_i = int(interp_i / num_intermediates);
 
      int param = (int) (interp_i / (numModes * numBinAll));
      int nsub = numBinAll * numModes;
      int sub_i = interp_i % (numModes * numBinAll);
 
-     for (int i = 0;
-            i < length - 1;
-            i += 1){
+     #ifdef __CUDACC__
+     int start2 = threadIdx.x;
+     int end2 = length - 1;
+     int diff2 = blockDim.x;
+     #else
+
+     int start2 = 0;
+     int end2 = length - 1;
+     int diff2 = 1;
+
+     #endif
+     for (int i = start2;
+            i < end2;
+            i += diff2){
 
                 // TODO: check if there is faster way to do this
-              df = f_arr[(i + 1) * numFreqarrs + freqArr_i] - f_arr[i * numFreqarrs + freqArr_i];
+              df = f_arr[freqArr_i * length + (i + 1)] - f_arr[freqArr_i * length + i];
 
               int lead_ind = interp_i*length;
               fill_coefficients(i, length, sub_i, nsub, B, df,
@@ -3683,11 +3768,19 @@ cmplx combine_information(cmplx ampphasefactor, double trans_complex_re, double 
 
 #define  NUM_TERMS 4
 
+#define  MAX_NUM_COEFF_TERMS 1000
+
 CUDA_KERNEL
-void TDI(cmplx* templateChannels, cmplx* dataChannelsIn, double* dataFreqsIn, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, double tBase, double* tRef_sampling_frame_in, double* tRef_wave_frame_in, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end)
+void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, double tBase, double tRef_sampling_frame, double tRef_wave_frame, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, int* inds, int ind_start, int ind_length, int bin_i)
 {
 
+    __shared__ double y[MAX_NUM_COEFF_TERMS];
+    __shared__ double c1[MAX_NUM_COEFF_TERMS];
+    __shared__ double c2[MAX_NUM_COEFF_TERMS];
+    __shared__ double c3[MAX_NUM_COEFF_TERMS];
+    __shared__ double freqs_shared[MAX_NUM_COEFF_TERMS];
 
+    int num_params = 9;
     int mode_i = blockIdx.y;
 
     int numAll = numBinAll * numModes * old_length;
@@ -3696,151 +3789,174 @@ void TDI(cmplx* templateChannels, cmplx* dataChannelsIn, double* dataFreqsIn, do
     double x, x2, x3, tempLike, addLike, time_check, phaseShift;
     cmplx trans_complex1, trans_complex2, trans_complex3, ampphasefactor;
 
-    __shared__ cmplx dataChannel1[DATA_BLOCK];
-    __shared__ cmplx dataChannel2[DATA_BLOCK];
-    __shared__ cmplx dataChannel3[DATA_BLOCK];
+    __shared__ int start_ind, end_ind;
 
-    __shared__ double dataFreqs[DATA_BLOCK];
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    __shared__ double yAll[NUM_THREADS3 * NUM_INTERPS];
-    __shared__ double c1All[NUM_THREADS3 * NUM_INTERPS];
-    __shared__ double c2All[NUM_THREADS3 * NUM_INTERPS];
-    __shared__ double c3All[NUM_THREADS3 * NUM_INTERPS];
+    bool run = true;
+    if (i >= ind_length) run = false;
 
-    double* y = &yAll[threadIdx.x * NUM_INTERPS];
-    double* c1 = &c1All[threadIdx.x * NUM_INTERPS];
-    double* c2 = &c2All[threadIdx.x * NUM_INTERPS];
-    double* c3 = &c3All[threadIdx.x * NUM_INTERPS];
+    __syncthreads();
 
-    double freq, minFreq, maxFreq, nextFreq, currentFreq, tRef_sampling_frame, tRef_wave_frame;
-    double t_break_start, t_break_end;
+    if (threadIdx.x == 0)
+    {
+        start_ind = inds[i];
+    }
+    int max_thread_num = (ind_length - blockDim.x*blockIdx.x > NUM_THREADS3) ? NUM_THREADS3 : ind_length - blockDim.x*blockIdx.x;
 
-    int oldInd = 0;
+    if (threadIdx.x == max_thread_num - 1)
+    {
+        end_ind = inds[i];
+    }
 
-    int currentStart = 0;
-    int i = 0;
+    __syncthreads();
 
-    int binNum = threadIdx.x + blockDim.x * blockIdx.x;
+    int num_windows = end_ind - start_ind + 1;
 
-    bool run_calc = false;
-    if (binNum < numBinAll) run_calc = true;
-        #pragma unroll
-        for (int prop_i = 0; prop_i < NUM_INTERPS; prop_i += 1)
+    int nsub = numModes * numBinAll;
+
+    //if (run) printf("%d %d %d %d %d %d %d %d\n", max_thread_num, threadIdx.x, blockDim.x, NUM_THREADS3, i, ind_length, start_ind, end_ind);
+
+    for (int j = threadIdx.x; j < num_windows; j += blockDim.x)
+    {
+        int window_i = j;
+
+        int old_ind = start_ind + window_i;
+
+        if ((old_ind < 0) || (old_ind >= old_length))
         {
-            y[prop_i] = propArrays[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-            c1[prop_i] = c1In[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-            c2[prop_i] = c2In[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-            c3[prop_i] = c3In[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
+            continue;
         }
 
-        currentStart = 0;
-        oldInd = 0;
-        tRef_sampling_frame = tRef_sampling_frame_in[binNum];
-        tRef_wave_frame = tRef_wave_frame_in[binNum];
-        t_break_start = tBase*YRSID_SI + tRef_sampling_frame - t_obs_start*YRSID_SI; // t0 and t_obs_start in years. tRef in seconds.
-        t_break_end = tBase*YRSID_SI + tRef_sampling_frame - t_obs_end*YRSID_SI;
-        minFreq = freqsOld[0 * numBinAll + binNum];
-        maxFreq = freqsOld[(old_length - 1) * numBinAll + binNum];
-        currentFreq = freqsOld[oldInd * numBinAll + binNum];
+        freqs_shared[window_i] = freqsOld[old_ind];
+    }
 
-        nextFreq = freqsOld[(oldInd + 1) * numBinAll + binNum];
-        //printf("start %d %d %d\n", binNum, currentStart, data_length);
-        while (currentStart < data_length)
+    __syncthreads();
+
+    for (int j = threadIdx.x; j < num_params * num_windows; j += blockDim.x)
+    {
+        int window_i = j % num_windows;
+        int param_i = (int) (j / num_windows);
+
+        int old_ind = start_ind + window_i;
+
+        if ((old_ind < 0) || (old_ind >= old_length))
         {
-            __syncthreads();
-            for (int jj = threadIdx.x; jj < DATA_BLOCK; jj += blockDim.x)
-            {
-
-                if ((currentStart + jj) >= data_length) continue;
-
-                dataChannel1[jj] = dataChannelsIn[currentStart + jj];
-                dataChannel2[jj] = dataChannelsIn[1 * data_length + currentStart + jj];
-                dataChannel3[jj] = dataChannelsIn[2 * data_length + currentStart + jj];
-                dataFreqs[jj] = dataFreqsIn[currentStart + jj];
-
-            }
-
-            __syncthreads();
-
-
-            for (int jj = 0; jj < DATA_BLOCK; jj += 1)
-            {
-                if (!run_calc) continue;
-                if ((currentStart + jj) >= data_length) continue;
-
-                //if (mode_i == 0) printf("middle %d %d %d %d, %e, %e\n", binNum, currentStart, jj, oldInd, dataFreqs[jj], currentFreq);
-                freq = dataFreqs[jj];
-
-                if (freq < minFreq) continue;
-                else if (freq > maxFreq) continue; // TODO: should this be break?
-
-                else if (freq > nextFreq)
-                {
-                    oldInd += 1;
-
-                    if (oldInd >= old_length - 1) continue;
-
-                    currentFreq = nextFreq;
-                    nextFreq = freqsOld[(oldInd + 1) * numBinAll + binNum];
-
-                    #pragma unroll
-                    for (int prop_i = 0; prop_i < NUM_INTERPS; prop_i += 1)
-                    {
-                        y[prop_i] = propArrays[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-                        c1[prop_i] = c1In[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-                        c2[prop_i] = c2In[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-                        c3[prop_i] = c3In[prop_i * numAll + (oldInd * numModes + mode_i) * numBinAll + binNum];
-
-                    }
-                }
-
-                x = freq - currentFreq;
-                x2 = x * x;
-                x3 = x2 * x;
-
-                // get values of spline
-                amp = y[0] + c1[0] * x + c2[0] * x2 + c3[0] * x3;
-                phase = y[1] + c1[1] * x + c2[1] * x2 + c3[1] * x3;
-                tfCorr = y[2] + c1[2] * x + c2[2] * x2 + c3[2] * x3;
-                transferL1_re = y[3] + c1[3] * x + c2[3] * x2 + c3[3] * x3;
-                transferL1_im = y[4] + c1[4] * x + c2[4] * x2 + c3[4] * x3;
-                transferL2_re = y[5] + c1[5] * x + c2[5] * x2 + c3[5] * x3;
-                transferL2_im = y[6] + c1[6] * x + c2[6] * x2 + c3[6] * x3;
-                transferL3_re = y[7] + c1[7] * x + c2[7] * x2 + c3[7] * x3;
-                transferL3_im = y[8] + c1[8] * x + c2[8] * x2 + c3[8] * x3;
-
-                if (tfCorr < t_break_start) {
-                    continue;
-                }
-
-                if ((t_obs_end > 0.0) && (time_check >= t_break_end)){
-                    continue;
-                }
-
-                if (amp < 1e-40){
-                    continue;
-                }
-
-                phaseShift = 2.0*PI*freq*(tBase + tRef_wave_frame); // tc is t0 and tShift if tRef_wave_frame
-                ampphasefactor = get_ampphasefactor(amp, phase, phaseShift); // TODO: check this, phaseRdelay is included in phase
-
-                trans_complex1 = combine_information(ampphasefactor, transferL1_re, transferL1_im); //TODO may be faster to load as complex number with 0.0 for \
-
-                trans_complex2 = combine_information(ampphasefactor, transferL2_re, transferL2_im); //TODO may be faster to load as complex number with 0.0 for
-
-                trans_complex3 = combine_information(ampphasefactor, transferL3_re, transferL3_im); //TODO may be faster to load as complex number with 0.0 for
-
-                atomicAddComplex(&templateChannels[((currentStart + jj) * 3 + 0) * numBinAll + binNum], trans_complex1);
-                atomicAddComplex(&templateChannels[((currentStart + jj) * 3 + 1) * numBinAll + binNum], trans_complex2);
-                atomicAddComplex(&templateChannels[((currentStart + jj) * 3 + 2) * numBinAll + binNum], trans_complex3);
-            }
-            __syncthreads();
-            currentStart += DATA_BLOCK;
+            continue;
         }
+
+        int ind = ((param_i * numBinAll + bin_i) * numModes + mode_i) * old_length + old_ind;
+        int ind_shared = window_i * num_params + param_i;
+
+        y[ind_shared] = propArrays[ind];
+        c1[ind_shared] = c1In[ind];
+        c2[ind_shared] = c2In[ind];
+        c3[ind_shared] = c3In[ind];
+
+        //if ((old_ind == 659) && (mode_i == 3)) printf("%d %d %d %d %d %d %d %e\n", ind, param_i, numBinAll, bin_i, numModes, mode_i, old_ind, y[ind_shared]);
+
+    }
+
+    __syncthreads();
+
+    if (run)
+    {
+        double f = dataFreqsIn[i + ind_start];
+
+        int ind_here = inds[i];
+
+        int window_i = ind_here - start_ind;
+
+        double f_old = freqs_shared[window_i];
+
+        double x = f - f_old;
+        double x2 = x * x;
+        double x3 = x * x2;
+
+        int int_shared = window_i * num_params + 0;
+        double amp = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 1;
+        double phase = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 2;
+        double tf = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 3;
+        double transferL1_re = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 4;
+        double transferL1_im = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 5;
+        double transferL2_re = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 6;
+        double transferL2_im = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 7;
+        double transferL3_re = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        int_shared = window_i * num_params + 8;
+        double transferL3_im = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
+
+        if (true) // ((tf < tRef_sampling_frame + tBase) && (amp > 1e-40))
+        {
+            cmplx amp_phase_term = amp*gcmplx::exp(cmplx(0.0, -phase));  // add phase shift
+
+            cmplx channel1 = gcmplx::conj(cmplx(transferL1_re, transferL1_im) * amp_phase_term);
+            cmplx channel2 = gcmplx::conj(cmplx(transferL2_re, transferL2_im) * amp_phase_term);
+            cmplx channel3 = gcmplx::conj(cmplx(transferL3_re, transferL3_im) * amp_phase_term);
+
+            atomicAddComplex(&templateChannels[0 * ind_length + i], channel1);
+            atomicAddComplex(&templateChannels[1 * ind_length + i], channel2);
+            atomicAddComplex(&templateChannels[2 * ind_length + i], channel3);
+            if ((i == 10) && (mode_i == 0)) printf("%d %d %d %d %e %e %e %e %e %e %e %e\n", i, window_i, ind_here, start_ind, f, f_old, x, amp, y[int_shared], c1[int_shared], c2[int_shared], c3[int_shared]);
+
+        }
+
+    }
+
+}
+
+
+void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double tBase, double* tRef_sampling_frame_in, double* tRef_wave_frame_in, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths)
+{
+
+    cudaStream_t streams[numBinAll];
+
+    #pragma omp parallel for
+    for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
+    {
+        int length_bin_i = ind_lengths[bin_i];
+        int ind_start = inds_start[bin_i];
+        int* inds = (int*) inds_ptrs[bin_i];
+
+        double tRef_sampling_frame = tRef_sampling_frame_in[bin_i];
+        double tRef_wave_frame = tRef_wave_frame_in[bin_i];
+
+        cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
+
+        int nblocks3 = std::ceil((length_bin_i + NUM_THREADS3 -1)/NUM_THREADS3);
+        cudaStreamCreate(&streams[bin_i]);
+
+        dim3 gridDim(nblocks3, numModes);
+        TDI<<<gridDim, NUM_THREADS3, 0, streams[bin_i]>>>(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, tBase, tRef_sampling_frame, tRef_wave_frame, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, inds, ind_start, length_bin_i, bin_i);
+
+    }
+
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+    #pragma omp parallel for
+    for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
+    {
+        //destroy the streams
+        cudaStreamDestroy(streams[bin_i]);
+    }
 }
 
 #define  DATA_BLOCK2 512
-
 CUDA_KERNEL
 void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
                     cmplx* templateChannels, cmplx* dataConstants,
@@ -3936,17 +4052,6 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
     }
 }
 
-
-
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess)
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
 
 
 
@@ -4089,12 +4194,7 @@ void interpolate(double* freqs, double* propArrays,
      gpuErrchk(cudaGetLastError());
 
      //printf("%d after fill b\n", jj);
-
-     interpolate_kern<<<nblocks, NUM_THREADS>>>(lower_diag, diag, upper_diag, B, ninterps, length, numModes, numBinAll, numInterpParams);
-      cudaDeviceSynchronize();
-      gpuErrchk(cudaGetLastError());
-
-     //printf("%d after interp b\n", jj);
+     interpolate_kern(length, ninterps, lower_diag, diag, upper_diag, B);
 
 
   set_spline_constants<<<nblocks, NUM_THREADS>>>(freqs, propArrays, c1, c2, c3, B,
@@ -4102,16 +4202,6 @@ void interpolate(double* freqs, double* propArrays,
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
     //printf("%d after set spline\n", jj);
-}
-
-void InterpTDI(cmplx* templateChannels, cmplx* dataChannels, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double tBase, double* tRef_sampling_frame, double* tRef_wave_frame, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end)
-{
-    int nblocks3 = std::ceil((numBinAll + NUM_THREADS3 -1)/NUM_THREADS3);
-
-    dim3 gridDim(nblocks3, numModes);
-    TDI<<<gridDim, NUM_THREADS3>>>(templateChannels, dataChannels, dataFreqs, freqs, propArrays, c1, c2, c3, tBase, tRef_sampling_frame, tRef_wave_frame, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end);
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());
 }
 
 CUDA_KERNEL
@@ -4202,7 +4292,7 @@ void hdyn(cmplx* likeOut1, cmplx* likeOut2,
     gpuErrchk(cudaGetLastError());
 }
 
-
+/*
 int main()
 {
 
@@ -4372,17 +4462,17 @@ int main()
 
         //printf("%d begin\n", jj);
         waveform_amp_phase(
-        amps, /**< [out] Frequency-domain waveform hx */
+        amps, ///**< [out] Frequency-domain waveform hx
         ells_in,
         mms_in,
-        freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-        m1_SI,                        /**< mass of companion 1 (kg) */
-        m2_SI,                        /**< mass of companion 2 (kg) */
-        chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
-        chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
-        distance,               /**< distance of source (m) */
-        phiRef,                 /**< reference orbital phase (rad) */
-        fRef,                        /**< Reference frequency */
+        freqs,               ///**< Frequency points at which to evaluate the waveform (Hz)
+        m1_SI,                       // /**< mass of companion 1 (kg)
+        m2_SI,                        ///**< mass of companion 2 (kg)
+        chi1z,                        ///**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1)
+        chi2z,                        ///**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1)
+        distance,               ///**< distance of source (m)
+        phiRef,                 ///**< reference orbital phase (rad)
+        fRef,                      //  /**< Reference frequency
         numModes,
         length,
         numBinAll
@@ -4393,9 +4483,9 @@ int main()
        response_out,
        ells_in,
        mms_in,
-       freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-       phiRef,                 /**< reference orbital phase (rad) */
-       fRef,                        /**< Reference frequency */
+       freqs,               ///**< Frequency points at which to evaluate the waveform (Hz)
+       phiRef,                // /**< reference orbital phase (rad)
+       fRef,                    //    /**< Reference frequency
        inc,
        lam,
        beta,
@@ -4432,7 +4522,7 @@ int main()
     return 0;
 }
 
-
+*/
 
 /*
 __device__

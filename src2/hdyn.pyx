@@ -49,7 +49,7 @@ cdef extern from "full.h":
                      double* B, double* upper_diag, double* diag, double* lower_diag,
                      int length, int numInterpParams, int numModes, int numBinAll);
 
-    void InterpTDI(cmplx* templateChannels, cmplx* dataChannels, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double tBase, double* tRef_sampling_frame, double* tRef_wave_frame, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end);
+    void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double tBase, double* tRef_sampling_frame, double* tRef_wave_frame, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths);
 
     void hdyn(cmplx* likeOut1, cmplx* likeOut2,
                         cmplx* templateChannels, cmplx* dataConstants,
@@ -181,20 +181,22 @@ def interpolate_wrap(freqs, propArrays,
               length, numInterpParams, numModes, numBinAll)
 
 @pointer_adjust
-def InterpTDI_wrap(templateChannels, dataChannels, dataFreqs, freqs, propArrays, c1, c2, c3, tBase, tRef_sampling_frame, tRef_wave_frame, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end):
+def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, tBase, tRef_sampling_frame, tRef_wave_frame, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, inds_ptrs, inds_start, ind_lengths):
 
     cdef size_t freqs_in = freqs
     cdef size_t propArrays_in = propArrays
-    cdef size_t templateChannels_in = templateChannels
-    cdef size_t dataChannels_in = dataChannels
+    cdef size_t templateChannels_ptrs_in = templateChannels_ptrs
     cdef size_t dataFreqs_in = dataFreqs
     cdef size_t c1_in = c1
     cdef size_t c2_in = c2
     cdef size_t c3_in = c3
     cdef size_t tRef_wave_frame_in = tRef_wave_frame
     cdef size_t tRef_sampling_frame_in = tRef_sampling_frame
+    cdef size_t inds_ptrs_in = inds_ptrs
+    cdef size_t inds_start_in = inds_start
+    cdef size_t ind_lengths_in = ind_lengths
 
-    InterpTDI(<cmplx*> templateChannels_in, <cmplx*> dataChannels_in, <double*> dataFreqs_in, <double*> freqs_in, <double*> propArrays_in, <double*> c1_in, <double*> c2_in, <double*> c3_in, tBase, <double*> tRef_sampling_frame_in, <double*> tRef_wave_frame_in, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end);
+    InterpTDI(<long*> templateChannels_ptrs_in, <double*> dataFreqs_in, dlog10f, <double*> freqs_in, <double*> propArrays_in, <double*> c1_in, <double*> c2_in, <double*> c3_in, tBase, <double*> tRef_sampling_frame_in, <double*> tRef_wave_frame_in, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, <long*> inds_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in);
 
 
 @pointer_adjust

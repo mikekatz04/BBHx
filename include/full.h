@@ -461,5 +461,7 @@ void direct_sum(cmplx* channel1, cmplx* channel2, cmplx* channel3,
                 double* bbh_buffer,
                 int numBinAll, int data_length, int nChannels, int numModes);
 
+void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll);
+
 
 #endif // __GLOBAL_H__

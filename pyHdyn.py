@@ -630,7 +630,7 @@ class TemplateInterp:
 
         self.start_inds = start_inds = inds_start_and_end[:, 0].get().copy()
 
-        ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
+        self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
 
         self.template_carrier = [
             self.xp.zeros(int(self.nChannels * temp_length), dtype=self.xp.complex128,)
@@ -893,7 +893,6 @@ class BBHWaveform:
             )
 
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
-
             template_channels = self.interp_tdi(
                 freqs,
                 spline.container,
@@ -924,6 +923,7 @@ class BBHWaveform:
                     template_channels,
                     self.interp_tdi.start_inds,
                     self.interp_tdi.lengths,
+                    self.interp_tdi.ptrs,
                 )
 
 
@@ -1135,11 +1135,21 @@ def test_phenomhm(
 
     f_n = xp.arange(1e-6, 1e-1 + df, df)
 
-    S_n = xp.asarray(get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"))
+    S_n = xp.asarray(
+        [
+            get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"),
+            get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"),
+            get_sensitivity(f_n.get(), sens_fn="noisepsd_T"),
+        ]
+    ).flatten()
 
     data_length = len(f_n)
 
-    d = bbh(
+    import time
+
+    st = time.perf_counter()
+
+    data = bbh(
         m1[:1],
         m2[:1],
         chi1z[:1],
@@ -1162,8 +1172,70 @@ def test_phenomhm(
         direct=False,
         compress=True,
         fill=True,
-    )
+    ).flatten()
 
+    num = 100
+
+    noise_weight_times_df = xp.sqrt(1 / S_n * df)
+    data_stream_length = len(f_n)
+
+    data *= noise_weight_times_df
+
+    numBinAll = 32
+    for _ in range(num):
+        d = bbh(
+            m1[:numBinAll],
+            m2[:numBinAll],
+            chi1z[:numBinAll],
+            chi2z[:numBinAll],
+            distance[:numBinAll],
+            phiRef[:numBinAll],
+            f_ref[:numBinAll],
+            inc[:numBinAll],
+            lam[:numBinAll],
+            beta[:numBinAll],
+            psi[:numBinAll],
+            tRef_wave_frame[:numBinAll],
+            tRef_sampling_frame[:numBinAll],
+            tBase=tBase,
+            t_obs_start=t_obs_start,
+            t_obs_end=t_obs_end,
+            freqs=f_n,
+            length=1024,
+            modes=None,
+            direct=False,
+            compress=True,
+            fill=False,
+        )
+
+        d_h = np.zeros(numBinAll)
+        h_h = np.zeros(numBinAll)
+
+        templateChannels = d[0]
+        inds_start = d[1]
+        ind_lengths = d[2]
+
+        templateChannels = [tc.flatten() for tc in templateChannels]
+
+        templateChannels_ptrs = np.asarray(
+            [tc.data.ptr for tc in templateChannels], dtype=np.int64
+        )
+
+        direct_like_wrap(
+            d_h,
+            h_h,
+            data,
+            noise_weight_times_df,
+            templateChannels_ptrs,
+            inds_start,
+            ind_lengths,
+            data_stream_length,
+            numBinAll,
+        )
+
+    et = time.perf_counter()
+
+    print((et - st) / num)
     breakpoint()
 
     m1 *= 1.00001
@@ -1333,7 +1405,7 @@ if __name__ == "__main__":
     num_bin_all = 20000
     length = 512
 
-    m1 = np.full(num_bin_all, 4.000000e6)
+    m1 = np.full(num_bin_all, 1.000000e6)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100
     m2 = np.full_like(m1, 1e6)
     chi1z = np.full_like(m1, 0.2)

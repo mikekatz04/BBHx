@@ -29,6 +29,9 @@
 #include "stdio.h"
 #include <random>
 
+#include "cuComplex.h"
+#include "cublas_v2.h"
+
 #include <stdbool.h>
 #include "full.h"
 
@@ -4297,6 +4300,92 @@ void hdyn(cmplx* likeOut1, cmplx* likeOut2,
     gpuErrchk(cudaGetLastError());
 }
 
+CUDA_KERNEL
+void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df, int ind_start, int length, int data_stream_length)
+{
+    for (int i = threadIdx.x + blockDim.x * blockIdx.x; i < length; i += gridDim.x * blockDim.x)
+    {
+        for (int j = 0; j < 3; j+= 1)
+        {
+            templateChannels[j * length + i] = templateChannels[j * length + i] * noise_weight_times_df[j * data_stream_length + ind_start + i];
+        }
+    }
+}
+
+#define NUM_THREADS_LIKE 256
+
+void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
+{
+
+    cudaStream_t streams[numBinAll];
+    cublasHandle_t handle;
+
+    cuDoubleComplex result_d_h[numBinAll];
+    cuDoubleComplex result_h_h[numBinAll];
+
+    cublasStatus_t stat = cublasCreate(&handle);
+    if (stat != CUBLAS_STATUS_SUCCESS)
+    {
+      printf ("CUBLAS initialization failed\n");
+      exit(0);
+    }
+
+    #pragma omp parallel for
+    for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
+    {
+        int length_bin_i = ind_lengths[bin_i];
+        int ind_start = inds_start[bin_i];
+
+        cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
+
+        int nblocks = std::ceil((length_bin_i + NUM_THREADS_LIKE -1)/NUM_THREADS_LIKE);
+        cudaStreamCreate(&streams[bin_i]);
+
+        noiseweight_template<<<nblocks, NUM_THREADS_LIKE, 0, streams[bin_i]>>>(templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length);
+        cudaStreamSynchronize(streams[bin_i]);
+
+        for (int j = 0; j < 3; j += 1)
+        {
+
+            cublasSetStream(handle, streams[bin_i]);
+            stat = cublasZdotc(handle, length_bin_i,
+                              (cuDoubleComplex*)&dataChannels[j * data_stream_length + ind_start], 1,
+                              (cuDoubleComplex*)&templateChannels[j * length_bin_i], 1,
+                              &result_d_h[bin_i]);
+            cudaStreamSynchronize(streams[bin_i]);
+            if (stat != CUBLAS_STATUS_SUCCESS)
+            {
+                exit(0);
+            }
+
+            d_h[bin_i] += 4.0 * cuCreal(result_d_h[bin_i]);
+
+            cublasSetStream(handle, streams[bin_i]);
+            stat = cublasZdotc(handle, length_bin_i,
+                              (cuDoubleComplex*)&templateChannels[j * length_bin_i], 1,
+                              (cuDoubleComplex*)&templateChannels[j * length_bin_i], 1,
+                              &result_h_h[bin_i]);
+            cudaStreamSynchronize(streams[bin_i]);
+            if (stat != CUBLAS_STATUS_SUCCESS)
+            {
+                exit(0);
+            }
+            h_h[bin_i] += 4.0 * cuCreal(result_h_h[bin_i]);
+
+        }
+    }
+
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+    #pragma omp parallel for
+    for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
+    {
+        //destroy the streams
+        cudaStreamDestroy(streams[bin_i]);
+    }
+    cublasDestroy(handle);
+}
 /*
 int main()
 {

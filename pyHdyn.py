@@ -529,8 +529,6 @@ class CubicSplineInterpolant:
         # TODO: need to fix last point
         self.x = x
 
-        breakpoint()
-
     @property
     def y_shaped(self):
         return self.xp.transpose(self.y.reshape(self.reshape_shape), axes=(0, 3, 2, 1))
@@ -576,17 +574,18 @@ class TemplateInterp:
 
     @property
     def template_channels(self):
-        return self.template_carrier.reshape(
-            self.num_bin_all, self.nChannels, self.data_length
-        )
+        return [
+            self.template_carrier[i].reshape(self.nChannels, self.lengths[i])
+            for i in range(self.num_bin_all)
+        ]
 
     def __call__(
         self,
         dataFreqs,
         interp_container,
-        tBase,
-        tRef_sampling_frame,
-        tRef_wave_frame,
+        t_mrg,
+        t_start,
+        t_end,
         length,
         data_length,
         num_modes,
@@ -595,14 +594,14 @@ class TemplateInterp:
         nChannels,
     ):
 
-        numBinAll = len(tRef_sampling_frame)
+        numBinAll = len(t_mrg)
         self.length = length
         self.num_modes = num_modes
         self.num_bin_all = numBinAll
         self.data_length = data_length
         self.nChannels = nChannels
 
-        self._initialize_template_container()
+        # self._initialize_template_container()
 
         (freqs, y, c1, c2, c3) = interp_container
 
@@ -625,9 +624,11 @@ class TemplateInterp:
             for i, (st, et) in enumerate(inds_start_and_end)
         ]
 
-        lengths = np.asarray([len(inds_i) for inds_i in inds], dtype=self.xp.int32)
+        self.lengths = lengths = np.asarray(
+            [len(inds_i) for inds_i in inds], dtype=self.xp.int32
+        )
 
-        start_inds = inds_start_and_end[:, 0].get().copy()
+        self.start_inds = start_inds = inds_start_and_end[:, 0].get().copy()
 
         ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
 
@@ -640,9 +641,6 @@ class TemplateInterp:
             [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
         )
 
-        # tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame)
-        # tRef_wave_frame = self.xp.asarray(tRef_wave_frame)
-
         dlog10f = 1.0
 
         InterpTDI_wrap(
@@ -654,9 +652,9 @@ class TemplateInterp:
             c1,
             c2,
             c3,
-            tBase,
-            tRef_sampling_frame,
-            tRef_wave_frame,
+            t_mrg,
+            t_start,
+            t_end,
             self.length,
             self.data_length,
             self.num_bin_all,
@@ -668,7 +666,7 @@ class TemplateInterp:
             lengths,
         )
 
-        breakpoint()
+        return self.template_channels
 
 
 class BBHWaveform:
@@ -714,7 +712,11 @@ class BBHWaveform:
         direct=True,
         compress=True,
         squeeze=True,
+        shift_t_limits=False,
+        fill=False,
     ):
+
+        # TODO: if t_obs_end = t_mrg
 
         m1 = np.atleast_1d(m1)
         m2 = np.atleast_1d(m2)
@@ -728,6 +730,20 @@ class BBHWaveform:
         psi = np.atleast_1d(psi)
         tRef_wave_frame = np.atleast_1d(tRef_wave_frame)
         tRef_sampling_frame = np.atleast_1d(tRef_sampling_frame)
+
+        t_mrg = tRef_sampling_frame + tBase * YRSID_SI
+
+        if shift_t_limits is False:
+            t_start = tRef_sampling_frame + tBase * YRSID_SI - t_obs_start * YRSID_SI
+            t_end = (
+                tRef_sampling_frame + tBase * YRSID_SI - t_obs_end * YRSID_SI
+                if t_obs_end > 0.0
+                else np.zeros_like(t_start)
+            )
+
+        else:
+            t_start = np.atleast_1d(t_obs_start)
+            t_end = np.atleast_1d(t_obs_end)
 
         self.num_bin_all = len(m1)
 
@@ -828,13 +844,23 @@ class BBHWaveform:
 
             amp = temp[0]
             phase = temp[1]
-            phase_deriv = temp[2]
+            tf = temp[2].get()
             transfer_L1 = temp[3] + 1j * temp[4]
             transfer_L2 = temp[5] + 1j * temp[6]
             transfer_L3 = temp[7] + 1j * temp[8]
 
             # TODO: check this combination
+            # TODO: produce combination as same in CUDA
             amp_phase = amp * self.xp.exp(-1j * phase)
+
+            if t_obs_end <= 0.0:
+                test = np.full_like(amp_phase.get(), True)
+
+            else:
+                test = np.full_like(amp_phase.get(), False)
+
+            temp2 = ((tf <= t_end[0]) + (test)).astype(bool)
+            inds = (tf >= t_start[0]) & temp2 & (amp.get() > 1e-40)
 
             out = self.xp.asarray(
                 [
@@ -843,6 +869,8 @@ class BBHWaveform:
                     amp_phase * transfer_L3,
                 ]
             )
+
+            out[:, ~inds] = 0.0
 
             if compress:
                 out = out.sum(axis=2)
@@ -853,6 +881,7 @@ class BBHWaveform:
             return out
 
         else:
+
             spline = CubicSplineInterpolant(
                 self.amp_phase_gen.freqs,
                 out_buffer,
@@ -863,15 +892,14 @@ class BBHWaveform:
                 use_gpu=use_gpu,
             )
 
-            # TODO: need to determine start and end inds
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
 
-            self.interp_tdi(
+            template_channels = self.interp_tdi(
                 freqs,
                 spline.container,
-                tBase,
-                tRef_sampling_frame,
-                tRef_wave_frame,
+                t_mrg,
+                t_start,
+                t_end,
                 self.length,
                 self.data_length,
                 self.num_modes,
@@ -879,7 +907,24 @@ class BBHWaveform:
                 t_obs_end,
                 3,
             )
-            breakpoint()
+
+            if fill:
+                data_out = self.xp.zeros((3, len(freqs)), dtype=self.xp.complex128)
+                for temp, start_i, length_i in zip(
+                    template_channels,
+                    self.interp_tdi.start_inds,
+                    self.interp_tdi.lengths,
+                ):
+                    data_out[:, start_i : start_i + length_i] = temp
+
+                return data_out
+            else:
+
+                return (
+                    template_channels,
+                    self.interp_tdi.start_inds,
+                    self.interp_tdi.lengths,
+                )
 
 
 class RelativeBinning:
@@ -1088,9 +1133,7 @@ def test_phenomhm(
 
     df = 1.0 / YRSID_SI
 
-    f_n = xp.arange(1e-3, 1e-1 + df * 100, df * 100)
-
-    df = f_n[1] - f_n[0]
+    f_n = xp.arange(1e-6, 1e-1 + df, df)
 
     S_n = xp.asarray(get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"))
 
@@ -1118,7 +1161,10 @@ def test_phenomhm(
         modes=None,
         direct=False,
         compress=True,
+        fill=True,
     )
+
+    breakpoint()
 
     m1 *= 1.00001
 

@@ -3926,6 +3926,85 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
 
 }
 
+CUDA_KERNEL
+void fill_waveform(cmplx* templateChannels,
+                double* bbh_buffer,
+                int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
+{
+
+    cmplx I(0.0, 1.0);
+
+    cmplx temp_channel1 = 0.0, temp_channel2 = 0.0, temp_channel3 = 0.0;
+    for (int bin_i = blockIdx.x; bin_i < numBinAll; bin_i += gridDim.x)
+    {
+
+        double t_start_bin = t_start[bin_i];
+        double t_end_bin = t_end[bin_i];
+
+        for (int i = threadIdx.x; i < data_length; i += blockDim.x)
+        {
+            cmplx temp_channel1 = 0.0, temp_channel2 = 0.0, temp_channel3 = 0.0;
+            for (int mode_i = 0; mode_i < numModes; mode_i += 1)
+            {
+
+                int ind = ((0 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double amp = bbh_buffer[ind];
+
+                ind = ((1 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double phase = bbh_buffer[ind];
+
+                ind = ((2 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double tf = bbh_buffer[ind];
+
+                ind = ((3 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double transferL1_re = bbh_buffer[ind];
+
+                ind = ((4 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double transferL1_im = bbh_buffer[ind];
+
+                ind = ((5 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double transferL2_re = bbh_buffer[ind];
+
+                ind = ((6 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double transferL2_im = bbh_buffer[ind];
+
+                ind = ((7 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double transferL3_re = bbh_buffer[ind];
+
+                ind = ((8 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
+                double transferL3_im = bbh_buffer[ind];
+
+                cmplx channel1 = 0.0 + 0.0 * I;
+                cmplx channel2 = 0.0 + 0.0 * I;
+                cmplx channel3 = 0.0 + 0.0 * I;
+
+                combine_information(&channel1, &channel2, &channel3, amp, phase, tf, cmplx(transferL1_re, transferL1_im), cmplx(transferL2_re, transferL2_im), cmplx(transferL3_re, transferL3_im), t_start_bin, t_end_bin);
+
+                temp_channel1 += channel1;
+                temp_channel2 += channel2;
+                temp_channel3 += channel3;
+            }
+
+            templateChannels[(bin_i * 3 + 0) * data_length + i] = temp_channel1;
+            templateChannels[(bin_i * 3 + 1) * data_length + i] = temp_channel2;
+            templateChannels[(bin_i * 3 + 2) * data_length + i] = temp_channel3;
+
+        }
+    }
+}
+
+void direct_sum(cmplx* templateChannels,
+                double* bbh_buffer,
+                int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
+{
+
+    int nblocks5 = numBinAll; // std::ceil((numBinAll + NUM_THREADS4 -1)/NUM_THREADS4);
+
+    fill_waveform<<<nblocks5, NUM_THREADS4>>>(templateChannels, bbh_buffer, numBinAll, data_length, nChannels, numModes, t_start, t_end);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+}
+
 
 void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_mrg_in, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths)
 {
@@ -4210,81 +4289,6 @@ void interpolate(double* freqs, double* propArrays,
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
     //printf("%d after set spline\n", jj);
-}
-
-CUDA_KERNEL
-void fill_waveform(cmplx* channel1, cmplx* channel2, cmplx* channel3,
-                double* bbh_buffer,
-                int numBinAll, int data_length, int nChannels, int numModes)
-{
-
-    cmplx I(0.0, 1.0);
-
-    cmplx temp_channel1 = 0.0, temp_channel2 = 0.0, temp_channel3 = 0.0;
-    for (int binNum = threadIdx.x + blockDim.x * blockIdx.x; binNum < numBinAll; binNum += gridDim.x * blockDim.x)
-    {
-        for (int i = 0; i < data_length; i += 1)
-        {
-
-            temp_channel1 = 0.0 + 0.0 * I;
-            temp_channel2 = 0.0 + 0.0 * I;
-            temp_channel3 = 0.0 + 0.0 * I;
-
-            for (int mode_i = 0; mode_i < numModes; mode_i += 1)
-            {
-                int ind = ((0 * data_length + i) * numModes + mode_i) * numBinAll + binNum;
-                double amp = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double phase = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                //double phase_deriv = bb_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double transferL1_re = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double transferL1_im = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double transferL2_re = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double transferL2_im = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double transferL3_re = bbh_buffer[ind];
-
-                ind += data_length * numModes * numBinAll;
-                double transferL3_im = bbh_buffer[ind];
-
-                cmplx amp_phase = amp * gcmplx::exp(-I * phase);
-
-                temp_channel1 += amp * cmplx(transferL1_re, transferL1_im);
-                temp_channel2 += amp * cmplx(transferL2_re, transferL2_im);
-                temp_channel3 += amp * cmplx(transferL3_re, transferL3_im);
-
-            }
-
-            channel1[i * numBinAll + binNum] = temp_channel1;
-            channel2[i * numBinAll + binNum] = temp_channel2;
-            channel3[i * numBinAll + binNum] = temp_channel3;
-
-        }
-    }
-}
-
-void direct_sum(cmplx* channel1, cmplx* channel2, cmplx* channel3,
-                double* bbh_buffer,
-                int numBinAll, int data_length, int nChannels, int numModes)
-{
-
-    int nblocks5 = std::ceil((numBinAll + NUM_THREADS4 -1)/NUM_THREADS4);
-
-    fill_waveform<<<nblocks5, NUM_THREADS4>>>(channel1, channel2, channel3, bbh_buffer, numBinAll, data_length, nChannels, numModes);
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());
 }
 
 void hdyn(cmplx* likeOut1, cmplx* likeOut2,

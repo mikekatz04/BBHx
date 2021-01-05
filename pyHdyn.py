@@ -375,8 +375,8 @@ class LISATDIResponse:
             self.xp = xp
 
         if modes is not None:
-            ells = self.xp.asarray([ell for ell, mm in modes])
-            mms = ells = self.xp.asarray([mm for ell, mm in modes])
+            ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
+            mms = ells = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
 
             self._sanity_check_modes(ells, mms)
 
@@ -800,35 +800,31 @@ class BBHWaveform:
             out_buffer=out_buffer,
         )
 
-        """
         if direct and compress:
 
-            channel1 = self.xp.zeros(
-                (self.length * self.num_bin_all), dtype=self.xp.complex128
+            templateChannels = self.xp.zeros(
+                (self.num_bin_all * 3 * self.length), dtype=self.xp.complex128
             )
-            channel2 = self.xp.zeros_like(channel1)
-            channel3 = self.xp.zeros_like(channel1)
 
             direct_sum_wrap(
-                channel1,
-                channel2,
-                channel3,
+                templateChannels,
                 out_buffer,
                 self.num_bin_all,
                 self.length,
                 3,
                 self.num_modes,
+                self.xp.asarray(t_start),
+                self.xp.asarray(t_end),
             )
 
-            out = xp.asarray([channel1, channel2, channel3]).reshape(
-                3, self.length, self.num_bin_all
+            out = templateChannels.reshape(self.num_bin_all, 3, self.length).transpose(
+                (1, 2, 0)
             )
 
             if squeeze:
                 out = out.squeeze()
 
             return out
-        """
 
         if direct:
             temp = self.xp.swapaxes(
@@ -844,7 +840,7 @@ class BBHWaveform:
 
             amp = temp[0]
             phase = temp[1]
-            tf = temp[2].get()
+            # tf = temp[2].get()
             transfer_L1 = temp[3] + 1j * temp[4]
             transfer_L2 = temp[5] + 1j * temp[6]
             transfer_L3 = temp[7] + 1j * temp[8]
@@ -853,14 +849,14 @@ class BBHWaveform:
             # TODO: produce combination as same in CUDA
             amp_phase = amp * self.xp.exp(-1j * phase)
 
-            if t_obs_end <= 0.0:
-                test = np.full_like(amp_phase.get(), True)
+            # if t_obs_end <= 0.0:
+            #    test = np.full_like(amp_phase.get(), True)
 
-            else:
-                test = np.full_like(amp_phase.get(), False)
+            # else:
+            #    test = np.full_like(amp_phase.get(), False)
 
-            temp2 = ((tf <= t_end[0]) + (test)).astype(bool)
-            inds = (tf >= t_start[0]) & temp2 & (amp.get() > 1e-40)
+            # temp2 = ((tf <= t_end[0]) + (test)).astype(bool)
+            # inds = (tf >= t_start[0]) & temp2 & (amp.get() > 1e-40)
 
             out = self.xp.asarray(
                 [
@@ -870,7 +866,7 @@ class BBHWaveform:
                 ]
             )
 
-            out[:, ~inds] = 0.0
+            # out[:, ~inds] = 0.0
 
             if compress:
                 out = out.sum(axis=2)
@@ -1176,6 +1172,7 @@ def test_phenomhm(
 
     num = 100
 
+    """
     noise_weight_times_df = xp.sqrt(1 / S_n * df)
     data_stream_length = len(f_n)
 
@@ -1236,8 +1233,9 @@ def test_phenomhm(
     et = time.perf_counter()
 
     print((et - st) / num)
-    breakpoint()
 
+    """
+    d = data.reshape(3, -1)
     m1 *= 1.00001
 
     template_gen_args = (
@@ -1308,7 +1306,7 @@ def test_phenomhm(
     import time
 
     st = time.perf_counter()
-    num = 2
+    num = 5000
 
     for _ in range(num):
         ll_res = relbin(
@@ -1338,6 +1336,7 @@ def test_phenomhm(
     et = time.perf_counter()
     print((et - st) / num / num_bin_all, num, num_bin_all)
 
+    breakpoint()
     h_test = bbh(
         m1[:1],
         m2[:1],
@@ -1402,10 +1401,10 @@ def test_phenomhm(
 
 if __name__ == "__main__":
 
-    num_bin_all = 20000
-    length = 512
+    num_bin_all = 10000
+    length = 256
 
-    m1 = np.full(num_bin_all, 1.000000e6)
+    m1 = np.full(num_bin_all, 4.000000e6)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100
     m2 = np.full_like(m1, 1e6)
     chi1z = np.full_like(m1, 0.2)

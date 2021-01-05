@@ -56,9 +56,9 @@ cdef extern from "full.h":
                         double* dataFreqs,
                         int numBinAll, int data_length, int nChannels);
 
-    void direct_sum(cmplx* channel1, cmplx* channel2, cmplx* channel3,
+    void direct_sum(cmplx* templateChannels,
                     double* bbh_buffer,
-                    int numBinAll, int data_length, int nChannels, int numModes);
+                    int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
 
     void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll);
 
@@ -220,18 +220,19 @@ def hdyn_wrap(likeOut1, likeOut2,
             numBinAll, data_length, nChannels);
 
 @pointer_adjust
-def direct_sum_wrap(channel1, channel2, channel3,
+def direct_sum_wrap(templateChannels,
                 bbh_buffer,
-                numBinAll, data_length, nChannels, numModes):
+                numBinAll, data_length, nChannels, numModes, t_start, t_end):
 
-    cdef size_t channel1_in = channel1
-    cdef size_t channel2_in = channel2
-    cdef size_t channel3_in = channel3
+    cdef size_t templateChannels_in = templateChannels
     cdef size_t bbh_buffer_in = bbh_buffer
+    cdef size_t t_start_in = t_start
+    cdef size_t t_end_in = t_end
 
-    direct_sum(<cmplx*> channel1_in, <cmplx*> channel2_in, <cmplx*> channel3_in,
+    direct_sum(<cmplx*> templateChannels_in,
                     <double*> bbh_buffer_in,
-                    numBinAll, data_length, nChannels, numModes)
+                    numBinAll, data_length, nChannels, numModes, <double*> t_start_in, <double*> t_end_in)
+
 
 @pointer_adjust
 def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll):

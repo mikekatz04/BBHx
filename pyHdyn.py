@@ -919,8 +919,62 @@ class BBHWaveform:
                     template_channels,
                     self.interp_tdi.start_inds,
                     self.interp_tdi.lengths,
-                    self.interp_tdi.ptrs,
                 )
+
+
+class Likelihood:
+    def __init__(
+        self, waveform_model, dataFreqs, dataChannels, noiseFactors, use_gpu=False
+    ):
+
+        self.use_gpu = use_gpu
+
+        if use_gpu:
+            self.xp = xp
+
+        else:
+            self.xp = np
+
+        self.dataFreqs = dataFreqs
+        self.dataChannels = dataChannels.flatten()
+        self.noiseFactors = noiseFactors.flatten()
+        self.waveform_gen = waveform_model
+        self.data_stream_length = len(dataFreqs)
+
+        # assumes dataChannels is already factored by noiseFactors
+        self.d_d = (
+            4 * self.xp.sum((self.dataChannels.conj() * self.dataChannels)).real
+        ).item()
+
+    def __call__(self, params, **waveform_kwargs):
+
+        templateChannels, inds_start, ind_lengths = self.waveform_gen(
+            *params, **waveform_kwargs
+        )
+
+        templateChannels = [tc.flatten() for tc in templateChannels]
+
+        templateChannels_ptrs = np.asarray(
+            [tc.data.ptr for tc in templateChannels], dtype=np.int64
+        )
+
+        d_h = np.zeros(self.waveform_gen.num_bin_all)
+        h_h = np.zeros(self.waveform_gen.num_bin_all)
+
+        direct_like_wrap(
+            d_h,
+            h_h,
+            self.dataChannels,
+            self.noiseFactors,
+            templateChannels_ptrs,
+            inds_start,
+            ind_lengths,
+            self.data_stream_length,
+            self.waveform_gen.num_bin_all,
+        )
+
+        breakpoint()
+        return 1 / 2 * (self.d_d + h_h - 2 * d_h)
 
 
 class RelativeBinning:
@@ -961,6 +1015,16 @@ class RelativeBinning:
 
         h0 = self.template_gen(
             *template_gen_args, freqs=self.f_dense, **template_gen_kwargs
+        )
+
+        h0_temp = self.template_gen(
+            *template_gen_args, freqs=freqs, **template_gen_kwargs
+        )[0]
+
+        freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
+
+        freqs = xp.logspace(
+            xp.log10(freqs_keep[0]), np.log10(freqs_keep[-1]), self.length_f_rel
         )
 
         self.h0_short = self.template_gen(
@@ -1073,6 +1137,7 @@ class RelativeBinning:
         )
 
         templates_in = r.transpose((1, 0, 2)).flatten()
+
         hdyn_wrap(
             self.hdyn_d_h,
             self.hdyn_h_h,
@@ -1137,7 +1202,7 @@ def test_phenomhm(
             get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"),
             get_sensitivity(f_n.get(), sens_fn="noisepsd_T"),
         ]
-    ).flatten()
+    )
 
     data_length = len(f_n)
 
@@ -1168,32 +1233,36 @@ def test_phenomhm(
         direct=False,
         compress=True,
         fill=True,
-    ).flatten()
+    )
 
     num = 100
 
-    """
     noise_weight_times_df = xp.sqrt(1 / S_n * df)
     data_stream_length = len(f_n)
 
     data *= noise_weight_times_df
 
+    like = Likelihood(bbh, f_n, data, noise_weight_times_df, use_gpu=True)
+
     numBinAll = 32
+
     for _ in range(num):
-        d = bbh(
-            m1[:numBinAll],
-            m2[:numBinAll],
-            chi1z[:numBinAll],
-            chi2z[:numBinAll],
-            distance[:numBinAll],
-            phiRef[:numBinAll],
-            f_ref[:numBinAll],
-            inc[:numBinAll],
-            lam[:numBinAll],
-            beta[:numBinAll],
-            psi[:numBinAll],
-            tRef_wave_frame[:numBinAll],
-            tRef_sampling_frame[:numBinAll],
+        ll = like(
+            [
+                m1[:numBinAll],
+                m2[:numBinAll],
+                chi1z[:numBinAll],
+                chi2z[:numBinAll],
+                distance[:numBinAll],
+                phiRef[:numBinAll],
+                f_ref[:numBinAll],
+                inc[:numBinAll],
+                lam[:numBinAll],
+                beta[:numBinAll],
+                psi[:numBinAll],
+                tRef_wave_frame[:numBinAll],
+                tRef_sampling_frame[:numBinAll],
+            ],
             tBase=tBase,
             t_obs_start=t_obs_start,
             t_obs_end=t_obs_end,
@@ -1205,36 +1274,11 @@ def test_phenomhm(
             fill=False,
         )
 
-        d_h = np.zeros(numBinAll)
-        h_h = np.zeros(numBinAll)
-
-        templateChannels = d[0]
-        inds_start = d[1]
-        ind_lengths = d[2]
-
-        templateChannels = [tc.flatten() for tc in templateChannels]
-
-        templateChannels_ptrs = np.asarray(
-            [tc.data.ptr for tc in templateChannels], dtype=np.int64
-        )
-
-        direct_like_wrap(
-            d_h,
-            h_h,
-            data,
-            noise_weight_times_df,
-            templateChannels_ptrs,
-            inds_start,
-            ind_lengths,
-            data_stream_length,
-            numBinAll,
-        )
-
     et = time.perf_counter()
 
     print((et - st) / num)
 
-    """
+    breakpoint()
     d = data.reshape(3, -1)
     m1 *= 1.00001
 
@@ -1306,7 +1350,7 @@ def test_phenomhm(
     import time
 
     st = time.perf_counter()
-    num = 5000
+    num = 100
 
     for _ in range(num):
         ll_res = relbin(

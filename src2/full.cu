@@ -3887,6 +3887,8 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         int int_shared = window_i * num_params + 0;
         double amp = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
 
+        //if ((bin_i < 2) && (mode_i == 0) && (i == 1000)) printf("%d %d %e\n", bin_i, ind_start, f);
+
         int_shared = window_i * num_params + 1;
         double phase = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
 

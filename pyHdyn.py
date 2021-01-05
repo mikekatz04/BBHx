@@ -505,7 +505,7 @@ class CubicSplineInterpolant:
 
         self.length = length
 
-        self.reshape_shape = (num_interp_params, length, num_modes, num_bin_all)
+        self.reshape_shape = (num_interp_params, num_bin_all, num_modes, length)
 
         B = self.xp.zeros((ninterps * length,))
         self.c1 = upper_diag = self.xp.zeros_like(B)
@@ -531,19 +531,19 @@ class CubicSplineInterpolant:
 
     @property
     def y_shaped(self):
-        return self.xp.transpose(self.y.reshape(self.reshape_shape), axes=(0, 3, 2, 1))
+        return self.y.reshape(self.reshape_shape)
 
     @property
     def c1_shaped(self):
-        return self.xp.transpose(self.c1.reshape(self.reshape_shape), axes=(0, 3, 2, 1))
+        return self.c1.reshape(self.reshape_shape)
 
     @property
     def c2_shaped(self):
-        return self.xp.transpose(self.c2.reshape(self.reshape_shape), axes=(0, 3, 2, 1))
+        return self.c2.reshape(self.reshape_shape)
 
     @property
     def c3_shaped(self):
-        return self.xp.transpose(self.c3.reshape(self.reshape_shape), axes=(0, 3, 2, 1))
+        return self.c3.reshape(self.reshape_shape)
 
     @property
     def container(self):
@@ -628,7 +628,9 @@ class TemplateInterp:
             [len(inds_i) for inds_i in inds], dtype=self.xp.int32
         )
 
-        self.start_inds = start_inds = inds_start_and_end[:, 0].get().copy()
+        self.start_inds = start_inds = (inds_start_and_end[:, 0].get().copy()).astype(
+            np.int32
+        )
 
         self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
 
@@ -961,6 +963,7 @@ class Likelihood:
         d_h = np.zeros(self.waveform_gen.num_bin_all)
         h_h = np.zeros(self.waveform_gen.num_bin_all)
 
+        # TODO: if filling multiple signals into stream, need to adjust this for that in terms of inds start / ind_lengths
         direct_like_wrap(
             d_h,
             h_h,
@@ -973,7 +976,6 @@ class Likelihood:
             self.waveform_gen.num_bin_all,
         )
 
-        breakpoint()
         return 1 / 2 * (self.d_d + h_h - 2 * d_h)
 
 
@@ -1088,7 +1090,7 @@ class RelativeBinning:
         self.freqs = freqs
         self.f_m = f_m
 
-    def __call__(self, *params, **waveform_kwargs):
+    def __call__(self, params, **waveform_kwargs):
 
         waveform_kwargs["direct"] = True
         waveform_kwargs["compress"] = True
@@ -1240,9 +1242,9 @@ def test_phenomhm(
     noise_weight_times_df = xp.sqrt(1 / S_n * df)
     data_stream_length = len(f_n)
 
-    data *= noise_weight_times_df
+    data_scaled = data * noise_weight_times_df
 
-    like = Likelihood(bbh, f_n, data, noise_weight_times_df, use_gpu=True)
+    like = Likelihood(bbh, f_n, data_scaled, noise_weight_times_df, use_gpu=True)
 
     numBinAll = 32
 
@@ -1276,9 +1278,8 @@ def test_phenomhm(
 
     et = time.perf_counter()
 
-    print((et - st) / num)
+    print((et - st) / num / numBinAll)
 
-    breakpoint()
     d = data.reshape(3, -1)
     m1 *= 1.00001
 
@@ -1320,33 +1321,6 @@ def test_phenomhm(
 
     d_d = relbin.base_d_d
 
-    h0 = bbh(
-        m1[:1],
-        m2[:1],
-        chi1z[:1],
-        chi2z[:1],
-        distance[:1],
-        phiRef[:1],
-        f_ref[:1],
-        inc[:1],
-        lam[:1],
-        beta[:1],
-        psi[:1],
-        tRef_wave_frame[:1],
-        tRef_sampling_frame[:1],
-        tBase=tBase,
-        t_obs_start=t_obs_start,
-        t_obs_end=t_obs_end,
-        freqs=f_n,
-        length=None,
-        modes=None,
-        direct=True,
-        compress=True,
-    )
-
-    m1 *= 1.0001
-    m2 *= 1.001
-
     import time
 
     st = time.perf_counter()
@@ -1354,19 +1328,21 @@ def test_phenomhm(
 
     for _ in range(num):
         ll_res = relbin(
-            m1,
-            m2,
-            chi1z,
-            chi2z,
-            distance,
-            phiRef,
-            f_ref,
-            inc,
-            lam,
-            beta,
-            psi,
-            tRef_wave_frame,
-            tRef_sampling_frame,
+            [
+                m1,
+                m2,
+                chi1z,
+                chi2z,
+                distance,
+                phiRef,
+                f_ref,
+                inc,
+                lam,
+                beta,
+                psi,
+                tRef_wave_frame,
+                tRef_sampling_frame,
+            ],
             tBase=tBase,
             t_obs_start=t_obs_start,
             t_obs_end=t_obs_end,
@@ -1380,37 +1356,6 @@ def test_phenomhm(
     et = time.perf_counter()
     print((et - st) / num / num_bin_all, num, num_bin_all)
 
-    breakpoint()
-    h_test = bbh(
-        m1[:1],
-        m2[:1],
-        chi1z[:1],
-        chi2z[:1],
-        distance[:1],
-        phiRef[:1],
-        f_ref[:1],
-        inc[:1],
-        lam[:1],
-        beta[:1],
-        psi[:1],
-        tRef_wave_frame[:1],
-        tRef_sampling_frame[:1],
-        tBase=tBase,
-        t_obs_start=t_obs_start,
-        t_obs_end=t_obs_end,
-        freqs=f_n,
-        length=None,
-        modes=None,
-        direct=True,
-        compress=True,
-        squeeze=True,
-    )
-
-    d_h_test = xp.sum(4 * (h_test.conj() * d) / S_n * df).real
-
-    h_h_test = xp.sum(4 * (h_test.conj() * h_test) / S_n * df).real
-
-    ll_test = 1 / 2 * (d_d + h_h_test - 2 * d_h_test)
     breakpoint()
 
     """
@@ -1445,7 +1390,7 @@ def test_phenomhm(
 
 if __name__ == "__main__":
 
-    num_bin_all = 10000
+    num_bin_all = 100
     length = 256
 
     m1 = np.full(num_bin_all, 4.000000e6)

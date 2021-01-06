@@ -257,6 +257,9 @@ if run_cuda_install:
         gpu_extension["extra_compile_args"]["nvcc"].remove("-D__USE_OMP__")
         gpu_extension["extra_compile_args"]["gcc"].remove("-D__USE_OMP__")
 
+    pyPhenomHM_ext = Extension(
+        "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
+    )
     pyHdynBBH_ext = Extension(
         "pyHdynBBH", sources=["src2/full.cu", "src2/hdyn.pyx"], **gpu_extension
     )
@@ -368,7 +371,7 @@ cpu_extensions.append(Extension(extension_name, **temp_dict))
 """
 
 if run_cuda_install:
-    extensions = [pyHdynBBH_ext]
+    extensions = [pyHdynBBH_ext, pyPhenomHM_ext]
 
 setup(
     name="hdyn",

@@ -62,6 +62,23 @@ cdef extern from "full.h":
 
     void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll);
 
+cdef extern from "PhenomHM.hh":
+    void waveform_amp_phase(
+        double* waveformOut,
+        int* ells_in,
+        int* mms_in,
+        double* freqs,
+        double* m1_SI,
+        double* m2_SI,
+        double* chi1z,
+        double* chi2z,
+        double* distance,
+        double* phiRef,
+        double* f_ref,
+        int numModes,
+        int length,
+        int numBinAll
+    );
 
 @pointer_adjust
 def waveform_amp_phase_wrap(

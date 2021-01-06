@@ -158,7 +158,8 @@ class PhenomHMAmpPhase:
     ):
 
         if modes is not None:
-            ells, mms = self.xp.asarray([[ell, mm] for ell, mm in modes]).T
+            ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
+            mms = ells = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
 
             self._sanity_check_modes(ells, mms)
 
@@ -784,6 +785,7 @@ class BBHWaveform:
             length,
             freqs=freqs_temp,
             out_buffer=out_buffer,
+            modes=modes,
         )
 
         self.response_gen(
@@ -800,6 +802,7 @@ class BBHWaveform:
             length,
             includes_amps=True,
             out_buffer=out_buffer,
+            modes=modes,
         )
 
         if direct and compress:
@@ -1151,7 +1154,7 @@ class RelativeBinning:
             3,
         )
 
-        like = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h)
+        like = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
 
         return like
 
@@ -1176,8 +1179,8 @@ def test_phenomhm(
     t_obs_end,
 ):
 
-    m1_test = m1 * 1.00003
-    m1_temp = m1 * 1.00001
+    m1_test = m1 * 1.00001
+    m1_temp = m1 * 1.00003
     nChannels = 3
     data_length = 2 ** 15
 
@@ -1201,6 +1204,8 @@ def test_phenomhm(
 
     f_n = xp.arange(1e-6, 1e-1 + df, df)
 
+    modes = [(2, 2)]
+
     S_n = xp.asarray(
         [
             get_sensitivity(f_n.get(), sens_fn="noisepsd_AE"),
@@ -1212,8 +1217,6 @@ def test_phenomhm(
     data_length = len(f_n)
 
     import time
-
-    st = time.perf_counter()
 
     data = bbh(
         m1[:1],
@@ -1234,7 +1237,7 @@ def test_phenomhm(
         t_obs_end=t_obs_end,
         freqs=f_n,
         length=1024,
-        modes=None,
+        modes=modes,
         direct=False,
         compress=True,
         fill=True,
@@ -1251,6 +1254,7 @@ def test_phenomhm(
 
     numBinAll = 32
 
+    st = time.perf_counter()
     for _ in range(num):
         ll = like(
             [
@@ -1273,7 +1277,7 @@ def test_phenomhm(
             t_obs_end=t_obs_end,
             freqs=f_n,
             length=1024,
-            modes=None,
+            modes=modes,
             direct=False,
             compress=True,
             fill=False,
@@ -1304,7 +1308,7 @@ def test_phenomhm(
         t_obs_end=t_obs_end,
         freqs=f_n,
         length=1024,
-        modes=None,
+        modes=modes,
         direct=False,
         compress=True,
         fill=False,
@@ -1333,7 +1337,7 @@ def test_phenomhm(
         t_obs_start=t_obs_start,
         t_obs_end=t_obs_end,
         length=None,
-        modes=None,
+        modes=modes,
         direct=True,
         compress=True,
     )
@@ -1377,7 +1381,7 @@ def test_phenomhm(
             t_obs_end=t_obs_end,
             freqs=None,
             length=None,
-            modes=None,
+            modes=modes,
             direct=True,
             compress=True,
             squeeze=False,
@@ -1420,7 +1424,7 @@ def test_phenomhm(
 if __name__ == "__main__":
 
     num_bin_all = 10000
-    length = 64
+    length = 512
 
     m1 = np.full(num_bin_all, 4.000000e6)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100

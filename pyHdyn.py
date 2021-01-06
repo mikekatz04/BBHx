@@ -72,7 +72,6 @@ class PhenomHMAmpPhase:
         self.Mf_max = 0.6
 
     def _sanity_check_modes(self, ells, mms):
-
         for (ell, mm) in zip(ells, mms):
             if (ell, mm) not in self.allowable_modes:
                 raise ValueError(
@@ -159,7 +158,7 @@ class PhenomHMAmpPhase:
 
         if modes is not None:
             ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
-            mms = ells = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
+            mms = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
 
             self._sanity_check_modes(ells, mms)
 
@@ -377,7 +376,7 @@ class LISATDIResponse:
 
         if modes is not None:
             ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
-            mms = ells = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
+            mms = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
 
             self._sanity_check_modes(ells, mms)
 
@@ -1199,7 +1198,7 @@ def test_phenomhm(
 
     f_n = xp.arange(1e-6, 1e-1 + df, df)
 
-    modes = [(2, 2), (3, 3)]
+    modes = None  # [(2, 5), (3, 3)]
 
     S_n = xp.asarray(
         [
@@ -1239,7 +1238,7 @@ def test_phenomhm(
     )
 
     num = 100
-    breakpoint()
+
     noise_weight_times_df = xp.sqrt(1 / S_n * df)
     data_stream_length = len(f_n)
 
@@ -1271,7 +1270,7 @@ def test_phenomhm(
             t_obs_start=t_obs_start,
             t_obs_end=t_obs_end,
             freqs=f_n,
-            length=2048,
+            length=4096,
             modes=modes,
             direct=False,
             compress=True,
@@ -1302,7 +1301,7 @@ def test_phenomhm(
         t_obs_start=t_obs_start,
         t_obs_end=t_obs_end,
         freqs=f_n,
-        length=1024,
+        length=4096,
         modes=modes,
         direct=False,
         compress=True,
@@ -1392,9 +1391,9 @@ if __name__ == "__main__":
     num_bin_all = 10000
     length = 512
 
-    m1 = np.full(num_bin_all, 4.000000e6)
+    m1 = np.full(num_bin_all, 1.000000e5)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100
-    m2 = np.full_like(m1, 1e6)
+    m2 = np.full_like(m1, 9e4)
     chi1z = np.full_like(m1, 0.2)
     chi2z = np.full_like(m1, 0.2)
     distance = np.full_like(m1, 10e9 * PC_SI)

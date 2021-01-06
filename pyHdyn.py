@@ -1189,9 +1189,6 @@ def test_phenomhm(
     amp_phase_kwargs = dict()
     response_kwargs = dict(max_init_len=-1, TDItag="AET", order_fresnel_stencil=0)
 
-    phenomhm = PhenomHMAmpPhase(use_gpu=use_gpu, **amp_phase_kwargs)
-    response = LISATDIResponse(use_gpu=use_gpu, **response_kwargs)
-
     bbh = BBHWaveform(
         response_kwargs=response_kwargs,
         amp_phase_kwargs=amp_phase_kwargs,
@@ -1234,15 +1231,15 @@ def test_phenomhm(
         t_obs_start=t_obs_start,
         t_obs_end=t_obs_end,
         freqs=f_n,
-        length=1024,
+        length=2048,
         modes=modes,
         direct=False,
         compress=True,
         fill=True,
     )
 
-    num = 1
-
+    num = 100
+    breakpoint()
     noise_weight_times_df = xp.sqrt(1 / S_n * df)
     data_stream_length = len(f_n)
 
@@ -1274,7 +1271,7 @@ def test_phenomhm(
             t_obs_start=t_obs_start,
             t_obs_end=t_obs_end,
             freqs=f_n,
-            length=1024,
+            length=2048,
             modes=modes,
             direct=False,
             compress=True,

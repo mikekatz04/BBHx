@@ -39,7 +39,7 @@
 
 #define  NUM_THREADS 256
 #define  NUM_THREADS2 64
-#define  NUM_THREADS3 128
+#define  NUM_THREADS3 256
 #define  NUM_THREADS4 256
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -3781,12 +3781,84 @@ cmplx combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, dou
 
 #define  NUM_TERMS 4
 
-#define  MAX_NUM_COEFF_TERMS 1000
+#define  MAX_NUM_COEFF_TERMS 1200
 
 CUDA_KERNEL
 void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, double t_mrg, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, int* inds, int ind_start, int ind_length, int bin_i)
 {
 
+    int num_params = 9;
+    //int mode_i = blockIdx.y;
+
+    int numAll = numBinAll * numModes * old_length;
+
+    double tempLike, addLike, time_check, phaseShift;
+    cmplx trans_complex1, trans_complex2, trans_complex3, ampphasefactor;
+
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i >= ind_length) return;
+
+    double f = dataFreqsIn[i + ind_start];
+
+    int ind_here = inds[i];
+
+    double f_old = freqsOld[ind_here];
+
+    double x = f - f_old;
+    double x2 = x * x;
+    double x3 = x * x2;
+
+    trans_complex1 = 0.0; trans_complex2 = 0.0; trans_complex3 = 0.0;
+
+    for (int mode_i = 0; mode_i < numModes; mode_i += 1)
+    {
+        int int_shared = ((0 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double amp = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        //if ((i == 100) || (i == 101)) printf("%d %d %d %e %e %e %e %e %e\n", window_i, mode_i, i, amp, f, f_old, y[int_shared], c1[int_shared], c2[int_shared]);
+
+        int_shared = ((1 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double phase = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((2 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double tf = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((3 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double transferL1_re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((4 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double transferL1_im = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((5 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double transferL2_re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((6 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double transferL2_im = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((7 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double transferL3_re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        int_shared = ((8 * numBinAll + bin_i) * numModes + mode_i) * old_length + ind_here;
+        double transferL3_im = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+        cmplx channel1(0.0, 0.0);
+        cmplx channel2(0.0, 0.0);
+        cmplx channel3(0.0, 0.0);
+
+        combine_information(&channel1, &channel2, &channel3, amp, phase, tf, cmplx(transferL1_re, transferL1_im), cmplx(transferL2_re, transferL2_im), cmplx(transferL3_re, transferL3_im), t_obs_start, t_obs_end);
+
+        trans_complex1 += channel1;
+        trans_complex2 += channel2;
+        trans_complex3 += channel3;
+    }
+
+    atomicAddComplex(&templateChannels[0 * ind_length + i], trans_complex1);
+    atomicAddComplex(&templateChannels[1 * ind_length + i], trans_complex2);
+    atomicAddComplex(&templateChannels[2 * ind_length + i], trans_complex3);
+
+
+    /*
     __shared__ double y[MAX_NUM_COEFF_TERMS];
     __shared__ double c1[MAX_NUM_COEFF_TERMS];
     __shared__ double c2[MAX_NUM_COEFF_TERMS];
@@ -3842,6 +3914,8 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         }
 
         freqs_shared[window_i] = freqsOld[old_ind];
+
+        //if ((blockIdx.x == 0) && (blockIdx.y == 0)) printf("%d %d %e %e\n", old_ind, window_i, freqs_shared[window_i], freqsOld[old_ind]);
     }
 
     __syncthreads();
@@ -3866,6 +3940,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         c2[ind_shared] = c2In[ind];
         c3[ind_shared] = c3In[ind];
 
+        if (ind_shared > MAX_NUM_COEFF_TERMS) printf("BAD %d %d\n", ind_shared, window_i);
     }
 
     __syncthreads();
@@ -3887,7 +3962,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         int int_shared = window_i * num_params + 0;
         double amp = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
 
-        //if ((bin_i < 2) && (mode_i == 0) && (i == 1000)) printf("%d %d %e\n", bin_i, ind_start, f);
+        //if ((i == 100) || (i == 101)) printf("%d %d %d %e %e %e %e %e %e\n", window_i, mode_i, i, amp, f, f_old, y[int_shared], c1[int_shared], c2[int_shared]);
 
         int_shared = window_i * num_params + 1;
         double phase = y[int_shared] + c1[int_shared] * x + c2[int_shared] * x2 + c3[int_shared] * x3;
@@ -3922,10 +3997,9 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         atomicAddComplex(&templateChannels[0 * ind_length + i], channel1);
         atomicAddComplex(&templateChannels[1 * ind_length + i], channel2);
         atomicAddComplex(&templateChannels[2 * ind_length + i], channel3);
-        //if ((mode_i == 0)) printf("%d %e %e %e %.18e\n", i, tRef_sampling_frame, tBase * YRSID_SI, tRef_sampling_frame + tBase * YRSID_SI, tf, start_ind, f, f_old, x, amp, y[int_shared], c1[int_shared], c2[int_shared], c3[int_shared]);
 
     }
-
+    */
 }
 
 CUDA_KERNEL
@@ -4029,7 +4103,7 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
         int nblocks3 = std::ceil((length_bin_i + NUM_THREADS3 -1)/NUM_THREADS3);
         cudaStreamCreate(&streams[bin_i]);
 
-        dim3 gridDim(nblocks3, numModes);
+        dim3 gridDim(nblocks3, 1);
         TDI<<<gridDim, NUM_THREADS3, 0, streams[bin_i]>>>(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
 
     }

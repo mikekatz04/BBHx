@@ -1184,8 +1184,6 @@ def test_phenomhm(
     nChannels = 3
     data_length = 2 ** 15
 
-    num_interp_params = 9
-    num_modes = 6
     num_bin_all = len(m1)
 
     amp_phase_kwargs = dict()
@@ -1204,7 +1202,7 @@ def test_phenomhm(
 
     f_n = xp.arange(1e-6, 1e-1 + df, df)
 
-    modes = [(2, 2)]
+    modes = [(2, 2), (3, 3)]
 
     S_n = xp.asarray(
         [
@@ -1390,35 +1388,6 @@ def test_phenomhm(
     print((et - st) / num / num_bin_all, num, num_bin_all)
 
     breakpoint()
-
-    """
-    spline = CubicSplineInterpolant(
-        freqs,
-        out_buffer,
-        length,
-        num_interp_params,
-        num_modes,
-        num_bin_all,
-        use_gpu=use_gpu,
-    )
-
-    template_gen = TemplateInterp(max_init_len=-1, use_gpu=use_gpu)
-
-    template_gen(
-        dataChannels,
-        dataFreqs,
-        spline.container,
-        tBase,
-        tRef_sampling_frame,
-        tRef_wave_frame,
-        length,
-        data_length,
-        num_modes,
-        t_obs_start,
-        t_obs_end,
-        nChannels,
-    )
-    """
 
 
 if __name__ == "__main__":

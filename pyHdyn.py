@@ -1152,6 +1152,7 @@ class RelativeBinning:
         )
 
         like = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h)
+
         return like
 
 
@@ -1175,6 +1176,8 @@ def test_phenomhm(
     t_obs_end,
 ):
 
+    m1_test = m1 * 1.00003
+    m1_temp = m1 * 1.00001
     nChannels = 3
     data_length = 2 ** 15
 
@@ -1237,7 +1240,7 @@ def test_phenomhm(
         fill=True,
     )
 
-    num = 100
+    num = 1
 
     noise_weight_times_df = xp.sqrt(1 / S_n * df)
     data_stream_length = len(f_n)
@@ -1251,7 +1254,7 @@ def test_phenomhm(
     for _ in range(num):
         ll = like(
             [
-                m1[:numBinAll],
+                m1_test[:numBinAll],
                 m2[:numBinAll],
                 chi1z[:numBinAll],
                 chi2z[:numBinAll],
@@ -1280,11 +1283,37 @@ def test_phenomhm(
 
     print((et - st) / num / numBinAll)
 
+    ll_template = like(
+        [
+            m1_temp[:1],
+            m2[:1],
+            chi1z[:1],
+            chi2z[:1],
+            distance[:1],
+            phiRef[:1],
+            f_ref[:1],
+            inc[:1],
+            lam[:1],
+            beta[:1],
+            psi[:1],
+            tRef_wave_frame[:1],
+            tRef_sampling_frame[:1],
+        ],
+        tBase=tBase,
+        t_obs_start=t_obs_start,
+        t_obs_end=t_obs_end,
+        freqs=f_n,
+        length=1024,
+        modes=None,
+        direct=False,
+        compress=True,
+        fill=False,
+    )
+
     d = data.reshape(3, -1)
-    m1 *= 1.00001
 
     template_gen_args = (
-        m1[:1],
+        m1_temp[:1],
         m2[:1],
         chi1z[:1],
         chi2z[:1],
@@ -1329,7 +1358,7 @@ def test_phenomhm(
     for _ in range(num):
         ll_res = relbin(
             [
-                m1,
+                m1_test,
                 m2,
                 chi1z,
                 chi2z,
@@ -1390,8 +1419,8 @@ def test_phenomhm(
 
 if __name__ == "__main__":
 
-    num_bin_all = 100
-    length = 256
+    num_bin_all = 10000
+    length = 64
 
     m1 = np.full(num_bin_all, 4.000000e6)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100

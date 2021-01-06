@@ -4136,8 +4136,11 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
                 currentStart += DATA_BLOCK2;
             }
         }
-        likeOut1[binNum] = tempLike1;
-        likeOut2[binNum] = tempLike2;
+        if (binNum < numBinAll)
+        {
+            likeOut1[binNum] = tempLike1;
+            likeOut2[binNum] = tempLike2;
+        }
     }
 }
 

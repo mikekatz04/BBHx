@@ -413,7 +413,7 @@ if run_cuda_install:
     ]
 
 setup(
-    name="hdyn",
+    name="bbhx",
     author="Michael Katz",
     author_email="mikekatz04@gmail.com",
     ext_modules=extensions,

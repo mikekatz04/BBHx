@@ -263,6 +263,11 @@ if run_cuda_install:
     pyResponse_ext = Extension(
         "pyResponse", sources=["src/Response.cu", "src/response.pyx"], **gpu_extension
     )
+    pyInterpolate_ext = Extension(
+        "pyInterpolate",
+        sources=["src/Interpolate.cu", "src/interpolate.pyx"],
+        **gpu_extension
+    )
     pyHdynBBH_ext = Extension(
         "pyHdynBBH", sources=["src2/full.cu", "src2/hdyn.pyx"], **gpu_extension
     )
@@ -392,7 +397,7 @@ with open(fp_out_name, "w") as fp_out:
 
 
 if run_cuda_install:
-    extensions = [pyHdynBBH_ext, pyPhenomHM_ext, pyResponse_ext]
+    extensions = [pyHdynBBH_ext, pyPhenomHM_ext, pyResponse_ext, pyInterpolate_ext]
 
 setup(
     name="hdyn",

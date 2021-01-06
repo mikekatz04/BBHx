@@ -8,10 +8,6 @@ assert sizeof(int) == sizeof(np.int32_t)
 cdef extern from "full.h":
     ctypedef void* cmplx 'cmplx'
 
-    void interpolate(double* freqs, double* propArrays,
-                     double* B, double* upper_diag, double* diag, double* lower_diag,
-                     int length, int numInterpParams, int numModes, int numBinAll);
-
     void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_mrg, double* t_start, double* t_end, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths);
 
     void hdyn(cmplx* likeOut1, cmplx* likeOut2,
@@ -24,22 +20,6 @@ cdef extern from "full.h":
                     int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
 
     void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll);
-
-@pointer_adjust
-def interpolate_wrap(freqs, propArrays,
-                     B, upper_diag, diag, lower_diag,
-                     length, numInterpParams, numModes, numBinAll):
-
-    cdef size_t freqs_in = freqs
-    cdef size_t propArrays_in = propArrays
-    cdef size_t B_in = B
-    cdef size_t upper_diag_in = upper_diag
-    cdef size_t diag_in = diag
-    cdef size_t lower_diag_in = lower_diag
-
-    interpolate(<double*>freqs_in, <double*>propArrays_in,
-              <double*>B_in, <double*>upper_diag_in, <double*>diag_in, <double*>lower_diag_in,
-              length, numInterpParams, numModes, numBinAll)
 
 @pointer_adjust
 def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, t_start, t_end, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, inds_ptrs, inds_start, ind_lengths):

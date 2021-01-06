@@ -369,6 +369,24 @@ temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
 
 cpu_extensions.append(Extension(extension_name, **temp_dict))
 """
+fp_out_name = "bbhx/utils/constants.py"
+fp_in_name = "include/constants.h"
+
+# develop few.utils.constants.py
+with open(fp_out_name, "w") as fp_out:
+    with open(fp_in_name, "r") as fp_in:
+        lines = fp_in.readlines()
+        for line in lines:
+            if len(line.split()) == 3:
+                if line.split()[0] == "#define":
+                    try:
+                        _ = float(line.split()[2])
+                        string_out = line.split()[1] + " = " + line.split()[2] + "\n"
+                        fp_out.write(string_out)
+
+                    except (ValueError) as e:
+                        continue
+
 
 if run_cuda_install:
     extensions = [pyHdynBBH_ext, pyPhenomHM_ext]
@@ -378,7 +396,7 @@ setup(
     author="Michael Katz",
     author_email="mikekatz04@gmail.com",
     ext_modules=extensions,
-    packages=["phenomhm", "phenomhm.utils"],
+    packages=["bbhx", "bbhx.utils"],
     # Inject our custom trigger
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped

@@ -260,6 +260,9 @@ if run_cuda_install:
     pyPhenomHM_ext = Extension(
         "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
     )
+    pyResponse_ext = Extension(
+        "pyResponse", sources=["src/Response.cu", "src/response.pyx"], **gpu_extension
+    )
     pyHdynBBH_ext = Extension(
         "pyHdynBBH", sources=["src2/full.cu", "src2/hdyn.pyx"], **gpu_extension
     )
@@ -389,14 +392,14 @@ with open(fp_out_name, "w") as fp_out:
 
 
 if run_cuda_install:
-    extensions = [pyHdynBBH_ext, pyPhenomHM_ext]
+    extensions = [pyHdynBBH_ext, pyPhenomHM_ext, pyResponse_ext]
 
 setup(
     name="hdyn",
     author="Michael Katz",
     author_email="mikekatz04@gmail.com",
     ext_modules=extensions,
-    packages=["bbhx", "bbhx.utils"],
+    packages=["bbhx", "bbhx.utils", "bbhx.waveforms", "bbhx.response"],
     # Inject our custom trigger
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped

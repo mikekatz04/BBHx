@@ -273,8 +273,10 @@ if run_cuda_install:
         sources=["src/WaveformBuild.cu", "src/waveformbuild.pyx"],
         **gpu_extension
     )
-    pyHdynBBH_ext = Extension(
-        "pyHdynBBH", sources=["src2/full.cu", "src2/hdyn.pyx"], **gpu_extension
+    pyLikelihood_ext = Extension(
+        "pyLikelihood",
+        sources=["src/Likelihood.cu", "src/likelihood.pyx"],
+        **gpu_extension
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
@@ -403,11 +405,11 @@ with open(fp_out_name, "w") as fp_out:
 
 if run_cuda_install:
     extensions = [
-        pyHdynBBH_ext,
         pyPhenomHM_ext,
         pyResponse_ext,
         pyInterpolate_ext,
         pyWaveformBuild_ext,
+        pyLikelihood_ext,
     ]
 
 setup(

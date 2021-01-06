@@ -1389,7 +1389,7 @@ def test_phenomhm(
 if __name__ == "__main__":
 
     num_bin_all = 10000
-    length = 512
+    length = 256
 
     m1 = np.full(num_bin_all, 1.000000e5)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100

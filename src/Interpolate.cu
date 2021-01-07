@@ -12,8 +12,8 @@ void prep_splines(int i, int length, int interp_i, int ninterps, int num_interme
 
   double xval0, xval1, xval2, yval1;
 
-  int numFreqarrs = int(ninterps / num_intermediates);
-  int freqArr_i = int(interp_i / num_intermediates);
+  //int numFreqarrs = int(ninterps / num_intermediates);
+  int freqArr_i = int(sub_i / num_intermediates);
 
   //if ((threadIdx.x == 10) && (blockIdx.x == 1)) printf("numFreqarrs %d %d %d %d %d\n", ninterps, interp_i, num_intermediates, numFreqarrs, freqArr_i);
   if (i == length - 1){
@@ -110,6 +110,7 @@ void prep_splines(int i, int length, int interp_i, int ninterps, int num_interme
     ld[ind_out] = dx2;
   }
 
+  //if ((param < 3) && (i == 10) && ((sub_i == 0) || (sub_i == 6))) printf("%d %d %d %e %e %e %e\n", param, sub_i, freqArr_i, b[ind_out], xval1, xval2, yval1);
 }
 
 
@@ -300,12 +301,14 @@ void set_spline_constants(double *f_arr, double* y, double *c1, double* c2, doub
          interp_i<end1; // 2 for re and im
          interp_i+= diff1){
 
-     int numFreqarrs = int(ninterps / num_intermediates);
-     int freqArr_i = int(interp_i / num_intermediates);
+     //int numFreqarrs = int(ninterps / num_intermediates);
+
 
      int param = (int) (interp_i / (numModes * numBinAll));
      int nsub = numBinAll * numModes;
      int sub_i = interp_i % (numModes * numBinAll);
+
+     int freqArr_i = int(sub_i / num_intermediates);
 
      #ifdef __CUDACC__
      int start2 = threadIdx.x;
@@ -343,7 +346,7 @@ void interpolate(double* freqs, double* propArrays,
                  int length, int numInterpParams, int numModes, int numBinAll)
 {
 
-    int num_intermediates = numModes * numInterpParams;
+    int num_intermediates = numModes;
     int ninterps = numModes * numInterpParams * numBinAll;
 
     int nblocks = std::ceil((ninterps + NUM_THREADS_INTERPOLATE -1)/NUM_THREADS_INTERPOLATE);

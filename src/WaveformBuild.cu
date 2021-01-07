@@ -82,7 +82,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
 
     int ind_here = inds[i];
 
-    double f_old = freqsOld[ind_here];
+    double f_old = freqsOld[bin_i * old_length + ind_here];
 
     double x = f - f_old;
     double x2 = x * x;
@@ -125,6 +125,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         cmplx channel2(0.0, 0.0);
         cmplx channel3(0.0, 0.0);
 
+        if ((i == 1000)) printf("%d, %d %d %e %e %e\n", ind_here, mode_i, bin_i,  amp, phase, tf);
         combine_information(&channel1, &channel2, &channel3, amp, phase, tf, cmplx(transferL1_re, transferL1_im), cmplx(transferL2_re, transferL2_im), cmplx(transferL3_re, transferL3_im), t_obs_start, t_obs_end);
 
         trans_complex1 += channel1;

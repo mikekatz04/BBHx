@@ -257,12 +257,12 @@ if __name__ == "__main__":
     num_bin_all = 10000
     length = 256
 
-    m1 = np.full(num_bin_all, 1.000000e5)
+    m1 = np.full(num_bin_all, 5.000000e7)
     # m1[1:] += np.random.randn(num_bin_all - 1) * 100
-    m2 = np.full_like(m1, 9e4)
+    m2 = np.full_like(m1, 4e7)
     chi1z = np.full_like(m1, 0.2)
     chi2z = np.full_like(m1, 0.2)
-    distance = np.full_like(m1, 10e9 * PC_SI)
+    distance = np.full_like(m1, 1e9 * PC_SI)
     phiRef = np.full_like(m1, 0.0)
     f_ref = np.full_like(m1, 0.0)
 

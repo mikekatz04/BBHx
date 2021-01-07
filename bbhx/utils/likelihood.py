@@ -37,7 +37,7 @@ class Likelihood:
             4 * self.xp.sum((self.dataChannels.conj() * self.dataChannels)).real
         ).item()
 
-    def __call__(self, params, **waveform_kwargs):
+    def get_ll(self, params, **waveform_kwargs):
 
         templateChannels, inds_start, ind_lengths = self.waveform_gen(
             *params, **waveform_kwargs
@@ -65,7 +65,12 @@ class Likelihood:
             self.waveform_gen.num_bin_all,
         )
 
-        return 1 / 2 * (self.d_d + h_h - 2 * d_h)
+        out = 1 / 2 * (self.d_d + h_h - 2 * d_h)
+        try:
+            return out.get()
+
+        except AttributeError:
+            return out
 
 
 class RelativeBinning:
@@ -179,7 +184,7 @@ class RelativeBinning:
         self.freqs = freqs
         self.f_m = f_m
 
-    def __call__(self, params, **waveform_kwargs):
+    def get_ll(self, params, **waveform_kwargs):
 
         waveform_kwargs["direct"] = True
         waveform_kwargs["compress"] = True
@@ -240,6 +245,10 @@ class RelativeBinning:
             3,
         )
 
-        like = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
+        out = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
 
-        return like
+        try:
+            return out.get()
+
+        except AttributeError:
+            return out

@@ -49,7 +49,7 @@ cmplx combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, dou
     // TODO: make sure the end of the ringdown is included
     if ((tf >= t_start) && ((tf <= t_end) || (t_end <= 0.0)) && (amp > 1e-40))
     {
-        cmplx amp_phase_term = amp*gcmplx::exp(cmplx(0.0, -phase));  // add phase shift
+        cmplx amp_phase_term = amp*gcmplx::exp(cmplx(0.0, phase));  // add phase shift
 
         *channel1 = gcmplx::conj(transferL1 * amp_phase_term);
         *channel2 = gcmplx::conj(transferL2 * amp_phase_term);
@@ -125,7 +125,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
         cmplx channel2(0.0, 0.0);
         cmplx channel3(0.0, 0.0);
 
-        if ((i == 1000)) printf("%d, %d %d %e %e %e\n", ind_here, mode_i, bin_i,  amp, phase, tf);
+        //if ((i == 1000)) printf("%d, %d %d %e %e %e\n", ind_here, mode_i, bin_i,  amp, phase, tf);
         combine_information(&channel1, &channel2, &channel3, amp, phase, tf, cmplx(transferL1_re, transferL1_im), cmplx(transferL2_re, transferL2_im), cmplx(transferL3_re, transferL3_im), t_obs_start, t_obs_end);
 
         trans_complex1 += channel1;

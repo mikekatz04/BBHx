@@ -282,8 +282,8 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
 
              dphidf = phases_deriv[mode_index];
 
-             t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
-             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
+             t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
+             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
 
              d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
 
@@ -313,7 +313,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              response_out[start_ind + mode_index] = gcmplx::imag(transferL.transferL3);
 
              // time_freq_corr update
-             phases_deriv[mode_index] = t_sampling_frame + tBase * YRSID_SI;
+             phases_deriv[mode_index] = t_sampling_frame;
              phases[mode_index] +=  transferL.phaseRdelay; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
 
          }
@@ -538,6 +538,7 @@ void responseCore(
             }
         }
 
+         //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
         response_modes(phases, response_out, binNum, mode_i, phases_deriv, freqs, phiRef, ell, mm, length, numBinAll, numModes,
         H_mat, lam, beta, tRef_wave_frame, tRef_sampling_frame, tBase, TDItag, order_fresnel_stencil);
 

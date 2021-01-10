@@ -317,7 +317,7 @@ class BBHWaveform:
 
             # TODO: check this combination
             # TODO: produce combination as same in CUDA
-            amp_phase = amp * self.xp.exp(-1j * phase)
+            amp_phase = amp * self.xp.exp(1j * phase)
 
             # if t_obs_end <= 0.0:
             #    test = np.full_like(amp_phase.get(), True)

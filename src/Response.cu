@@ -314,8 +314,9 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
 
              // time_freq_corr update
              phases_deriv[mode_index] = t_sampling_frame;
-             phases[mode_index] +=  transferL.phaseRdelay; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
-
+             double check = transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
+             phases[mode_index] +=  check; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
+             //if ((mode_i == 0) && (i == 1000)) printf(" %.18e %.18e %e %e \n", t_wave_frame, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
          }
 }
 
@@ -359,14 +360,14 @@ cmplx SpinWeightedSphericalHarmonic(int s, int l, int m, double theta, double ph
 custom dot product in 2d
 */
 __device__
-void dot_product_2d(double* out, double* arr1, int m1, int n1, double* arr2, int m2, int n2, int dev, int stride){
+void dot_product_2d(double* out, double* arr1, int m1, int n1, double* arr2, int m2, int n2){
 
     // dev and stride are on output
     for (int i=0; i<m1; i++){
         for (int j=0; j<n2; j++){
-            out[stride*(i * 3  + j) + dev] = 0.0;
+            out[(i * 3  + j)] = 0.0;
             for (int k=0; k<n1; k++){
-                out[stride*(i * 3  + j) + dev] += arr1[i * 3 + k]*arr2[k * 3 + j];
+                out[(i * 3  + j)] += arr1[i * 3 + k]*arr2[k * 3 + j];
             }
         }
     }
@@ -422,6 +423,14 @@ void responseCore(
     __shared__ double HSplus[9];
     __shared__ double HScross[9];
 
+    __shared__ cmplx H_mat[3 * 3];
+    __shared__ double Hplus[3 * 3];
+    __shared__ double Hcross[3 * 3];
+    __shared__ double kvec[3];
+    __shared__ double O1[3 * 3];
+    __shared__ double invO1[3 * 3];
+    __shared__ double out1[3 * 3];
+
     if (threadIdx.x == 0)
     {
         HSplus[0] = 1.;
@@ -443,11 +452,7 @@ void responseCore(
         HScross[6] = 0.;
         HScross[7] = 0.;
         HScross[8] = 0.;
-    }
-    __syncthreads();
 
-    __shared__ cmplx H_mat_all[NUM_THREADS_RESPONSE * 3 * 3];
-    cmplx* H_mat = &H_mat_all[threadIdx.x * 3 * 3];
 
     //##### Based on the f-n by Sylvain   #####
     //__shared__ double Hplus_all[NUM_THREADS_RESPONSE * 3 * 3];
@@ -455,12 +460,12 @@ void responseCore(
     //double* Hplus = &Hplus_all[threadIdx.x * 3 * 3];
     //double* Hcross = &Hcross_all[threadIdx.x * 3 * 3];
 
-    double* Htemp = (double*) &H_mat[0];  // Htemp alternates with Hplus and Hcross in order to save shared memory: Hp[0], Hc[0], Hp[1], Hc1]
+    //double* Htemp = (double*) &H_mat[0];  // Htemp alternates with Hplus and Hcross in order to save shared memory: Hp[0], Hc[0], Hp[1], Hc1]
     // Htemp is then transformed into H_mat
 
     // Wave unit vector
-    __shared__ double kvec_all[NUM_THREADS_RESPONSE * 3];
-    double* kvec = &kvec_all[threadIdx.x * 3];
+
+    //double* kvec = &kvec_all[threadIdx.x * 3];
     kvec[0] = -cos(beta)*cos(lam);
     kvec[1] = -cos(beta)*sin(lam);
     kvec[2] = -sin(beta);
@@ -470,8 +475,8 @@ void responseCore(
     double cbeta = cos(beta); double sbeta = sin(beta);
     double cpsi = cos(psi); double spsi = sin(psi);
 
-    __shared__ double O1_all[NUM_THREADS_RESPONSE * 3 * 3];
-    double* O1 = &O1_all[threadIdx.x * 3 * 3];
+
+    //double* O1 = &O1_all[threadIdx.x * 3 * 3];
     O1[0] = cpsi*slambd-clambd*sbeta*spsi;
     O1[1] = -clambd*cpsi*sbeta-slambd*spsi;
     O1[2] = -cbeta*clambd;
@@ -482,8 +487,8 @@ void responseCore(
     O1[7] = cbeta*cpsi;
     O1[8] = -sbeta;
 
-    __shared__ double invO1_all[NUM_THREADS_RESPONSE * 3 * 3];
-    double* invO1 = &invO1_all[threadIdx.x * 3 * 3];;
+
+    //double* invO1 = &invO1_all[threadIdx.x * 3 * 3];;
     invO1[0] = cpsi*slambd-clambd*sbeta*spsi;
     invO1[1] = -clambd*cpsi-sbeta*slambd*spsi;
     invO1[2] = cbeta*spsi;
@@ -494,49 +499,54 @@ void responseCore(
     invO1[7] = -cbeta*slambd;
     invO1[8] = -sbeta;
 
-    __shared__ double out1_all[NUM_THREADS_RESPONSE * 3 * 3];
 
-    double* out1 = &out1_all[threadIdx.x * 3 * 3];
+    //double* out1 = &out1_all[threadIdx.x * 3 * 3];
 
 
     // get Hplus
     //if ((threadIdx.x + blockDim.x * blockIdx.x <= 1)) printf("INNER %d %e %e %e\n", threadIdx.x + blockDim.x * blockIdx.x, invO1[0], invO1[1], invO1[6]);
 
-    dot_product_2d(out1, HSplus, 3, 3, invO1, 3, 3, 0, 1);
+    dot_product_2d(out1, HSplus, 3, 3, invO1, 3, 3);
 
-    dot_product_2d(Htemp, O1, 3, 3, out1, 3, 3, 0, 2);
+    dot_product_2d(Hplus, O1, 3, 3, out1, 3, 3);
 
     // get Hcross
-    dot_product_2d(out1, HScross, 3, 3, invO1, 3, 3, 0, 1);
-    dot_product_2d(Htemp, O1, 3, 3, out1, 3, 3, 1, 2);
+    dot_product_2d(out1, HScross, 3, 3, invO1, 3, 3);
+    dot_product_2d(Hcross, O1, 3, 3, out1, 3, 3);
 
+    }
+    __syncthreads();
     cmplx I = cmplx(0.0, 1.0);
     cmplx Ylm, Yl_m, Yfactorplus, Yfactorcross;
 
-    cmplx trans1, trans2;
-
+    double trans1, trans2;
     for (int mode_i=0; mode_i<numModes; mode_i++){
+
         ell = ells[mode_i];
         mm = mms[mode_i];
 
-        Ylm = SpinWeightedSphericalHarmonic(-2, ell, mm, inc, phiRef);
-        Yl_m = pow(-1.0, ell)*gcmplx::conj(SpinWeightedSphericalHarmonic(-2, ell, -1*mm, inc, phiRef));
-        Yfactorplus = 1./2 * (Ylm + Yl_m);
-        //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
-        Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-        //# Yfactorcross = -1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-        //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
-        //# The matrix H_mat is now complex
+        if (threadIdx.x == 0)
+        {
+            Ylm = SpinWeightedSphericalHarmonic(-2, ell, mm, inc, phiRef);
+            Yl_m = pow(-1.0, ell)*gcmplx::conj(SpinWeightedSphericalHarmonic(-2, ell, -1*mm, inc, phiRef));
+            Yfactorplus = 1./2 * (Ylm + Yl_m);
+            //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
+            Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
+            //# Yfactorcross = -1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
+            //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
+            //# The matrix H_mat is now complex
 
-        //# H_mat = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H_mat A_22 exp(i\Psi(f))
-        for (int i=0; i<3; i++){
-            for (int j=0; j<3; j++){
-                trans1 = Htemp[2*(i * 3 + j) + 0];
-                trans2 = Htemp[2*(i * 3 + j) + 1];
-                H_mat[(i * 3 + j)] = (Yfactorplus*trans1+ Yfactorcross*trans2);
-                //printf("(%d, %d): %e, %e\n", i, j, Hplus[i][j], Hcross[i][j]);
+            //# H_mat = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H_mat A_22 exp(i\Psi(f))
+            for (int i=0; i<3; i++){
+                for (int j=0; j<3; j++){
+                    trans1 = Hplus[2*(i * 3 + j)];
+                    trans2 = Hcross[2*(i * 3 + j)];
+                    H_mat[(i * 3 + j)] = (Yfactorplus*trans1+ Yfactorcross*trans2);
+                    //if ((ell == 3) && (mm == 3))printf("%d (%d, %d): %e, %e ; %e, %e ;\n", mode_i, i, j, trans1, trans2);
+                }
             }
         }
+        __syncthreads();
 
          //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
         response_modes(phases, response_out, binNum, mode_i, phases_deriv, freqs, phiRef, ell, mm, length, numBinAll, numModes,

@@ -274,8 +274,8 @@ if run_cuda_install:
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
-fps_cu_to_cpp = ["PhenomHM", "Response"]
-fps_pyx = ["phenomhm", "response"]
+fps_cu_to_cpp = ["PhenomHM", "Response", "Interpolate"]
+fps_pyx = ["phenomhm", "response", "interpolate"]
 
 for fp in fps_cu_to_cpp:
     shutil.copy("src/" + fp + ".cu", "src/" + fp + ".cpp")
@@ -300,7 +300,15 @@ pyPhenomHM_cpu_ext = Extension(
     **cpu_extension
 )
 pyResponse_cpu_ext = Extension(
-    "pyResponse", sources=["src/Response.cpp", "src/response_cpu.pyx"], **cpu_extension
+    "pyResponse_cpu",
+    sources=["src/Response.cpp", "src/response_cpu.pyx"],
+    **cpu_extension
+)
+
+pyInterpolate_cpu_ext = Extension(
+    "pyInterpolate_cpu",
+    sources=["src/Interpolate.cpp", "src/interpolate_cpu.pyx"],
+    **cpu_extension
 )
 
 fp_out_name = "bbhx/utils/constants.py"
@@ -322,7 +330,7 @@ with open(fp_out_name, "w") as fp_out:
                         continue
 
 
-extensions = [pyPhenomHM_cpu_ext, pyResponse_cpu_ext]
+extensions = [pyPhenomHM_cpu_ext, pyResponse_cpu_ext, pyInterpolate_cpu_ext]
 if run_cuda_install:
     extensions = [
         pyPhenomHM_ext,

@@ -1,11 +1,16 @@
-#include "cusparse_v2.h"
 #include "global.h"
 #include "constants.h"
 #include "Interpolate.hh"
 
+#ifdef __CUDACC__
+#include "cusparse_v2.h"
+#else
+#include "lapacke.h"
+#endif
+
 #define  NUM_THREADS_INTERPOLATE 256
 
-__device__
+CUDA_CALLABLE_MEMBER
 void prep_splines(int i, int length, int interp_i, int ninterps, int num_intermediates, double *b, double *ud, double *diag, double *ld, double *x, double *y, int numBinAll, int param, int nsub, int sub_i){
   double dx1, dx2, d, slope1, slope2;
   int ind0x, ind1x, ind2x, ind0y, ind1y, ind2y, ind_out;
@@ -357,17 +362,29 @@ void interpolate(double* freqs, double* propArrays,
 
     //printf("%d after response, %d\n", jj, nblocks2);
 
-     fill_B<<<nblocks, NUM_THREADS_INTERPOLATE>>>(freqs, propArrays, B, upper_diag, diag, lower_diag, ninterps, length, num_intermediates, numModes, numBinAll);
+     fill_B
+     #ifdef __CUDACC__
+     <<<nblocks, NUM_THREADS_INTERPOLATE>>>
+     #endif
+     (freqs, propArrays, B, upper_diag, diag, lower_diag, ninterps, length, num_intermediates, numModes, numBinAll);
+     #ifdef __CUDACC__
      cudaDeviceSynchronize();
      gpuErrchk(cudaGetLastError());
+     #endif
 
      //printf("%d after fill b\n", jj);
      interpolate_kern(length, ninterps, lower_diag, diag, upper_diag, B);
 
 
-  set_spline_constants<<<nblocks, NUM_THREADS_INTERPOLATE>>>(freqs, propArrays, c1, c2, c3, B,
+    set_spline_constants
+    #ifdef __CUDACC__
+    <<<nblocks, NUM_THREADS_INTERPOLATE>>>
+    #endif
+    (freqs, propArrays, c1, c2, c3, B,
                     ninterps, length, num_intermediates, numBinAll, numModes);
+    #ifdef __CUDACC__
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #endif
     //printf("%d after set spline\n", jj);
 }

@@ -2,13 +2,13 @@ import numpy as np
 
 try:
     import cupy as xp
+    from pyResponse import LISA_response_wrap as LISA_response_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
-    print("No CuPy")
+    print("No CuPy or GPU response available.")
     import numpy as xp
 
-from pyResponse import LISA_response_wrap
-
+from pyResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
 from bbhx.utils.constants import *
 
 
@@ -18,9 +18,11 @@ class LISATDIResponse:
     ):
 
         if use_gpu:
+            self.response_gen = LISA_response_wrap_gpu
             self.xp = xp
 
         else:
+            self.response_gen = LISA_response_wrap_cpu
             self.xp = np
 
         if max_init_len > 0:
@@ -242,7 +244,7 @@ class LISATDIResponse:
                 "If provided phases or phases_deriv, need to provide both."
             )
 
-        LISA_response_wrap(
+        self.response_gen(
             self.response_carrier,
             ells,
             mms,

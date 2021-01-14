@@ -2,12 +2,13 @@ import numpy as np
 
 try:
     import cupy as xp
+    from pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
-    print("No CuPy")
+    print("No CuPy or GPU interpolation available.")
     import numpy as xp
 
-from pyInterpolate import interpolate_wrap
+from pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
 
 from bbhx.utils.constants import *
 
@@ -36,11 +37,11 @@ class CubicSplineInterpolant:
 
         if use_gpu:
             self.xp = xp
-            self.interpolate_arrays = interpolate_wrap
+            self.interpolate_arrays = interpolate_wrap_gpu
 
         else:
             self.xp = np
-            self.interpolate_arrays = interpolate_wrap
+            self.interpolate_arrays = interpolate_wrap_cpu
 
         ninterps = num_modes * num_interp_params * num_bin_all
         self.degree = 3

@@ -132,6 +132,7 @@ class RelativeBinning:
         )[0]
 
         freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
+
         freqs = self.xp.logspace(
             self.xp.log10(freqs_keep[0]),
             self.xp.log10(freqs_keep[-1]),
@@ -141,6 +142,12 @@ class RelativeBinning:
         self.h0_short = self.template_gen(
             *template_gen_args, freqs=freqs, **template_gen_kwargs
         )[:, :, xp.newaxis]
+
+        inds = (self.f_dense >= freqs[0]) & (self.f_dense <= freqs[-1])
+
+        self.f_dense = self.f_dense[inds]
+        self.d = self.d[:, inds]
+        h0 = h0[:, inds]
 
         bins = self.xp.searchsorted(freqs, self.f_dense, "right") - 1
 

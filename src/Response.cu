@@ -308,6 +308,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              double t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
              double t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
 
+             //if ((binNum == 0) && (mode_i == 0)) printf("%d %.10e\n", i, t_wave_frame);
              d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
 
              // transferL1_re

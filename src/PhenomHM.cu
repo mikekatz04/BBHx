@@ -2413,12 +2413,6 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
  CUDA_CALLABLE_MEMBER
  void calculate_modes(int binNum, int mode_i, double* amps, double* phases, double* phases_deriv, double* freqs, int ell, int mm, PhenomHMStorage *pHM, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0, int length, int numBinAll, int numModes, double M_tot_sec, double cshift[])
  {
-
-         double amp_i, phase_i, dphidf, phase_up, phase_down;
-         double t_wave_frame, t_sampling_frame;
-         int status_in_for;
-         UsefulPowers powers_of_f;
-         int retcode = 0;
          double eps = 1e-9;
 
          int start, increment;
@@ -2435,13 +2429,17 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
              //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
              //int freq_index = i * numBinAll + binNum;
 
+             double amp_i, phase_i, dphidf, phase_up, phase_down;
+             double t_wave_frame, t_sampling_frame;
+             int status_in_for;
+             UsefulPowers powers_of_f;
+             int retcode = 0;
+
              int mode_index = (binNum * numModes + mode_i) * length + i;
              int freq_index = binNum * length + i;
 
              double freq = freqs[freq_index];
              double freq_geom = freq*M_tot_sec;
-
-             int retcode = 0;
 
              get_amp(&amp_i, freq_geom, ell, mm, pHM, powers_of_f, pAmp, amp_prefactors, amp0);
 
@@ -2453,7 +2451,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
              get_phase(&phase_up, freq_geom + 0.5 * eps, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
              get_phase(&phase_down, freq_geom - 0.5 * eps, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
 
-             dphidf = (phase_up - phase_down)/eps;
+             dphidf = M_tot_sec * (phase_up - phase_down)/eps;
              phases_deriv[mode_index] = dphidf;
 
               //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;

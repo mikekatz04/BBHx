@@ -45,7 +45,7 @@ cmplx get_ampphasefactor(double amp, double phase, double phaseShift){
 }
 
 CUDA_CALLABLE_MEMBER
-cmplx combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, double amp, double phase, double tf, cmplx transferL1, cmplx transferL2, cmplx transferL3, double t_start, double t_end)
+void combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, double amp, double phase, double tf, cmplx transferL1, cmplx transferL2, cmplx transferL3, double t_start, double t_end)
 {
     // TODO: make sure the end of the ringdown is included
     if ((tf >= t_start) && ((tf <= t_end) || (t_end <= 0.0)) && (amp > 1e-40))
@@ -74,11 +74,10 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    //#pragma omp parallel for
     #endif
     for (int i = start; i < ind_length; i += increment)
     {
-
         double f = dataFreqsIn[i + ind_start];
 
         int ind_here = inds[i];
@@ -256,7 +255,7 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
     cudaStream_t streams[numBinAll];
     #endif
 
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
         int length_bin_i = ind_lengths[bin_i];
@@ -280,7 +279,6 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
         <<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>
         #endif
         (templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
-
     }
 
     #ifdef __CUDACC__

@@ -274,8 +274,8 @@ if run_cuda_install:
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
-fps_cu_to_cpp = ["PhenomHM", "Response", "Interpolate", "WaveformBuild"]
-fps_pyx = ["phenomhm", "response", "interpolate", "waveformbuild"]
+fps_cu_to_cpp = ["PhenomHM", "Response", "Interpolate", "WaveformBuild", "Likelihood"]
+fps_pyx = ["phenomhm", "response", "interpolate", "waveformbuild", "likelihood"]
 
 for fp in fps_cu_to_cpp:
     shutil.copy("src/" + fp + ".cu", "src/" + fp + ".cpp")
@@ -317,6 +317,12 @@ pyWaveformBuild_cpu_ext = Extension(
     **cpu_extension
 )
 
+pyLikelihood_cpu_ext = Extension(
+    "pyLikelihood_cpu",
+    sources=["src/Likelihood.cpp", "src/likelihood_cpu.pyx"],
+    **cpu_extension
+)
+
 fp_out_name = "bbhx/utils/constants.py"
 fp_in_name = "include/constants.h"
 
@@ -341,6 +347,7 @@ extensions = [
     pyResponse_cpu_ext,
     pyInterpolate_cpu_ext,
     pyWaveformBuild_cpu_ext,
+    pyLikelihood_cpu_ext,
 ]
 
 if run_cuda_install:

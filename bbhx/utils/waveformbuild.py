@@ -98,20 +98,36 @@ class TemplateInterp:
             [len(inds_i) for inds_i in inds], dtype=self.xp.int32
         )
 
-        self.start_inds = start_inds = (inds_start_and_end[:, 0].get().copy()).astype(
-            np.int32
-        )
+        try:
+            temp_inds = inds_start_and_end[:, 0].get()
+        except AttributeError:
+            temp_inds = inds_start_and_end[:, 0]
 
-        self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
+        self.start_inds = start_inds = (temp_inds.copy()).astype(np.int32)
+
+        try:
+            self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
+        except AttributeError:
+            self.ptrs = ptrs = np.asarray(
+                [ind_i.__array_interface__["data"][0] for ind_i in inds]
+            )
 
         self.template_carrier = [
             self.xp.zeros(int(self.nChannels * temp_length), dtype=self.xp.complex128,)
             for temp_length in lengths
         ]
 
-        template_carrier_ptrs = np.asarray(
-            [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
-        )
+        try:
+            template_carrier_ptrs = np.asarray(
+                [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
+            )
+        except AttributeError:
+            template_carrier_ptrs = np.asarray(
+                [
+                    temp_carrier.__array_interface__["data"][0]
+                    for temp_carrier in self.template_carrier
+                ]
+            )
 
         dlog10f = 1.0
 
@@ -259,6 +275,7 @@ class BBHWaveform:
             modes=modes,
         )
 
+        breakpoint()
         self.response_gen(
             self.amp_phase_gen.freqs,
             inc,
@@ -275,6 +292,7 @@ class BBHWaveform:
             out_buffer=out_buffer,
             modes=modes,
         )
+        breakpoint()
 
         if direct and compress:
 

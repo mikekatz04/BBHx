@@ -2,12 +2,16 @@ import numpy as np
 
 try:
     import cupy as xp
+    from pyLikelihood import hdyn_wrap as hdyn_wrap_gpu
+    from pyLikelihood import direct_like_wrap as direct_like_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as xp
 
-from pyLikelihood import hdyn_wrap, direct_like_wrap
+from pyLikelihood_cpu import hdyn_wrap as hdyn_wrap_cpu
+from pyLikelihood_cpu import direct_like_wrap as direct_like_wrap_cpu
+
 from bbhx.utils.constants import *
 
 from lisatools.sensitivity import get_sensitivity
@@ -21,9 +25,11 @@ class Likelihood:
         self.use_gpu = use_gpu
 
         if use_gpu:
+            self.like_gen = direct_like_wrap_gpu
             self.xp = xp
 
         else:
+            self.like_gen = direct_like_wrap_cpu
             self.xp = np
 
         self.dataFreqs = dataFreqs
@@ -45,15 +51,21 @@ class Likelihood:
 
         templateChannels = [tc.flatten() for tc in templateChannels]
 
-        templateChannels_ptrs = np.asarray(
-            [tc.data.ptr for tc in templateChannels], dtype=np.int64
-        )
+        try:
+            templateChannels_ptrs = np.asarray(
+                [tc.data.ptr for tc in templateChannels], dtype=np.int64
+            )
+        except AttributeError:
+            templateChannels_ptrs = np.asarray(
+                [tc.__array_interface__["data"][0] for tc in templateChannels],
+                dtype=np.int64,
+            )
 
         d_h = np.zeros(self.waveform_gen.num_bin_all)
         h_h = np.zeros(self.waveform_gen.num_bin_all)
 
         # TODO: if filling multiple signals into stream, need to adjust this for that in terms of inds start / ind_lengths
-        direct_like_wrap(
+        self.like_gen(
             d_h,
             h_h,
             self.dataChannels,
@@ -92,8 +104,10 @@ class RelativeBinning:
 
         self.use_gpu = use_gpu
         if use_gpu:
+            self.like_gen = hdyn_wrap_gpu
             self.xp = xp
         else:
+            self.like_gen = hdyn_wrap_cpu
             self.xp = np
 
         self._init_rel_bin_info(template_gen_args, template_gen_kwargs)
@@ -104,8 +118,8 @@ class RelativeBinning:
         template_gen_kwargs["compress"] = True
         template_gen_kwargs["direct"] = True
 
-        minF = self.f_dense.min()
-        maxF = self.f_dense.max()
+        minF = self.f_dense.min() * 0.999999999999
+        maxF = self.f_dense.max() * 1.000000000001
 
         freqs = xp.logspace(xp.log10(minF), np.log10(maxF), self.length_f_rel)
 
@@ -118,24 +132,31 @@ class RelativeBinning:
         )[0]
 
         freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
-
-        freqs = xp.logspace(
-            xp.log10(freqs_keep[0]), np.log10(freqs_keep[-1]), self.length_f_rel
+        freqs = self.xp.logspace(
+            self.xp.log10(freqs_keep[0]),
+            self.xp.log10(freqs_keep[-1]),
+            self.length_f_rel,
         )
 
         self.h0_short = self.template_gen(
             *template_gen_args, freqs=freqs, **template_gen_kwargs
         )[:, :, xp.newaxis]
 
-        bins = xp.searchsorted(freqs, self.f_dense, "right") - 1
+        bins = self.xp.searchsorted(freqs, self.f_dense, "right") - 1
 
         f_m = (freqs[1:] + freqs[:-1]) / 2
 
         df = self.f_dense[1] - self.f_dense[0]
 
         # TODO: make adjustable
-        S_n = xp.asarray(get_sensitivity(self.f_dense.get(), sens_fn="noisepsd_AE"))
+        try:
+            f_n_host = self.f_dense.get()
+        except AttributeError:
+            f_n_host = self.f_dense
 
+        S_n = xp.asarray(get_sensitivity(f_n_host, sens_fn="noisepsd_AE"))
+
+        breakpoint()
         A0_flat = 4 * (h0.conj() * self.d) / S_n * df
         A1_flat = 4 * (h0.conj() * self.d) / S_n * df * (self.f_dense - f_m[bins])
 
@@ -234,7 +255,7 @@ class RelativeBinning:
 
         templates_in = r.transpose((1, 0, 2)).flatten()
 
-        hdyn_wrap(
+        self.like_gen(
             self.hdyn_d_h,
             self.hdyn_h_h,
             templates_in,

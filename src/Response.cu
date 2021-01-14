@@ -281,13 +281,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
  cmplx* H, double lam, double beta, double tRef_wave_frame, double tRef_sampling_frame, double tBase, int TDItag, int order_fresnel_stencil)
  {
 
-         double amp_i, phase_i, dphidf, phase_up, phase_down;
-         double t_wave_frame, t_sampling_frame;
-         int status_in_for;
-
-         int retcode = 0;
          double eps = 1e-9;
-         int start_ind = 0;
 
          int start, increment;
          #ifdef __CUDACC__
@@ -309,15 +303,15 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              double freq = freqs[freq_index];
              //double freq_geom = freq*M_tot_sec;
 
-             dphidf = phases_deriv[mode_index];
+             double dphidf = phases_deriv[mode_index];
 
-             t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
-             t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
+             double t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
+             double t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
 
              d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
 
              // transferL1_re
-             start_ind = 0 * numBinAll * numModes * length;
+             int start_ind = 0 * numBinAll * numModes * length;
              int start_ind_old = start_ind;
              response_out[start_ind + mode_index] = gcmplx::real(transferL.transferL1);
 
@@ -345,7 +339,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              phases_deriv[mode_index] = t_sampling_frame;
              double check = transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
              phases[mode_index] +=  check; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
-             if ((mode_i == 3) && (i == 1000)) printf(" %.18e %.18e %.18e %.18e %.18e %.18e %.18e %.18e \n", freq, t_wave_frame, lam, beta, tBase, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
+             //if ((mode_i == 3) && (i == 1000)) printf(" %.18e %.18e %.18e %.18e %.18e %.18e %.18e %.18e \n", freq, t_wave_frame, lam, beta, tBase, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
          }
 }
 
@@ -640,6 +634,7 @@ void responseCore(
     #else
     start = 0;
     increment = 1;
+    #pragma omp parallel for
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {

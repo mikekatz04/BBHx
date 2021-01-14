@@ -2,13 +2,15 @@ import numpy as np
 
 try:
     import cupy as xp
+    from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
+    from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as xp
 
-
-from pyWaveformBuild import direct_sum_wrap, InterpTDI_wrap
+from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
+from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
 from bbhx.response.fastlisaresponse import LISATDIResponse
@@ -20,9 +22,11 @@ class TemplateInterp:
     def __init__(self, max_init_len=-1, use_gpu=False):
 
         if use_gpu:
+            self.template_gen = InterpTDI_wrap_gpu
             self.xp = xp
 
         else:
+            self.template_gen = InterpTDI_wrap_cpu
             self.xp = np
 
         if max_init_len > 0:
@@ -111,7 +115,7 @@ class TemplateInterp:
 
         dlog10f = 1.0
 
-        InterpTDI_wrap(
+        self.template_gen(
             template_carrier_ptrs,
             dataFreqs,
             dlog10f,
@@ -150,8 +154,10 @@ class BBHWaveform:
 
         self.use_gpu = use_gpu
         if use_gpu:
+            self.waveform_gen = direct_sum_wrap_gpu
             self.xp = xp
         else:
+            self.waveform_gen = direct_sum_wrap_cpu
             self.xp = np
 
         self.num_interp_params = 9
@@ -276,7 +282,7 @@ class BBHWaveform:
                 (self.num_bin_all * 3 * self.length), dtype=self.xp.complex128
             )
 
-            direct_sum_wrap(
+            self.waveform_gen(
                 templateChannels,
                 out_buffer,
                 self.num_bin_all,
@@ -337,10 +343,6 @@ class BBHWaveform:
             )
 
             # out[:, ~inds] = 0.0
-
-            if compress:
-                out = out.sum(axis=2)
-
             if squeeze:
                 out = out.squeeze()
 

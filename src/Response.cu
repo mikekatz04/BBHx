@@ -316,7 +316,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              phases_deriv[mode_index] = t_sampling_frame;
              double check = transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
              phases[mode_index] +=  check; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
-             //if ((mode_i == 0) && (i == 1000)) printf(" %.18e %.18e %e %e \n", t_wave_frame, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
+             if ((mode_i == 3) && (i == 1000)) printf(" %.18e %.18e %.18e %.18e %.18e %.18e %.18e %.18e \n", freq, t_wave_frame, lam, beta, tBase, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
          }
 }
 
@@ -539,16 +539,15 @@ void responseCore(
             //# H_mat = np.conjugate((Yfactorplus*Hplus + Yfactorcross*Hcross))  ### SB: H_ij = H_mat A_22 exp(i\Psi(f))
             for (int i=0; i<3; i++){
                 for (int j=0; j<3; j++){
-                    trans1 = Hplus[2*(i * 3 + j)];
-                    trans2 = Hcross[2*(i * 3 + j)];
+                    trans1 = Hplus[(i * 3 + j)];
+                    trans2 = Hcross[(i * 3 + j)];
                     H_mat[(i * 3 + j)] = (Yfactorplus*trans1+ Yfactorcross*trans2);
-                    //if ((ell == 3) && (mm == 3))printf("%d (%d, %d): %e, %e ; %e, %e ;\n", mode_i, i, j, trans1, trans2);
                 }
             }
         }
         __syncthreads();
 
-         //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
+         if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
         response_modes(phases, response_out, binNum, mode_i, phases_deriv, freqs, phiRef, ell, mm, length, numBinAll, numModes,
         H_mat, lam, beta, tRef_wave_frame, tRef_sampling_frame, tBase, TDItag, order_fresnel_stencil);
 

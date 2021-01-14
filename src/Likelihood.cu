@@ -191,7 +191,10 @@ void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_we
             {
                 exit(0);
             }
+
+
             h_h[bin_i] += 4.0 * cuCreal(result_h_h[bin_i]);
+            //printf("%e %e\n", cuCreal(result_h_h[bin_i]), cuCreal(result_d_h[bin_i]));
 
         }
     }

@@ -268,10 +268,10 @@ typedef struct tagPhenomHMStorage
     double Mf_ref; /**< reference frequnecy in geometric units */
     double phiRef;
     unsigned int freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
-    size_t npts;           /**< number of points in waveform array */
-    size_t nmodes;           /**< number of modes */
-    size_t ind_min;        /**< start index containing non-zero values */
-    size_t ind_max;        /**< end index containing non-zero values */
+    int npts;           /**< number of points in waveform array */
+    int nmodes;           /**< number of modes */
+    int ind_min;        /**< start index containing non-zero values */
+    int ind_max;        /**< end index containing non-zero values */
     double finmass;
     double finspin;
     double Mf_RD_22;

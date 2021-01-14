@@ -51,7 +51,7 @@
 /*
 * Domain mapping for dimnesionless BH spin
 */
-__device__
+CUDA_CALLABLE_MEMBER
 double SimRingdownCW_KAPPA(double jf, int l, int m)
 {
     /* */
@@ -66,7 +66,7 @@ double SimRingdownCW_KAPPA(double jf, int l, int m)
 * Dimensionless QNM Frequencies: Note that name encodes date of writing
 */
 /*TODO: Make the function arg comments compatible with doxygen*/
-__device__
+CUDA_CALLABLE_MEMBER
 cmplx SimRingdownCW_CW07102016(double kappa, /* Domain mapping for  remnant BH's spin (Dimensionless) */
                                         int l,        /* Polar eigenvalue */
                                         int input_m,  /* Azimuthal eigenvalue*/
@@ -220,7 +220,7 @@ cmplx SimRingdownCW_CW07102016(double kappa, /* Domain mapping for  remnant BH's
 /**
  * calc square of number without floating point 'pow'
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double pow_2_of(double number)
 {
 	return (number*number);
@@ -229,7 +229,7 @@ double pow_2_of(double number)
 /**
  * calc cube of number without floating point 'pow'
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double pow_3_of(double number)
 {
 	return (number*number*number);
@@ -238,7 +238,7 @@ double pow_3_of(double number)
 /**
  * calc fourth power of number without floating point 'pow'
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double pow_4_of(double number)
 {
 	double pow2 = pow_2_of(number);
@@ -252,7 +252,7 @@ double pow_4_of(double number)
  * This function is tested in ../test/PNCoefficients.c for consistency
  * with the energy and flux in this file.
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 void PNPhasing_F2(
 	PNPhasingSeries *pfa, /**< \todo UNDOCUMENTED */
 	const double m1, /**< Mass of body 1, in Msol */
@@ -328,7 +328,7 @@ void PNPhasing_F2(
 /** \brief Returns structure containing TaylorF2 phasing coefficients for given
  *  physical parameters.
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 int TaylorF2AlignedPhasing(
         PNPhasingSeries *pn,   /**< phasing coefficients (output) */
         const double m1,         /**< mass of body 1 */
@@ -349,7 +349,7 @@ int TaylorF2AlignedPhasing(
  * PN reduced spin parameter
  * See Eq 5.9 in http://arxiv.org/pdf/1107.1267v2.pdf
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double chiPN(double eta, double chi1, double chi2) {
   // Convention m1 >= m2 and chi1 is the spin on m1
   double delta = sqrt(1.0 - 4.0*eta);
@@ -359,7 +359,7 @@ double chiPN(double eta, double chi1, double chi2) {
 }
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 int init_useful_powers(UsefulPowers *p, double number)
 {
 
@@ -381,7 +381,7 @@ int init_useful_powers(UsefulPowers *p, double number)
 /**
  * amplitude scaling factor defined by eq. 17 in 1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double amp0Func(double eta) {
   return (sqrt(2.0/3.0)*sqrt(eta))/pow(PI, 1./6.);
 }
@@ -395,7 +395,7 @@ double amp0Func(double eta) {
 /**
  * rho_1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double rho1_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -411,7 +411,7 @@ double rho1_fun(double eta, double chi) {
 /**
  * rho_2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double rho2_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -427,7 +427,7 @@ double rho2_fun(double eta, double chi) {
 /**
  * rho_3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double rho3_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -447,7 +447,7 @@ double rho3_fun(double eta, double chi) {
  * in rho1_fun, rho2_fun, rho3_fun functions.
  * Amplitude is a re-expansion. See 1508.07253 and Equation 29, 30 and Appendix B arXiv:1508.07253 for details
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * prefactors) {
   double Mf2 = powers_of_Mf->two;
   double Mf3 = Mf*Mf2;
@@ -459,7 +459,7 @@ double AmpInsAnsatz(double Mf, UsefulPowers * powers_of_Mf, AmpInsPrefactors * p
 			+ Mf3 * prefactors->three;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmplitudeCoefficients* p)
 {
 	double eta = p->eta;
@@ -518,7 +518,7 @@ int init_amp_ins_prefactors(AmpInsPrefactors * prefactors, IMRPhenomDAmplitudeCo
  * Take the AmpInsAnsatz expression and compute the first derivative
  * with respect to frequency to get the expression below.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
   double eta = p->eta;
   double chi1 = p->chi1;
@@ -560,7 +560,7 @@ double DAmpInsAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
 /**
  * gamma 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double gamma1_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -576,7 +576,7 @@ double gamma1_fun(double eta, double chi) {
 /**
  * gamma 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double gamma2_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -592,7 +592,7 @@ double gamma2_fun(double eta, double chi) {
 /**
  * gamma 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double gamma3_fun(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -608,7 +608,7 @@ double gamma3_fun(double eta, double chi) {
 /**
  * Ansatz for the merger-ringdown amplitude. Equation 19 arXiv:1508.07253
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
   double fRD = p->fRD;
   double fDM = p->fDM;
@@ -624,7 +624,7 @@ double AmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
 /**
  * first frequency derivative of AmpMRDAnsatz
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double DAmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
   double fRD = p->fRD;
   double fDM = p->fDM;
@@ -646,7 +646,7 @@ double DAmpMRDAnsatz(double f, IMRPhenomDAmplitudeCoefficients* p) {
  * Equation 20 arXiv:1508.07253 (called f_peak in paper)
  * analytic location of maximum of AmpMRDAnsatz
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double fmaxCalc(IMRPhenomDAmplitudeCoefficients* p) {
   double fRD = p->fRD;
   double fDM = p->fDM;
@@ -670,7 +670,7 @@ double fmaxCalc(IMRPhenomDAmplitudeCoefficients* p) {
 /**
  * Ansatz for the intermediate amplitude. Equation 21 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
   double Mf2 = Mf*Mf;
   double Mf3 = Mf*Mf2;
@@ -682,7 +682,7 @@ double AmpIntAnsatz(double Mf, IMRPhenomDAmplitudeCoefficients* p) {
  * The function name stands for 'Amplitude Intermediate Collocation Fit Coefficient'
  * This is the 'v2' value in Table 5 of arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double AmpIntColFitCoeff(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -704,7 +704,7 @@ double AmpIntColFitCoeff(double eta, double chi) {
   * Can be rederived by solving Equation 21 for the constraints
   * given in Equations 22-26 in arXiv:1508.07253
   */
-__device__
+CUDA_CALLABLE_MEMBER
 double delta0_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -738,7 +738,7 @@ double delta0_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   + 8*f13*f22*f32*v3 - 4*f12*f23*f32*v3) / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(f3-f2)));
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double delta1_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -772,7 +772,7 @@ double delta1_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(-f2 + f3)));
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double delta2_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -805,7 +805,7 @@ double delta2_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(-f2 + f3)));
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double delta3_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -836,7 +836,7 @@ double delta3_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   / (pow_2_of(f1 - f2)*pow_3_of(f1 - f3)*pow_2_of(-f2 + f3)));
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double delta4_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
   double f1 = p->f1;
   double f2 = p->f2;
@@ -866,7 +866,7 @@ double delta4_fun(IMRPhenomDAmplitudeCoefficients* p, DeltaUtility* d) {
  * Calculates delta_i's
  * Method described in arXiv:1508.07253 section 'Region IIa - intermediate'
  */
-__device__
+CUDA_CALLABLE_MEMBER
 void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
   // Three evenly spaced collocation points in the interval [f1,f3].
   double f1 = AMP_fJoin_INS;
@@ -929,7 +929,7 @@ void ComputeDeltasFromCollocation(IMRPhenomDAmplitudeCoefficients* p) {
  * A struct containing all the parameters that need to be calculated
  * to compute the phenomenological amplitude
  */
-__device__
+CUDA_CALLABLE_MEMBER
 void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficients* p, double eta, double chi1, double chi2, double fring, double fdamp) {
   p->eta = eta;
   p->chi1 = chi1;
@@ -967,7 +967,7 @@ void ComputeIMRPhenomDAmplitudeCoefficients(IMRPhenomDAmplitudeCoefficients* p, 
 /**
  * alpha 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double alpha1Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -983,7 +983,7 @@ double alpha1Fit(double eta, double chi) {
 /**
  * alpha 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double alpha2Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -999,7 +999,7 @@ double alpha2Fit(double eta, double chi) {
 /**
  * alpha 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double alpha3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1015,7 +1015,7 @@ double alpha3Fit(double eta, double chi) {
 /**
  * alpha 4 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double alpha4Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1031,7 +1031,7 @@ double alpha4Fit(double eta, double chi) {
 /**
  * alpha 5 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double alpha5Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1052,7 +1052,7 @@ double alpha5Fit(double eta, double chi) {
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm)
 {
   double sqrootf = sqrt(f);
@@ -1074,7 +1074,7 @@ double PhiMRDAnsatzInt(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, d
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Taulm) {
   return ( p->alpha1 + p->alpha2/pow_2_of(f) + p->alpha3/pow(f,0.25)+ p->alpha4/(p->fDM * Taulm * (1 + pow_2_of(f - p->alpha5 * p->fRD)/(pow_2_of(p->fDM * Taulm * Rholm)))) ) * p->etaInv;
 }
@@ -1091,7 +1091,7 @@ double DPhiMRD(double f, IMRPhenomDPhaseCoefficients *p, double Rholm, double Ta
 /**
  * beta 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double beta1Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1107,7 +1107,7 @@ double beta1Fit(double eta, double chi) {
 /**
  * beta 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double beta2Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1123,7 +1123,7 @@ double beta2Fit(double eta, double chi) {
 /**
  * beta 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double beta3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1139,7 +1139,7 @@ double beta3Fit(double eta, double chi) {
 /**
  * ansatz for the intermediate phase defined by Equation 16 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
   // 1./eta in paper omitted and put in when need in the functions:
   // ComputeIMRPhenDPhaseConnectionCoefficients
@@ -1151,7 +1151,7 @@ double PhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
  * First frequency derivative of PhiIntAnsatz
  * (this time with 1./eta explicitly factored in)
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double DPhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
   return (p->beta1 + p->beta3/pow_4_of(Mf) + p->beta2/Mf) / p->eta;
 }
@@ -1160,7 +1160,7 @@ double DPhiIntAnsatz(double Mf, IMRPhenomDPhaseCoefficients *p) {
  * temporary instance of DPhiIntAnsatz used when computing
  * coefficients to make the phase C(1) continuous between regions.
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p) {
   double eta = p->eta;
   double beta1 = p->beta1;
@@ -1180,7 +1180,7 @@ double DPhiIntTemp(double ff, IMRPhenomDPhaseCoefficients *p) {
 /**
  * sigma 1 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double sigma1Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1196,7 +1196,7 @@ double sigma1Fit(double eta, double chi) {
 /**
  * sigma 2 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double sigma2Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1212,7 +1212,7 @@ double sigma2Fit(double eta, double chi) {
 /**
  * sigma 3 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double sigma3Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1228,7 +1228,7 @@ double sigma3Fit(double eta, double chi) {
 /**
  * sigma 4 phenom coefficient. See corresponding row in Table 5 arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double sigma4Fit(double eta, double chi) {
   double xi = -1 + chi;
   double xi2 = xi*xi;
@@ -1249,7 +1249,7 @@ double sigma4Fit(double eta, double chi) {
  * Defined by Equation 27 and 28 arXiv:1508.07253
  */
 
-__device__
+CUDA_CALLABLE_MEMBER
 double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *prefactors, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn)
 {
 	//assert(0 != pn);
@@ -1278,7 +1278,7 @@ double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *
   return phasing;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 int init_phi_ins_prefactors(PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoefficients* p, PNPhasingSeries *pn)
 {
 
@@ -1314,7 +1314,7 @@ int init_phi_ins_prefactors(PhiInsPrefactors * prefactors, IMRPhenomDPhaseCoeffi
 /**
  * First frequency derivative of PhiInsAnsatzInt
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn) {
   double sigma1 = p->sigma1;
   double sigma2 = p->sigma2;
@@ -1363,7 +1363,7 @@ double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeri
  * A struct containing all the parameters that need to be calculated
  * to compute the phenomenological phase
  */
- __device__
+ CUDA_CALLABLE_MEMBER
  void ComputeIMRPhenomDPhaseCoefficients(IMRPhenomDPhaseCoefficients* p, double eta, double chi1, double chi2, double fring, double fdamp) {
 
   // Convention m1 >= m2
@@ -1405,7 +1405,7 @@ double DPhiInsAnsatzInt(double Mf, IMRPhenomDPhaseCoefficients *p, PNPhasingSeri
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   double etaInv = p->etaInv;
@@ -1449,7 +1449,7 @@ void ComputeIMRPhenDPhaseConnectionCoefficients(IMRPhenomDPhaseCoefficients *p, 
 /**
  * Step function in boolean version
  */
-__device__
+CUDA_CALLABLE_MEMBER
 bool StepFunc_boolean(const double t, const double t1) {
 	return (t >= t1);
 }
@@ -1465,7 +1465,7 @@ bool StepFunc_boolean(const double t, const double t1) {
  * Taulm = fDMlm/fDM22. Ratio of ringdown damping times.
  * Again, when Taulm = 1.0 then PhenomD is recovered.
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, UsefulPowers *powers_of_f, PhiInsPrefactors *prefactors, double Rholm, double Taulm)
 {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
@@ -1494,7 +1494,7 @@ double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *
  * (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
  * was not available when PhenomD was tuned.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, double chi2){
   double m1M = m1 / M;
   double m2M = m2 / M;
@@ -1508,7 +1508,7 @@ double Subtract3PNSS(double m1, double m2, double M, double eta, double chi1, do
 /**
  * Convert from geometric frequency to frequency in Hz
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double PhenomUtilsMftoHz(
     double Mf,       /**< Geometric frequency */
     double Mtot_Msun /**< Total mass in solar masses */
@@ -1520,7 +1520,7 @@ double PhenomUtilsMftoHz(
 /**
  * Convert from frequency in Hz to geometric frequency
  */
- __device__
+ CUDA_CALLABLE_MEMBER
 double PhenomUtilsHztoMf(
     double fHz,      /**< Frequency in Hz */
     double Mtot_Msun /**< Total mass in solar masses */
@@ -1533,7 +1533,7 @@ double PhenomUtilsHztoMf(
 /**
  * compute the frequency domain amplitude pre-factor
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double PhenomUtilsFDamp0(
     double Mtot_Msun, /**< total mass in solar masses */
     double distance   /**< distance (m) */
@@ -1550,7 +1550,7 @@ double PhenomUtilsFDamp0(
  * To be used with aligned-spin waveform models.
  * TODO: There is another function for precessing waveform models
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
     double *m1,    /**< [out] mass of body 1 */
     double *m2,    /**< [out] mass of body 2 */
@@ -1592,7 +1592,7 @@ int PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
  * This function computes the IMR amplitude given phenom coefficients.
  * Defined in VIII. Full IMR Waveforms arXiv:1508.07253
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPowers *powers_of_f, AmpInsPrefactors * prefactors) {
   // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
   // The inspiral, intermediate and merger-ringdown amplitude parts
@@ -1627,7 +1627,7 @@ double IMRPhenDAmplitude(double f, IMRPhenomDAmplitudeCoefficients *p, UsefulPow
 /**
  * computes the time shift as the approximate time of the peak of the 22 mode.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomDComputet0(
     double eta,           /**< symmetric mass-ratio */
     double chi1z,         /**< dimensionless aligned-spin of primary */
@@ -1654,7 +1654,7 @@ double IMRPhenomDComputet0(
  * IMRPhenomDSetupAmpAndPhaseCoefficients struct
  */
 
-__device__
+CUDA_CALLABLE_MEMBER
  double IMRPhenomDPhase_OneFrequency(
     double Mf,
     PhenDAmpAndPhasePreComp pD,
@@ -1675,7 +1675,7 @@ __device__
 * Function to compute the amplitude and phase coefficients for PhenomD
 * Used to optimise the calls to IMRPhenDPhase and IMRPhenDAmplitude
 */
-__device__
+CUDA_CALLABLE_MEMBER
 int IMRPhenomDSetupAmpAndPhaseCoefficients(
    PhenDAmpAndPhasePreComp *pDPreComp,
    double m1,
@@ -1742,7 +1742,7 @@ ComputeIMRPhenomDPhaseCoefficients(&pDPreComp->pPhi, eta, chi1z, chi2z, fring, f
  * returns the real and imag parts of the complex ringdown frequency
  * for the (l,m) mode.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMGetRingdownFrequency(
     double *fringdown,
     double *fdamp,
@@ -1771,7 +1771,7 @@ int IMRPhenomHMGetRingdownFrequency(
  * Formula to predict the final spin. Equation 3.6 arXiv:1508.07250
  * s defined around Equation 3.6.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double FinalSpin0815_s(double eta, double s) {
   double eta2 = eta*eta;
   double eta3 = eta2*eta;
@@ -1791,7 +1791,7 @@ return 3.4641016151377544*eta - 4.399247300629289*eta2 +
 /**
  * Wrapper function for FinalSpin0815_s.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double FinalSpin0815(double eta, double chi1, double chi2) {
   // Convention m1 >= m2
   double Seta = sqrt(1.0 - 4.0*eta);
@@ -1808,7 +1808,7 @@ double FinalSpin0815(double eta, double chi1, double chi2) {
  * Formula to predict the total radiated energy. Equation 3.7 and 3.8 arXiv:1508.07250
  * Input parameter s defined around Equation 3.7 and 3.8.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double EradRational0815_s(double eta, double s) {
   double eta2 = eta*eta;
   double eta3 = eta2*eta;
@@ -1821,7 +1821,7 @@ double EradRational0815_s(double eta, double s) {
 /**
  * Wrapper function for EradRational0815_s.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double EradRational0815(double eta, double chi1, double chi2) {
   // Convention m1 >= m2
   double Seta = sqrt(1.0 - 4.0*eta);
@@ -1841,7 +1841,7 @@ double EradRational0815(double eta, double chi1, double chi2) {
  * Helper function used in PhenomHM and PhenomPv3HM
  * Returns the final mass from the fit used in PhenomD
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomDFinalMass(
     double m1,    /**< mass of primary in solar masses */
     double m2,    /**< mass of secondary in solar masses */
@@ -1869,7 +1869,7 @@ double IMRPhenomDFinalMass(
 * the phenomenological fit described in PhysRevD.93.044006 Eq. 3.6.
 * unreviewed
 */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomDFinalSpin(
     const double m1_in,                 /**< mass of companion 1 [Msun] */
     const double m2_in,                 /**< mass of companion 2 [Msun] */
@@ -1908,7 +1908,7 @@ double IMRPhenomDFinalSpin(
  * Precompute a bunch of PhenomHM related quantities and store them filling in a
  * PhenomHMStorage variable
  */
-__device__
+CUDA_CALLABLE_MEMBER
 static void init_PhenomHM_Storage(
     PhenomHMStorage *p,
     const double m1_SI,
@@ -1947,7 +1947,7 @@ static void init_PhenomHM_Storage(
 /**
  * domain mapping function - ringdown
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMTrd(
     double Mf,
     double Mf_RD_22,
@@ -1977,7 +1977,7 @@ double IMRPhenomHMTrd(
  * mathematica function Ti
  * domain mapping function - inspiral
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMTi(double Mf, const int mm)
 {
     return 2.0 * Mf / mm;
@@ -1986,7 +1986,7 @@ double IMRPhenomHMTi(double Mf, const int mm)
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMSlopeAmAndBm(
     double *Am,
     double *Bm,
@@ -2014,7 +2014,7 @@ int IMRPhenomHMSlopeAmAndBm(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMMapParams(
     double *a,
     double *b,
@@ -2053,7 +2053,7 @@ int IMRPhenomHMMapParams(
 /**
  * helper function for IMRPhenomHMFreqDomainMap
  */
-__device__
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMFreqDomainMapParams(
     double *a,             /**< [Out]  */
     double *b,             /**< [Out]  */
@@ -2135,7 +2135,7 @@ int IMRPhenomHMFreqDomainMapParams(
  * and computes what frequency this corresponds
  * to scaled to the 22 mode.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMFreqDomainMap(
     double Mflm,
     const int ell,
@@ -2157,7 +2157,7 @@ double IMRPhenomHMFreqDomainMap(
     return Mf22;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 int IMRPhenomHMPhasePreComp(
     HMPhasePreComp *q,          /**< [out] HMPhasePreComp struct */
     const int ell,             /**< ell spherical harmonic number */
@@ -2216,7 +2216,7 @@ int IMRPhenomHMPhasePreComp(
 /**
  * Define function for FD PN amplitudes
  */
-__device__
+CUDA_CALLABLE_MEMBER
 double IMRPhenomHMOnePointFiveSpinPN(
     double fM,
     int l,
@@ -2309,7 +2309,7 @@ double IMRPhenomHMOnePointFiveSpinPN(
 /** @} */
 /** @} */
 
-__device__
+CUDA_CALLABLE_MEMBER
 void get_amp(double* amp, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, double amp0)
 {
 
@@ -2366,7 +2366,7 @@ void get_amp(double* amp, double freq_geom, int ell, int mm, PhenomHMStorage* pH
 }
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
 {
         double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
@@ -2410,7 +2410,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
   * Michael Katz added this function.
   * internal function that filles amplitude and phase for a specific frequency and mode.
   */
- __device__
+ CUDA_CALLABLE_MEMBER
  void calculate_modes(int binNum, int mode_i, double* amps, double* phases, double* phases_deriv, double* freqs, int ell, int mm, PhenomHMStorage *pHM, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0, int length, int numBinAll, int numModes, double M_tot_sec, double cshift[])
  {
 
@@ -2421,7 +2421,16 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
          int retcode = 0;
          double eps = 1e-9;
 
-         for (int i = threadIdx.x; i < length; i += blockDim.x)
+         int start, increment;
+         #ifdef __CUDACC__
+         start = threadIdx.x;
+         increment = blockDim.x;
+         #else
+         start = 0;
+         increment = 1;
+         #pragma omp parallel for
+         #endif
+         for (int i = start; i < length; i += increment)
          {
              //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
              //int freq_index = i * numBinAll + binNum;
@@ -2499,7 +2508,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
  * This is setup to allow for pre-allocation of arrays. Therefore, all arrays
  * should be setup outside of this function.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 void IMRPhenomHMCore(
     int *ells,
     int *mms,
@@ -2725,12 +2734,12 @@ void IMRPhenomHMCore(
      * "Spherical hrmonic modes for numerical relativity"
      */
     /* List of phase shifts: the index is the azimuthal number m */
-    __shared__ double cShift[7];
+    CUDA_SHARED double cShift[7];
 
-    __shared__ int ells[MAX_MODES];
-    __shared__ int mms[MAX_MODES];
+    CUDA_SHARED int ells[MAX_MODES];
+    CUDA_SHARED int mms[MAX_MODES];
 
-    if (threadIdx.x == 0)
+    if THREAD_ZERO
     {
         cShift[0] = 0.0;
         cShift[1] = PI_2; /* i shift */
@@ -2741,19 +2750,34 @@ void IMRPhenomHMCore(
         cShift[6] = 0.0;
     }
 
-    __syncthreads();
+    CUDA_SYNC_THREADS;
 
-    for (int i = threadIdx.x; i < numModes; i += blockDim.x)
+    int start, increment;
+    #ifdef __CUDACC__
+    start = threadIdx.x;
+    increment = blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < numModes; i += increment)
     {
         ells[i] = ells_in[i];
         mms[i] = mms_in[i];
     }
 
-    __syncthreads();
+    CUDA_SYNC_THREADS;
 
-    int binNum = blockIdx.x; // threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (binNum < numBinAll)
+    #ifdef __CUDACC__
+    start = blockIdx.x;
+    increment = gridDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
         IMRPhenomHMCore(ells, mms, amps, phases, phases_deriv, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], phiRef[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift);
     }
@@ -2791,7 +2815,11 @@ void waveform_amp_phase(
 
     cudaEventRecord(start);*/
         //printf("%d begin\n", jj);
-    IMRPhenomHM<<<nblocks, NUM_THREADS_PHENOMHM>>>(
+    IMRPhenomHM
+    #ifdef __CUDACC__
+    <<<nblocks, NUM_THREADS_PHENOMHM>>>
+    #endif
+    (
         amps, /**< [out] Frequency-domain waveform hx */
         phases,
         phases_deriv,
@@ -2809,8 +2837,10 @@ void waveform_amp_phase(
         length,
         numBinAll
     );
+    #ifdef __CUDACC__
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #endif
 
     /*
     cudaEventRecord(stop);

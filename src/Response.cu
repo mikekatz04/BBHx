@@ -6,7 +6,7 @@
 
 #define NUM_THREADS_RESPONSE 64
 
-__device__
+CUDA_CALLABLE_MEMBER
 double d_dot_product_1d(double* arr1, double* arr2){
     double out = 0.0;
     for (int i=0; i<3; i++){
@@ -16,7 +16,7 @@ double d_dot_product_1d(double* arr1, double* arr2){
 }
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 cmplx d_vec_H_vec_product(double* arr1, cmplx* H, double* arr2){
 
     cmplx I(0.0, 1.0);
@@ -32,7 +32,7 @@ cmplx d_vec_H_vec_product(double* arr1, cmplx* H, double* arr2){
     return out;
 }
 
-__device__
+CUDA_CALLABLE_MEMBER
 double d_sinc(double x){
     if (x == 0.0) return 1.0;
     else return sin(x)/x;
@@ -42,7 +42,7 @@ double d_sinc(double x){
 /* # Single-link response
 # 'full' does include the orbital-delay term, 'constellation' does not
  */
-__device__
+CUDA_CALLABLE_MEMBER
 d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int response, double* p0){
     // response == 1 is full ,, response anything else is constellation
     //# Trajectories, p0 used only for the full response
@@ -52,26 +52,39 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int respon
     double a = aorbit; double e = eorbit;
 
     //double p0[3] = {a*c, a*s, 0.*t}; // funcp0(t)
-    __shared__ double p1L_all[NUM_THREADS_RESPONSE * 3];
+    #ifdef __CUDACC__
+    CUDA_SHARED double p1L_all[NUM_THREADS_RESPONSE * 3];
     double* p1L = &p1L_all[threadIdx.x * 3];
+    CUDA_SHARED double p2L_all[NUM_THREADS_RESPONSE * 3];
+    double* p2L = &p2L_all[threadIdx.x * 3];
+    CUDA_SHARED double p3L_all[NUM_THREADS_RESPONSE * 3];
+    double* p3L = &p3L_all[threadIdx.x * 3];
+    CUDA_SHARED double n_all[NUM_THREADS_RESPONSE * 3];
+    double* n = &n_all[threadIdx.x * 3];
+    #else
+    double p1L_all[3];
+    double* p1L = &p1L_all[0];
+    double p2L_all[3];
+    double* p2L = &p2L_all[0];
+    double p3L_all[3];
+    double* p3L = &p3L_all[0];
+    double n_all[3];
+    double* n = &n_all[0];
+
+    #endif
     p1L[0] = - a*e*(1 + s*s);
     p1L[1] = a*e*c*s;
     p1L[2] = -a*e*sqrt3*c;
 
-    __shared__ double p2L_all[NUM_THREADS_RESPONSE * 3];
-    double* p2L = &p2L_all[threadIdx.x * 3];
+
     p2L[0] = a*e/2*(sqrt3*c*s + (1 + s*s));
     p2L[1] = a*e/2*(-c*s - sqrt3*(1 + c*c));
     p2L[2] = -a*e*sqrt3/2*(sqrt3*s - c);
 
-    __shared__ double p3L_all[NUM_THREADS_RESPONSE * 3];
-    double* p3L = &p3L_all[threadIdx.x * 3];
+
     p3L[0] = a*e/2*(-sqrt3*c*s + (1 + s*s));
     p3L[1] = a*e/2*(-c*s + sqrt3*(1 + c*c));
     p3L[2] = -a*e*sqrt3/2*(-sqrt3*s - c);
-
-    __shared__ double n_all[NUM_THREADS_RESPONSE * 3];
-    double* n = &n_all[threadIdx.x * 3];
 
     // n1
     n[0] = -1./2*c*s;
@@ -155,7 +168,7 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int respon
 
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, int rescaled){
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
@@ -205,13 +218,21 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
 }
 
 
-__device__
+CUDA_CALLABLE_MEMBER
 d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
     t = t + t0*YRSID_SI;
 
     //funck
-    __shared__ double kvec_all[NUM_THREADS_RESPONSE * 3];
-    double* kvec = &kvec_all[threadIdx.x * 3];
+    CUDA_SHARED double kvec_all[3];
+    double* kvec = &kvec_all[0];
+
+    #ifdef __CUDACC__
+    CUDA_SHARED double p0_all[NUM_THREADS_RESPONSE * 3];
+    double* p0 = &p0_all[threadIdx.x * 3];
+    #else
+    double p0_all[3];
+    double* p0 = &p0_all[0];
+    #endif
     kvec[0] = -cos(beta)*cos(lam);
     kvec[1] = -cos(beta)*sin(lam);
     kvec[2] = -sin(beta);
@@ -219,8 +240,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
     // funcp0
     double alpha = Omega0*t; double c = cos(alpha); double s = sin(alpha); double a = aorbit;
 
-    __shared__ double p0_all[NUM_THREADS_RESPONSE * 3];
-    double* p0 = &p0_all[threadIdx.x * 3];
+
     p0[0] = a*c;
     p0[1] = a*s;
     p0[2] = 0.*t;
@@ -256,7 +276,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
   * Michael Katz added this function.
   * internal function that filles amplitude and phase for a specific frequency and mode.
   */
- __device__
+ CUDA_CALLABLE_MEMBER
  void response_modes(double* phases, double* response_out, int binNum, int mode_i, double* phases_deriv, double* freqs, double phiRef, int ell, int mm, int length, int numBinAll, int numModes,
  cmplx* H, double lam, double beta, double tRef_wave_frame, double tRef_sampling_frame, double tBase, int TDItag, int order_fresnel_stencil)
  {
@@ -269,7 +289,16 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
          double eps = 1e-9;
          int start_ind = 0;
 
-         for (int i = threadIdx.x; i < length; i += blockDim.x)
+         int start, increment;
+         #ifdef __CUDACC__
+         start = threadIdx.x;
+         increment = blockDim.x;
+         #else
+         start = 0;
+         increment = 1;
+         #pragma omp parallel for
+         #endif
+         for (int i = start; i < length; i += increment)
          {
              //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
              //int freq_index = i * numBinAll + binNum;
@@ -325,7 +354,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
 /*
 Calculate spin weighted spherical harmonics
 */
-__device__
+CUDA_CALLABLE_MEMBER
 cmplx SpinWeightedSphericalHarmonic(int s, int l, int m, double theta, double phi){
     // l=2
     double fac;
@@ -359,7 +388,7 @@ cmplx SpinWeightedSphericalHarmonic(int s, int l, int m, double theta, double ph
 /*
 custom dot product in 2d
 */
-__device__
+CUDA_CALLABLE_MEMBER
 void dot_product_2d(double* out, double* arr1, int m1, int n1, double* arr2, int m2, int n2){
 
     // dev and stride are on output
@@ -376,7 +405,7 @@ void dot_product_2d(double* out, double* arr1, int m1, int n1, double* arr2, int
 /*
 Custom dot product in 1d
 */
-__device__
+CUDA_CALLABLE_MEMBER
 double dot_product_1d(double arr1[3], double arr2[3]){
     double out = 0.0;
     for (int i=0; i<3; i++){
@@ -393,7 +422,7 @@ double dot_product_1d(double arr1[3], double arr2[3]){
  * This is setup to allow for pre-allocation of arrays. Therefore, all arrays
  * should be setup outside of this function.
  */
-__device__
+CUDA_CALLABLE_MEMBER
 void responseCore(
     double* phases,
     double* response_out,
@@ -420,18 +449,18 @@ void responseCore(
     int ell, mm;
 
     //// setup response
-    __shared__ double HSplus[9];
-    __shared__ double HScross[9];
+    CUDA_SHARED double HSplus[9];
+    CUDA_SHARED double HScross[9];
 
-    __shared__ cmplx H_mat[3 * 3];
-    __shared__ double Hplus[3 * 3];
-    __shared__ double Hcross[3 * 3];
-    __shared__ double kvec[3];
-    __shared__ double O1[3 * 3];
-    __shared__ double invO1[3 * 3];
-    __shared__ double out1[3 * 3];
+    CUDA_SHARED cmplx H_mat[3 * 3];
+    CUDA_SHARED double Hplus[3 * 3];
+    CUDA_SHARED double Hcross[3 * 3];
+    CUDA_SHARED double kvec[3];
+    CUDA_SHARED double O1[3 * 3];
+    CUDA_SHARED double invO1[3 * 3];
+    CUDA_SHARED double out1[3 * 3];
 
-    if (threadIdx.x == 0)
+    if THREAD_ZERO
     {
         HSplus[0] = 1.;
         HSplus[1] = 0.;
@@ -455,8 +484,8 @@ void responseCore(
 
 
     //##### Based on the f-n by Sylvain   #####
-    //__shared__ double Hplus_all[NUM_THREADS_RESPONSE * 3 * 3];
-    //__shared__ double Hcross_all[NUM_THREADS_RESPONSE * 3 * 3];
+    //CUDA_SHARED double Hplus_all[NUM_THREADS_RESPONSE * 3 * 3];
+    //CUDA_SHARED double Hcross_all[NUM_THREADS_RESPONSE * 3 * 3];
     //double* Hplus = &Hplus_all[threadIdx.x * 3 * 3];
     //double* Hcross = &Hcross_all[threadIdx.x * 3 * 3];
 
@@ -515,7 +544,7 @@ void responseCore(
     dot_product_2d(Hcross, O1, 3, 3, out1, 3, 3);
 
     }
-    __syncthreads();
+    CUDA_SYNC_THREADS;
     cmplx I = cmplx(0.0, 1.0);
     cmplx Ylm, Yl_m, Yfactorplus, Yfactorcross;
 
@@ -525,7 +554,7 @@ void responseCore(
         ell = ells[mode_i];
         mm = mms[mode_i];
 
-        if (threadIdx.x == 0)
+        if THREAD_ZERO
         {
             Ylm = SpinWeightedSphericalHarmonic(-2, ell, mm, inc, phiRef);
             Yl_m = pow(-1.0, ell)*gcmplx::conj(SpinWeightedSphericalHarmonic(-2, ell, -1*mm, inc, phiRef));
@@ -545,9 +574,9 @@ void responseCore(
                 }
             }
         }
-        __syncthreads();
+        CUDA_SYNC_THREADS;
 
-         if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
+         //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
         response_modes(phases, response_out, binNum, mode_i, phases_deriv, freqs, phiRef, ell, mm, length, numBinAll, numModes,
         H_mat, lam, beta, tRef_wave_frame, tRef_sampling_frame, tBase, TDItag, order_fresnel_stencil);
 
@@ -585,20 +614,34 @@ void responseCore(
 )
 {
 
-    __shared__ int ells[MAX_MODES];
-    __shared__ int mms[MAX_MODES];
+    CUDA_SHARED int ells[MAX_MODES];
+    CUDA_SHARED int mms[MAX_MODES];
 
-    for (int i = threadIdx.x; i < numModes; i += blockDim.x)
+    int start, increment;
+    #ifdef __CUDACC__
+    start = threadIdx.x;
+    increment = blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < numModes; i += increment)
     {
         ells[i] = ells_in[i];
         mms[i] = mms_in[i];
     }
 
-    __syncthreads();
+    CUDA_SYNC_THREADS;
 
-    int binNum = blockIdx.x; // threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (binNum < numBinAll)
+    #ifdef __CUDACC__
+    start = blockIdx.x;
+    increment = gridDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #endif
+    for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
         responseCore(phases, response_out, ells, mms, phases_deriv, freqs, phiRef[binNum], f_ref[binNum], inc[binNum], lam[binNum], beta[binNum], psi[binNum], tRef_wave_frame[binNum], tRef_sampling_frame[binNum], length, numModes, binNum, numBinAll,
         tBase, TDItag, order_fresnel_stencil);
@@ -636,7 +679,11 @@ void LISA_response(
 
     int nblocks2 = numBinAll; //std::ceil((numBinAll + NUM_THREADS_RESPONSE -1)/NUM_THREADS_RESPONSE);
 
-    response<<<nblocks2, NUM_THREADS_RESPONSE>>>(
+    response
+    #ifdef __CUDACC__
+    <<<nblocks2, NUM_THREADS_RESPONSE>>>
+    #endif
+    (
         phases,
         response_vals,
         phases_deriv,
@@ -656,6 +703,8 @@ void LISA_response(
         length,
         numBinAll
    );
+    #ifdef __CUDACC__
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #endif
 }

@@ -251,12 +251,6 @@ if run_cuda_install:
         include_dirs=[numpy_include, CUDA["include"], "include"] + gsl_include,
     )
 
-    if use_omp is False:
-        gpu_extension["extra_compile_args"]["nvcc"].remove("-fopenmp")
-        gpu_extension["extra_compile_args"]["gcc"].remove("-fopenmp")
-        gpu_extension["extra_compile_args"]["nvcc"].remove("-D__USE_OMP__")
-        gpu_extension["extra_compile_args"]["gcc"].remove("-D__USE_OMP__")
-
     pyPhenomHM_ext = Extension(
         "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
     )
@@ -280,110 +274,35 @@ if run_cuda_install:
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
+fps_cu_to_cpp = ["PhenomHM", "Response"]
+fps_pyx = ["phenomhm", "response"]
 
-"""
-# shutil.copy("phenomhm/gpuPhenomHM.pyx", "phenomhm/cpuPhenomHM.pyx")
-# shutil.copy("phenomd/gpuPhenomD.pyx", "phenomd/cpuPhenomD.pyx")
-# Obtain the numpy include directory. This logic works across numpy versions.
-try:
-    numpy_include = numpy.get_include()
-except AttributeError:
-    numpy_include = numpy.get_numpy_include()
+for fp in fps_cu_to_cpp:
+    shutil.copy("src/" + fp + ".cu", "src/" + fp + ".cpp")
 
-print("\n\n\n\n\nOn quest:", os.path.isdir("/home/mlk667/GPU4GW"), "\n\n\n\n\n")
-if os.path.isdir("/home/mlk667/GPU4GW"):
-    lapack_include = ["/software/lapack/3.6.0_gcc/include/"]
-    lapack_lib = ["/software/lapack/3.6.0_gcc/lib64/"]
+for fp in fps_pyx:
+    shutil.copy("src/" + fp + ".pyx", "src/" + fp + "_cpu.pyx")
 
-else:
-    lapack_include = ["/usr/local/opt/lapack/include"]
-    lapack_lib = ["/usr/local/opt/lapack/lib"]
-
-print(lapack_include)
-
-lib_gsl_dir = "/opt/local/lib"
-include_gsl_dir = "/opt/local/include"
-
-cpu_libs = ["pthread", "lapack"]
-
-cpu_extra_compile_args = {"gcc": ["-O3", "-fopenmp", "-fPIC"]}
-
-cpu_extra_link_args = ["-Wl,-rpath,/usr/local/opt/gcc/lib/gcc/9/"]
-
-temp_files = []
-for i, source in enumerate(phenomhm_sources):
-    temp = os.path.splitext(source)[0]
-    file_ext = os.path.splitext(source)[1]
-    if file_ext == ".cu":
-        shutil.copy(temp + ".cu", temp + ".cpp")
-        temp_files.append(temp + ".cpp")
-        phenomhm_sources[i] = temp + ".cpp"
-
-        if temp + ".cu" in phenomd_sources:
-            ind = phenomd_sources.index(temp + ".cu")
-            phenomd_sources[ind] = temp + ".cpp"
-
-for i, source in enumerate(phenomd_sources):
-    temp = os.path.splitext(source)[0]
-    file_ext = os.path.splitext(source)[1]
-
-    if temp + ".cpp" in temp_files:
-        continue
-    if file_ext == ".cu":
-        shutil.copy(temp + ".cu", temp + ".cpp")
-        temp_files.append(temp + ".cpp")
-        phenomd_sources[i] = temp + ".cpp"
-
-cpu_extension_dict = dict(
-    sources=phenomhm_sources,
-    library_dirs=all_lib_dirs + lapack_lib,
-    libraries=all_libs + cpu_libs,
+cpu_extension = dict(
+    libraries=["gsl", "gslcblas", "gomp", "lapack"],
     language="c++",
     # This syntax is specific to this build system
     # we're only going to use certain compiler args with nvcc
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
-    extra_compile_args=cpu_extra_compile_args,
-    extra_link_args=cpu_extra_link_args,
-    include_dirs=all_include + lapack_include,
+    extra_compile_args={"gcc": ["-std=c++11", "-fopenmp"],},  # '-g'],
+    include_dirs=[numpy_include, "include"],
 )
 
-cpu_extensions = []
+pyPhenomHM_cpu_ext = Extension(
+    "pyPhenomHM_cpu",
+    sources=["src/PhenomHM.cpp", "src/phenomhm_cpu.pyx"],
+    **cpu_extension
+)
+pyResponse_cpu_ext = Extension(
+    "pyResponse", sources=["src/Response.cpp", "src/response_cpu.pyx"], **cpu_extension
+)
 
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomHM"
-folder = "phenomhm/"
-temp_dict["sources"] += [folder + extension_name + ".pyx"]
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-
-shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomHM_glob"
-folder = "phenomhm/"
-temp_dict["sources"] += [folder + extension_name + ".pyx"]
-temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomD"
-folder = "phenomd/"
-temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-
-shutil.copy(folder + extension_name + ".pyx", folder + extension_name + "_glob.pyx")
-
-temp_dict = copy.deepcopy(cpu_extension_dict)
-extension_name = "cpuPhenomD_glob"
-folder = "phenomd/"
-temp_dict["sources"] = phenomd_sources + [folder + extension_name + ".pyx"]
-temp_dict["extra_compile_args"]["gcc"].append("-D__GLOBAL_FIT__")
-
-cpu_extensions.append(Extension(extension_name, **temp_dict))
-"""
 fp_out_name = "bbhx/utils/constants.py"
 fp_in_name = "include/constants.h"
 
@@ -403,6 +322,7 @@ with open(fp_out_name, "w") as fp_out:
                         continue
 
 
+extensions = [pyPhenomHM_cpu_ext, pyResponse_cpu_ext]
 if run_cuda_install:
     extensions = [
         pyPhenomHM_ext,
@@ -410,7 +330,7 @@ if run_cuda_install:
         pyInterpolate_ext,
         pyWaveformBuild_ext,
         pyLikelihood_ext,
-    ]
+    ] + extensions
 
 setup(
     name="bbhx",
@@ -424,3 +344,9 @@ setup(
     zip_safe=False,
     python_requires=">=3.6",
 )
+
+for fp in fps_cu_to_cpp:
+    os.remove("src/" + fp + ".cpp")
+
+for fp in fps_pyx:
+    os.remove("src/" + fp + "_cpu.pyx")

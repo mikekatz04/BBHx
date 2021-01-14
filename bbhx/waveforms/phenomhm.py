@@ -1,14 +1,14 @@
 import numpy as np
 
 try:
+    from pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
     import cupy as xp
 
 except (ImportError, ModuleNotFoundError) as e:
-    print("No CuPy")
+    print("No CuPy or GPU PhenomHM module.")
     import numpy as xp
 
-from pyPhenomHM import waveform_amp_phase_wrap
-
+from pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu
 from bbhx.utils.constants import *
 
 
@@ -17,8 +17,10 @@ class PhenomHMAmpPhase:
 
         if use_gpu:
             self.xp = xp
+            self.waveform_gen = waveform_amp_phase_wrap_gpu
 
         else:
+            self.waveform_gen = waveform_amp_phase_wrap_cpu
             self.xp = np
 
         if max_init_len > 0:
@@ -165,7 +167,7 @@ class PhenomHMAmpPhase:
         m1_SI = m1 * MSUN_SI
         m2_SI = m2 * MSUN_SI
 
-        waveform_amp_phase_wrap(
+        self.waveform_gen(
             self.waveform_carrier,
             ells,
             mms,

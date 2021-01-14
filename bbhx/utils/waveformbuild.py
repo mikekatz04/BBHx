@@ -275,7 +275,6 @@ class BBHWaveform:
             modes=modes,
         )
 
-        breakpoint()
         self.response_gen(
             self.amp_phase_gen.freqs,
             inc,
@@ -292,7 +291,6 @@ class BBHWaveform:
             out_buffer=out_buffer,
             modes=modes,
         )
-        breakpoint()
 
         if direct and compress:
 

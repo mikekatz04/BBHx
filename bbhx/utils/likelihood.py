@@ -156,7 +156,6 @@ class RelativeBinning:
 
         S_n = xp.asarray(get_sensitivity(f_n_host, sens_fn="noisepsd_AE"))
 
-        breakpoint()
         A0_flat = 4 * (h0.conj() * self.d) / S_n * df
         A1_flat = 4 * (h0.conj() * self.d) / S_n * df * (self.f_dense - f_m[bins])
 

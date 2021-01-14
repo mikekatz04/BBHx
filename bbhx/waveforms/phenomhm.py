@@ -144,13 +144,13 @@ class PhenomHMAmpPhase:
         self.num_per_param = length * num_modes * num_bin_all
         self.num_per_bin = length * num_modes
 
-        m1 = self.xp.asarray(m1)
-        m2 = self.xp.asarray(m2)
-        chi1z = self.xp.asarray(chi1z)
-        chi2z = self.xp.asarray(chi2z)
-        distance = self.xp.asarray(distance)
-        phiRef = self.xp.asarray(phiRef)
-        f_ref = self.xp.asarray(f_ref)
+        m1 = self.xp.asarray(m1).copy()
+        m2 = self.xp.asarray(m2).copy()
+        chi1z = self.xp.asarray(chi1z).copy()
+        chi2z = self.xp.asarray(chi2z).copy()
+        distance = self.xp.asarray(distance).copy()
+        phiRef = self.xp.asarray(phiRef).copy()
+        f_ref = self.xp.asarray(f_ref).copy()
 
         if out_buffer is None:
             self._initialize_waveform_container()

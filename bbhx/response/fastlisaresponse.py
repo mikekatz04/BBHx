@@ -193,14 +193,14 @@ class LISATDIResponse:
         self.nresponse_params = 6
         self.nparams = includes_amps + 2 + self.nresponse_params
 
-        inc = self.xp.asarray(inc)
-        lam = self.xp.asarray(lam)
-        beta = self.xp.asarray(beta)
-        psi = self.xp.asarray(psi)
-        tRef_wave_frame = self.xp.asarray(tRef_wave_frame)
-        tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame)
-        phiRef = self.xp.asarray(phiRef)
-        f_ref = self.xp.asarray(f_ref)
+        inc = self.xp.asarray(inc).copy()
+        lam = self.xp.asarray(lam).copy()
+        beta = self.xp.asarray(beta).copy()
+        psi = self.xp.asarray(psi).copy()
+        tRef_wave_frame = self.xp.asarray(tRef_wave_frame).copy()
+        tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame).copy()
+        phiRef = self.xp.asarray(phiRef).copy()
+        f_ref = self.xp.asarray(f_ref).copy()
 
         if out_buffer is None:
             includes_amps = 0

@@ -4,7 +4,7 @@
 #include "cuda_complex.hpp"
 
 #ifdef __CUDACC__
-#define CUDA_CALLABLE_MEMBER __host__ __device__
+#define CUDA_CALLABLE_MEMBER __device__
 #define CUDA_KERNEL __global__
 #define CUDA_SHARED __shared__
 #define CUDA_SYNC_THREADS __syncthreads();

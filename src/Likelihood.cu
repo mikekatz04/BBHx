@@ -185,15 +185,12 @@ void hdyn(cmplx* likeOut1, cmplx* likeOut2,
 {
 
     int nblocks4 = std::ceil((numBinAll + NUM_THREADS_LIKE -1)/NUM_THREADS_LIKE);
-
-    hdynLikelihood
     #ifdef __CUDACC__
-    <<<nblocks4, NUM_THREADS_LIKE>>>
-    #endif
-    (likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
-    #ifdef __CUDACC__
+    hdynLikelihood <<<nblocks4, NUM_THREADS_LIKE>>> (likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #else
+    hdynLikelihood(likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
     #endif
 }
 
@@ -249,8 +246,7 @@ void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_we
         cudaStreamCreate(&streams[bin_i]);
 
         noiseweight_template
-        <<<nblocks, NUM_THREADS_LIKE, 0, streams[bin_i]>>>
-        (templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length);
+        <<<nblocks, NUM_THREADS_LIKE, 0, streams[bin_i]>>>(templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length);
         cudaStreamSynchronize(streams[bin_i]);
 
         for (int j = 0; j < 3; j += 1)

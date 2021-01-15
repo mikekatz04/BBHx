@@ -344,8 +344,6 @@ void set_spline_constants(double *f_arr, double* y, double *c1, double* c2, doub
 }
 }
 
-
-
 void interpolate(double* freqs, double* propArrays,
                  double* B, double* upper_diag, double* diag, double* lower_diag,
                  int length, int numInterpParams, int numModes, int numBinAll)
@@ -362,29 +360,27 @@ void interpolate(double* freqs, double* propArrays,
 
     //printf("%d after response, %d\n", jj, nblocks2);
 
-     fill_B
      #ifdef __CUDACC__
-     <<<nblocks, NUM_THREADS_INTERPOLATE>>>
-     #endif
-     (freqs, propArrays, B, upper_diag, diag, lower_diag, ninterps, length, num_intermediates, numModes, numBinAll);
-     #ifdef __CUDACC__
+     fill_B<<<nblocks, NUM_THREADS_INTERPOLATE>>>(freqs, propArrays, B, upper_diag, diag, lower_diag, ninterps, length, num_intermediates, numModes, numBinAll);
      cudaDeviceSynchronize();
      gpuErrchk(cudaGetLastError());
-     #endif
 
      //printf("%d after fill b\n", jj);
      interpolate_kern(length, ninterps, lower_diag, diag, upper_diag, B);
 
 
-    set_spline_constants
-    #ifdef __CUDACC__
-    <<<nblocks, NUM_THREADS_INTERPOLATE>>>
-    #endif
-    (freqs, propArrays, c1, c2, c3, B,
+    set_spline_constants<<<nblocks, NUM_THREADS_INTERPOLATE>>>(freqs, propArrays, c1, c2, c3, B,
                     ninterps, length, num_intermediates, numBinAll, numModes);
-    #ifdef __CUDACC__
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #else
+    fill_B(freqs, propArrays, B, upper_diag, diag, lower_diag, ninterps, length, num_intermediates, numModes, numBinAll);
+
+    interpolate_kern(length, ninterps, lower_diag, diag, upper_diag, B);
+
+
+    set_spline_constants(freqs, propArrays, c1, c2, c3, B,
+                   ninterps, length, num_intermediates, numBinAll, numModes);
     #endif
     //printf("%d after set spline\n", jj);
 }

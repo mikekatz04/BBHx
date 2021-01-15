@@ -237,14 +237,12 @@ void direct_sum(cmplx* templateChannels,
 
     int nblocks5 = numBinAll; // std::ceil((numBinAll + NUM_THREADS_BUILD -1)/NUM_THREADS_BUILD);
 
-    fill_waveform
     #ifdef __CUDACC__
-    <<<nblocks5, NUM_THREADS_BUILD>>>
-    #endif
-    (templateChannels, bbh_buffer, numBinAll, data_length, nChannels, numModes, t_start, t_end);
-    #ifdef __CUDACC__
+    fill_waveform<<<nblocks5, NUM_THREADS_BUILD>>>(templateChannels, bbh_buffer, numBinAll, data_length, nChannels, numModes, t_start, t_end);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #else
+    fill_waveform(templateChannels, bbh_buffer, numBinAll, data_length, nChannels, numModes, t_start, t_end);
     #endif
 }
 
@@ -273,12 +271,11 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
         #ifdef __CUDACC__
         dim3 gridDim(nblocks3, 1);
         cudaStreamCreate(&streams[bin_i]);
+        TDI<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
+        #else
+        TDI(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
         #endif
-        TDI
-        #ifdef __CUDACC__
-        <<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>
-        #endif
-        (templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
+
     }
 
     #ifdef __CUDACC__

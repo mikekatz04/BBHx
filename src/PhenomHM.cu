@@ -2813,11 +2813,8 @@ void waveform_amp_phase(
 
     cudaEventRecord(start);*/
         //printf("%d begin\n", jj);
-    IMRPhenomHM
     #ifdef __CUDACC__
-    <<<nblocks, NUM_THREADS_PHENOMHM>>>
-    #endif
-    (
+    IMRPhenomHM<<<nblocks, NUM_THREADS_PHENOMHM>>>(
         amps, /**< [out] Frequency-domain waveform hx */
         phases,
         phases_deriv,
@@ -2835,9 +2832,28 @@ void waveform_amp_phase(
         length,
         numBinAll
     );
-    #ifdef __CUDACC__
+
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #else
+    IMRPhenomHM(
+        amps, /**< [out] Frequency-domain waveform hx */
+        phases,
+        phases_deriv,
+        ells_in,
+        mms_in,
+        freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+        m1_SI,                        /**< mass of companion 1 (kg) */
+        m2_SI,                        /**< mass of companion 2 (kg) */
+        chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
+        chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
+        distance,               /**< distance of source (m) */
+        phiRef,                 /**< reference orbital phase (rad) */
+        f_ref,                        /**< Reference frequency */
+        numModes,
+        length,
+        numBinAll
+    );
     #endif
 
     /*

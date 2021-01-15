@@ -675,10 +675,8 @@ void LISA_response(
 
     int nblocks2 = numBinAll; //std::ceil((numBinAll + NUM_THREADS_RESPONSE -1)/NUM_THREADS_RESPONSE);
 
-    response
     #ifdef __CUDACC__
-    <<<nblocks2, NUM_THREADS_RESPONSE>>>
-    #endif
+    response<<<nblocks2, NUM_THREADS_RESPONSE>>>
     (
         phases,
         response_vals,
@@ -699,8 +697,29 @@ void LISA_response(
         length,
         numBinAll
    );
-    #ifdef __CUDACC__
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+    #else
+    response
+    (
+        phases,
+        response_vals,
+        phases_deriv,
+        ells_in,
+        mms_in,
+        freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
+        phiRef,                 /**< reference orbital phase (rad) */
+        f_ref,                        /**< Reference frequency */
+        inc,
+        lam,
+        beta,
+        psi,
+        tRef_wave_frame,
+        tRef_sampling_frame,
+        tBase, TDItag, order_fresnel_stencil,
+        numModes,
+        length,
+        numBinAll
+   );
     #endif
 }

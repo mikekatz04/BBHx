@@ -94,6 +94,8 @@ class RelativeBinning:
         template_gen_args,
         length_f_rel,
         template_gen_kwargs={},
+        noise_kwargs_AE={},
+        noise_kwargs_T={},
         use_gpu=False,
     ):
 
@@ -110,9 +112,20 @@ class RelativeBinning:
             self.like_gen = hdyn_wrap_cpu
             self.xp = np
 
-        self._init_rel_bin_info(template_gen_args, template_gen_kwargs)
+        self._init_rel_bin_info(
+            template_gen_args,
+            template_gen_kwargs=template_gen_kwargs,
+            noise_kwargs_AE=noise_kwargs_AE,
+            noise_kwargs_T=noise_kwargs_T,
+        )
 
-    def _init_rel_bin_info(self, template_gen_args, template_gen_kwargs={}):
+    def _init_rel_bin_info(
+        self,
+        template_gen_args,
+        template_gen_kwargs={},
+        noise_kwargs_AE={},
+        noise_kwargs_T={},
+    ):
 
         template_gen_kwargs["squeeze"] = True
         template_gen_kwargs["compress"] = True
@@ -161,7 +174,13 @@ class RelativeBinning:
         except AttributeError:
             f_n_host = self.f_dense
 
-        S_n = xp.asarray(get_sensitivity(f_n_host, sens_fn="noisepsd_AE"))
+        S_n = xp.asarray(
+            [
+                get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
+                get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
+                get_sensitivity(f_n_host, sens_fn="noisepsd_T", **noise_kwargs_T),
+            ]
+        )
 
         A0_flat = 4 * (h0.conj() * self.d) / S_n * df
         A1_flat = 4 * (h0.conj() * self.d) / S_n * df * (self.f_dense - f_m[bins])

@@ -290,3 +290,153 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
     }
     #endif
 }
+
+
+CUDA_CALLABLE_MEMBER
+cmplx LIGO_combine_information(double amp, double phase, double Fplus, double Fcross)
+{
+    cmplx h = amp * gcmplx::exp(cmplx(0.0, -phase));
+
+    cmplx out(Fplus * h.real(), Fcross * h.imag());
+
+    return out;
+}
+
+#define  NUM_TERMS 4
+
+#define  MAX_NUM_COEFF_TERMS 1200
+#define MAX_CHANNELS  5
+
+CUDA_KERNEL
+void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* propArrays, double* c1In, double* c2In, double* c3In, double* Fplus_in, double* Fcross_in, int old_length, int data_length, int numBinAll, int numModes, int* inds, int ind_start, int ind_length, int bin_i, int numChannels)
+{
+
+    int start, increment;
+
+    #ifdef __CUDACC__
+    CUDA_SHARED cmplx temp_channels_all[NUM_THREADS_BUILD * MAX_CHANNELS];
+    cmplx* temp_channels = &temp_channels_all[threadIdx.x * numChannels];
+    #endif
+
+    CUDA_SHARED double Fplus[MAX_CHANNELS];
+    CUDA_SHARED double Fcross[MAX_CHANNELS];
+
+    #ifdef __CUDACC__
+    start = threadIdx.x;
+    increment = blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < numChannels; i += increment)
+    {
+        Fplus[i] = Fplus_in[bin_i * numChannels + i];
+        Fcross[i] = Fcross_in[bin_i * numChannels + i];
+    }
+    CUDA_SYNC_THREADS;
+
+    #ifdef __CUDACC__
+    start = blockIdx.x * blockDim.x + threadIdx.x;
+    increment = blockDim.x *gridDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < ind_length; i += increment)
+    {
+
+        #ifdef __CUDACC__
+        #else
+        cmplx temp_channels_all[MAX_CHANNELS];
+        cmplx* temp_channels = &temp_channels_all[0];
+        #endif
+        double t = dataTimeIn[i + ind_start];
+
+        int ind_here = inds[i];
+
+        double t_old = timeOld[bin_i * old_length + ind_here];
+
+        double x = t - t_old;
+        double x2 = x * x;
+        double x3 = x * x2;
+
+        for (int chan = 0; chan < numChannels; chan +=1)
+        {
+            temp_channels[chan] = cmplx(0.0, 0.0);
+        }
+        for (int mode_i = 0; mode_i < numModes; mode_i += 1)
+        {
+            int int_shared = (0* numModes + mode_i) * old_length + ind_here;
+            double amp = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+            //if ((i == 100) || (i == 101)) printf("%d %d %d %e %e %e %e %e %e\n", window_i, mode_i, i, amp, f, f_old, y[int_shared], c1[int_shared], c2[int_shared]);
+
+            int_shared = ( 1 * numModes + mode_i) * old_length + ind_here;
+            double phase = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+            for (int chan = 0; chan < numChannels; chan +=1)
+            {
+
+                temp_channels[chan] += LIGO_combine_information(amp, phase, Fplus[chan], Fcross[chan]);
+                //if ((i == 10) && (mode_i)) printf("%e %e %d %e %e %e %e %d %e %e\n", t_old, t, ind_here, amp, phase, temp_channels[chan].real(), temp_channels[chan].imag(), chan, Fplus[chan], Fcross[chan]);
+
+            }
+        }
+
+
+
+        for (int chan = 0; chan < numChannels; chan +=1)
+        {
+            templateChannels[chan * data_length + i] = temp_channels[chan];
+        }
+    }
+}
+
+void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels)
+{
+    #ifdef __CUDACC__
+    cudaStream_t streams[numBinAll];
+    #endif
+
+    #pragma omp parallel for
+    for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
+    {
+        int length_bin_i = ind_lengths[bin_i];
+        int ind_start = inds_start[bin_i];
+        int* inds = (int*) inds_ptrs[bin_i];
+        int old_length = old_lengths[bin_i];
+
+        double* ts = (double*)tsAll[bin_i];
+        double* propArrays = (double*)propArraysAll[bin_i];
+        double* c1 = (double*)c1All[bin_i];
+        double* c2 = (double*)c2All[bin_i];
+        double* c3 = (double*)c3All[bin_i];
+
+        cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
+
+        int nblocks3 = std::ceil((length_bin_i + NUM_THREADS_BUILD -1)/NUM_THREADS_BUILD);
+
+        #ifdef __CUDACC__
+        dim3 gridDim(nblocks3, 1);
+        cudaStreamCreate(&streams[bin_i]);
+        TD<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_length, data_length, numBinAll, numModes, inds, ind_start, length_bin_i, bin_i, numChannels);
+        #else
+        TD(templateChannels, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_length, data_length, numBinAll, numModes, inds, ind_start, length_bin_i, bin_i, numChannels);
+        #endif
+
+    }
+
+    #ifdef __CUDACC__
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+    #pragma omp parallel for
+    for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
+    {
+        //destroy the streams
+        cudaStreamDestroy(streams[bin_i]);
+    }
+    #endif
+}

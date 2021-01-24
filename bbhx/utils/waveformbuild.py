@@ -4,6 +4,7 @@ try:
     import cupy as xp
     from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
     from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
+    from pyWaveformBuild import TDInterp_wrap as TDInterp_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
@@ -11,8 +12,10 @@ except (ImportError, ModuleNotFoundError) as e:
 
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
+from pyWaveformBuild_cpu import TDInterp_wrap as TDInterp_wrap_cpu
 
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
+from bbhx.waveforms.seobnrv4phm import SEOBNRv4PHM
 from bbhx.response.fastlisaresponse import LISATDIResponse
 from bbhx.utils.interpolate import CubicSplineInterpolant
 from bbhx.utils.constants import *
@@ -157,26 +160,255 @@ class TemplateInterp:
         return self.template_channels
 
 
+class TDInterp:
+    def __init__(self, max_init_len=-1, use_gpu=False):
+
+        if use_gpu:
+            self.template_gen = TDInterp_wrap_gpu
+            self.xp = xp
+
+        else:
+            self.template_gen = TDInterp_wrap_cpu
+            self.xp = np
+
+        if max_init_len > 0:
+            self.use_buffers = True
+            raise NotImplementedError
+
+        else:
+            self.use_buffers = False
+
+    def _initialize_template_container(self):
+        self.template_carrier = self.xp.zeros(
+            (self.num_bin_all * self.nChannels * self.data_length),
+            dtype=self.xp.complex128,
+        )
+
+    @property
+    def template_channels(self):
+        return [
+            self.template_carrier[i].reshape(self.nChannels, self.data_length)
+            for i in range(self.num_bin_all)
+        ]
+
+    def __call__(
+        self,
+        dataTime,
+        interp_container,
+        lam,
+        beta,
+        psi,
+        length,
+        data_length,
+        num_modes,
+        nChannels,
+        dt=1 / 1024,
+    ):
+
+        numBinAll = len(lam)
+        self.length = length
+        self.num_modes = num_modes
+        self.num_bin_all = numBinAll
+        self.data_length = data_length
+        self.nChannels = nChannels
+
+        # TODO: fix this
+        theta = self.xp.repeat(self.xp.asarray(beta.copy()), nChannels)
+        phi = self.xp.repeat(self.xp.asarray(lam.copy()), nChannels)
+        psi = self.xp.repeat(self.xp.asarray(psi.copy()), nChannels)
+        term1 = (
+            (1.0 / 2.0)
+            * (1 + self.xp.cos(theta) ** 2)
+            * self.xp.cos(2 * psi)
+            * self.xp.cos(2 * phi)
+        )
+        term2 = self.xp.cos(theta) * self.xp.sin(2 * psi) * self.xp.sin(2 * phi)
+        Fplus = term1 - term2
+        Fcross = term1 + term2
+
+        # self._initialize_template_container()
+
+        # (ts, y, c1, c2, c3) = interp_container
+
+        splines_ts = [interp_container[i].container[0] for i in range(self.num_bin_all)]
+
+        ends = self.xp.asarray([splines_ts[i].max() for i in range(self.num_bin_all)])
+        start_and_end = self.xp.asarray([self.xp.full(self.num_bin_all, 0.0), ends,]).T
+
+        inds_start_and_end = self.xp.asarray(
+            [
+                self.xp.searchsorted(dataTime, temp, side="left")
+                for temp in start_and_end
+            ]
+        )
+
+        inds = [
+            self.xp.searchsorted(ts, dataTime[st:et], side="right").astype(
+                self.xp.int32
+            )
+            - 1
+            for i, ((st, et), ts) in enumerate(zip(inds_start_and_end, splines_ts))
+        ]
+
+        self.lengths = lengths = np.asarray(
+            [len(inds_i) for inds_i in inds], dtype=self.xp.int32
+        )
+
+        try:
+            temp_inds = inds_start_and_end[:, 0].get()
+        except AttributeError:
+            temp_inds = inds_start_and_end[:, 0]
+
+        self.start_inds = start_inds = (temp_inds.copy()).astype(np.int32)
+
+        try:
+            self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
+        except AttributeError:
+            self.ptrs = ptrs = np.asarray(
+                [ind_i.__array_interface__["data"][0] for ind_i in inds]
+            )
+
+        self.template_carrier = [
+            self.xp.zeros(int(self.nChannels * data_length), dtype=self.xp.complex128,)
+            for temp_length in lengths
+        ]
+
+        try:
+            template_carrier_ptrs = np.asarray(
+                [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
+            )
+        except AttributeError:
+            template_carrier_ptrs = np.asarray(
+                [
+                    temp_carrier.__array_interface__["data"][0]
+                    for temp_carrier in self.template_carrier
+                ]
+            )
+
+        try:
+            splines_ts_ptrs = np.asarray(
+                [
+                    interp_container[i].container[0].data.ptr
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_ys_ptrs = np.asarray(
+                [
+                    interp_container[i].container[1].data.ptr
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_c1_ptrs = np.asarray(
+                [
+                    interp_container[i].container[2].data.ptr
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_c2_ptrs = np.asarray(
+                [
+                    interp_container[i].container[3].data.ptr
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_c3_ptrs = np.asarray(
+                [
+                    interp_container[i].container[4].data.ptr
+                    for i in range(self.num_bin_all)
+                ]
+            )
+
+        except AttributeError:
+            splines_ts_ptrs = np.asarray(
+                [
+                    interp_container[i].container[0].__array_interface__["data"][0]
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_ys_ptrs = np.asarray(
+                [
+                    interp_container[i].container[1].__array_interface__["data"][0]
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_c1_ptrs = np.asarray(
+                [
+                    interp_container[i].container[2].__array_interface__["data"][0]
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_c2_ptrs = np.asarray(
+                [
+                    interp_container[i].container[3].__array_interface__["data"][0]
+                    for i in range(self.num_bin_all)
+                ]
+            )
+            splines_c3_ptrs = np.asarray(
+                [
+                    interp_container[i].container[4].__array_interface__["data"][0]
+                    for i in range(self.num_bin_all)
+                ]
+            )
+
+        self.template_gen(
+            template_carrier_ptrs,
+            dataTime,
+            splines_ts_ptrs,
+            splines_ys_ptrs,
+            splines_c1_ptrs,
+            splines_c2_ptrs,
+            splines_c3_ptrs,
+            Fplus,
+            Fcross,
+            self.length.astype(np.int32),
+            self.data_length,
+            self.num_bin_all,
+            self.num_modes,
+            ptrs,
+            start_inds,
+            lengths,
+            nChannels,
+        )
+
+        return self.template_channels
+
+
 class BBHWaveform:
     def __init__(
-        self, amp_phase_kwargs={}, response_kwargs={}, interp_kwargs={}, use_gpu=False
+        self,
+        amp_phase_kwargs={},
+        response_kwargs={},
+        interp_kwargs={},
+        lisa=True,
+        use_gpu=False,
     ):
 
         self.response_gen = LISATDIResponse(**response_kwargs, use_gpu=use_gpu)
 
         self.amp_phase_gen = PhenomHMAmpPhase(**amp_phase_kwargs, use_gpu=use_gpu)
 
-        self.interp_tdi = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
-
         self.use_gpu = use_gpu
         if use_gpu:
-            self.waveform_gen = direct_sum_wrap_gpu
             self.xp = xp
         else:
-            self.waveform_gen = direct_sum_wrap_cpu
             self.xp = np
 
-        self.num_interp_params = 9
+        self.lisa = lisa
+        if lisa:
+            self.num_interp_params = 9
+
+            self.waveform_gen = (
+                direct_sum_wrap_gpu if self.use_gpu else direct_sum_wrap_cpu
+            )
+            self.interp_response = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
+
+        else:
+            # TODO: should probably be 2
+            self.num_interp_params = 3
+
+            # self.waveform_gen = (
+            #    ligo_direct_sum_wrap_gpu if self.use_gpu else ligo_direct_sum_wrap_cpu
+            # )
+            self.interp_response = TDInterp(**interp_kwargs, use_gpu=use_gpu)
 
     def __call__(
         self,
@@ -275,22 +507,23 @@ class BBHWaveform:
             modes=modes,
         )
 
-        self.response_gen(
-            self.amp_phase_gen.freqs,
-            inc,
-            lam,
-            beta,
-            psi,
-            tRef_wave_frame,
-            tRef_sampling_frame,
-            phiRef,
-            f_ref,
-            tBase,
-            length,
-            includes_amps=True,
-            out_buffer=out_buffer,
-            modes=modes,
-        )
+        if self.lisa:
+            self.response_gen(
+                self.amp_phase_gen.freqs,
+                inc,
+                lam,
+                beta,
+                psi,
+                tRef_wave_frame,
+                tRef_sampling_frame,
+                phiRef,
+                f_ref,
+                tBase,
+                length,
+                includes_amps=True,
+                out_buffer=out_buffer,
+                modes=modes,
+            )
 
         if direct and compress:
 
@@ -377,7 +610,189 @@ class BBHWaveform:
             )
 
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
-            template_channels = self.interp_tdi(
+
+            if self.lisa:
+                template_channels = self.interp_response(
+                    freqs,
+                    spline.container,
+                    t_mrg,
+                    t_start,
+                    t_end,
+                    self.length,
+                    self.data_length,
+                    self.num_modes,
+                    t_obs_start,
+                    t_obs_end,
+                    3,
+                )
+            else:
+                template_channels = self.interp_response(
+                    freqs,
+                    spline.container,
+                    lam,
+                    beta,
+                    psi,
+                    self.length,
+                    self.data_length,
+                    self.num_modes,
+                    3,
+                )
+
+            if fill:
+                data_out = self.xp.zeros((3, len(freqs)), dtype=self.xp.complex128)
+                for temp, start_i, length_i in zip(
+                    template_channels,
+                    self.interp_response.start_inds,
+                    self.interp_response.lengths,
+                ):
+                    data_out[:, start_i : start_i + length_i] = temp
+
+                return data_out
+            else:
+
+                return (
+                    template_channels,
+                    self.interp_response.start_inds,
+                    self.interp_response.lengths,
+                )
+
+
+class BBHWaveformTD:
+    def __init__(
+        self, amp_phase_kwargs={}, interp_kwargs={}, lisa=True, use_gpu=False,
+    ):
+        self.amp_phase_gen = SEOBNRv4PHM(**amp_phase_kwargs)
+
+        self.use_gpu = use_gpu
+        if use_gpu:
+            self.xp = xp
+        else:
+            self.xp = np
+
+        self.lisa = lisa
+        if lisa:
+            self.num_interp_params = 9
+
+            self.waveform_gen = (
+                direct_sum_wrap_gpu if self.use_gpu else direct_sum_wrap_cpu
+            )
+            self.interp_response = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
+
+        else:
+            # TODO: should probably be 2
+            self.num_interp_params = 2
+
+            # self.waveform_gen = (
+            #    ligo_direct_sum_wrap_gpu if self.use_gpu else ligo_direct_sum_wrap_cpu
+            # )
+            self.interp_response = TDInterp(**interp_kwargs, use_gpu=use_gpu)
+
+    def __call__(
+        self,
+        m1,
+        m2,
+        chi1x,
+        chi1y,
+        chi1z,
+        chi2x,
+        chi2y,
+        chi2z,
+        distance,
+        phiRef,
+        inc,
+        lam,
+        beta,
+        psi,
+        tRef_wave_frame,
+        sampling_frequency=1024,
+        Tobs=60.0,
+        modes=None,
+        bufferSize=None,
+        fill=False,
+    ):
+
+        # TODO: if t_obs_end = t_mrg
+
+        m1 = np.atleast_1d(m1)
+        m2 = np.atleast_1d(m2)
+        chi1x = np.atleast_1d(chi1x)
+        chi1y = np.atleast_1d(chi1y)
+        chi1z = np.atleast_1d(chi1z)
+        chi2x = np.atleast_1d(chi2x)
+        chi2y = np.atleast_1d(chi2y)
+        chi2z = np.atleast_1d(chi2z)
+        distance = np.atleast_1d(distance)
+        phiRef = np.atleast_1d(phiRef)
+        inc = np.atleast_1d(inc)
+        lam = np.atleast_1d(lam)
+        beta = np.atleast_1d(beta)
+        psi = np.atleast_1d(psi)
+        tRef_wave_frame = np.atleast_1d(tRef_wave_frame)
+
+        self.num_bin_all = len(m1)
+
+        self.data_length = data_length = int(Tobs * sampling_frequency)
+
+        self.dataTime = (
+            self.xp.arange(data_length, dtype=self.xp.float64)
+            * 1.0
+            / sampling_frequency
+        )
+
+        if modes is None:
+            self.num_modes = len(self.amp_phase_gen.allowable_modes)
+        else:
+            self.num_modes = len(modes)
+
+        self.amp_phase_gen(
+            m1,
+            m2,
+            chi1x,
+            chi1y,
+            chi1z,
+            chi2x,
+            chi2y,
+            chi2z,
+            distance,
+            phiRef,
+            modes=modes,
+        )
+
+        """
+        if self.lisa:
+            self.response_gen(
+                self.amp_phase_gen.freqs,
+                inc,
+                lam,
+                beta,
+                psi,
+                tRef_wave_frame,
+                tRef_sampling_frame,
+                phiRef,
+                f_ref,
+                tBase,
+                length,
+                includes_amps=True,
+                out_buffer=out_buffer,
+                modes=modes,
+            )
+        """
+        splines = [
+            CubicSplineInterpolant(
+                self.xp.asarray(self.amp_phase_gen.t[i].copy()),
+                self.xp.asarray(self.amp_phase_gen.amp_phase[i].copy()),
+                self.amp_phase_gen.lengths[i],
+                self.num_interp_params,
+                self.num_modes,
+                self.num_bin_all,
+                use_gpu=self.use_gpu,
+            )
+            for i in range(self.num_bin_all)
+        ]
+        # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
+
+        if self.lisa:
+            template_channels = self.interp_response(
                 freqs,
                 spline.container,
                 t_mrg,
@@ -390,21 +805,23 @@ class BBHWaveform:
                 t_obs_end,
                 3,
             )
+        else:
 
-            if fill:
-                data_out = self.xp.zeros((3, len(freqs)), dtype=self.xp.complex128)
-                for temp, start_i, length_i in zip(
-                    template_channels,
-                    self.interp_tdi.start_inds,
-                    self.interp_tdi.lengths,
-                ):
-                    data_out[:, start_i : start_i + length_i] = temp
+            template_channels = self.interp_response(
+                self.dataTime,
+                splines,
+                lam,
+                beta,
+                psi,
+                self.amp_phase_gen.lengths,
+                self.data_length,
+                self.num_modes,
+                3,
+                dt=1 / sampling_frequency,
+            )
 
-                return data_out
-            else:
-
-                return (
-                    template_channels,
-                    self.interp_tdi.start_inds,
-                    self.interp_tdi.lengths,
-                )
+        return (
+            template_channels,
+            self.interp_response.start_inds,
+            self.interp_response.lengths,
+        )

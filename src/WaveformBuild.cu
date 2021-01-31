@@ -293,9 +293,9 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
 
 
 CUDA_CALLABLE_MEMBER
-cmplx LIGO_combine_information(double re, double im, double phase_orb, double Fplus, double Fcross)
+cmplx LIGO_combine_information(double re, double im, int m, double phase_orb, double Fplus, double Fcross)
 {
-    cmplx h = cmplx(re, im) * gcmplx::exp(cmplx(0.0, -phase_orb));
+    cmplx h = cmplx(re, im) * gcmplx::exp(cmplx(0.0, -(m * phase_orb)));
 
     cmplx out(Fplus * h.real(), Fcross * h.imag());
 
@@ -306,9 +306,9 @@ cmplx LIGO_combine_information(double re, double im, double phase_orb, double Fp
 
 #define  MAX_NUM_COEFF_TERMS 1200
 #define MAX_CHANNELS  5
-
+#define MAX_EOB_MODES 20
 CUDA_KERNEL
-void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* propArrays, double* c1In, double* c2In, double* c3In, double* Fplus_in, double* Fcross_in, int old_length, int data_length, int numBinAll, int numModes, int* ls, int* ms, int* inds, int ind_start, int ind_length, int bin_i, int numChannels)
+void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* propArrays, double* c1In, double* c2In, double* c3In, double* Fplus_in, double* Fcross_in, int old_length, int data_length, int numBinAll, int numModes, int* ls_in, int* ms_in, int* inds, int ind_start, int ind_length, int bin_i, int numChannels)
 {
 
     int start, increment;
@@ -320,6 +320,10 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
 
     CUDA_SHARED double Fplus[MAX_CHANNELS];
     CUDA_SHARED double Fcross[MAX_CHANNELS];
+    CUDA_SHARED int ls[MAX_EOB_MODES];
+    CUDA_SHARED int ms[MAX_EOB_MODES];
+
+
 
     #ifdef __CUDACC__
     start = threadIdx.x;
@@ -333,6 +337,13 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
     {
         Fplus[i] = Fplus_in[bin_i * numChannels + i];
         Fcross[i] = Fcross_in[bin_i * numChannels + i];
+    }
+    CUDA_SYNC_THREADS;
+
+    for (int i = start; i < numModes; i += increment)
+    {
+        ls[i] = ls_in[i];
+        ms[i] = ms_in[i];
     }
     CUDA_SYNC_THREADS;
 
@@ -373,6 +384,8 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
         for (int mode_i = 0; mode_i < numModes; mode_i += 1)
         {
 
+            int l = ls[mode_i];
+            int m = ms[mode_i];
 
             int int_shared = (2 * mode_i) * old_length + ind_here;
             double re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
@@ -385,8 +398,8 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
             for (int chan = 0; chan < numChannels; chan +=1)
             {
 
-                temp_channels[chan] += LIGO_combine_information(re, imag, phi_orb, Fplus[chan], Fcross[chan]);
-                //if ((i == 10) && (mode_i)) printf("%e %e %d %e %e %e %e %d %e %e\n", t_old, t, ind_here, amp, phase, temp_channels[chan].real(), temp_channels[chan].imag(), chan, Fplus[chan], Fcross[chan]);
+                temp_channels[chan] += LIGO_combine_information(re, imag, m, phi_orb, Fplus[chan], Fcross[chan]);
+                //if ((i == 10)) printf("%d %d %d %e %e %d %e %e %e %e %d %e %e\n", l, m, mode_i, t_old, t, ind_here, re, imag, temp_channels[chan].real(), temp_channels[chan].imag(), chan, Fplus[chan], Fcross[chan]);
 
             }
         }

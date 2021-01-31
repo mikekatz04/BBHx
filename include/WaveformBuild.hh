@@ -9,7 +9,7 @@ void direct_sum(cmplx* templateChannels,
                 double* bbh_buffer,
                 int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end);
 
-void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels);
+void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, int* ls, int* ms, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels);
 
 
 #endif // __WAVEFORM_BUILD_HH__

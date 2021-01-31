@@ -248,7 +248,7 @@ if run_cuda_install:
                 # "-lineinfo",
             ],  # for debugging
         },
-        include_dirs=[numpy_include, CUDA["include"], "include"] + gsl_include,
+        include_dirs=[numpy_include, CUDA["include"], "include"],
     )
 
     pyPhenomHM_ext = Extension(

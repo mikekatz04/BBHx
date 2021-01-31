@@ -14,7 +14,7 @@ cdef extern from "WaveformBuild.hh":
                     double* bbh_buffer,
                     int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
 
-    void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels);
+    void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, int* ls, int* ms, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels);
 
 
 @pointer_adjust
@@ -51,7 +51,7 @@ def direct_sum_wrap(templateChannels,
                     numBinAll, data_length, nChannels, numModes, <double*> t_start_in, <double*> t_end_in)
 
 @pointer_adjust
-def TDInterp_wrap(templateChannels_ptrs, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_lengths, data_length, numBinAll, numModes, inds_ptrs, inds_start, ind_lengths, numChannels):
+def TDInterp_wrap(templateChannels_ptrs, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_lengths, data_length, numBinAll, numModes, ls, ms, inds_ptrs, inds_start, ind_lengths, numChannels):
 
     cdef size_t ts_in = ts
     cdef size_t propArrays_in = propArrays
@@ -66,5 +66,7 @@ def TDInterp_wrap(templateChannels_ptrs, dataTime, ts, propArrays, c1, c2, c3, F
     cdef size_t inds_start_in = inds_start
     cdef size_t ind_lengths_in = ind_lengths
     cdef size_t old_lengths_in = old_lengths
+    cdef size_t ls_in = ls
+    cdef size_t ms_in = ms
 
-    TDInterp(<long*> templateChannels_ptrs_in, <double*> dataTime_in, <long*> ts_in, <long*> propArrays_in, <long*> c1_in, <long*> c2_in, <long*> c3_in, <double*> Fplus_in_in, <double*> Fcross_in_in, <int*> old_lengths_in, data_length, numBinAll, numModes, <long*> inds_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in, numChannels)
+    TDInterp(<long*> templateChannels_ptrs_in, <double*> dataTime_in, <long*> ts_in, <long*> propArrays_in, <long*> c1_in, <long*> c2_in, <long*> c3_in, <double*> Fplus_in_in, <double*> Fcross_in_in, <int*> old_lengths_in, data_length, numBinAll, numModes, <int*> ls_in, <int*> ms_in, <long*> inds_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in, numChannels)

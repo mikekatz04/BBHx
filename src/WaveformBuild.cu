@@ -293,9 +293,9 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
 
 
 CUDA_CALLABLE_MEMBER
-cmplx LIGO_combine_information(double amp, double phase, double Fplus, double Fcross)
+cmplx LIGO_combine_information(double re, double im, double phase_orb, double Fplus, double Fcross)
 {
-    cmplx h = amp * gcmplx::exp(cmplx(0.0, -phase));
+    cmplx h = cmplx(re, im) * gcmplx::exp(cmplx(0.0, -phase_orb));
 
     cmplx out(Fplus * h.real(), Fcross * h.imag());
 
@@ -308,7 +308,7 @@ cmplx LIGO_combine_information(double amp, double phase, double Fplus, double Fc
 #define MAX_CHANNELS  5
 
 CUDA_KERNEL
-void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* propArrays, double* c1In, double* c2In, double* c3In, double* Fplus_in, double* Fcross_in, int old_length, int data_length, int numBinAll, int numModes, int* inds, int ind_start, int ind_length, int bin_i, int numChannels)
+void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* propArrays, double* c1In, double* c2In, double* c3In, double* Fplus_in, double* Fcross_in, int old_length, int data_length, int numBinAll, int numModes, int* ls, int* ms, int* inds, int ind_start, int ind_length, int bin_i, int numChannels)
 {
 
     int start, increment;
@@ -366,26 +366,30 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
         {
             temp_channels[chan] = cmplx(0.0, 0.0);
         }
+
+        int int_shared = (2 * numModes) * old_length + ind_here;
+        double phi_orb = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
         for (int mode_i = 0; mode_i < numModes; mode_i += 1)
         {
-            int int_shared = (0* numModes + mode_i) * old_length + ind_here;
-            double amp = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+
+            int int_shared = (2 * mode_i) * old_length + ind_here;
+            double re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
 
             //if ((i == 100) || (i == 101)) printf("%d %d %d %e %e %e %e %e %e\n", window_i, mode_i, i, amp, f, f_old, y[int_shared], c1[int_shared], c2[int_shared]);
 
-            int_shared = ( 1 * numModes + mode_i) * old_length + ind_here;
-            double phase = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+            int_shared = (2 * mode_i + 1) * old_length + ind_here;
+            double imag = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
 
             for (int chan = 0; chan < numChannels; chan +=1)
             {
 
-                temp_channels[chan] += LIGO_combine_information(amp, phase, Fplus[chan], Fcross[chan]);
+                temp_channels[chan] += LIGO_combine_information(re, imag, phi_orb, Fplus[chan], Fcross[chan]);
                 //if ((i == 10) && (mode_i)) printf("%e %e %d %e %e %e %e %d %e %e\n", t_old, t, ind_here, amp, phase, temp_channels[chan].real(), temp_channels[chan].imag(), chan, Fplus[chan], Fcross[chan]);
 
             }
         }
-
-
 
         for (int chan = 0; chan < numChannels; chan +=1)
         {
@@ -394,7 +398,7 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
     }
 }
 
-void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels)
+void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* propArraysAll, long* c1All, long* c2All, long* c3All, double* Fplus_in, double* Fcross_in, int* old_lengths, int data_length, int numBinAll, int numModes, int* ls, int* ms, long* inds_ptrs, int* inds_start, int* ind_lengths, int numChannels)
 {
     #ifdef __CUDACC__
     cudaStream_t streams[numBinAll];
@@ -421,9 +425,9 @@ void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* 
         #ifdef __CUDACC__
         dim3 gridDim(nblocks3, 1);
         cudaStreamCreate(&streams[bin_i]);
-        TD<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_length, data_length, numBinAll, numModes, inds, ind_start, length_bin_i, bin_i, numChannels);
+        TD<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_length, data_length, numBinAll, numModes, ls, ms, inds, ind_start, length_bin_i, bin_i, numChannels);
         #else
-        TD(templateChannels, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_length, data_length, numBinAll, numModes, inds, ind_start, length_bin_i, bin_i, numChannels);
+        TD(templateChannels, dataTime, ts, propArrays, c1, c2, c3, Fplus_in, Fcross_in, old_length, data_length, numBinAll, numModes, ls, ms, inds, ind_start, length_bin_i, bin_i, numChannels);
         #endif
 
     }

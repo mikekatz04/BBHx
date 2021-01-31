@@ -202,6 +202,8 @@ class TDInterp:
         data_length,
         num_modes,
         nChannels,
+        ls,
+        ms,
         dt=1 / 1024,
     ):
 
@@ -349,6 +351,9 @@ class TDInterp:
                 ]
             )
 
+        ls = ls.astype(np.int32)
+        ms = ms.astype(np.int32)
+
         self.template_gen(
             template_carrier_ptrs,
             dataTime,
@@ -363,6 +368,8 @@ class TDInterp:
             self.data_length,
             self.num_bin_all,
             self.num_modes,
+            ls,
+            ms,
             ptrs,
             start_inds,
             lengths,
@@ -777,20 +784,27 @@ class BBHWaveformTD:
                 modes=modes,
             )
         """
-        splines = [
-            CubicSplineInterpolant(
-                self.xp.asarray(self.amp_phase_gen.t[i].copy()),
-                self.xp.asarray(self.amp_phase_gen.amp_phase[i].copy()),
-                self.amp_phase_gen.lengths[i],
-                self.num_interp_params,
-                self.num_modes,
-                self.num_bin_all,
-                use_gpu=self.use_gpu,
-            )
-            for i in range(self.num_bin_all)
-        ]
-        # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
+        num = 100
+        import time
 
+        print("start")
+        st = time.perf_counter()
+        for _ in range(num):
+            splines = [
+                CubicSplineInterpolant(
+                    self.xp.asarray(self.amp_phase_gen.t[i].copy()),
+                    self.xp.asarray(self.amp_phase_gen.amp_phase[i].copy()),
+                    self.amp_phase_gen.lengths[i],
+                    self.num_interp_params,
+                    self.num_modes,
+                    self.num_bin_all,
+                    use_gpu=self.use_gpu,
+                )
+                for i in range(self.num_bin_all)
+            ]
+            # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
+
+        breakpoint()
         if self.lisa:
             template_channels = self.interp_response(
                 freqs,
@@ -819,7 +833,10 @@ class BBHWaveformTD:
                 3,
                 dt=1 / sampling_frequency,
             )
+        et = time.perf_counter()
 
+        print((et - st) / num)
+        breakpoint()
         return (
             template_channels,
             self.interp_response.start_inds,

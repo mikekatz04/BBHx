@@ -500,13 +500,17 @@ class BBHWaveform:
 
         freqs_temp = freqs if direct else None
 
+        if self.lisa:
+            phiRef_amp_phase = np.zeros_like(m1)
+        else:
+            phiRef_amp_phase = phiRef
         self.amp_phase_gen(
             m1,
             m2,
             chi1z,
             chi2z,
             distance,
-            phiRef,
+            phiRef_amp_phase,
             f_ref,
             length,
             freqs=freqs_temp,

@@ -293,7 +293,7 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
 
 
 CUDA_CALLABLE_MEMBER
-cmplx LIGO_combine_information(double re, double im, int m, double phase_orb, double Fplus, double Fcross)
+cmplx LIGO_combine_information(double re, double im, int l, int m, double phase_orb, double Fplus, double Fcross)
 {
     cmplx h = cmplx(re, im) * gcmplx::exp(cmplx(0.0, -(m * phase_orb)));
 
@@ -398,7 +398,7 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
             for (int chan = 0; chan < numChannels; chan +=1)
             {
 
-                temp_channels[chan] += LIGO_combine_information(re, imag, m, phi_orb, Fplus[chan], Fcross[chan]);
+                temp_channels[chan] += LIGO_combine_information(re, imag, l, m, phi_orb, Fplus[chan], Fcross[chan]);
                 //if ((i == 10)) printf("%d %d %d %e %e %d %e %e %e %e %d %e %e\n", l, m, mode_i, t_old, t, ind_here, re, imag, temp_channels[chan].real(), temp_channels[chan].imag(), chan, Fplus[chan], Fcross[chan]);
 
             }

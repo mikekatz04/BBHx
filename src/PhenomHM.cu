@@ -318,7 +318,11 @@ void PNPhasing_F2(
     /* Spin-orbit terms - can be derived from arXiv:1303.7412, Eq. 3.15-16 */
     const double pn_gamma = (554345.L/1134.L + 110.L*eta/9.L)*SL + (13915.L/84.L - 10.L*eta/3.L)*dSigmaL;
     pfa->v7 += pfaN * ((-8980424995.L/762048.L + 6586595.L*eta/756.L - 305.L*eta*eta/36.L)*SL - (170978035.L/48384.L - 2876425.L*eta/672.L - 4735.L*eta*eta/144.L) * dSigmaL);
-
+    pfa->v6 += pfaN * (PI * (3760.L*SL + 1490.L*dSigmaL)/3.L + pn_ss3);
+    pfa->v5 += pfaN * (-1.L * pn_gamma);
+    pfa->vlogv5 += pfaN * (-3.L * pn_gamma);
+    pfa->v4 += pfaN * (-10.L * pn_sigma);
+    pfa->v3 += pfaN * (188.L*SL/3.L + 25.L*dSigmaL);
 }
 
 
@@ -1258,23 +1262,34 @@ double PhiInsAnsatzInt(double Mf, UsefulPowers *powers_of_Mf, PhiInsPrefactors *
   const double v = powers_of_Mf->third * pow(PI, 1./3.);
   const double logv = log(v);
 
+
   double phasing = prefactors->initial_phasing;
+
+  //if (Mf < 7.38824e-04) printf("PhenomHM 1: %e %e %e \n", Mf, p->eta, phasing);
 
   phasing += prefactors->two_thirds	* powers_of_Mf->two_thirds;
   phasing += prefactors->third * powers_of_Mf->third;
   phasing += prefactors->third_with_logv * logv * powers_of_Mf->third;
+
+  //if (Mf < 7.38824e-04) printf("PhenomHM 2: %e %e %e \n", Mf, p->eta, phasing);
+
   phasing += prefactors->logv * logv;
   phasing += prefactors->minus_third / powers_of_Mf->third;
   phasing += prefactors->minus_two_thirds / powers_of_Mf->two_thirds;
+
+   //if (Mf < 7.38824e-04) printf("PhenomHM 3: %e %e %e %e %e %e  \n", Mf, p->eta, phasing, prefactors->logv * logv, prefactors->minus_third / powers_of_Mf->third, prefactors->minus_two_thirds / powers_of_Mf->two_thirds);
+
   phasing += prefactors->minus_one / Mf;
   phasing += prefactors->minus_five_thirds / powers_of_Mf->five_thirds; // * v^0
 
+  //if (Mf < 7.38824e-04) printf("PhenomHM 4: %e %e %e \n", Mf, p->eta, phasing);
   // Now add higher order terms that were calibrated for PhenomD
   phasing += ( prefactors->one * Mf + prefactors->four_thirds * powers_of_Mf->four_thirds
 			   + prefactors->five_thirds * powers_of_Mf->five_thirds
 			   + prefactors->two * powers_of_Mf->two
 			 ) / p->eta;
 
+  //if (Mf < 7.38824e-04) printf("PhenomHM 5: %e %e %e \n", Mf, p->eta, phasing);
   return phasing;
 }
 
@@ -1487,6 +1502,30 @@ double IMRPhenDPhase(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *
   //	Intermediate range
   double PhiInt = p->etaInv * PhiIntAnsatz(f, p) + p->C1Int + p->C2Int * f;
   return PhiInt;
+}
+
+CUDA_CALLABLE_MEMBER
+double IMRPhenDPhaseDerivative(double f, IMRPhenomDPhaseCoefficients *p, PNPhasingSeries *pn, double Rholm, double Taulm)
+{
+ // Defined in VIII. Full IMR Waveforms arXiv:1508.07253
+ // The inspiral, intermendiate and merger-ringdown phase parts
+
+ // split the calculation to just 1 of 3 possible mutually exclusive ranges
+ if (!StepFunc_boolean(f, p->fInsJoin))	// Inspiral range
+ {
+     double DPhiIns_val = DPhiInsAnsatzInt(f, p, pn);
+     return DPhiIns_val;
+ }
+
+ if (StepFunc_boolean(f, p->fMRDJoin))	// MRD range
+ {
+     double DPhiMRD_val = DPhiMRD(f, p, Rholm, Taulm) + p->C2MRD;
+     return DPhiMRD_val;
+ }
+
+ //	Intermediate range
+ double DPhiInt_val = DPhiIntAnsatz(f, p) + p->C2Int;;
+ return DPhiInt_val;
 }
 
 /**
@@ -2585,6 +2624,7 @@ void IMRPhenomHMCore(
 
     //if (pHM->f_ref == 0.0){
         pHM->Mf_ref = pDPreComp22.pAmp.fmaxCalc;
+
         pHM->f_ref = PhenomUtilsMftoHz(pHM->Mf_ref, pHM->Mtot);
         //printf("%e, %e\n", pHM->f_ref, pHM->Mf_ref);
     //}
@@ -2601,7 +2641,8 @@ void IMRPhenomHMCore(
     phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
 
     // t0 is passed into this function as a pointer.This is for compatibility with GPU.
-    t0 = IMRPhenomDComputet0(pHM->eta, pHM->chi1z, pHM->chi2z, pHM->finspin, &(pDPreComp22.pPhi), &(pDPreComp22.pAmp));
+    //t0 = IMRPhenomDComputet0(pHM->eta, pHM->chi1z, pHM->chi2z, pHM->finspin, &(pDPreComp22.pPhi), &(pDPreComp22.pAmp));
+    t0 = IMRPhenDPhaseDerivative(pHM->Mf_ref, &pDPreComp22.pPhi, &pDPreComp22.pn, 1.0, 1.0);
 
     // setup PhenomD info. Sub here is due to preallocated struct
 

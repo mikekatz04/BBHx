@@ -504,6 +504,7 @@ class BBHWaveform:
             phiRef_amp_phase = np.zeros_like(m1)
         else:
             phiRef_amp_phase = phiRef
+
         self.amp_phase_gen(
             m1,
             m2,

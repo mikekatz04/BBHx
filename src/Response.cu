@@ -338,8 +338,9 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
 
              // time_freq_corr update
              phases_deriv[mode_index] = t_sampling_frame;
-             double check = transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
-             phases[mode_index] +=  check; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
+             double phase_change = transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
+             //if (mode_index == 0) printf("%e %e %e %e %e\n", transferL.phaseRdelay, 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq, tRef_wave_frame, tBase, freq);
+             phases[mode_index] +=  phase_change; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
              //if ((mode_i == 3) && (i == 1000)) printf(" %.18e %.18e %.18e %.18e %.18e %.18e %.18e %.18e \n", freq, t_wave_frame, lam, beta, tBase, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
          }
 }

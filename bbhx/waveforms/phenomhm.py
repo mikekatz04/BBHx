@@ -2,6 +2,9 @@ import numpy as np
 
 try:
     from pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
+    from pyPhenomHM import (
+        get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_gpu,
+    )
     import cupy as xp
 
 except (ImportError, ModuleNotFoundError) as e:
@@ -9,6 +12,9 @@ except (ImportError, ModuleNotFoundError) as e:
     import numpy as xp
 
 from pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu
+from pyPhenomHM_cpu import (
+    get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_cpu,
+)
 from bbhx.utils.constants import *
 
 
@@ -18,10 +24,12 @@ class PhenomHMAmpPhase:
         if use_gpu:
             self.xp = xp
             self.waveform_gen = waveform_amp_phase_wrap_gpu
+            self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_gpu
 
         else:
-            self.waveform_gen = waveform_amp_phase_wrap_cpu
             self.xp = np
+            self.waveform_gen = waveform_amp_phase_wrap_cpu
+            self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_cpu
 
         if max_init_len > 0:
             self.use_buffers = True
@@ -122,6 +130,7 @@ class PhenomHMAmpPhase:
         freqs=None,
         out_buffer=None,
         modes=None,
+        run_phenomd=False,
     ):
 
         if modes is not None:
@@ -133,6 +142,10 @@ class PhenomHMAmpPhase:
         else:
             ells = self.ells_default
             mms = self.mms_default
+
+        if run_phenomd:
+            ells = self.xp.asarray([2], dtype=self.xp.int32)
+            mms = self.xp.asarray([2], dtype=self.xp.int32)
 
         num_modes = len(ells)
         num_bin_all = len(m1)
@@ -167,6 +180,22 @@ class PhenomHMAmpPhase:
         m1_SI = m1 * MSUN_SI
         m2_SI = m2 * MSUN_SI
 
+        self.fringdown = self.xp.zeros(self.num_modes * self.num_bin_all)
+        self.fdamp = self.xp.zeros(self.num_modes * self.num_bin_all)
+
+        self.phenomhm_ringdown_freqs(
+            self.fringdown,
+            self.fdamp,
+            m1,
+            m2,
+            chi1z,
+            chi2z,
+            ells,
+            mms,
+            self.num_modes,
+            self.num_bin_all,
+        )
+
         self.waveform_gen(
             self.waveform_carrier,
             ells,
@@ -182,4 +211,7 @@ class PhenomHMAmpPhase:
             num_modes,
             length,
             num_bin_all,
+            self.fringdown,
+            self.fdamp,
+            run_phenomd,
         )

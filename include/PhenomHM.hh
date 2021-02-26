@@ -319,6 +319,19 @@ typedef struct tagdeltaUtility {
   double f35;
 } DeltaUtility;
 
+void get_phenomhm_ringdown_frequencies_wrap(
+    double *fringdown,
+    double *fdamp,
+    double *m1,
+    double *m2,
+    double *chi1z,
+    double *chi2z,
+    int *ells_in,
+    int *mm_in,
+    int numModes,
+    int numBinAll
+);
+
 void waveform_amp_phase(
     double* waveformOut,
     int* ells_in,
@@ -333,7 +346,10 @@ void waveform_amp_phase(
     double* f_ref,                        /**< Reference frequency */
     int numModes,
     int length,
-    int numBinAll
+    int numBinAll,
+    double* Mf_RD_lm_all,
+    double* Mf_DM_lm_all,
+    int run_phenomd
 );
 
 #endif // __PHENOMHM__

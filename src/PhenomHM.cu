@@ -3,6 +3,7 @@
 #include "constants.h"
 
 #define NUM_THREADS_PHENOMHM 256
+#define MAX_MODES 6
 /////////////////////////
 
 // RINGDOWN
@@ -1943,6 +1944,126 @@ double IMRPhenomDFinalSpin(
 }
 
 
+CUDA_KERNEL
+void get_phenomhm_ringdown_frequencies(
+    double *fringdown,
+    double *fdamp,
+    double *m1,
+    double *m2,
+    double *chi1z,
+    double *chi2z,
+    int *ells_in,
+    int *mms_in,
+    int numModes,
+    int numBinAll
+)
+{
+    CUDA_SHARED int ells[MAX_MODES];
+    CUDA_SHARED int mms[MAX_MODES];
+
+    int start, increment;
+    #ifdef __CUDACC__
+    start = threadIdx.x;
+    increment = blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < numModes; i += increment)
+    {
+        ells[i] = ells_in[i];
+        mms[i] = mms_in[i];
+    }
+
+    CUDA_SYNC_THREADS;
+
+    #ifdef __CUDACC__
+    start = threadIdx.x + blockDim.x * blockIdx.x;
+    increment = gridDim.x * blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int binNum = start; binNum < numBinAll; binNum += increment)
+    {
+        double finmass = IMRPhenomDFinalMass(m1[binNum], m2[binNum], chi1z[binNum], chi2z[binNum]);
+        double finspin = IMRPhenomDFinalSpin(m1[binNum], m2[binNum], chi1z[binNum], chi2z[binNum]);
+
+        for (int mode_i = 0; mode_i < numModes; mode_i += 1)
+        {
+            unsigned int ell = (unsigned int) ells[mode_i];
+            int mm = mms[mode_i];
+
+            int index = binNum * numModes + mode_i;
+            IMRPhenomHMGetRingdownFrequency(
+                &fringdown[index],
+                &fdamp[index],
+                ell,
+                mm,
+                finmass,
+                finspin);
+        }
+    }
+}
+
+void get_phenomhm_ringdown_frequencies_wrap(
+    double *fringdown,
+    double *fdamp,
+    double *m1,
+    double *m2,
+    double *chi1z,
+    double *chi2z,
+    int *ells_in,
+    int *mm_in,
+    int numModes,
+    int numBinAll
+)
+{
+    int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
+    /*
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);*/
+        //printf("%d begin\n", jj);
+    #ifdef __CUDACC__
+    get_phenomhm_ringdown_frequencies<<<nblocks, NUM_THREADS_PHENOMHM>>>(
+        fringdown,
+        fdamp,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        ells_in,
+        mm_in,
+        numModes,
+        numBinAll
+    );
+
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+    #else
+    get_phenomhm_ringdown_frequencies(
+        fringdown,
+        fdamp,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        ells_in,
+        mm_in,
+        numModes,
+        numBinAll
+    );
+    #endif
+
+}
+
+
 /**
  * Precompute a bunch of PhenomHM related quantities and store them filling in a
  * PhenomHMStorage variable
@@ -2449,6 +2570,67 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
   * Michael Katz added this function.
   * internal function that filles amplitude and phase for a specific frequency and mode.
   */
+
+ CUDA_CALLABLE_MEMBER
+ double get_phase_phenomd(double Mf, PhenDAmpAndPhasePreComp pDPreComp, double t0, double phi0, double Mf_ref, double cshift[])
+ {
+     int mm = 2;
+     double phase_i = cshift[mm];
+
+     phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
+
+     double phase_term1 = - t0 * (Mf - Mf_ref);
+     double phase_term2 = phase_i - (mm * phi0);
+
+     return (phase_term1 + phase_term2);
+ }
+
+CUDA_CALLABLE_MEMBER
+void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* phases_deriv, double* freqs, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, double amp0, double t0, double phi0, int length, int numBinAll, double M_tot_sec, double Mf_ref, double cshift[])
+{
+    double eps = 1e-9;
+
+    int start, increment;
+    #ifdef __CUDACC__
+    start = threadIdx.x;
+    increment = blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < length; i += increment)
+    {
+
+        double amp_i, phase_i, dphidf, phase_up, phase_down;
+        double t_wave_frame, t_sampling_frame;
+        int status_in_for;
+        UsefulPowers powers_of_f;
+        int retcode = 0;
+
+        int freq_index = binNum * length + i;
+
+        double freq = freqs[freq_index];
+        double freq_geom = freq*M_tot_sec;
+
+        amp_i = IMRPhenDAmplitude(freq_geom, pAmp, &powers_of_f, &amp_prefactors);
+
+        phase_i = get_phase_phenomd(freq_geom, pDPreComp, t0, phi0, Mf_ref, cshift);
+
+        amps[freq_index] = amp_i * amp0;
+        phases[freq_index] = phase_i;
+
+        dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0);
+        phases_deriv[freq_index] = dphidf;
+
+         //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+         //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
+
+         //d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
+
+    }
+}
+
  CUDA_CALLABLE_MEMBER
  void calculate_modes(int binNum, int mode_i, double* amps, double* phases, double* phases_deriv, double* freqs, int ell, int mm, PhenomHMStorage *pHM, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0, int length, int numBinAll, int numModes, double M_tot_sec, double cshift[])
  {
@@ -2564,9 +2746,14 @@ void IMRPhenomHMCore(
     int numModes,
     int binNum,
     int numBinAll,
-    double cshift[]
+    double cshift[],
+    double* Mf_RD_lm,
+    double* Mf_DM_lm,
+    int run_phenomd
 )
 {
+
+    // TODO: run_phenomd int -> bool
 
 
     double t0, amp0, phi0;
@@ -2590,11 +2777,21 @@ void IMRPhenomHMCore(
     /* If you want to model a new mode then you have to add it here. */
     /* (l,m) = (2,2) */
 
-    IMRPhenomHMGetRingdownFrequency(
-        &pHM->Mf_RD_22,
-        &pHM->Mf_DM_22,
-        2, 2,
-        pHM->finmass, pHM->finspin);
+
+
+    if (!run_phenomd)
+    {
+        IMRPhenomHMGetRingdownFrequency(
+            &pHM->Mf_RD_22,
+            &pHM->Mf_DM_22,
+            2, 2,
+            pHM->finmass, pHM->finspin);
+    }
+    else
+    {
+        pHM->Mf_RD_22 = Mf_RD_lm[0];
+        pHM->Mf_DM_22 = Mf_DM_lm[0];
+    }
 
 
 
@@ -2637,10 +2834,8 @@ void IMRPhenomHMCore(
     double phiRef_to_zero = 0.0;
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
 
-    // phi0 is passed into this function as a pointer.This is for compatibility with GPU.
     phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
 
-    // t0 is passed into this function as a pointer.This is for compatibility with GPU.
     //t0 = IMRPhenomDComputet0(pHM->eta, pHM->chi1z, pHM->chi2z, pHM->finspin, &(pDPreComp22.pPhi), &(pDPreComp22.pAmp));
     t0 = IMRPhenDPhaseDerivative(pHM->Mf_ref, &pDPreComp22.pPhi, &pDPreComp22.pn, 1.0, 1.0);
 
@@ -2653,49 +2848,54 @@ void IMRPhenomHMCore(
    /* Compute the amplitude pre-factor */
    // amp0 is passed into this function as a pointer.This is for compatibility with GPU.
    amp0 = PhenomUtilsFDamp0(Mtot, distance); // TODO check if this is right units
-
-    //HMPhasePreComp q;
-
-    // prep q and pDPreComp for each mode in the loop below
-    HMPhasePreComp qlm;
-    PhenDAmpAndPhasePreComp pDPreComplm;
-
-    double Rholm, Taulm;
-
     double M_tot_sec = (pHM->m1 + pHM->m2)*MTSUN_SI;
 
-    for (int mode_i=0; mode_i<numModes; mode_i++){
-        ell = ells[mode_i];
-        mm = mms[mode_i];
+    if (run_phenomd)
+    {
+        calculate_modes_phenomd(binNum, amps, phases, phases_deriv, freqs,  &(pDPreComp22.pAmp), pDPreComp22.amp_prefactors, pDPreComp22, amp0, t0, phi0, length, numBinAll, M_tot_sec, pHM->Mf_ref, cshift);
+    }
+    else
+    {
+        //HMPhasePreComp q;
 
-        IMRPhenomHMGetRingdownFrequency(
-            &pHM->Mf_RD_lm,
-            &pHM->Mf_DM_lm,
-            ell, mm,
-            pHM->finmass, pHM->finspin);
+        // prep q and pDPreComp for each mode in the loop below
+        HMPhasePreComp qlm;
+        PhenDAmpAndPhasePreComp pDPreComplm;
 
-        pHM->Rholm = pHM->Mf_RD_22 / pHM->Mf_RD_lm;
-        pHM->Taulm = pHM->Mf_DM_lm / pHM->Mf_DM_22;
+        double Rholm, Taulm;
 
-        retcode = 0;
+        for (int mode_i=0; mode_i<numModes; mode_i++)
+        {
+            ell = ells[mode_i];
+            mm = mms[mode_i];
 
-        Rholm = pHM->Rholm;
-        Taulm = pHM->Taulm;
-        retcode = IMRPhenomDSetupAmpAndPhaseCoefficients(
-            &pDPreComplm,
-            pHM->m1,
-            pHM->m2,
-            pHM->chi1z,
-            pHM->chi2z,
-            Rholm,
-            Taulm,
-            pHM->Mf_RD_lm,
-            pHM->Mf_DM_lm);
+            pHM->Mf_RD_lm = Mf_RD_lm[mode_i];
+            pHM->Mf_DM_lm = Mf_DM_lm[mode_i];
 
-        retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
+            pHM->Rholm = pHM->Mf_RD_22 / pHM->Mf_RD_lm;
+            pHM->Taulm = pHM->Mf_DM_lm / pHM->Mf_DM_22;
 
-        calculate_modes(binNum, mode_i, amps, phases, phases_deriv, freqs, ell, mm, pHM, &(pDPreComplm.pAmp), pDPreComplm.amp_prefactors, pDPreComplm, qlm, amp0, Rholm, Taulm, t0, phi0, length, numBinAll, numModes, M_tot_sec, cshift);
 
+            retcode = 0;
+
+            Rholm = pHM->Rholm;
+            Taulm = pHM->Taulm;
+            retcode = IMRPhenomDSetupAmpAndPhaseCoefficients(
+                &pDPreComplm,
+                pHM->m1,
+                pHM->m2,
+                pHM->chi1z,
+                pHM->chi2z,
+                Rholm,
+                Taulm,
+                pHM->Mf_RD_lm,
+                pHM->Mf_DM_lm);
+
+            retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
+
+            calculate_modes(binNum, mode_i, amps, phases, phases_deriv, freqs, ell, mm, pHM, &(pDPreComplm.pAmp), pDPreComplm.amp_prefactors, pDPreComplm, qlm, amp0, Rholm, Taulm, t0, phi0, length, numBinAll, numModes, M_tot_sec, cshift);
+
+        }
     }
 }
 
@@ -2744,8 +2944,6 @@ void IMRPhenomHMCore(
  *
  */
 
- #define MAX_MODES 6
-
  CUDA_KERNEL
  void IMRPhenomHM(
      double* amps, /**< [out] Frequency-domain waveform hx */
@@ -2763,7 +2961,10 @@ void IMRPhenomHMCore(
      double* f_ref,                        /**< Reference frequency */
      int numModes,
      int length,
-     int numBinAll
+     int numBinAll,
+     double* Mf_RD_lm_all,
+     double* Mf_DM_lm_all,
+     int run_phenomd
 )
 {
 
@@ -2777,6 +2978,8 @@ void IMRPhenomHMCore(
 
     CUDA_SHARED int ells[MAX_MODES];
     CUDA_SHARED int mms[MAX_MODES];
+    CUDA_SHARED double Mf_RD_lm[MAX_MODES];
+    CUDA_SHARED double Mf_DM_lm[MAX_MODES];
 
     if THREAD_ZERO
     {
@@ -2818,7 +3021,23 @@ void IMRPhenomHMCore(
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
-        IMRPhenomHMCore(ells, mms, amps, phases, phases_deriv, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], phiRef[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift);
+        int start2, increment2;
+        #ifdef __CUDACC__
+        start2 = threadIdx.x;
+        increment2 = blockDim.x;
+        #else
+        start2 = 0;
+        increment2 = 1;
+        #pragma omp parallel for
+        #endif
+        for (int i = start2; i < numModes; i += increment2)
+        {
+            Mf_RD_lm[i] = Mf_RD_lm_all[binNum * numModes + i];
+            Mf_DM_lm[i] = Mf_DM_lm_all[binNum * numModes + i];
+        }
+        CUDA_SYNC_THREADS;
+
+        IMRPhenomHMCore(ells, mms, amps, phases, phases_deriv, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], phiRef[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift, Mf_RD_lm, Mf_DM_lm, run_phenomd);
     }
 }
 
@@ -2837,7 +3056,10 @@ void waveform_amp_phase(
     double* f_ref,                        /**< Reference frequency */
     int numModes,
     int length,
-    int numBinAll
+    int numBinAll,
+    double* Mf_RD_lm_all,
+    double* Mf_DM_lm_all,
+    int run_phenomd
 )
 {
 
@@ -2871,11 +3093,15 @@ void waveform_amp_phase(
         f_ref,                        /**< Reference frequency */
         numModes,
         length,
-        numBinAll
+        numBinAll,
+        Mf_RD_lm_all,
+        Mf_DM_lm_all,
+        run_phenomd
     );
 
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
     #else
     IMRPhenomHM(
         amps, /**< [out] Frequency-domain waveform hx */
@@ -2893,7 +3119,10 @@ void waveform_amp_phase(
         f_ref,                        /**< Reference frequency */
         numModes,
         length,
-        numBinAll
+        numBinAll,
+        Mf_RD_lm_all,
+        Mf_DM_lm_all,
+        run_phenomd
     );
     #endif
 

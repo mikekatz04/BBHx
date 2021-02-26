@@ -2063,6 +2063,146 @@ void get_phenomhm_ringdown_frequencies_wrap(
 
 }
 
+// removed +/- 0.999 so 1001 not 1003
+#define NUM_SPLINE_PTS 1001
+CUDA_KERNEL
+void get_phenomd_ringdown_frequencies(
+    double *fringdown,
+    double *fdamp,
+    double *m1,
+    double *m2,
+    double *chi1z,
+    double *chi2z,
+    int numBinAll,
+    double *y_rd_all,
+    double *c1_rd_all,
+    double *c2_rd_all,
+    double *c3_rd_all,
+    double *y_dm_all,
+    double *c1_dm_all,
+    double *c2_dm_all,
+    double *c3_dm_all,
+    double dspin
+)
+{
+
+    // TODO: constant memory?
+    int start, increment;
+
+    #ifdef __CUDACC__
+    start = threadIdx.x + blockDim.x * blockIdx.x;
+    increment = gridDim.x * blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int binNum = start; binNum < numBinAll; binNum += increment)
+    {
+        double finmass = IMRPhenomDFinalMass(m1[binNum], m2[binNum], chi1z[binNum], chi2z[binNum]);
+        double finspin = IMRPhenomDFinalSpin(m1[binNum], m2[binNum], chi1z[binNum], chi2z[binNum]);
+
+        double lowest_spin = -1.0;
+        int ind = int( (finspin - lowest_spin) / dspin ); // -1.0 min spin
+        double x_spl = dspin * ind + lowest_spin;
+
+        double y_rd = y_rd_all[ind];
+        double c1_rd = c1_rd_all[ind];
+        double c2_rd = c2_rd_all[ind];
+        double c3_rd = c3_rd_all[ind];
+
+        double y_dm = y_dm_all[ind];
+        double c1_dm = c1_dm_all[ind];
+        double c2_dm = c2_dm_all[ind];
+        double c3_dm = c3_dm_all[ind];
+
+        double x = finspin - x_spl;
+        double x2 = x * x;
+        double x3 = x2 * x;
+
+        //printf("%e %e %d %e %e %e %e %e %e\n", finmass, finspin, ind, x_spl, , );
+        double fring_temp = y_rd + c1_rd * x + c2_rd * x2 + c3_rd * x3;
+        double fdamp_temp = y_dm + c1_dm * x + c2_dm * x2 + c3_dm * x3;
+
+        fringdown[binNum] = fring_temp / finmass;
+        fdamp[binNum] = fdamp_temp / finmass;
+
+    }
+}
+
+void get_phenomd_ringdown_frequencies_wrap(
+    double *fringdown,
+    double *fdamp,
+    double *m1,
+    double *m2,
+    double *chi1z,
+    double *chi2z,
+    int numBinAll,
+    double *y_rd_all,
+    double *c1_rd_all,
+    double *c2_rd_all,
+    double *c3_rd_all,
+    double *y_dm_all,
+    double *c1_dm_all,
+    double *c2_dm_all,
+    double *c3_dm_all,
+    double dspin
+)
+{
+    int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
+    /*
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);*/
+        //printf("%d begin\n", jj);
+    #ifdef __CUDACC__
+    get_phenomd_ringdown_frequencies<<<nblocks, NUM_THREADS_PHENOMHM>>>(
+        fringdown,
+        fdamp,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        numBinAll,
+        y_rd_all,
+        c1_rd_all,
+        c2_rd_all,
+        c3_rd_all,
+        y_dm_all,
+        c1_dm_all,
+        c2_dm_all,
+        c3_dm_all,
+        dspin
+    );
+
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+    #else
+    get_phenomd_ringdown_frequencies(
+        fringdown,
+        fdamp,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        numBinAll,
+        y_rd_all,
+        c1_rd_all,
+        c2_rd_all,
+        c3_rd_all,
+        y_dm_all,
+        c1_dm_all,
+        c2_dm_all,
+        c3_dm_all,
+        dspin
+    );
+    #endif
+
+}
+
 
 /**
  * Precompute a bunch of PhenomHM related quantities and store them filling in a
@@ -2612,6 +2752,8 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
         double freq = freqs[freq_index];
         double freq_geom = freq*M_tot_sec;
+
+        status_in_for = init_useful_powers(&powers_of_f, freq_geom);
 
         amp_i = IMRPhenDAmplitude(freq_geom, pAmp, &powers_of_f, &amp_prefactors);
 

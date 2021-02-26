@@ -1,9 +1,13 @@
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 try:
     from pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
     from pyPhenomHM import (
         get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_gpu,
+    )
+    from pyPhenomHM import (
+        get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_gpu,
     )
     import cupy as xp
 
@@ -15,21 +19,30 @@ from pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cp
 from pyPhenomHM_cpu import (
     get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_cpu,
 )
+from pyPhenomHM_cpu import (
+    get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_cpu,
+)
 from bbhx.utils.constants import *
+from bbhx.waveforms.ringdownphenomd import *
 
 
 class PhenomHMAmpPhase:
-    def __init__(self, max_init_len=-1, use_gpu=False):
+    def __init__(
+        self, max_init_len=-1, use_gpu=False, run_phenomd=False,
+    ):
 
+        self.run_phenomd = run_phenomd
         if use_gpu:
             self.xp = xp
             self.waveform_gen = waveform_amp_phase_wrap_gpu
             self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_gpu
+            self.phenomd_ringdown_freqs = get_phenomd_ringdown_frequencies_gpu
 
         else:
             self.xp = np
             self.waveform_gen = waveform_amp_phase_wrap_cpu
             self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_cpu
+            self.phenomd_ringdown_freqs = get_phenomd_ringdown_frequencies_cpu
 
         if max_init_len > 0:
             self.use_buffers = True
@@ -47,6 +60,23 @@ class PhenomHMAmpPhase:
         self.Mf_min = 1e-4
         self.Mf_max = 0.6
 
+        if self.run_phenomd:
+            self._init_phenomd_fring_spline()
+
+    def _init_phenomd_fring_spline(self):
+        spl_ring = CubicSpline(QNMData_a, QNMData_fring)
+        spl_damp = CubicSpline(QNMData_a, QNMData_fdamp)
+
+        self.y_rd = self.xp.asarray(QNMData_fring).copy()
+        self.c1_rd = self.xp.asarray(spl_ring.c[-2]).copy()
+        self.c2_rd = self.xp.asarray(spl_ring.c[-3]).copy()
+        self.c3_rd = self.xp.asarray(spl_ring.c[-4]).copy()
+
+        self.y_dm = self.xp.asarray(QNMData_fdamp).copy()
+        self.c1_dm = self.xp.asarray(spl_damp.c[-2]).copy()
+        self.c2_dm = self.xp.asarray(spl_damp.c[-3]).copy()
+        self.c3_dm = self.xp.asarray(spl_damp.c[-4]).copy()
+
     def _sanity_check_modes(self, ells, mms):
         for (ell, mm) in zip(ells, mms):
             if (ell, mm) not in self.allowable_modes:
@@ -55,6 +85,30 @@ class PhenomHMAmpPhase:
                         ell, mm, self.allowable_modes
                     )
                 )
+
+    def _sanity_check_params(self, m1, m2, chi1z, chi2z):
+
+        if np.any(np.abs(chi1z) > 1.0):
+            raise ValueError(
+                "chi1z array contains values with abs(chi1z) > 1.0 which is not allowed."
+            )
+
+        if np.any(np.abs(chi2z) > 1.0):
+            raise ValueError(
+                "chi2z array contains values with abs(chi2z) > 1.0 which is not allowed."
+            )
+
+        switch = m1 < m2
+
+        m1_temp = m2[switch]
+        m2[switch] = m1[switch]
+        m1[switch] = m1_temp
+
+        chi1z_temp = chi2z[switch]
+        chi2z[switch] = chi1z[switch]
+        chi1z[switch] = chi1z_temp
+
+        return (m1, m2, chi1z, chi2z)
 
     def _initialize_waveform_container(self):
 
@@ -130,8 +184,17 @@ class PhenomHMAmpPhase:
         freqs=None,
         out_buffer=None,
         modes=None,
-        run_phenomd=False,
     ):
+
+        m1 = np.atleast_1d(m1)
+        m2 = np.atleast_1d(m2)
+        chi1z = np.atleast_1d(chi1z)
+        chi2z = np.atleast_1d(chi2z)
+        distance = np.atleast_1d(distance)
+        phiRef = np.atleast_1d(phiRef)
+        f_ref = np.atleast_1d(f_ref)
+
+        m1, m2, chi1z, chi2z = self._sanity_check_params(m1, m2, chi1z, chi2z)
 
         if modes is not None:
             ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
@@ -143,7 +206,7 @@ class PhenomHMAmpPhase:
             ells = self.ells_default
             mms = self.mms_default
 
-        if run_phenomd:
+        if self.run_phenomd:
             ells = self.xp.asarray([2], dtype=self.xp.int32)
             mms = self.xp.asarray([2], dtype=self.xp.int32)
 
@@ -183,18 +246,38 @@ class PhenomHMAmpPhase:
         self.fringdown = self.xp.zeros(self.num_modes * self.num_bin_all)
         self.fdamp = self.xp.zeros(self.num_modes * self.num_bin_all)
 
-        self.phenomhm_ringdown_freqs(
-            self.fringdown,
-            self.fdamp,
-            m1,
-            m2,
-            chi1z,
-            chi2z,
-            ells,
-            mms,
-            self.num_modes,
-            self.num_bin_all,
-        )
+        if self.run_phenomd:
+            self.phenomd_ringdown_freqs(
+                self.fringdown,
+                self.fdamp,
+                m1,
+                m2,
+                chi1z,
+                chi2z,
+                self.num_bin_all,
+                self.y_rd,
+                self.c1_rd,
+                self.c2_rd,
+                self.c3_rd,
+                self.y_dm,
+                self.c1_dm,
+                self.c2_dm,
+                self.c3_dm,
+                dspin,
+            )
+        else:
+            self.phenomhm_ringdown_freqs(
+                self.fringdown,
+                self.fdamp,
+                m1,
+                m2,
+                chi1z,
+                chi2z,
+                ells,
+                mms,
+                self.num_modes,
+                self.num_bin_all,
+            )
 
         self.waveform_gen(
             self.waveform_carrier,
@@ -213,5 +296,5 @@ class PhenomHMAmpPhase:
             num_bin_all,
             self.fringdown,
             self.fdamp,
-            run_phenomd,
+            self.run_phenomd,
         )

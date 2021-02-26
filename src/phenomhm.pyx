@@ -39,6 +39,25 @@ cdef extern from "PhenomHM.hh":
         int numBinAll
     )
 
+    void get_phenomd_ringdown_frequencies_wrap(
+        double *fringdown,
+        double *fdamp,
+        double *m1,
+        double *m2,
+        double *chi1z,
+        double *chi2z,
+        int numBinAll,
+        double *y_rd_all,
+        double *c1_rd_all,
+        double *c2_rd_all,
+        double *c3_rd_all,
+        double *y_dm_all,
+        double *c1_dm_all,
+        double *c2_dm_all,
+        double *c3_dm_all,
+        double dspin
+    );
+
 @pointer_adjust
 def waveform_amp_phase_wrap(
     waveformOut,
@@ -131,5 +150,62 @@ def get_phenomhm_ringdown_frequencies(
         <int *> mms_in,
         numModes,
         numBinAll
+    )
+    return
+
+@pointer_adjust
+def get_phenomd_ringdown_frequencies(
+    fringdown,
+    fdamp,
+    m1,
+    m2,
+    chi1z,
+    chi2z,
+    numBinAll,
+    y_rd_all,
+    c1_rd_all,
+    c2_rd_all,
+    c3_rd_all,
+    y_dm_all,
+    c1_dm_all,
+    c2_dm_all,
+    c3_dm_all,
+    dspin
+):
+
+    cdef size_t fringdown_in = fringdown
+    cdef size_t fdamp_in = fdamp
+    cdef size_t m1_in = m1
+    cdef size_t m2_in = m2
+    cdef size_t chi1z_in = chi1z
+    cdef size_t chi2z_in = chi2z
+    cdef size_t y_rd_all_in = y_rd_all
+    cdef size_t c1_rd_all_in = c1_rd_all
+    cdef size_t c2_rd_all_in = c2_rd_all
+    cdef size_t c3_rd_all_in = c3_rd_all
+    cdef size_t y_dm_all_in = y_dm_all
+    cdef size_t c1_dm_all_in = c1_dm_all
+    cdef size_t c2_dm_all_in = c2_dm_all
+    cdef size_t c3_dm_all_in = c3_dm_all
+
+
+
+    get_phenomd_ringdown_frequencies_wrap(
+        <double*> fringdown_in,
+        <double*> fdamp_in,
+        <double*> m1_in,
+        <double*> m2_in,
+        <double*> chi1z_in,
+        <double*> chi2z_in,
+        numBinAll,
+        <double*> y_rd_all_in,
+        <double*> c1_rd_all_in,
+        <double*> c2_rd_all_in,
+        <double*> c3_rd_all_in,
+        <double*> y_dm_all_in,
+        <double*> c1_dm_all_in,
+        <double*> c2_dm_all_in,
+        <double*> c3_dm_all_in,
+        dspin
     )
     return

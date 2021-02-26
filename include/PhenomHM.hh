@@ -332,6 +332,25 @@ void get_phenomhm_ringdown_frequencies_wrap(
     int numBinAll
 );
 
+void get_phenomd_ringdown_frequencies_wrap(
+    double *fringdown,
+    double *fdamp,
+    double *m1,
+    double *m2,
+    double *chi1z,
+    double *chi2z,
+    int numBinAll,
+    double *y_rd_all,
+    double *c1_rd_all,
+    double *c2_rd_all,
+    double *c3_rd_all,
+    double *y_dm_all,
+    double *c1_dm_all,
+    double *c2_dm_all,
+    double *c3_dm_all,
+    double dspin
+);
+
 void waveform_amp_phase(
     double* waveformOut,
     int* ells_in,

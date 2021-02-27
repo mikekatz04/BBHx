@@ -58,7 +58,7 @@ class PhenomHMAmpPhase:
         self.mms_default = self.xp.array([2, 3, 4, 1, 2, 3], dtype=self.xp.int32)
 
         self.Mf_min = 1e-4
-        self.Mf_max = 0.6
+        self.Mf_max = 0.2
 
         if self.run_phenomd:
             self._init_phenomd_fring_spline()

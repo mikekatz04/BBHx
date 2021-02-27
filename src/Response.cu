@@ -49,7 +49,7 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int respon
     cmplx I(0.0, 1.0);
     cmplx m_I(0.0, -1.0);
     double alpha = Omega0*t; double c = cos(alpha); double s = sin(alpha);
-    double a = aorbit; double e = eorbit;
+    double a = AU_SI; double e = eorbit;
 
     //double p0[3] = {a*c, a*s, 0.*t}; // funcp0(t)
     #ifdef __CUDACC__
@@ -74,30 +74,30 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int respon
     #endif
     p1L[0] = - a*e*(1 + s*s);
     p1L[1] = a*e*c*s;
-    p1L[2] = -a*e*sqrt3*c;
+    p1L[2] = -a*e*SQRT3*c;
 
 
-    p2L[0] = a*e/2*(sqrt3*c*s + (1 + s*s));
-    p2L[1] = a*e/2*(-c*s - sqrt3*(1 + c*c));
-    p2L[2] = -a*e*sqrt3/2*(sqrt3*s - c);
+    p2L[0] = a*e/2*(SQRT3*c*s + (1 + s*s));
+    p2L[1] = a*e/2*(-c*s - SQRT3*(1 + c*c));
+    p2L[2] = -a*e*SQRT3/2*(SQRT3*s - c);
 
 
-    p3L[0] = a*e/2*(-sqrt3*c*s + (1 + s*s));
-    p3L[1] = a*e/2*(-c*s + sqrt3*(1 + c*c));
-    p3L[2] = -a*e*sqrt3/2*(-sqrt3*s - c);
+    p3L[0] = a*e/2*(-SQRT3*c*s + (1 + s*s));
+    p3L[1] = a*e/2*(-c*s + SQRT3*(1 + c*c));
+    p3L[2] = -a*e*SQRT3/2*(-SQRT3*s - c);
 
     // n1
     n[0] = -1./2*c*s;
     n[1] = 1./2*(1 + c*c);
-    n[2] = sqrt3/2*s;
+    n[2] = SQRT3/2*s;
 
     double kn1= d_dot_product_1d(k, n);
     cmplx n1Hn1 = d_vec_H_vec_product(n, H, n); //np.dot(n1, np.dot(H, n1))
 
     // n2
-    n[0] = c*s - sqrt3*(1 + s*s);
-    n[1] = sqrt3*c*s - (1 + c*c);
-    n[2] = -sqrt3*s - 3*c;
+    n[0] = c*s - SQRT3*(1 + s*s);
+    n[1] = SQRT3*c*s - (1 + c*c);
+    n[2] = -SQRT3*s - 3*c;
 
     for (int i=0; i<3; i++) n[i] = n[i]*1./4.;
 
@@ -106,9 +106,9 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int respon
 
     // n3
 
-    n[0] = c*s + sqrt3*(1 + s*s);
-    n[1] = -sqrt3*c*s - (1 + c*c);
-    n[2] = -sqrt3*s + 3*c;
+    n[0] = c*s + SQRT3*(1 + s*s);
+    n[1] = -SQRT3*c*s - (1 + c*c);
+    n[2] = -SQRT3*s + 3*c;
 
     for (int i=0; i<3; i++) n[i] = n[i]*1./4.;
 
@@ -195,7 +195,7 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
 
     else{
         //# First-generation TDI AET from X,Y,Z
-        //# With x=pifL, factors scaled out: A,E:I*sqrt2*sin2x*e2ix T:2*sqrt2*sin2x*sinx*e3ix
+        //# With x=pifL, factors scaled out: A,E:I*SQRT2*sin2x*e2ix T:2*SQRT2*sin2x*sinx*e3ix
         //# Here we include a factor 2, because the code was first written using the definitions (2) of McWilliams&al_0911 where A,E,T are 1/2 of their LDC definitions
         factor_convention = cmplx(2.,0.0);
         if (rescaled == 1){
@@ -203,13 +203,13 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
             factorT = cmplx(1., 0.0);
         }
         else{
-          factorAE = I*sqrt2*sin(2.*x)*z;
-          factorT = 2.*sqrt2*sin(2.*x)*sin(x)*gcmplx::exp(I*3.*x);
+          factorAE = I*SQRT2*sin(2.*x)*z;
+          factorT = 2.*SQRT2*sin(2.*x)*sin(x)*gcmplx::exp(I*3.*x);
         }
 
         Araw = 0.5 * ( (1.+z)*(Gslr.G31 + Gslr.G13) - Gslr.G23 - z*Gslr.G32 - Gslr.G21 - z*Gslr.G12 );
-        Eraw = 0.5*invsqrt3 * ( (1.-z)*(Gslr.G13 - Gslr.G31) + (2.+z)*(Gslr.G12 - Gslr.G32) + (1.+2.*z)*(Gslr.G21 - Gslr.G23) );
-        Traw = invsqrt6 * ( Gslr.G21 - Gslr.G12 + Gslr.G32 - Gslr.G23 + Gslr.G13 - Gslr.G31);
+        Eraw = 0.5*INVSQRT3 * ( (1.-z)*(Gslr.G13 - Gslr.G31) + (2.+z)*(Gslr.G12 - Gslr.G32) + (1.+2.*z)*(Gslr.G21 - Gslr.G23) );
+        Traw = INVSQRT6 * ( Gslr.G21 - Gslr.G12 + Gslr.G32 - Gslr.G23 + Gslr.G13 - Gslr.G31);
         transferL.transferL1 = factor_convention * factorAE * Araw;
         transferL.transferL2 = factor_convention * factorAE * Eraw;
         transferL.transferL3 = factor_convention * factorT * Traw;
@@ -238,7 +238,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
     kvec[2] = -sin(beta);
 
     // funcp0
-    double alpha = Omega0*t; double c = cos(alpha); double s = sin(alpha); double a = aorbit;
+    double alpha = Omega0*t; double c = cos(alpha); double s = sin(alpha); double a = AU_SI;
 
 
     p0[0] = a*c;
@@ -248,7 +248,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
     // dot kvec with p0
     double kR = d_dot_product_1d(kvec, p0);
 
-    double phaseRdelay = 2.*PI/clight *f*kR;
+    double phaseRdelay = 2.*PI/C_SI *f*kR;
 
     // going to assume order_fresnel_stencil == 0 for now
     d_Gslr_holder Gslr = d_EvaluateGslr(t, f, H, kvec, 1, p0); // assumes full response

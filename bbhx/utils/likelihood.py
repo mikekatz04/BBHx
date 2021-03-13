@@ -61,13 +61,13 @@ class Likelihood:
                 dtype=np.int64,
             )
 
-        d_h = np.zeros(self.waveform_gen.num_bin_all)
-        h_h = np.zeros(self.waveform_gen.num_bin_all)
+        self.d_h = np.zeros(self.waveform_gen.num_bin_all)
+        self.h_h = np.zeros(self.waveform_gen.num_bin_all)
 
         # TODO: if filling multiple signals into stream, need to adjust this for that in terms of inds start / ind_lengths
         self.like_gen(
-            d_h,
-            h_h,
+            self.d_h,
+            self.h_h,
             self.dataChannels,
             self.noiseFactors,
             templateChannels_ptrs,
@@ -77,7 +77,7 @@ class Likelihood:
             self.waveform_gen.num_bin_all,
         )
 
-        out = 1 / 2 * (self.d_d + h_h - 2 * d_h)
+        out = 1 / 2 * (self.d_d + self.h_h - 2 * self.d_h)
         try:
             return out.get()
 

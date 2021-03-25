@@ -134,7 +134,9 @@ class RelativeBinning:
         minF = self.f_dense.min() * 0.999999999999
         maxF = self.f_dense.max() * 1.000000000001
 
-        freqs = xp.logspace(xp.log10(minF), np.log10(maxF), self.length_f_rel)
+        freqs = self.xp.logspace(
+            self.xp.log10(minF), self.xp.log10(maxF), self.length_f_rel
+        )
 
         h0 = self.template_gen(
             *template_gen_args, freqs=self.f_dense, **template_gen_kwargs
@@ -154,7 +156,7 @@ class RelativeBinning:
 
         self.h0_short = self.template_gen(
             *template_gen_args, freqs=freqs, **template_gen_kwargs
-        )[:, :, xp.newaxis]
+        )[:, :, self.xp.newaxis]
 
         inds = (self.f_dense >= freqs[0]) & (self.f_dense <= freqs[-1])
 
@@ -174,7 +176,7 @@ class RelativeBinning:
         except AttributeError:
             f_n_host = self.f_dense
 
-        S_n = xp.asarray(
+        S_n = self.xp.asarray(
             [
                 get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
                 get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
@@ -188,42 +190,42 @@ class RelativeBinning:
         B0_flat = 4 * (h0.conj() * h0) / S_n * df
         B1_flat = 4 * (h0.conj() * h0) / S_n * df * (self.f_dense - f_m[bins])
 
-        self.A0 = xp.zeros((3, self.length_f_rel - 1), dtype=np.complex128)
-        self.A1 = xp.zeros_like(self.A0)
-        self.B0 = xp.zeros_like(self.A0)
-        self.B1 = xp.zeros_like(self.A0)
+        self.A0 = self.xp.zeros((3, self.length_f_rel - 1), dtype=np.complex128)
+        self.A1 = self.xp.zeros_like(self.A0)
+        self.B0 = self.xp.zeros_like(self.A0)
+        self.B1 = self.xp.zeros_like(self.A0)
 
-        A0_in = xp.zeros((3, self.length_f_rel), dtype=np.complex128)
-        A1_in = xp.zeros_like(A0_in)
-        B0_in = xp.zeros_like(A0_in)
-        B1_in = xp.zeros_like(A0_in)
+        A0_in = self.xp.zeros((3, self.length_f_rel), dtype=np.complex128)
+        A1_in = self.xp.zeros_like(A0_in)
+        B0_in = self.xp.zeros_like(A0_in)
+        B1_in = self.xp.zeros_like(A0_in)
 
-        for ind in xp.unique(bins[:-1]):
+        for ind in self.xp.unique(bins[:-1]):
             inds_keep = bins == ind
 
             # TODO: check this
             inds_keep[-1] = False
 
-            self.A0[:, ind] = xp.sum(A0_flat[:, inds_keep], axis=1)
-            self.A1[:, ind] = xp.sum(A1_flat[:, inds_keep], axis=1)
-            self.B0[:, ind] = xp.sum(B0_flat[:, inds_keep], axis=1)
-            self.B1[:, ind] = xp.sum(B1_flat[:, inds_keep], axis=1)
+            self.A0[:, ind] = self.xp.sum(A0_flat[:, inds_keep], axis=1)
+            self.A1[:, ind] = self.xp.sum(A1_flat[:, inds_keep], axis=1)
+            self.B0[:, ind] = self.xp.sum(B0_flat[:, inds_keep], axis=1)
+            self.B1[:, ind] = self.xp.sum(B1_flat[:, inds_keep], axis=1)
 
-            A0_in[:, ind + 1] = xp.sum(A0_flat[:, inds_keep], axis=1)
-            A1_in[:, ind + 1] = xp.sum(A1_flat[:, inds_keep], axis=1)
-            B0_in[:, ind + 1] = xp.sum(B0_flat[:, inds_keep], axis=1)
-            B1_in[:, ind + 1] = xp.sum(B1_flat[:, inds_keep], axis=1)
+            A0_in[:, ind + 1] = self.xp.sum(A0_flat[:, inds_keep], axis=1)
+            A1_in[:, ind + 1] = self.xp.sum(A1_flat[:, inds_keep], axis=1)
+            B0_in[:, ind + 1] = self.xp.sum(B0_flat[:, inds_keep], axis=1)
+            B1_in[:, ind + 1] = self.xp.sum(B1_flat[:, inds_keep], axis=1)
 
         # PAD As with a zero in the front
         self.dataConstants = self.xp.concatenate(
             [A0_in.flatten(), A1_in.flatten(), B0_in.flatten(), B1_in.flatten()]
         )
 
-        self.base_d_d = xp.sum(4 * (self.d.conj() * self.d) / S_n * df).real
+        self.base_d_d = self.xp.sum(4 * (self.d.conj() * self.d) / S_n * df).real
 
-        self.base_h_h = xp.sum(B0_flat).real
+        self.base_h_h = self.xp.sum(B0_flat).real
 
-        self.base_d_h = xp.sum(A0_flat).real
+        self.base_d_h = self.xp.sum(A0_flat).real
 
         self.base_ll = 1 / 2 * (self.base_d_d + self.base_h_h - 2 * self.base_d_h)
 
@@ -244,27 +246,27 @@ class RelativeBinning:
 
         """
         r1 = (r[:, 1:] - r[:, :-1]) / (
-            self.freqs[1:][xp.newaxis, :, xp.newaxis]
-            - self.freqs[:-1][xp.newaxis, :, xp.newaxis]
+            self.freqs[1:][self.xp.newaxis, :, self.xp.newaxis]
+            - self.freqs[:-1][self.xp.newaxis, :, self.xp.newaxis]
         )
 
         r0 = r[:, :-1] - r1 * (
-            self.freqs[:-1][xp.newaxis, :, xp.newaxis]
-            - self.f_m[xp.newaxis, :, xp.newaxis]
+            self.freqs[:-1][self.xp.newaxis, :, self.xp.newaxis]
+            - self.f_m[self.xp.newaxis, :, self.xp.newaxis]
         )
 
-        self.Z_d_h = xp.sum(
+        self.Z_d_h = self.xp.sum(
             (
-                xp.conj(r0) * self.A0[:, :, xp.newaxis]
-                + xp.conj(r1) * self.A1[:, :, xp.newaxis]
+                self.xp.conj(r0) * self.A0[:, :, self.xp.newaxis]
+                + self.xp.conj(r1) * self.A1[:, :, self.xp.newaxis]
             ),
             axis=(0, 1),
         )
 
-        self.Z_h_h = xp.sum(
+        self.Z_h_h = self.xp.sum(
             (
-                self.B0[:, :, xp.newaxis] * np.abs(r0) ** 2
-                + 2 * self.B1[:, :, xp.newaxis] * xp.real(r0 * xp.conj(r1))
+                self.B0[:, :, self.xp.newaxis] * np.abs(r0) ** 2
+                + 2 * self.B1[:, :, self.xp.newaxis] * self.xp.real(r0 * self.xp.conj(r1))
             ),
             axis=(0, 1),
         )
@@ -292,6 +294,13 @@ class RelativeBinning:
         )
 
         out = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
+
+        try:
+            self.h_h = self.hdyn_h_h.get()
+            self.d_h = self.hdyn_d_h.get()
+        except AttributeError:
+            self.h_h = self.hdyn_h_h
+            self.d_h = self.hdyn_d_h
 
         try:
             return out.get()

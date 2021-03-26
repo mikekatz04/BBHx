@@ -363,6 +363,7 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
         cmplx temp_channels_all[MAX_CHANNELS];
         cmplx* temp_channels = &temp_channels_all[0];
         #endif
+
         double t = dataTimeIn[i + ind_start];
 
         int ind_here = inds[i];
@@ -373,31 +374,37 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
         double x2 = x * x;
         double x3 = x * x2;
 
+        //printf("CHECK0\n");
         for (int chan = 0; chan < numChannels; chan +=1)
         {
             temp_channels[chan] = cmplx(0.0, 0.0);
         }
 
         int int_shared = (2 * numModes) * old_length + ind_here;
+        //printf("CHECK1 %d %d %d %d\n", numModes, old_length, ind_here, int_shared);
         double phi_orb = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
-
+        //printf("CHECK2\n");
         for (int mode_i = 0; mode_i < numModes; mode_i += 1)
         {
+
 
             int l = ls[mode_i];
             int m = ms[mode_i];
 
-            int int_shared = (2 * mode_i) * old_length + ind_here;
+            int int_shared = (mode_i) * old_length + ind_here;
             double re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
 
             //if ((i == 100) || (i == 101)) printf("%d %d %d %e %e %e %e %e %e\n", window_i, mode_i, i, amp, f, f_old, y[int_shared], c1[int_shared], c2[int_shared]);
 
-            int_shared = (2 * mode_i + 1) * old_length + ind_here;
+            int_shared = (numModes + mode_i) * old_length + ind_here;
             double imag = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
 
             for (int chan = 0; chan < numChannels; chan +=1)
             {
+                //printf("CHECK \n", bin_i, i, mode_i, chan, Fplus[chan], Fcross[chan]);
 
+                //printf("%d %d %d %d %e %e %d %d %e %e \n", bin_i, i, mode_i, chan, re, imag, l, m, phi_orb, Fplus[chan]);
+                //cmplx tempit = LIGO_combine_information(re, imag, l, m, phi_orb, Fplus[chan], Fcross[chan]);
                 temp_channels[chan] += LIGO_combine_information(re, imag, l, m, phi_orb, Fplus[chan], Fcross[chan]);
                 //if ((i == 10)) printf("%d %d %d %e %e %d %e %e %e %e %d %e %e\n", l, m, mode_i, t_old, t, ind_here, re, imag, temp_channels[chan].real(), temp_channels[chan].imag(), chan, Fplus[chan], Fcross[chan]);
 

@@ -43,26 +43,27 @@ class SEOBNRv4PHM:
         else:
             self.use_buffers = False
 
+        # TODO: do we really need the (l, 0) modes
         self.allowable_modes = [
-            (2, 0),
+            # (2, 0),
             (2, 1),
             (2, 2),
-            (3, 0),
+            # (3, 0),
             (3, 1),
             (3, 2),
             (3, 3),
-            (4, 0),
+            # (4, 0),
             (4, 1),
             (4, 2),
             (4, 3),
             (4, 4),
-            (5, 0),
+            # (5, 0),
             (5, 1),
             (5, 2),
             (5, 3),
             (5, 4),
             (5, 5),
-            (6, 0),
+            # (6, 0),
             (6, 2),
             (6, 4),
             (6, 6),
@@ -120,7 +121,11 @@ class SEOBNRv4PHM:
         )
         num_steps_max = num_steps.max().item()
 
-        return (t[:, :num_steps_max], traj[:, :, :num_steps_max], num_steps)
+        return (
+            t[:, :num_steps_max] * mt[:, self.xp.newaxis] * MTSUN_SI,
+            traj[:, :, :num_steps_max],
+            num_steps,
+        )
 
     def get_hlms(self, traj, m_1_full, m_2_full, chi_1, chi_2, num_steps, ells, mms):
 
@@ -157,6 +162,10 @@ class SEOBNRv4PHM:
 
         return hlms.reshape(self.num_bin_all, self.num_modes, num_steps_max)
 
+    @property
+    def hlms(self):
+        return NotImplementedError
+
     def __call__(
         self,
         m1,
@@ -188,24 +197,31 @@ class SEOBNRv4PHM:
 
         t, traj, num_steps = self.run_trajectory(m1, m2, chi1z, chi2z)
         hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
-        breakpoint()
-        self.lengths = np.asarray(
-            [5000 for _ in range(self.num_bin_all)], dtype=np.int32
-        )
-        self.t = [np.arange(length, dtype=np.float64) * 10.0 for length in self.lengths]
-        self.amp_phase = [
-            np.asarray(
+
+        phi = traj[:, 1]
+        self.lengths = num_steps
+        self.t = [t[i, : num_steps[i]] for i in range(self.num_bin_all)]
+        self.hlms_real = [
+            self.xp.concatenate(
                 [
-                    [self.t[i] ** 3 for _ in range(self.num_modes)]
-                    for _ in range(self.nparams)
-                ]
-            ).flatten()
+                    hlms[i, : num_steps[i]].real,
+                    hlms[i, : num_steps[i]].imag,
+                    self.xp.array([phi[i, : num_steps[i]]]),
+                ],
+                axis=0,
+            )
             for i in range(self.num_bin_all)
         ]
 
+        self.ells = ells
+        self.mms = mms
+
 
 if __name__ == "__main__":
-    eob = SEOBNRv4PHM()
+
+    from bbhx.utils.waveformbuild import BBHWaveformTD
+
+    # eob = SEOBNRv4PHM()
 
     num = 100
     m1 = np.full(num, 8.0)
@@ -218,5 +234,36 @@ if __name__ == "__main__":
     chi2z = np.full(num, 0.05)
     distance = np.full(num, 100.0)  # Mpc
     phiRef = np.full(num, 0.0)
+    inc = np.full(num, np.pi / 3.0)
+    lam = np.full(num, np.pi / 4.0)
+    beta = np.full(num, np.pi / 5.0)
+    psi = np.full(num, np.pi / 6.0)
+    tRef_wave_frame = np.full(num, np.pi / 7.0)
 
-    eob(m1, m2, chi1z, chi2z, distance, phiRef)
+    # eob(m1, m2, chi1z, chi2z, distance, phiRef)
+
+    bbh = BBHWaveformTD(lisa=False, use_gpu=False)
+
+    out = bbh(
+        m1,
+        m2,
+        # chi1x,
+        # chi1y,
+        chi1z,
+        # chi2x,
+        # chi2y,
+        chi2z,
+        distance,
+        phiRef,
+        inc,
+        lam,
+        beta,
+        psi,
+        tRef_wave_frame,
+        sampling_frequency=1024,
+        Tobs=60.0,
+        modes=None,
+        bufferSize=None,
+        fill=False,
+    )
+    breakpoint()

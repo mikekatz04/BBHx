@@ -703,11 +703,11 @@ class BBHWaveformTD:
         self,
         m1,
         m2,
-        chi1x,
-        chi1y,
+        # chi1x,
+        # chi1y,
         chi1z,
-        chi2x,
-        chi2y,
+        # chi2x,
+        # chi2y,
         chi2z,
         distance,
         phiRef,
@@ -727,11 +727,11 @@ class BBHWaveformTD:
 
         m1 = np.atleast_1d(m1)
         m2 = np.atleast_1d(m2)
-        chi1x = np.atleast_1d(chi1x)
-        chi1y = np.atleast_1d(chi1y)
+        # chi1x = np.atleast_1d(chi1x)
+        # chi1y = np.atleast_1d(chi1y)
         chi1z = np.atleast_1d(chi1z)
-        chi2x = np.atleast_1d(chi2x)
-        chi2y = np.atleast_1d(chi2y)
+        # chi2x = np.atleast_1d(chi2x)
+        # chi2y = np.atleast_1d(chi2y)
         chi2z = np.atleast_1d(chi2z)
         distance = np.atleast_1d(distance)
         phiRef = np.atleast_1d(phiRef)
@@ -759,11 +759,11 @@ class BBHWaveformTD:
         self.amp_phase_gen(
             m1,
             m2,
-            chi1x,
-            chi1y,
+            # chi1x,
+            # chi1y,
             chi1z,
-            chi2x,
-            chi2y,
+            # chi2x,
+            # chi2y,
             chi2z,
             distance,
             phiRef,
@@ -789,27 +789,25 @@ class BBHWaveformTD:
                 modes=modes,
             )
         """
-        num = 100
-        import time
+        # num = 100
+        # import time
 
-        print("start")
-        st = time.perf_counter()
-        for _ in range(num):
-            splines = [
-                CubicSplineInterpolant(
-                    self.xp.asarray(self.amp_phase_gen.t[i].copy()),
-                    self.xp.asarray(self.amp_phase_gen.amp_phase[i].copy()),
-                    self.amp_phase_gen.lengths[i],
-                    self.num_interp_params,
-                    self.num_modes,
-                    self.num_bin_all,
-                    use_gpu=self.use_gpu,
-                )
-                for i in range(self.num_bin_all)
-            ]
-            # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
-
-        breakpoint()
+        # print("start")
+        # st = time.perf_counter()
+        # for _ in range(num):
+        splines = [
+            CubicSplineInterpolant(
+                self.xp.asarray(self.amp_phase_gen.t[i].copy()),
+                self.xp.asarray(self.amp_phase_gen.hlms_real[i].flatten().copy()),
+                self.amp_phase_gen.lengths[i],
+                self.num_modes * 2 + 1,  # num interp params
+                1,  # fake num modes
+                1,
+                use_gpu=self.use_gpu,
+            )
+            for i in range(self.num_bin_all)
+        ]
+        # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
         if self.lisa:
             template_channels = self.interp_response(
                 freqs,
@@ -825,7 +823,6 @@ class BBHWaveformTD:
                 3,
             )
         else:
-
             template_channels = self.interp_response(
                 self.dataTime,
                 splines,
@@ -836,12 +833,14 @@ class BBHWaveformTD:
                 self.data_length,
                 self.num_modes,
                 3,
+                self.amp_phase_gen.ells,
+                self.amp_phase_gen.mms,
                 dt=1 / sampling_frequency,
             )
-        et = time.perf_counter()
+        # et = time.perf_counter()
 
-        print((et - st) / num)
-        breakpoint()
+        # print((et - st) / num)
+        # breakpoint()
         return (
             template_channels,
             self.interp_response.start_inds,

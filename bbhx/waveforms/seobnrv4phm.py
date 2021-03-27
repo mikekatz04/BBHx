@@ -96,7 +96,7 @@ class SEOBNRv4PHM:
                     )
                 )
 
-    def run_trajectory(self, m_1, m_2, chi_1, chi_2, fs=20.0, **kwargs):
+    def get_initial_conditions(self, m_1, m_2, chi_1, chi_2, fs=20.0, **kwargs):
 
         # TODO: constants from LAL
         mt = m_1 + m_2  # Total mass in solar masses
@@ -113,6 +113,17 @@ class SEOBNRv4PHM:
         ]
 
         r0, pphi0, pr0 = self.xp.asarray(self.pool.starmap(computeIC, args)).T
+
+        return r0, pphi0, pr0
+
+    def run_trajectory(self, r0, pphi0, pr0, m_1, m_2, chi_1, chi_2, fs=20.0, **kwargs):
+
+        # TODO: constants from LAL
+        mt = m_1 + m_2  # Total mass in solar masses
+        omega0 = fs * (mt * MTSUN_SI * np.pi)
+        m_1_scaled = m_1 / mt
+        m_2_scaled = m_2 / mt
+        dt = 1.0 / 16384 / (mt * MTSUN_SI)
 
         condBound = self.xp.array([r0, np.full_like(r0, 0.0), pr0, pphi0]).T
         argsData = self.xp.array([m_1_scaled, m_2_scaled, chi_1, chi_2]).T
@@ -200,7 +211,9 @@ class SEOBNRv4PHM:
 
         self.num_bin_all = len(m1)
 
-        t, traj, num_steps = self.run_trajectory(m1, m2, chi1z, chi2z)
+        r0, pphi0, pr0 = self.get_initial_conditions(m1, m2, chi1z, chi2z)
+
+        t, traj, num_steps = self.run_trajectory(r0, pphi0, pr0, m1, m2, chi1z, chi2z)
         hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
 
         phi = traj[:, 1]
@@ -218,7 +231,6 @@ class SEOBNRv4PHM:
             for i in range(self.num_bin_all)
         ]
 
-        breakpoint()
         self.ells = ells
         self.mms = mms
 

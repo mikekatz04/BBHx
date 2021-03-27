@@ -273,7 +273,7 @@ if run_cuda_install:
         **gpu_extension
     )
 
-    pyLikelihood_ext = Extension(
+    pyEOB_ext = Extension(
         "pyEOB", sources=["src/EOB.cu", "src/eob.pyx"], **gpu_extension
     )
 
@@ -334,7 +334,7 @@ pyLikelihood_cpu_ext = Extension(
     **cpu_extension
 )
 
-pyLikelihood_cpu_ext = Extension(
+pyEOB_cpu_ext = Extension(
     "pyEOB_cpu", sources=["src/EOB.cpp", "src/eob_cpu.pyx"], **cpu_extension
 )
 
@@ -363,6 +363,7 @@ extensions = [
     pyInterpolate_cpu_ext,
     pyWaveformBuild_cpu_ext,
     pyLikelihood_cpu_ext,
+    pyEOB_cpu_ext,
 ]
 
 if run_cuda_install:
@@ -372,6 +373,7 @@ if run_cuda_install:
         pyInterpolate_ext,
         pyWaveformBuild_ext,
         pyLikelihood_ext,
+        pyEOB_ext,
     ] + extensions
 
 setup(

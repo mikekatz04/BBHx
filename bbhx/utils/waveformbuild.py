@@ -354,6 +354,11 @@ class TDInterp:
         ls = ls.astype(np.int32)
         ms = ms.astype(np.int32)
 
+        try:
+            lengths_in = self.length.get().astype(np.int32)
+        except AttributeError:
+            lengths_in = self.length.astype(np.int32)
+
         self.template_gen(
             template_carrier_ptrs,
             dataTime,
@@ -364,7 +369,7 @@ class TDInterp:
             splines_c3_ptrs,
             Fplus,
             Fcross,
-            self.length.astype(np.int32),
+            lengths_in,
             self.data_length,
             self.num_bin_all,
             self.num_modes,
@@ -673,6 +678,8 @@ class BBHWaveformTD:
     def __init__(
         self, amp_phase_kwargs={}, interp_kwargs={}, lisa=True, use_gpu=False,
     ):
+        amp_phase_kwargs["use_gpu"] = use_gpu
+        interp_kwargs["use_gpu"] = use_gpu
         self.amp_phase_gen = SEOBNRv4PHM(**amp_phase_kwargs)
 
         self.use_gpu = use_gpu
@@ -688,7 +695,7 @@ class BBHWaveformTD:
             self.waveform_gen = (
                 direct_sum_wrap_gpu if self.use_gpu else direct_sum_wrap_cpu
             )
-            self.interp_response = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
+            self.interp_response = TemplateInterp(**interp_kwargs)
 
         else:
             # TODO: should probably be 2
@@ -697,7 +704,7 @@ class BBHWaveformTD:
             # self.waveform_gen = (
             #    ligo_direct_sum_wrap_gpu if self.use_gpu else ligo_direct_sum_wrap_cpu
             # )
-            self.interp_response = TDInterp(**interp_kwargs, use_gpu=use_gpu)
+            self.interp_response = TDInterp(**interp_kwargs)
 
     def __call__(
         self,
@@ -799,7 +806,7 @@ class BBHWaveformTD:
             CubicSplineInterpolant(
                 self.xp.asarray(self.amp_phase_gen.t[i].copy()),
                 self.xp.asarray(self.amp_phase_gen.hlms_real[i].flatten().copy()),
-                self.amp_phase_gen.lengths[i],
+                self.amp_phase_gen.lengths[i].item(),
                 self.num_modes * 2 + 1,  # num interp params
                 1,  # fake num modes
                 1,
@@ -823,6 +830,7 @@ class BBHWaveformTD:
                 3,
             )
         else:
+            breakpoint()
             template_channels = self.interp_response(
                 self.dataTime,
                 splines,

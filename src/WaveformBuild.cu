@@ -368,7 +368,7 @@ void TD(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* pr
 
         int ind_here = inds[i];
 
-        double t_old = timeOld[bin_i * old_length + ind_here];
+        double t_old = timeOld[ind_here];
 
         double x = t - t_old;
         double x2 = x * x;

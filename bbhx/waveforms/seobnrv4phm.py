@@ -17,6 +17,8 @@ sys.path.append(
     "/Users/michaelkatz/Research/GPU4GW/eob_development/toys/hamiltonian_prototype/"
 )
 
+sys.path.append("/home/mlk667/GPU4GW/eob_development/toys/hamiltonian_prototype/")
+
 from pyEOB_cpu import compute_hlms as compute_hlms_cpu
 
 from HTMalign_AC import HTMalign_AC
@@ -28,8 +30,9 @@ import multiprocessing as mp
 class SEOBNRv4PHM:
     def __init__(self, max_init_len=-1, use_gpu=False, **kwargs):
 
+        self.use_gpu = use_gpu
         if use_gpu:
-            raise NotImplementedError
+            self.xp = xp
             self.compute_hlms = compute_hlms_gpu
 
         else:
@@ -109,10 +112,10 @@ class SEOBNRv4PHM:
             )
         ]
 
-        r0, pphi0, pr0 = np.asarray(self.pool.starmap(computeIC, args)).T
+        r0, pphi0, pr0 = self.xp.asarray(self.pool.starmap(computeIC, args)).T
 
-        condBound = np.array([r0, np.full_like(r0, 0.0), pr0, pphi0]).T
-        argsData = np.array([m_1_scaled, m_2_scaled, chi_1, chi_2]).T
+        condBound = self.xp.array([r0, np.full_like(r0, 0.0), pr0, pphi0]).T
+        argsData = self.xp.array([m_1_scaled, m_2_scaled, chi_1, chi_2]).T
 
         # TODO: make adjustable
         # TODO: debug dopr?
@@ -122,7 +125,7 @@ class SEOBNRv4PHM:
         num_steps_max = num_steps.max().item()
 
         return (
-            t[:, :num_steps_max] * mt[:, self.xp.newaxis] * MTSUN_SI,
+            t[:, :num_steps_max] * self.xp.asarray(mt[:, self.xp.newaxis]) * MTSUN_SI,
             traj[:, :, :num_steps_max],
             num_steps,
         )
@@ -130,8 +133,10 @@ class SEOBNRv4PHM:
     def get_hlms(self, traj, m_1_full, m_2_full, chi_1, chi_2, num_steps, ells, mms):
 
         # TODO: check dimensionality (unit to 1?)
-        m_1 = m_1_full / (m_1_full + m_2_full)
-        m_2 = m_2_full / (m_1_full + m_2_full)
+        m_1 = self.xp.asarray(m_1_full / (m_1_full + m_2_full))
+        m_2 = self.xp.asarray(m_2_full / (m_1_full + m_2_full))
+        chi_1 = self.xp.asarray(chi_1)
+        chi_2 = self.xp.asarray(chi_2)
         r = traj[:, 0].flatten()
         phi = traj[:, 1].flatten()
         pr = traj[:, 2].flatten()
@@ -213,6 +218,7 @@ class SEOBNRv4PHM:
             for i in range(self.num_bin_all)
         ]
 
+        breakpoint()
         self.ells = ells
         self.mms = mms
 

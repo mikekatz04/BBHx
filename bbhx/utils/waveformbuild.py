@@ -796,11 +796,6 @@ class BBHWaveformTD:
                 modes=modes,
             )
         """
-        # import time
-
-        # nn = 100
-        # st = time.perf_counter()
-        # for _ in range(nn):
         splines = [
             CubicSplineInterpolant(
                 self.xp.asarray(self.amp_phase_gen.t[i].copy()),
@@ -843,10 +838,7 @@ class BBHWaveformTD:
                 self.amp_phase_gen.mms,
                 dt=1 / sampling_frequency,
             )
-        # et = time.perf_counter()
 
-        # print("checkfin", nn, self.num_bin_all, (et - st) / nn / self.num_bin_all)
-        # breakpoint()
         return (
             template_channels,
             self.interp_response.start_inds,

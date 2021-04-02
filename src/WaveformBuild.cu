@@ -74,7 +74,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* f
     #else
     start = 0;
     increment = 1;
-    //#pragma omp parallel for
+    #pragma omp parallel for
     #endif
     for (int i = start; i < ind_length; i += increment)
     {

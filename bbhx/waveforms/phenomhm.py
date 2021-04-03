@@ -57,6 +57,13 @@ class PhenomHMAmpPhase:
 
         self.mms_default = self.xp.array([2, 3, 4, 1, 2, 3], dtype=self.xp.int32)
 
+        if self.run_phenomd:
+            self.allowable_modes = [(2, 2)]
+
+            self.ells_default = self.xp.array([2], dtype=self.xp.int32)
+
+            self.mms_default = self.xp.array([2], dtype=self.xp.int32)
+
         self.Mf_min = 1e-4
         self.Mf_max = 0.2
 
@@ -199,16 +206,18 @@ class PhenomHMAmpPhase:
         if modes is not None:
             ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
             mms = self.xp.asarray([mm for ell, mm in modes], dtype=self.xp.int32)
-
+            self.modes = modes
             self._sanity_check_modes(ells, mms)
 
         else:
+            self.modes = self.allowable_modes
             ells = self.ells_default
             mms = self.mms_default
 
         if self.run_phenomd:
             ells = self.xp.asarray([2], dtype=self.xp.int32)
             mms = self.xp.asarray([2], dtype=self.xp.int32)
+            self.modes = self.allowable_modes
 
         num_modes = len(ells)
         num_bin_all = len(m1)
@@ -237,8 +246,10 @@ class PhenomHMAmpPhase:
         if freqs is None:
             self._initialize_freqs(m1, m2)
 
-        else:
+        elif freqs.ndim == 1:
             self.freqs = self.xp.tile(freqs, (self.num_bin_all, 1)).flatten()
+        else:
+            self.freqs = freqs.flatten().copy()
 
         m1_SI = m1 * MSUN_SI
         m2_SI = m2 * MSUN_SI

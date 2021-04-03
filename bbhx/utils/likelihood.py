@@ -91,8 +91,8 @@ class RelativeBinning:
         template_gen,
         f_dense,
         d,
-        template_gen_args,
         length_f_rel,
+        template_gen_args=None,
         template_gen_kwargs={},
         noise_kwargs_AE={},
         noise_kwargs_T={},
@@ -112,14 +112,15 @@ class RelativeBinning:
             self.like_gen = hdyn_wrap_cpu
             self.xp = np
 
-        self._init_rel_bin_info(
-            template_gen_args,
-            template_gen_kwargs=template_gen_kwargs,
-            noise_kwargs_AE=noise_kwargs_AE,
-            noise_kwargs_T=noise_kwargs_T,
-        )
+        if template_gen_args is not None:
+            self.setup(
+                template_gen_args,
+                template_gen_kwargs=template_gen_kwargs,
+                noise_kwargs_AE=noise_kwargs_AE,
+                noise_kwargs_T=noise_kwargs_T,
+            )
 
-    def _init_rel_bin_info(
+    def setup(
         self,
         template_gen_args,
         template_gen_kwargs={},
@@ -127,7 +128,7 @@ class RelativeBinning:
         noise_kwargs_T={},
     ):
 
-        template_gen_kwargs["squeeze"] = True
+        template_gen_kwargs["squeeze"] = False
         template_gen_kwargs["compress"] = True
         template_gen_kwargs["direct"] = True
 
@@ -138,98 +139,134 @@ class RelativeBinning:
             self.xp.log10(minF), self.xp.log10(maxF), self.length_f_rel
         )
 
-        h0 = self.template_gen(
-            *template_gen_args, freqs=self.f_dense, **template_gen_kwargs
+        h0 = self.xp.atleast_3d(
+            self.template_gen(
+                *template_gen_args, freqs=self.f_dense, **template_gen_kwargs
+            )
+        ).transpose((2, 0, 1))
+
+        h0_temp = self.xp.atleast_3d(
+            self.template_gen(*template_gen_args, freqs=freqs, **template_gen_kwargs)
+        ).transpose(
+            (2, 0, 1)
+        )  # [0]
+
+        self.num_bin_all, channels, length = h0_temp.shape
+
+        inds_not_zero = h0_temp[:, 0] != 0.0
+        inds_arange = self.xp.tile(
+            self.xp.arange(self.length_f_rel), (self.num_bin_all, 1)
         )
 
-        h0_temp = self.template_gen(
-            *template_gen_args, freqs=freqs, **template_gen_kwargs
-        )[0]
+        indicator = inds_arange * (inds_not_zero) + int(1e8) * (~inds_not_zero)
+        start_inds = self.xp.argmin(indicator, axis=1)
 
-        freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
+        indicator = inds_arange * (inds_not_zero) - int(1e8) * (~inds_not_zero)
+        end_inds = self.xp.argmax(indicator, axis=1)
+
+        start_freqs = freqs[start_inds]
+        end_freqs = freqs[end_inds]
 
         freqs = self.xp.logspace(
-            self.xp.log10(freqs_keep[0]),
-            self.xp.log10(freqs_keep[-1]),
-            self.length_f_rel,
-        )
+            self.xp.log10(start_freqs), self.xp.log10(end_freqs), self.length_f_rel,
+        ).T
 
         self.h0_short = self.template_gen(
             *template_gen_args, freqs=freqs, **template_gen_kwargs
-        )[:, :, self.xp.newaxis]
-
-        inds = (self.f_dense >= freqs[0]) & (self.f_dense <= freqs[-1])
-
-        self.f_dense = self.f_dense[inds]
-        self.d = self.d[:, inds]
-        h0 = h0[:, inds]
-
-        bins = self.xp.searchsorted(freqs, self.f_dense, "right") - 1
-
-        f_m = (freqs[1:] + freqs[:-1]) / 2
-
-        df = self.f_dense[1] - self.f_dense[0]
-
-        # TODO: make adjustable
-        try:
-            f_n_host = self.f_dense.get()
-        except AttributeError:
-            f_n_host = self.f_dense
-
-        S_n = self.xp.asarray(
-            [
-                get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
-                get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
-                get_sensitivity(f_n_host, sens_fn="noisepsd_T", **noise_kwargs_T),
-            ]
         )
 
-        A0_flat = 4 * (h0.conj() * self.d) / S_n * df
-        A1_flat = 4 * (h0.conj() * self.d) / S_n * df * (self.f_dense - f_m[bins])
+        # inds = (self.f_dense >= freqs[0]) & (self.f_dense <= freqs[-1])
 
-        B0_flat = 4 * (h0.conj() * h0) / S_n * df
-        B1_flat = 4 * (h0.conj() * h0) / S_n * df * (self.f_dense - f_m[bins])
-
-        self.A0 = self.xp.zeros((3, self.length_f_rel - 1), dtype=np.complex128)
-        self.A1 = self.xp.zeros_like(self.A0)
-        self.B0 = self.xp.zeros_like(self.A0)
-        self.B1 = self.xp.zeros_like(self.A0)
-
-        A0_in = self.xp.zeros((3, self.length_f_rel), dtype=np.complex128)
+        # self.f_dense = self.f_dense[inds]
+        # self.d = self.d[:, inds]
+        # h0 = h0[:, inds]
+        A0_in = self.xp.zeros(
+            (3, self.length_f_rel, self.num_bin_all), dtype=np.complex128
+        )
         A1_in = self.xp.zeros_like(A0_in)
         B0_in = self.xp.zeros_like(A0_in)
         B1_in = self.xp.zeros_like(A0_in)
 
-        for ind in self.xp.unique(bins[:-1]):
-            inds_keep = bins == ind
+        self.base_d_d = self.xp.zeros(self.num_bin_all)
+        self.base_d_h = self.xp.zeros(self.num_bin_all)
+        self.base_h_h = self.xp.zeros(self.num_bin_all)
 
-            # TODO: check this
-            inds_keep[-1] = False
+        for i, (freqs_i, h0_i) in enumerate(zip(freqs, h0)):
+            f_m = (freqs_i[1:] + freqs_i[:-1]) / 2
 
-            self.A0[:, ind] = self.xp.sum(A0_flat[:, inds_keep], axis=1)
-            self.A1[:, ind] = self.xp.sum(A1_flat[:, inds_keep], axis=1)
-            self.B0[:, ind] = self.xp.sum(B0_flat[:, inds_keep], axis=1)
-            self.B1[:, ind] = self.xp.sum(B1_flat[:, inds_keep], axis=1)
+            inds = (self.f_dense >= freqs_i[0]) & (self.f_dense <= freqs_i[-1])
+            temp_f_dense = self.f_dense[inds]
+            bins = self.xp.searchsorted(freqs_i, temp_f_dense, "right") - 1
+            temp_d = self.d[:, inds]
+            temp_h0_i = h0_i[:, inds]
+            df = self.f_dense[1] - self.f_dense[0]
 
-            A0_in[:, ind + 1] = self.xp.sum(A0_flat[:, inds_keep], axis=1)
-            A1_in[:, ind + 1] = self.xp.sum(A1_flat[:, inds_keep], axis=1)
-            B0_in[:, ind + 1] = self.xp.sum(B0_flat[:, inds_keep], axis=1)
-            B1_in[:, ind + 1] = self.xp.sum(B1_flat[:, inds_keep], axis=1)
+            # TODO: make adjustable
+            try:
+                f_n_host = temp_f_dense.get()
+            except AttributeError:
+                f_n_host = temp_f_dense
+
+            S_n = self.xp.asarray(
+                [
+                    get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
+                    get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
+                    get_sensitivity(f_n_host, sens_fn="noisepsd_T", **noise_kwargs_T),
+                ]
+            )
+            A0_flat = 4 * (temp_h0_i.conj() * temp_d) / S_n * df
+            A1_flat = (
+                4 * (temp_h0_i.conj() * temp_d) / S_n * df * (temp_f_dense - f_m[bins])
+            )
+
+            B0_flat = 4 * (temp_h0_i.conj() * temp_h0_i) / S_n * df
+            B1_flat = (
+                4
+                * (temp_h0_i.conj() * temp_h0_i)
+                / S_n
+                * df
+                * (temp_f_dense - f_m[bins])
+            )
+
+            # self.A0 = self.xp.zeros((3, self.length_f_rel - 1), dtype=np.complex128)
+            # self.A1 = self.xp.zeros_like(self.A0)
+            # self.B0 = self.xp.zeros_like(self.A0)
+            # self.B1 = self.xp.zeros_like(self.A0)
+
+            for ind in self.xp.unique(bins[:-1]):
+                inds_keep = bins == ind
+
+                # TODO: check this
+                inds_keep[-1] = False
+
+                # self.A0[:, ind] = self.xp.sum(A0_flat[:, inds_keep], axis=1)
+                # self.A1[:, ind] = self.xp.sum(A1_flat[:, inds_keep], axis=1)
+                # self.B0[:, ind] = self.xp.sum(B0_flat[:, inds_keep], axis=1)
+                # self.B1[:, ind] = self.xp.sum(B1_flat[:, inds_keep], axis=1)
+
+                A0_in[:, ind + 1, i] = self.xp.sum(A0_flat[:, inds_keep], axis=1)
+                A1_in[:, ind + 1, i] = self.xp.sum(A1_flat[:, inds_keep], axis=1)
+                B0_in[:, ind + 1, i] = self.xp.sum(B0_flat[:, inds_keep], axis=1)
+                B1_in[:, ind + 1, i] = self.xp.sum(B1_flat[:, inds_keep], axis=1)
+
+            self.base_d_d[i] = self.xp.sum(4 * (temp_d.conj() * temp_d) / S_n * df).real
+            self.base_h_h[i] = self.xp.sum(B0_flat).real
+            self.base_d_h[i] = self.xp.sum(A0_flat).real
 
         # PAD As with a zero in the front
         self.dataConstants = self.xp.concatenate(
-            [A0_in.flatten(), A1_in.flatten(), B0_in.flatten(), B1_in.flatten()]
+            [
+                A0_in.transpose(1, 0, 2).flatten(),
+                A1_in.transpose(1, 0, 2).flatten(),
+                B0_in.transpose(1, 0, 2).flatten(),
+                B1_in.transpose(1, 0, 2).flatten(),
+            ]
         )
-
-        self.base_d_d = self.xp.sum(4 * (self.d.conj() * self.d) / S_n * df).real
-
-        self.base_h_h = self.xp.sum(B0_flat).real
-
-        self.base_d_h = self.xp.sum(A0_flat).real
 
         self.base_ll = 1 / 2 * (self.base_d_d + self.base_h_h - 2 * self.base_d_h)
 
-        self.freqs = freqs
+        self.freqs = freqs.squeeze()
+        self.freqs_flat = freqs.T.flatten()
         self.f_m = f_m
 
     def get_ll(self, params, **waveform_kwargs):
@@ -280,17 +317,22 @@ class RelativeBinning:
             self.template_gen.num_bin_all, dtype=self.xp.complex128
         )
 
+        if self.num_bin_all > 1 and (self.template_gen.num_bin_all != self.num_bin_all):
+            raise NotImplementedError
+
         templates_in = r.transpose((1, 0, 2)).flatten()
 
+        full = False if self.num_bin_all == 1 else True
         self.like_gen(
             self.hdyn_d_h,
             self.hdyn_h_h,
             templates_in,
             self.dataConstants,
-            self.freqs,
+            self.freqs_flat,
             self.template_gen.num_bin_all,
-            len(self.freqs),
+            self.length_f_rel,
             3,
+            full,
         )
 
         out = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real

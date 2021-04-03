@@ -485,7 +485,14 @@ class BBHWaveform:
             raise ValueError("Must input freqs or length.")
 
         elif freqs is not None and direct is True:
-            length = len(freqs)
+            if freqs.ndim == 1:
+                length = len(freqs)
+            else:
+                if direct is False:
+                    raise ValueError(
+                        "If 2D frequency array provided, must have direct == True."
+                    )
+                length = freqs.shape[1]
 
         elif direct is False:
             self.data_length = len(freqs)
@@ -539,7 +546,7 @@ class BBHWaveform:
                 length,
                 includes_amps=True,
                 out_buffer=out_buffer,
-                modes=modes,
+                modes=self.amp_phase_gen.modes,
             )
 
         if direct and compress:

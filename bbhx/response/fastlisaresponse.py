@@ -168,6 +168,7 @@ class LISATDIResponse:
         out_buffer=None,
     ):
 
+        # TODO: prevent mode count from being different from input buffer
         if xp is not None:
             self.xp = xp
 

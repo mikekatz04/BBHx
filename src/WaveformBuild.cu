@@ -161,7 +161,7 @@ void fill_waveform(cmplx* templateChannels,
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    //#pragma omp parallel for
     #endif
     for (int bin_i = start; bin_i < numBinAll; bin_i += increment)
     {
@@ -176,11 +176,13 @@ void fill_waveform(cmplx* templateChannels,
         #else
         start2 = 0;
         increment2 = 1;
-        #pragma omp parallel for
+        //#pragma omp parallel for
         #endif
         for (int i = start2; i < data_length; i += increment2)
         {
-            cmplx temp_channel1 = 0.0, temp_channel2 = 0.0, temp_channel3 = 0.0;
+            cmplx temp_channel1 = 0.0;
+            cmplx temp_channel2 = 0.0;
+            cmplx temp_channel3 = 0.0;
             for (int mode_i = 0; mode_i < numModes; mode_i += 1)
             {
 
@@ -216,6 +218,9 @@ void fill_waveform(cmplx* templateChannels,
                 cmplx channel3 = 0.0 + 0.0 * I;
 
                 combine_information(&channel1, &channel2, &channel3, amp, phase, tf, cmplx(transferL1_re, transferL1_im), cmplx(transferL2_re, transferL2_im), cmplx(transferL3_re, transferL3_im), t_start_bin, t_end_bin);
+
+                //if (((bin_i % 2) == 1) && (i == 100))
+                //    printf("%d %d %.10e %.10e %.10e %.10e %.10e %.10e %.10e \n", i, bin_i, amp, phase, tf, transferL1_re, transferL1_im, channel1.real(), channel1.imag());
 
                 temp_channel1 += channel1;
                 temp_channel2 += channel2;

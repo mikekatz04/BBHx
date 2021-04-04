@@ -3120,8 +3120,11 @@ void IMRPhenomHMCore(
 
     CUDA_SHARED int ells[MAX_MODES];
     CUDA_SHARED int mms[MAX_MODES];
+
+    #ifdef __CUDACC__
     CUDA_SHARED double Mf_RD_lm[MAX_MODES];
     CUDA_SHARED double Mf_DM_lm[MAX_MODES];
+    #endif
 
     if THREAD_ZERO
     {
@@ -3163,6 +3166,12 @@ void IMRPhenomHMCore(
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
+        #ifdef __CUDACC__
+        #else
+        double Mf_RD_lm[MAX_MODES];
+        double Mf_DM_lm[MAX_MODES];
+        #endif
+
         int start2, increment2;
         #ifdef __CUDACC__
         start2 = threadIdx.x;

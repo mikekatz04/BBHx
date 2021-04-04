@@ -344,7 +344,7 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
         #else
         start = 0;
         increment = 1;
-        //#pragma omp parallel for
+        #pragma omp parallel for
         #endif
         for (int i = start; i < data_length; i += increment)
         {

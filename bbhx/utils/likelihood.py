@@ -123,6 +123,9 @@ class RelativeBinning:
         if template_gen_args is not None:
             self.setup(template_gen_args, **kwargs)
 
+        # TODO: make better
+        self.temp_half = 0
+
     def setup(
         self,
         template_gen_args,
@@ -312,12 +315,10 @@ class RelativeBinning:
                 B0_in[:, :, i] = B0_flat.reshape(3, -1)
                 B1_in[:, :, i] = B1_flat.reshape(3, -1)
 
-                self.base_d_d[i] = self.xp.sum(
-                    4 * (temp_d.conj() * temp_d) / S_n * df
-                ).real
                 self.base_h_h[i] = self.xp.sum(B0_flat).real
                 self.base_d_h[i] = self.xp.sum(A0_flat).real
 
+        self.base_d_d = self.xp.sum(4 * (self.d.conj() * self.d) / S_n_all * df).real
         # PAD As with a zero in the front
         self.dataConstants = self.xp.concatenate(
             [
@@ -340,11 +341,33 @@ class RelativeBinning:
         waveform_kwargs["compress"] = True
         waveform_kwargs["squeeze"] = False
 
-        waveform_kwargs["freqs"] = self.freqs
+        num_bin_here = len(params[0])
 
-        self.h_short = self.template_gen(*params, **waveform_kwargs)
+        if self.num_bin_all > 1 and (self.num_bin_all / num_bin_here) == 2:
+            waveform_kwargs["freqs"] = self.freqs[self.temp_half :: 2]
+            self.h_short = self.template_gen(*params, **waveform_kwargs)
 
-        r = self.h_short / self.h0_short
+            r = self.h_short / self.h0_short[:, :, self.temp_half :: 2]
+
+            temp_dataConstants = self.dataConstants[self.temp_half :: 2].copy()
+            temp_freqs_flat = self.freqs_flat[self.temp_half :: 2].copy()
+
+            if self.temp_half == 0:
+                self.temp_half = 1
+            else:
+                self.temp_half = 0
+
+        elif self.num_bin_all == 1 or (
+            self.num_bin_all > 1 and self.num_bin_all == num_bin_here
+        ):
+            waveform_kwargs["freqs"] = self.freqs
+            self.h_short = self.template_gen(*params, **waveform_kwargs)
+            r = self.h_short / self.h0_short
+            temp_dataConstants = self.dataConstants
+            temp_freqs_flat = self.freqs_flat
+
+        else:
+            raise ShapeError("Dimensions do not match in relative bin calculation.")
 
         """
         r1 = (r[:, 1:] - r[:, :-1]) / (
@@ -375,15 +398,8 @@ class RelativeBinning:
 
         test_like = 1 / 2 * (self.base_d_d + self.Z_h_h - 2 * self.Z_d_h).real
         """
-        self.hdyn_d_h = self.xp.zeros(
-            self.template_gen.num_bin_all, dtype=self.xp.complex128
-        )
-        self.hdyn_h_h = self.xp.zeros(
-            self.template_gen.num_bin_all, dtype=self.xp.complex128
-        )
-
-        if self.num_bin_all > 1 and (self.template_gen.num_bin_all != self.num_bin_all):
-            raise NotImplementedError
+        self.hdyn_d_h = self.xp.zeros(num_bin_here, dtype=self.xp.complex128)
+        self.hdyn_h_h = self.xp.zeros(num_bin_here, dtype=self.xp.complex128)
 
         templates_in = r.transpose((1, 0, 2)).flatten()
 
@@ -392,9 +408,9 @@ class RelativeBinning:
             self.hdyn_d_h,
             self.hdyn_h_h,
             templates_in,
-            self.dataConstants,
-            self.freqs_flat,
-            self.template_gen.num_bin_all,
+            temp_dataConstants,
+            temp_freqs_flat,
+            num_bin_here,
             self.length_f_rel,
             3,
             full,

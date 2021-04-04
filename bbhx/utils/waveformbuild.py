@@ -448,6 +448,7 @@ class BBHWaveform:
         squeeze=True,
         shift_t_limits=False,
         fill=False,
+        combine=False,
     ):
 
         # TODO: if t_obs_end = t_mrg
@@ -663,13 +664,26 @@ class BBHWaveform:
                 )
 
             if fill:
-                data_out = self.xp.zeros((3, len(freqs)), dtype=self.xp.complex128)
-                for temp, start_i, length_i in zip(
-                    template_channels,
-                    self.interp_response.start_inds,
-                    self.interp_response.lengths,
-                ):
-                    data_out[:, start_i : start_i + length_i] = temp
+                if combine:
+                    data_out = self.xp.zeros((3, len(freqs)), dtype=self.xp.complex128)
+                    for temp, start_i, length_i in zip(
+                        template_channels,
+                        self.interp_response.start_inds,
+                        self.interp_response.lengths,
+                    ):
+                        data_out[:, start_i : start_i + length_i] = temp
+                else:
+                    data_out = self.xp.zeros(
+                        (self.num_bin_all, 3, len(freqs)), dtype=self.xp.complex128
+                    )
+                    for bin_i, (temp, start_i, length_i) in enumerate(
+                        zip(
+                            template_channels,
+                            self.interp_response.start_inds,
+                            self.interp_response.lengths,
+                        )
+                    ):
+                        data_out[bin_i, :, start_i : start_i + length_i] = temp
 
                 return data_out
             else:

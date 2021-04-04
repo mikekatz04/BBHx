@@ -176,6 +176,7 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
 }
 #endif
 
+CUDA_KERNEL
 void hdynLikelihood_full(cmplx* likeOut1, cmplx* likeOut2,
                     cmplx* templateChannels, cmplx* dataConstants,
                     double* dataFreqsIn,
@@ -273,6 +274,136 @@ void hdyn(cmplx* likeOut1, cmplx* likeOut2,
     }
 }
 
+
+#ifdef __CUDACC__
+__device__ double atomicAddDouble(double* address, double val)
+{
+    unsigned long long* address_as_ull =
+                              (unsigned long long*)address;
+    unsigned long long old = *address_as_ull, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val +
+                               __longlong_as_double(assumed)));
+
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
+
+    return __longlong_as_double(old);
+}
+
+__device__ void atomicAddComplex(cmplx* a, cmplx b){
+  //transform the addresses of real and imag. parts to double pointers
+  double *x = (double*)a;
+  double *y = x+1;
+  //use atomicAdd for double variables
+  atomicAddDouble(x, b.real());
+  atomicAddDouble(y, b.imag());
+}
+#endif
+
+
+#define MAX_LENGTH_F_REL 512
+
+CUDA_KERNEL
+void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_arr, cmplx* h0_arr, double* S_n_arr, double df, int* bins, double* f_dense, double* f_m_arr, int data_length, int nchannels, int length_f_rel)
+{
+
+    CUDA_SHARED cmplx A0_temp[MAX_LENGTH_F_REL];
+    CUDA_SHARED cmplx A1_temp[MAX_LENGTH_F_REL];
+    CUDA_SHARED cmplx B0_temp[MAX_LENGTH_F_REL];
+    CUDA_SHARED cmplx B1_temp[MAX_LENGTH_F_REL];
+
+    int start, increment;
+    for (int channel = 0; channel < nchannels; channel += 1)
+    {
+        #ifdef __CUDACC__
+        start = threadIdx.x + blockDim.x * blockIdx.x;
+        increment = blockDim.x * gridDim.x;
+        #else
+        start = 0;
+        increment = 1;
+        #endif
+        for (int i = start; i < data_length; i += increment)
+        {
+            int bin_ind = bins[i];
+            cmplx d = d_arr[channel * data_length + i];
+            cmplx h0 = h0_arr[channel * data_length + i];
+            cmplx S_n = S_n_arr[channel * data_length + i];
+            double f = f_dense[i];
+
+            double f_m = f_m_arr[bin_ind];
+            cmplx h0_conj = gcmplx::conj(h0);
+
+            cmplx A0_flat = 4. * (h0_conj * d) / S_n * df;
+            cmplx A1_flat = A0_flat * (f - f_m);
+
+            cmplx B0_flat = 4. * (h0_conj * h0) / S_n * df;
+            cmplx B1_flat = B0_flat * (f - f_m);
+
+            #ifdef __CUDACC__
+            atomicAddComplex(&A0_temp[bin_ind + 1], A0_flat);
+            atomicAddComplex(&A1_temp[bin_ind + 1], A1_flat);
+            atomicAddComplex(&B0_temp[bin_ind + 1], B0_flat);
+            atomicAddComplex(&B1_temp[bin_ind + 1], B1_flat);
+            #else
+            #pragma omp critical
+                A0_in[channel * length_f_rel + bin_ind + 1] += A0_flat;
+            #pragma omp critical
+                A1_in[channel * length_f_rel + bin_ind + 1] += A1_flat;
+            #pragma omp critical
+                B0_in[channel * length_f_rel + bin_ind + 1] += B0_flat;
+            #pragma omp critical
+                B1_in[channel * length_f_rel + bin_ind + 1] += B1_flat;
+            #endif
+
+        }
+
+        CUDA_SYNC_THREADS;
+
+        #ifdef __CUDACC__
+        start = threadIdx.x;
+        increment = blockDim.x;
+        #else
+        start = 0;
+        increment = 1;
+        #endif
+        for (int i = start; i < length_f_rel - 1; i += increment)
+        {
+            #ifdef __CUDACC__
+            atomicAddComplex(&A0_in[channel * length_f_rel + i + 1], A0_temp[i + 1]);
+            atomicAddComplex(&A1_in[channel * length_f_rel + i + 1], A1_temp[i + 1]);
+            atomicAddComplex(&B0_in[channel * length_f_rel + i + 1], B0_temp[i + 1]);
+            atomicAddComplex(&B1_in[channel * length_f_rel + i + 1], B1_temp[i + 1]);
+            #else
+            #pragma omp critical
+                A0_in[channel * length_f_rel + i + 1] += A0_temp[i + 1];
+            #pragma omp critical
+                A1_in[channel * length_f_rel + i + 1] += A1_temp[i + 1];
+            #pragma omp critical
+                B0_in[channel * length_f_rel + i + 1] += B0_temp[i + 1];
+            #pragma omp critical
+                B1_in[channel * length_f_rel + i + 1] += B1_temp[i + 1];
+            #endif
+        }
+    }
+}
+
+void prep_hdyn_wrap(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_arr, cmplx* h0_arr, double* S_n_arr, double df, int* bins, double* f_dense, double* f_m_arr, int data_length, int nchannels, int length_f_rel)
+{
+    #ifdef __CUDACC__
+    int nblocks = std::ceil((data_length + NUM_THREADS_LIKE -1)/NUM_THREADS_LIKE);
+    prep_hdyn<<<nblocks, NUM_THREADS_LIKE>>>(A0_in, A1_in, B0_in, B1_in, d_arr, h0_arr, S_n_arr, df, bins, f_dense, f_m_arr, data_length, nchannels, length_f_rel);
+
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    #else
+    prep_hdyn(A0_in, A1_in, B0_in, B1_in, d_arr, h0_arr, S_n_arr, df, bins, f_dense, f_m_arr, data_length, nchannels, length_f_rel);
+    #endif
+}
+
 CUDA_KERNEL
 void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df, int ind_start, int length, int data_stream_length)
 {
@@ -283,7 +414,7 @@ void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df
     #else
     start = 0;
     increment = 1;
-    #pragma parallel omp for
+    #pragma omp parallel for
     #endif
     for (int i = start; i < length; i += increment)
     {

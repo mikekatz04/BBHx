@@ -319,19 +319,39 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
     int start, increment;
     for (int channel = 0; channel < nchannels; channel += 1)
     {
+        CUDA_SYNC_THREADS;
+
+        #ifdef __CUDACC__
+        start = threadIdx.x;
+        increment = blockDim.x;
+        #else
+        start = 0;
+        increment = 1;
+        #pragma omp parallel for
+        #endif
+        for (int i = start; i < length_f_rel - 1; i += increment)
+        {
+            A0_temp[i + 1] = 0.0;
+            A1_temp[i + 1] = 0.0;
+            B0_temp[i + 1] = 0.0;
+            B1_temp[i + 1] = 0.0;
+        }
+        CUDA_SYNC_THREADS;
+
         #ifdef __CUDACC__
         start = threadIdx.x + blockDim.x * blockIdx.x;
         increment = blockDim.x * gridDim.x;
         #else
         start = 0;
         increment = 1;
+        //#pragma omp parallel for
         #endif
         for (int i = start; i < data_length; i += increment)
         {
             int bin_ind = bins[i];
             cmplx d = d_arr[channel * data_length + i];
             cmplx h0 = h0_arr[channel * data_length + i];
-            cmplx S_n = S_n_arr[channel * data_length + i];
+            double S_n = S_n_arr[channel * data_length + i];
             double f = f_dense[i];
 
             double f_m = f_m_arr[bin_ind];
@@ -342,7 +362,6 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
 
             cmplx B0_flat = 4. * (h0_conj * h0) / S_n * df;
             cmplx B1_flat = B0_flat * (f - f_m);
-
             #ifdef __CUDACC__
             atomicAddComplex(&A0_temp[bin_ind + 1], A0_flat);
             atomicAddComplex(&A1_temp[bin_ind + 1], A1_flat);
@@ -350,13 +369,13 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
             atomicAddComplex(&B1_temp[bin_ind + 1], B1_flat);
             #else
             #pragma omp critical
-                A0_in[channel * length_f_rel + bin_ind + 1] += A0_flat;
+                A0_temp[bin_ind + 1] += A0_flat;
             #pragma omp critical
-                A1_in[channel * length_f_rel + bin_ind + 1] += A1_flat;
+                A1_temp[bin_ind + 1] += A1_flat;
             #pragma omp critical
-                B0_in[channel * length_f_rel + bin_ind + 1] += B0_flat;
+                B0_temp[bin_ind + 1] += B0_flat;
             #pragma omp critical
-                B1_in[channel * length_f_rel + bin_ind + 1] += B1_flat;
+                B1_temp[bin_ind + 1] += B1_flat;
             #endif
 
         }
@@ -369,6 +388,7 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
         #else
         start = 0;
         increment = 1;
+        #pragma omp parallel for
         #endif
         for (int i = start; i < length_f_rel - 1; i += increment)
         {
@@ -388,6 +408,7 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
                 B1_in[channel * length_f_rel + i + 1] += B1_temp[i + 1];
             #endif
         }
+        CUDA_SYNC_THREADS;
     }
 }
 

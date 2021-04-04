@@ -261,7 +261,7 @@ class RelativeBinning:
                 )
                 temp_d = self.d[:, inds].copy()
                 temp_h0_i = h0_i[:, inds].copy()
-                df = self.f_dense[1] - self.f_dense[0]
+                df = (self.f_dense[1] - self.f_dense[0]).item()
 
                 A0_flat = self.xp.zeros(3 * self.length_f_rel, dtype=self.xp.complex128)
                 A1_flat = self.xp.zeros_like(A0_flat)
@@ -317,8 +317,6 @@ class RelativeBinning:
                 ).real
                 self.base_h_h[i] = self.xp.sum(B0_flat).real
                 self.base_d_h[i] = self.xp.sum(A0_flat).real
-
-                print(batch_i, num_batches)
 
         # PAD As with a zero in the front
         self.dataConstants = self.xp.concatenate(

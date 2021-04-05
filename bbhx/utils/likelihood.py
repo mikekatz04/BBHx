@@ -320,22 +320,23 @@ class RelativeBinning:
 
         self.base_d_d = self.xp.sum(4 * (self.d.conj() * self.d) / S_n_all * df).real
         # PAD As with a zero in the front
-        self.dataConstants = self.xp.concatenate(
+        self.dataConstants = self.xp.array(
             [
-                A0_in.transpose(1, 0, 2).flatten(),
-                A1_in.transpose(1, 0, 2).flatten(),
-                B0_in.transpose(1, 0, 2).flatten(),
-                B1_in.transpose(1, 0, 2).flatten(),
+                A0_in.transpose(1, 0, 2),
+                A1_in.transpose(1, 0, 2),
+                B0_in.transpose(1, 0, 2),
+                B1_in.transpose(1, 0, 2),
             ]
         )
+        self.freqs = all_freqs.squeeze()
+        self.freqs_flat = all_freqs.T.flatten()
 
         self.base_ll = 1 / 2 * (self.base_d_d + self.base_h_h - 2 * self.base_d_h)
 
-        self.freqs = all_freqs.squeeze()
-        self.freqs_flat = all_freqs.T.flatten()
         self.f_m = f_m
+        self.template_gen_args = template_gen_args
 
-    def get_ll(self, params, **waveform_kwargs):
+    def get_ll(self, params, inds=None, **waveform_kwargs):
 
         waveform_kwargs["direct"] = True
         waveform_kwargs["compress"] = True
@@ -343,14 +344,19 @@ class RelativeBinning:
 
         num_bin_here = len(params[0])
 
-        if self.num_bin_all > 1 and (self.num_bin_all / num_bin_here) == 2:
-            waveform_kwargs["freqs"] = self.freqs[self.temp_half :: 2]
+        if (
+            self.num_bin_all > 1
+            and inds is not None
+            and num_bin_here <= self.num_bin_all / 2
+        ):
+            inds_keep = np.arange(self.num_bin_all)[self.temp_half :: 2][inds]
+            waveform_kwargs["freqs"] = self.freqs[inds_keep]
             self.h_short = self.template_gen(*params, **waveform_kwargs)
 
-            r = self.h_short / self.h0_short[:, :, self.temp_half :: 2]
+            r = self.h_short / self.h0_short[:, :, inds_keep]
 
-            temp_dataConstants = self.dataConstants[self.temp_half :: 2].copy()
-            temp_freqs_flat = self.freqs_flat[self.temp_half :: 2].copy()
+            temp_dataConstants = self.dataConstants[:, :, :, inds_keep].flatten().copy()
+            temp_freqs_flat = self.freqs[inds_keep].flatten().copy()
 
             if self.temp_half == 0:
                 self.temp_half = 1
@@ -363,11 +369,11 @@ class RelativeBinning:
             waveform_kwargs["freqs"] = self.freqs
             self.h_short = self.template_gen(*params, **waveform_kwargs)
             r = self.h_short / self.h0_short
-            temp_dataConstants = self.dataConstants
+            temp_dataConstants = self.dataConstants.flatten()
             temp_freqs_flat = self.freqs_flat
 
         else:
-            raise ShapeError("Dimensions do not match in relative bin calculation.")
+            raise ValueError("Dimensions do not match in relative bin calculation.")
 
         """
         r1 = (r[:, 1:] - r[:, :-1]) / (

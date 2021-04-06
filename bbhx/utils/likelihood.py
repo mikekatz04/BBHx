@@ -424,6 +424,14 @@ class RelativeBinning:
 
         out = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
 
+        bad_inds = (
+            self.xp.isnan(out).astype(int)
+            + (self.xp.isinf(out)).astype(int)
+            + (out < -100.0).astype(int)
+        ).astype(bool)
+        breakpoint()
+        out[bad_inds] = 2 * self.base_d_d
+
         try:
             self.h_h = self.hdyn_h_h.get()
             self.d_h = self.hdyn_d_h.get()

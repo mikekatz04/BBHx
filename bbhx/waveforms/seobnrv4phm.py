@@ -214,32 +214,20 @@ class SEOBNRv4PHM:
         r0, pphi0, pr0 = self.get_initial_conditions(m1, m2, chi1z, chi2z)
 
         t, traj, num_steps = self.run_trajectory(r0, pphi0, pr0, m1, m2, chi1z, chi2z)
+        hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
 
-        import time
-
-        print("start")
-        nn = 100
-        st = time.perf_counter()
-        for _ in range(nn):
-            hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
-        et = time.perf_counter()
-        print("hlm", (et - st) / nn / self.num_bin_all)
-        breakpoint()
-        exit()
         phi = traj[:, 1]
-        self.lengths = num_steps
-        self.t = [t[i, : num_steps[i]] for i in range(self.num_bin_all)]
-        self.hlms_real = [
-            self.xp.concatenate(
-                [
-                    hlms[i, : num_steps[i]].real,
-                    hlms[i, : num_steps[i]].imag,
-                    self.xp.array([phi[i, : num_steps[i]]]),
-                ],
-                axis=0,
-            )
-            for i in range(self.num_bin_all)
-        ]
+        self.lengths = num_steps.astype(self.xp.int32)
+        num_steps_max = num_steps.max()
+        self.t = t[:, :num_steps_max]
+        self.hlms_real = self.xp.concatenate(
+            [
+                hlms[:, :num_steps_max].real,
+                hlms[:, :num_steps_max].imag,
+                phi[:, self.xp.newaxis, :num_steps_max],
+            ],
+            axis=1,
+        )
 
         self.ells = ells
         self.mms = mms

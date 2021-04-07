@@ -17,7 +17,7 @@ from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
 from bbhx.waveforms.seobnrv4phm import SEOBNRv4PHM
 from bbhx.response.fastlisaresponse import LISATDIResponse
-from bbhx.utils.interpolate import CubicSplineInterpolant
+from bbhx.utils.interpolate import CubicSplineInterpolant, CubicSplineInterpolantTD
 from bbhx.utils.constants import *
 
 
@@ -231,10 +231,9 @@ class TDInterp:
         # self._initialize_template_container()
 
         # (ts, y, c1, c2, c3) = interp_container
+        splines_ts = interp_container.t_shaped
 
-        splines_ts = [interp_container[i].container[0] for i in range(self.num_bin_all)]
-
-        ends = self.xp.asarray([splines_ts[i].max() for i in range(self.num_bin_all)])
+        ends = self.xp.max(splines_ts, axis=1)
         start_and_end = self.xp.asarray([self.xp.full(self.num_bin_all, 0.0), ends,]).T
 
         inds_start_and_end = self.xp.asarray(
@@ -249,21 +248,11 @@ class TDInterp:
 
         inds = self.xp.empty((self.num_bin_all * max_length), dtype=self.xp.int32)
 
-        old_lengths = self.xp.asarray(
-            [interp_container_i.length for interp_container_i in interp_container],
-            dtype=self.xp.int32,
-        )
+        old_lengths = interp_container.lengths
         old_length = self.xp.max(old_lengths).item()
-        tsAll = self.xp.zeros(self.num_bin_all * old_length)
-        propArraysAll = self.xp.zeros(
-            self.num_bin_all * (2 * self.num_modes + 1) * old_length
-        )
-        c1All = self.xp.zeros_like(propArraysAll)
-        c2All = self.xp.zeros_like(propArraysAll)
-        c3All = self.xp.zeros_like(propArraysAll)
 
-        for i, ((st, et), ts, ic, current_old_length) in enumerate(
-            zip(inds_start_and_end, splines_ts, interp_container, old_lengths)
+        for i, ((st, et), ts, current_old_length) in enumerate(
+            zip(inds_start_and_end, splines_ts, old_lengths)
         ):
             inds[i * max_length + st : i * max_length + et] = (
                 self.xp.searchsorted(ts, dataTime[st:et], side="right").astype(
@@ -271,20 +260,6 @@ class TDInterp:
                 )
                 - 1
             )
-
-            diff = (2 * self.num_modes + 1) * old_length
-            tsAll[i * old_length : i * old_length + current_old_length] = ic.container[
-                0
-            ]
-
-            sliceit = slice(
-                i * diff, i * diff + current_old_length * (2 * self.num_modes + 1)
-            )
-
-            propArraysAll[sliceit] = ic.container[1]
-            c1All[sliceit] = ic.container[2]
-            c2All[sliceit] = ic.container[3]
-            c3All[sliceit] = ic.container[4]
 
         self.template_carrier = self.xp.zeros(
             int(self.nChannels * data_length * self.num_bin_all),
@@ -297,11 +272,11 @@ class TDInterp:
         self.template_gen(
             self.template_carrier,
             dataTime,
-            tsAll,
-            propArraysAll,
-            c1All,
-            c2All,
-            c3All,
+            interp_container.t_shaped.flatten(),
+            interp_container.y_shaped.flatten(),
+            interp_container.c1_shaped.flatten(),
+            interp_container.c2_shaped.flatten(),
+            interp_container.c3_shaped.flatten(),
             Fplus,
             Fcross,
             old_length,
@@ -753,18 +728,14 @@ class BBHWaveformTD:
                 modes=modes,
             )
         """
-        splines = [
-            CubicSplineInterpolant(
-                self.xp.asarray(self.amp_phase_gen.t[i].copy()),
-                self.xp.asarray(self.amp_phase_gen.hlms_real[i].flatten().copy()),
-                self.amp_phase_gen.lengths[i].item(),
-                self.num_modes * 2 + 1,  # num interp params
-                1,  # fake num modes
-                1,
-                use_gpu=self.use_gpu,
-            )
-            for i in range(self.num_bin_all)
-        ]
+        splines = CubicSplineInterpolantTD(
+            self.amp_phase_gen.t.T.flatten().copy(),
+            self.amp_phase_gen.hlms_real.transpose(2, 1, 0).flatten().copy(),
+            self.amp_phase_gen.lengths,
+            (2 * self.num_modes + 1),
+            self.num_bin_all,
+            use_gpu=self.use_gpu,
+        )
 
         # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
         if self.lisa:

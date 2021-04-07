@@ -4,7 +4,7 @@ try:
     import cupy as xp
     from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
     from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
-    from pyWaveformBuild import TDInterp_wrap as TDInterp_wrap_gpu
+    from pyWaveformBuild import TDInterp_wrap2 as TDInterp_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
@@ -12,7 +12,7 @@ except (ImportError, ModuleNotFoundError) as e:
 
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
-from pyWaveformBuild_cpu import TDInterp_wrap as TDInterp_wrap_cpu
+from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
 
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
 from bbhx.waveforms.seobnrv4phm import SEOBNRv4PHM
@@ -244,144 +244,80 @@ class TDInterp:
             ]
         )
 
-        inds = [
-            self.xp.searchsorted(ts, dataTime[st:et], side="right").astype(
-                self.xp.int32
-            )
-            - 1
-            for i, ((st, et), ts) in enumerate(zip(inds_start_and_end, splines_ts))
-        ]
+        self.lengths = inds_start_and_end[:, 1].astype(self.xp.int32)
+        max_length = self.lengths.max().item()
 
-        self.lengths = lengths = np.asarray(
-            [len(inds_i) for inds_i in inds], dtype=self.xp.int32
+        inds = self.xp.empty((self.num_bin_all * max_length), dtype=self.xp.int32)
+
+        old_lengths = self.xp.asarray(
+            [interp_container_i.length for interp_container_i in interp_container],
+            dtype=self.xp.int32,
         )
+        old_length = self.xp.max(old_lengths).item()
+        tsAll = self.xp.zeros(self.num_bin_all * old_length)
+        propArraysAll = self.xp.zeros(
+            self.num_bin_all * (2 * self.num_modes + 1) * old_length
+        )
+        c1All = self.xp.zeros_like(propArraysAll)
+        c2All = self.xp.zeros_like(propArraysAll)
+        c3All = self.xp.zeros_like(propArraysAll)
 
-        try:
-            temp_inds = inds_start_and_end[:, 0].get()
-        except AttributeError:
-            temp_inds = inds_start_and_end[:, 0]
-
-        self.start_inds = start_inds = (temp_inds.copy()).astype(np.int32)
-
-        try:
-            self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
-        except AttributeError:
-            self.ptrs = ptrs = np.asarray(
-                [ind_i.__array_interface__["data"][0] for ind_i in inds]
-            )
-
-        self.template_carrier = [
-            self.xp.zeros(int(self.nChannels * data_length), dtype=self.xp.complex128,)
-            for temp_length in lengths
-        ]
-
-        try:
-            template_carrier_ptrs = np.asarray(
-                [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
-            )
-        except AttributeError:
-            template_carrier_ptrs = np.asarray(
-                [
-                    temp_carrier.__array_interface__["data"][0]
-                    for temp_carrier in self.template_carrier
-                ]
+        for i, ((st, et), ts, ic, current_old_length) in enumerate(
+            zip(inds_start_and_end, splines_ts, interp_container, old_lengths)
+        ):
+            inds[i * max_length + st : i * max_length + et] = (
+                self.xp.searchsorted(ts, dataTime[st:et], side="right").astype(
+                    self.xp.int32
+                )
+                - 1
             )
 
-        try:
-            splines_ts_ptrs = np.asarray(
-                [
-                    interp_container[i].container[0].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_ys_ptrs = np.asarray(
-                [
-                    interp_container[i].container[1].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c1_ptrs = np.asarray(
-                [
-                    interp_container[i].container[2].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c2_ptrs = np.asarray(
-                [
-                    interp_container[i].container[3].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c3_ptrs = np.asarray(
-                [
-                    interp_container[i].container[4].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
+            diff = (2 * self.num_modes + 1) * old_length
+            tsAll[i * old_length : i * old_length + current_old_length] = ic.container[
+                0
+            ]
+
+            sliceit = slice(
+                i * diff, i * diff + current_old_length * (2 * self.num_modes + 1)
             )
 
-        except AttributeError:
-            splines_ts_ptrs = np.asarray(
-                [
-                    interp_container[i].container[0].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_ys_ptrs = np.asarray(
-                [
-                    interp_container[i].container[1].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c1_ptrs = np.asarray(
-                [
-                    interp_container[i].container[2].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c2_ptrs = np.asarray(
-                [
-                    interp_container[i].container[3].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c3_ptrs = np.asarray(
-                [
-                    interp_container[i].container[4].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
+            propArraysAll[sliceit] = ic.container[1]
+            c1All[sliceit] = ic.container[2]
+            c2All[sliceit] = ic.container[3]
+            c3All[sliceit] = ic.container[4]
+
+        self.template_carrier = self.xp.zeros(
+            int(self.nChannels * data_length * self.num_bin_all),
+            dtype=self.xp.complex128,
+        )
 
         ls = ls.astype(np.int32)
         ms = ms.astype(np.int32)
 
-        try:
-            lengths_in = self.length.get().astype(np.int32)
-        except AttributeError:
-            lengths_in = self.length.astype(np.int32)
-
         self.template_gen(
-            template_carrier_ptrs,
+            self.template_carrier,
             dataTime,
-            splines_ts_ptrs,
-            splines_ys_ptrs,
-            splines_c1_ptrs,
-            splines_c2_ptrs,
-            splines_c3_ptrs,
+            tsAll,
+            propArraysAll,
+            c1All,
+            c2All,
+            c3All,
             Fplus,
             Fcross,
-            lengths_in,
+            old_length,
+            old_lengths,
             self.data_length,
             self.num_bin_all,
             self.num_modes,
             ls,
             ms,
-            ptrs,
-            start_inds,
-            lengths,
+            inds,
+            self.lengths,
+            max_length,
             nChannels,
         )
 
-        return self.template_channels
+        return self.template_carrier
 
 
 class BBHWaveform:
@@ -829,6 +765,7 @@ class BBHWaveformTD:
             )
             for i in range(self.num_bin_all)
         ]
+
         # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
         if self.lisa:
             template_channels = self.interp_response(
@@ -844,6 +781,7 @@ class BBHWaveformTD:
                 t_obs_end,
                 3,
             )
+
         else:
             template_channels = self.interp_response(
                 self.dataTime,
@@ -862,6 +800,6 @@ class BBHWaveformTD:
 
         return (
             template_channels,
-            self.interp_response.start_inds,
-            self.interp_response.lengths,
+            # self.interp_response.start_inds,
+            # self.interp_response.lengths,
         )

@@ -469,3 +469,153 @@ void TDInterp(long* templateChannels_ptrs, double* dataTime, long* tsAll, long* 
     }
     #endif
 }
+
+CUDA_KERNEL
+void TD2(cmplx* templateChannels, double* dataTimeIn, double* timeOld, double* propArrays, double* c1In, double* c2In, double* c3In, double* Fplus_in, double* Fcross_in, int old_length, int* old_lengths, int data_length, int numBinAll, int numModes, int* ls_in, int* ms_in, int* inds, int* lengths, int max_length, int numChannels)
+{
+
+    int start, increment;
+
+    #ifdef __CUDACC__
+    CUDA_SHARED cmplx temp_channels_all[NUM_THREADS_BUILD * MAX_CHANNELS];
+    cmplx* temp_channels = &temp_channels_all[threadIdx.x * numChannels];
+    CUDA_SHARED double Fplus[MAX_CHANNELS];
+    CUDA_SHARED double Fcross[MAX_CHANNELS];
+    #endif
+
+    CUDA_SHARED int ls[MAX_EOB_MODES];
+    CUDA_SHARED int ms[MAX_EOB_MODES];
+
+
+
+    #ifdef __CUDACC__
+    start = threadIdx.x;
+    increment = blockDim.x;
+    #else
+    start = 0;
+    increment = 1;
+    #pragma omp parallel for
+    #endif
+    for (int i = start; i < numModes; i += increment)
+    {
+        ls[i] = ls_in[i];
+        ms[i] = ms_in[i];
+    }
+    CUDA_SYNC_THREADS;
+
+    int start1, increment1;
+    #ifdef __CUDACC__
+    start1 = blockIdx.y;
+    increment1 = gridDim.y;
+    #else
+    start1 = 0;
+    increment1 = 1;
+    #pragma omp parallel for
+    #endif
+    for (int bin_i = start1; bin_i < numBinAll; bin_i += increment1)
+    {
+        int length_here = lengths[bin_i];
+
+        #ifdef __CUDACC__
+        start = threadIdx.x;
+        increment = blockDim.x;
+        #else
+        CUDA_SHARED double Fplus[MAX_CHANNELS];
+        CUDA_SHARED double Fcross[MAX_CHANNELS];
+
+        start = 0;
+        increment = 1;
+        #pragma omp parallel for
+        #endif
+        for (int i = start; i < numChannels; i += increment)
+        {
+            Fplus[i] = Fplus_in[bin_i * numChannels + i];
+            Fcross[i] = Fcross_in[bin_i * numChannels + i];
+        }
+        CUDA_SYNC_THREADS;
+
+        #ifdef __CUDACC__
+        start = blockIdx.x * blockDim.x + threadIdx.x;
+        increment = blockDim.x *gridDim.x;
+        #else
+        start = 0;
+        increment = 1;
+        //#pragma omp parallel for
+        #endif
+        for (int i = start; i < length_here; i += increment)
+        {
+
+
+            #ifdef __CUDACC__
+            #else
+            cmplx temp_channels_all[MAX_CHANNELS];
+            cmplx* temp_channels = &temp_channels_all[0];
+            #endif
+
+            // check this for adjustable f0
+            double t = dataTimeIn[i];
+
+            int ind_here = inds[max_length * bin_i + i];
+            int old_length_here = old_lengths[bin_i];
+
+            double t_old = timeOld[bin_i * old_length + ind_here];
+
+            double x = t - t_old;
+            double x2 = x * x;
+            double x3 = x * x2;
+
+            //printf("CHECK0\n");
+            for (int chan = 0; chan < numChannels; chan +=1)
+            {
+                temp_channels[chan] = cmplx(0.0, 0.0);
+            }
+
+            int ind_base = bin_i * (2 * numModes + 1) * old_length;
+            int int_shared = ind_base + (2 * numModes) * old_length_here + ind_here;
+            //printf("CHECK1 %d %d %d %d\n", numModes, old_length, ind_here, int_shared);
+            double phi_orb = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+            //printf("CHECK2\n");
+            for (int mode_i = 0; mode_i < numModes; mode_i += 1)
+            {
+
+
+                int l = ls[mode_i];
+                int m = ms[mode_i];
+
+                int int_shared = ind_base + (mode_i) * old_length_here + ind_here;
+                double re = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+                //if ((i == 100) || (i == 101)) printf("%d %d %d %e %e %e %e %e %e\n", window_i, mode_i, i, amp, f, f_old, y[int_shared], c1[int_shared], c2[int_shared]);
+
+                int_shared = ind_base + (numModes + mode_i) * old_length_here + ind_here;
+                double imag = propArrays[int_shared] + c1In[int_shared] * x + c2In[int_shared] * x2 + c3In[int_shared] * x3;
+
+                for (int chan = 0; chan < numChannels; chan +=1)
+                {
+                    //printf("CHECK \n", bin_i, i, mode_i, chan, Fplus[chan], Fcross[chan]);
+
+                    //printf("%d %d %d %d %e %e %d %d %e %e \n", bin_i, i, mode_i, chan, re, imag, l, m, phi_orb, Fplus[chan]);
+                    //cmplx tempit = LIGO_combine_information(re, imag, l, m, phi_orb, Fplus[chan], Fcross[chan]);
+                    temp_channels[chan] += LIGO_combine_information(re, imag, l, m, phi_orb, Fplus[chan], Fcross[chan]);
+                }
+            }
+
+            for (int chan = 0; chan < numChannels; chan +=1)
+            {
+                templateChannels[(bin_i * numChannels + chan) * data_length + i] = temp_channels[chan];
+            }
+        }
+    }
+}
+
+void TDInterp2(cmplx* templateChannels, double* dataTime, double* tsAll, double* propArraysAll, double* c1All, double* c2All, double* c3All, double* Fplus_in, double* Fcross_in, int old_length, int* old_lengths, int data_length, int numBinAll, int numModes, int* ls, int* ms, int* inds, int* lengths, int max_length, int numChannels)
+{
+    int nblocks3 = std::ceil((max_length + NUM_THREADS_BUILD -1)/NUM_THREADS_BUILD);
+
+    #ifdef __CUDACC__
+    dim3 gridDim(nblocks3, numBinAll);
+    TD2<<<gridDim, NUM_THREADS_BUILD>>>(templateChannels, dataTime, tsAll, propArraysAll, c1All, c2All, c3All, Fplus_in, Fcross_in, old_length, old_lengths, data_length, numBinAll, numModes, ls, ms, inds, lengths, max_length, numChannels);
+    #else
+    TD2(templateChannels, dataTime, tsAll, propArraysAll, c1All, c2All, c3All, Fplus_in, Fcross_in, old_length, old_lengths, data_length, numBinAll, numModes, ls, ms, inds, lengths, max_length, numChannels);
+    #endif
+}

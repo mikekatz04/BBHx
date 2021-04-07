@@ -83,7 +83,7 @@ class SEOBNRv4PHM:
 
         self.HTM_AC = HTMalign_AC()
 
-        self.pool = mp.Pool(mp.cpu_count())
+        self.pool = mp.Pool(1)  # mp.cpu_count())
 
         self.integrator = DOPR853(use_gpu=use_gpu)
 
@@ -116,7 +116,7 @@ class SEOBNRv4PHM:
 
         return r0, pphi0, pr0
 
-    def run_trajectory(self, r0, pphi0, pr0, m_1, m_2, chi_1, chi_2, fs=20.0, **kwargs):
+    def run_trajectory(self, r0, pphi0, pr0, m_1, m_2, chi_1, chi_2, fs=10.0, **kwargs):
 
         # TODO: constants from LAL
         mt = m_1 + m_2  # Total mass in solar masses
@@ -195,7 +195,7 @@ class SEOBNRv4PHM:
         distance,
         phiRef,
         modes=None,
-        fs=20.0,  # Hz
+        fs=10.0,  # Hz
     ):
         if modes is not None:
             ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
@@ -214,8 +214,18 @@ class SEOBNRv4PHM:
         r0, pphi0, pr0 = self.get_initial_conditions(m1, m2, chi1z, chi2z)
 
         t, traj, num_steps = self.run_trajectory(r0, pphi0, pr0, m1, m2, chi1z, chi2z)
-        hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
 
+        import time
+
+        print("start")
+        nn = 100
+        st = time.perf_counter()
+        for _ in range(nn):
+            hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
+        et = time.perf_counter()
+        print("hlm", (et - st) / nn / self.num_bin_all)
+        breakpoint()
+        exit()
         phi = traj[:, 1]
         self.lengths = num_steps
         self.t = [t[i, : num_steps[i]] for i in range(self.num_bin_all)]

@@ -11,6 +11,10 @@ cdef extern from "EOB.hh":
                   double* m1_arr, double* m2_arr, double* chi1_arr, double* chi2_arr,
                   int* num_steps, int num_steps_max, int* ell_arr_in, int* mm_arr_in, int num_modes, int num_bin_all);
 
+    void root_find_all_wrap(double* xOut, double* x0In, double*argsIn, double* additionalArgsIn, int max_iter, double err, int numBinAll, int n, int num_args, int num_add_args);
+    void root_find_scalar_all_wrap(double* pr_res, double* start_bounds, double*argsIn, double* additionalArgsIn, int max_iter, double err, int numBinAll, int num_args, int num_add_args);
+
+
 
 @pointer_adjust
 def compute_hlms(hlms, r_arr, phi_arr, pr_arr, L_arr,
@@ -33,3 +37,24 @@ def compute_hlms(hlms, r_arr, phi_arr, pr_arr, L_arr,
     compute_hlms_wrap(<cmplx*> hlms_in, <double*> r_arr_in, <double*> phi_arr_in, <double*> pr_arr_in, <double*> L_arr_in,
                   <double*> m1_arr_in, <double*> m2_arr_in, <double*> chi1_arr_in, <double*> chi2_arr_in,
                   <int*> num_steps_in, num_steps_max, <int*> ell_arr_in_in, <int*> mm_arr_in_in, num_modes, num_bin_all)
+
+
+@pointer_adjust
+def root_find_all(xOut, x0In, argsIn, additionalArgsIn, max_iter, err, numBinAll, n, num_args, num_add_args):
+
+    cdef size_t xOut_in = xOut
+    cdef size_t x0In_in = x0In
+    cdef size_t argsIn_in = argsIn
+    cdef size_t additionalArgsIn_in = additionalArgsIn
+
+    root_find_all_wrap(<double*> xOut_in, <double*> x0In_in, <double*> argsIn_in, <double*> additionalArgsIn_in, max_iter, err, numBinAll, n, num_args, num_add_args)
+
+@pointer_adjust
+def root_find_scalar_all(pr_res, start_bounds, argsIn, additionalArgsIn, max_iter, err, numBinAll, num_args, num_add_args):
+
+    cdef size_t pr_res_in = pr_res
+    cdef size_t start_bounds_in = start_bounds
+    cdef size_t argsIn_in = argsIn
+    cdef size_t additionalArgsIn_in = additionalArgsIn
+
+    root_find_scalar_all_wrap(<double*> pr_res_in, <double*> start_bounds_in, <double*> argsIn_in, <double*> additionalArgsIn_in, max_iter, err, numBinAll, num_args, num_add_args)

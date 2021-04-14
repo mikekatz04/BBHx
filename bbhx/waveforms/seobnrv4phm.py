@@ -106,10 +106,12 @@ class SEOBNRv4PHM:
     ):
 
         # TODO: constants from LAL
-        mt = m_1 + m_2  # Total mass in solar masses
+        mt = self.xp.asarray(m_1 + m_2)  # Total mass in solar masses
         omega0 = fs * (mt * MTSUN_SI * np.pi)
-        m_1_scaled = m_1 / mt
-        m_2_scaled = m_2 / mt
+        m_1_scaled = self.xp.asarray(m_1) / mt
+        m_2_scaled = self.xp.asarray(m_2) / mt
+        chi_1 = self.xp.asarray(chi_1)
+        chi_2 = self.xp.asarray(chi_2)
         dt = 1.0 / 16384 / (mt * MTSUN_SI)
 
         r_guess = omega0 ** (-2.0 / 3)

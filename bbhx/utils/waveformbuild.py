@@ -660,6 +660,7 @@ class BBHWaveformTD:
         modes=None,
         bufferSize=None,
         fill=False,
+        fs=20.0,
     ):
 
         # TODO: if t_obs_end = t_mrg
@@ -707,6 +708,7 @@ class BBHWaveformTD:
             distance,
             phiRef,
             modes=modes,
+            fs=fs,
         )
 
         """

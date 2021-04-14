@@ -150,7 +150,7 @@ class SEOBNRv4PHM:
 
         r0, pphi0 = xOut.reshape(n, self.num_bin_all)
 
-        pr_res = self.xp.zeros(self.num_bin_all)
+        pr0 = self.xp.zeros(self.num_bin_all)
         start_bounds = self.xp.tile(
             self.xp.array([-1e-2, 0.0]), (self.num_bin_all, 1)
         ).T.flatten()
@@ -160,9 +160,9 @@ class SEOBNRv4PHM:
         argsIn[3] = pphi0
 
         argsIn = argsIn.flatten()
-        breakpoint()
+
         self.root_find_scalar(
-            pr_res,
+            pr0,
             start_bounds,
             argsIn,
             additionalArgsIn,
@@ -173,15 +173,6 @@ class SEOBNRv4PHM:
             num_add_args,
         )
 
-        breakpoint()
-        res_diss = root_scalar(
-            IC_diss,
-            bracket=[-1e-2, 0],
-            args=(r0, pphi0, H, RR, chi_1, chi_2, m_1, m_2),
-        )
-        # Now do the dissipative bit: solve for pr
-        pr0 = res_diss.root
-        # print(f"Computed dissipative stuff, {pr0}")
         return r0, pphi0, pr0
 
     def run_trajectory(self, r0, pphi0, pr0, m_1, m_2, chi_1, chi_2, fs=10.0, **kwargs):

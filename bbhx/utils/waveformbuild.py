@@ -728,63 +728,47 @@ class BBHWaveformTD:
                 modes=modes,
             )
         """
-        import time
+        splines = CubicSplineInterpolantTD(
+            self.amp_phase_gen.t.T.flatten().copy(),
+            self.amp_phase_gen.hlms_real.transpose(2, 1, 0).flatten().copy(),
+            self.amp_phase_gen.lengths,
+            (2 * self.num_modes + 1),
+            self.num_bin_all,
+            use_gpu=self.use_gpu,
+        )
 
-        nn = 100
-        print("start")
-        st = time.perf_counter()
-        for _ in range(nn):
-            splines = CubicSplineInterpolantTD(
-                self.amp_phase_gen.t.T.flatten().copy(),
-                self.amp_phase_gen.hlms_real.transpose(2, 1, 0).flatten().copy(),
-                self.amp_phase_gen.lengths,
-                (2 * self.num_modes + 1),
-                self.num_bin_all,
-                use_gpu=self.use_gpu,
+        # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
+        if self.lisa:
+            template_channels = self.interp_response(
+                freqs,
+                spline.container,
+                t_mrg,
+                t_start,
+                t_end,
+                self.length,
+                self.data_length,
+                self.num_modes,
+                t_obs_start,
+                t_obs_end,
+                3,
             )
 
-            # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
-            if self.lisa:
-                template_channels = self.interp_response(
-                    freqs,
-                    spline.container,
-                    t_mrg,
-                    t_start,
-                    t_end,
-                    self.length,
-                    self.data_length,
-                    self.num_modes,
-                    t_obs_start,
-                    t_obs_end,
-                    3,
-                )
+        else:
+            template_channels = self.interp_response(
+                self.dataTime,
+                splines,
+                lam,
+                beta,
+                psi,
+                self.amp_phase_gen.lengths,
+                self.data_length,
+                self.num_modes,
+                3,
+                self.amp_phase_gen.ells,
+                self.amp_phase_gen.mms,
+                dt=1 / sampling_frequency,
+            )
 
-            else:
-                template_channels = self.interp_response(
-                    self.dataTime,
-                    splines,
-                    lam,
-                    beta,
-                    psi,
-                    self.amp_phase_gen.lengths,
-                    self.data_length,
-                    self.num_modes,
-                    3,
-                    self.amp_phase_gen.ells,
-                    self.amp_phase_gen.mms,
-                    dt=1 / sampling_frequency,
-                )
-
-        et = time.perf_counter()
-        print(
-            "interpit",
-            (et - st) / nn / self.num_bin_all,
-            self.num_bin_all,
-            (et - st),
-            nn,
-        )
-        breakpoint()
-        exit()
         return (
             template_channels,
             # self.interp_response.start_inds,

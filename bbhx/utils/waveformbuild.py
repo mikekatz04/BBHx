@@ -4,7 +4,7 @@ try:
     import cupy as xp
     from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
     from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
-    from pyWaveformBuild import TDInterp_wrap as TDInterp_wrap_gpu
+    from pyWaveformBuild import TDInterp_wrap2 as TDInterp_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
@@ -12,12 +12,12 @@ except (ImportError, ModuleNotFoundError) as e:
 
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
-from pyWaveformBuild_cpu import TDInterp_wrap as TDInterp_wrap_cpu
+from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
 
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
 from bbhx.waveforms.seobnrv4phm import SEOBNRv4PHM
 from bbhx.response.fastlisaresponse import LISATDIResponse
-from bbhx.utils.interpolate import CubicSplineInterpolant
+from bbhx.utils.interpolate import CubicSplineInterpolant, CubicSplineInterpolantTD
 from bbhx.utils.constants import *
 
 
@@ -231,10 +231,9 @@ class TDInterp:
         # self._initialize_template_container()
 
         # (ts, y, c1, c2, c3) = interp_container
+        splines_ts = interp_container.t_shaped
 
-        splines_ts = [interp_container[i].container[0] for i in range(self.num_bin_all)]
-
-        ends = self.xp.asarray([splines_ts[i].max() for i in range(self.num_bin_all)])
+        ends = self.xp.max(splines_ts, axis=1)
         start_and_end = self.xp.asarray([self.xp.full(self.num_bin_all, 0.0), ends,]).T
 
         inds_start_and_end = self.xp.asarray(
@@ -244,144 +243,56 @@ class TDInterp:
             ]
         )
 
-        inds = [
-            self.xp.searchsorted(ts, dataTime[st:et], side="right").astype(
-                self.xp.int32
-            )
-            - 1
-            for i, ((st, et), ts) in enumerate(zip(inds_start_and_end, splines_ts))
-        ]
+        self.lengths = inds_start_and_end[:, 1].astype(self.xp.int32)
+        max_length = self.lengths.max().item()
 
-        self.lengths = lengths = np.asarray(
-            [len(inds_i) for inds_i in inds], dtype=self.xp.int32
+        inds = self.xp.empty((self.num_bin_all * max_length), dtype=self.xp.int32)
+
+        old_lengths = interp_container.lengths
+        old_length = self.xp.max(old_lengths).item()
+
+        for i, ((st, et), ts, current_old_length) in enumerate(
+            zip(inds_start_and_end, splines_ts, old_lengths)
+        ):
+            inds[i * max_length + st : i * max_length + et] = (
+                self.xp.searchsorted(ts, dataTime[st:et], side="right").astype(
+                    self.xp.int32
+                )
+                - 1
+            )
+
+        self.template_carrier = self.xp.zeros(
+            int(self.nChannels * data_length * self.num_bin_all),
+            dtype=self.xp.complex128,
         )
-
-        try:
-            temp_inds = inds_start_and_end[:, 0].get()
-        except AttributeError:
-            temp_inds = inds_start_and_end[:, 0]
-
-        self.start_inds = start_inds = (temp_inds.copy()).astype(np.int32)
-
-        try:
-            self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
-        except AttributeError:
-            self.ptrs = ptrs = np.asarray(
-                [ind_i.__array_interface__["data"][0] for ind_i in inds]
-            )
-
-        self.template_carrier = [
-            self.xp.zeros(int(self.nChannels * data_length), dtype=self.xp.complex128,)
-            for temp_length in lengths
-        ]
-
-        try:
-            template_carrier_ptrs = np.asarray(
-                [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
-            )
-        except AttributeError:
-            template_carrier_ptrs = np.asarray(
-                [
-                    temp_carrier.__array_interface__["data"][0]
-                    for temp_carrier in self.template_carrier
-                ]
-            )
-
-        try:
-            splines_ts_ptrs = np.asarray(
-                [
-                    interp_container[i].container[0].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_ys_ptrs = np.asarray(
-                [
-                    interp_container[i].container[1].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c1_ptrs = np.asarray(
-                [
-                    interp_container[i].container[2].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c2_ptrs = np.asarray(
-                [
-                    interp_container[i].container[3].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c3_ptrs = np.asarray(
-                [
-                    interp_container[i].container[4].data.ptr
-                    for i in range(self.num_bin_all)
-                ]
-            )
-
-        except AttributeError:
-            splines_ts_ptrs = np.asarray(
-                [
-                    interp_container[i].container[0].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_ys_ptrs = np.asarray(
-                [
-                    interp_container[i].container[1].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c1_ptrs = np.asarray(
-                [
-                    interp_container[i].container[2].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c2_ptrs = np.asarray(
-                [
-                    interp_container[i].container[3].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
-            splines_c3_ptrs = np.asarray(
-                [
-                    interp_container[i].container[4].__array_interface__["data"][0]
-                    for i in range(self.num_bin_all)
-                ]
-            )
 
         ls = ls.astype(np.int32)
         ms = ms.astype(np.int32)
 
-        try:
-            lengths_in = self.length.get().astype(np.int32)
-        except AttributeError:
-            lengths_in = self.length.astype(np.int32)
-
         self.template_gen(
-            template_carrier_ptrs,
+            self.template_carrier,
             dataTime,
-            splines_ts_ptrs,
-            splines_ys_ptrs,
-            splines_c1_ptrs,
-            splines_c2_ptrs,
-            splines_c3_ptrs,
+            interp_container.t_shaped.flatten(),
+            interp_container.y_shaped.flatten(),
+            interp_container.c1_shaped.flatten(),
+            interp_container.c2_shaped.flatten(),
+            interp_container.c3_shaped.flatten(),
             Fplus,
             Fcross,
-            lengths_in,
+            old_length,
+            old_lengths,
             self.data_length,
             self.num_bin_all,
             self.num_modes,
             ls,
             ms,
-            ptrs,
-            start_inds,
-            lengths,
+            inds,
+            self.lengths,
+            max_length,
             nChannels,
         )
 
-        return self.template_channels
+        return self.template_carrier
 
 
 class BBHWaveform:
@@ -749,6 +660,7 @@ class BBHWaveformTD:
         modes=None,
         bufferSize=None,
         fill=False,
+        fs=20.0,
     ):
 
         # TODO: if t_obs_end = t_mrg
@@ -796,6 +708,7 @@ class BBHWaveformTD:
             distance,
             phiRef,
             modes=modes,
+            fs=fs,
         )
 
         """
@@ -817,18 +730,15 @@ class BBHWaveformTD:
                 modes=modes,
             )
         """
-        splines = [
-            CubicSplineInterpolant(
-                self.xp.asarray(self.amp_phase_gen.t[i].copy()),
-                self.xp.asarray(self.amp_phase_gen.hlms_real[i].flatten().copy()),
-                self.amp_phase_gen.lengths[i].item(),
-                self.num_modes * 2 + 1,  # num interp params
-                1,  # fake num modes
-                1,
-                use_gpu=self.use_gpu,
-            )
-            for i in range(self.num_bin_all)
-        ]
+        splines = CubicSplineInterpolantTD(
+            self.amp_phase_gen.t.T.flatten().copy(),
+            self.amp_phase_gen.hlms_real.transpose(2, 1, 0).flatten().copy(),
+            self.amp_phase_gen.lengths,
+            (2 * self.num_modes + 1),
+            self.num_bin_all,
+            use_gpu=self.use_gpu,
+        )
+
         # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
         if self.lisa:
             template_channels = self.interp_response(
@@ -844,6 +754,7 @@ class BBHWaveformTD:
                 t_obs_end,
                 3,
             )
+
         else:
             template_channels = self.interp_response(
                 self.dataTime,
@@ -862,6 +773,6 @@ class BBHWaveformTD:
 
         return (
             template_channels,
-            self.interp_response.start_inds,
-            self.interp_response.lengths,
+            # self.interp_response.start_inds,
+            # self.interp_response.lengths,
         )

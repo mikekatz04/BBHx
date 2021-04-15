@@ -8,6 +8,8 @@ from odex.pydopr853 import DOPR853
 try:
     import cupy as xp
     from pyEOB import compute_hlms as compute_hlms_gpu
+    from pyEOB import root_find_all as root_find_all_gpu
+    from pyEOB import root_find_scalar_all as root_find_scalar_all_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
@@ -20,11 +22,12 @@ sys.path.append(
 sys.path.append("/home/mlk667/GPU4GW/eob_development/toys/hamiltonian_prototype/")
 
 from pyEOB_cpu import compute_hlms as compute_hlms_cpu
+from pyEOB_cpu import root_find_all as root_find_all_cpu
+from pyEOB_cpu import root_find_scalar_all as root_find_scalar_all_cpu
 
 from HTMalign_AC import HTMalign_AC
 from RR_force_aligned import RR_force_2PN
 from initial_conditions_aligned import computeIC
-import multiprocessing as mp
 
 
 class SEOBNRv4PHM:
@@ -34,10 +37,14 @@ class SEOBNRv4PHM:
         if use_gpu:
             self.xp = xp
             self.compute_hlms = compute_hlms_gpu
+            self.root_find = root_find_all_gpu
+            self.root_find_scalar = root_find_scalar_all_gpu
 
         else:
             self.xp = np
             self.compute_hlms = compute_hlms_cpu
+            self.root_find = root_find_all_cpu
+            self.root_find_scalar = root_find_scalar_all_cpu
 
         if max_init_len > 0:
             self.use_buffers = True
@@ -83,8 +90,6 @@ class SEOBNRv4PHM:
 
         self.HTM_AC = HTMalign_AC()
 
-        self.pool = mp.Pool(mp.cpu_count())
-
         self.integrator = DOPR853(use_gpu=use_gpu)
 
     def _sanity_check_modes(self, ells, mms):
@@ -96,27 +101,83 @@ class SEOBNRv4PHM:
                     )
                 )
 
-    def get_initial_conditions(self, m_1, m_2, chi_1, chi_2, fs=20.0, **kwargs):
+    def get_initial_conditions(
+        self, m_1, m_2, chi_1, chi_2, fs=20.0, max_iter=1000, err=1e-12, **kwargs
+    ):
 
         # TODO: constants from LAL
-        mt = m_1 + m_2  # Total mass in solar masses
+        mt = self.xp.asarray(m_1 + m_2)  # Total mass in solar masses
         omega0 = fs * (mt * MTSUN_SI * np.pi)
-        m_1_scaled = m_1 / mt
-        m_2_scaled = m_2 / mt
+        m_1_scaled = self.xp.asarray(m_1) / mt
+        m_2_scaled = self.xp.asarray(m_2) / mt
+        chi_1 = self.xp.asarray(chi_1)
+        chi_2 = self.xp.asarray(chi_2)
         dt = 1.0 / 16384 / (mt * MTSUN_SI)
 
-        args = [
-            (omega0_i, self.HTM_AC, RR_force_2PN, chi_1_i, chi_2_i, m_1_i, m_2_i)
-            for (omega0_i, chi_1_i, chi_2_i, m_1_i, m_2_i) in zip(
-                omega0, chi_1, chi_2, m_1_scaled, m_2_scaled
-            )
-        ]
+        r_guess = omega0 ** (-2.0 / 3)
+        # z = [r_guess, np.sqrt(r_guess)]
+        n = 2
+        # print(f"Initial guess is {z}")
+        # The conservative bit: solve for r and pphi
+        num_args = 4
+        num_add_args = 5
+        argsIn = self.xp.zeros((num_args, self.num_bin_all)).flatten()
+        additionalArgsIn = self.xp.zeros((num_add_args, self.num_bin_all))
+        additionalArgsIn[0] = m_1_scaled
+        additionalArgsIn[1] = m_2_scaled
+        additionalArgsIn[2] = chi_1
+        additionalArgsIn[3] = chi_2
+        additionalArgsIn[4] = omega0
+        additionalArgsIn = additionalArgsIn.flatten()
 
-        r0, pphi0, pr0 = self.xp.asarray(self.pool.starmap(computeIC, args)).T
+        x0In = self.xp.zeros((n, self.num_bin_all))
+        x0In[0] = r_guess
+        x0In[1] = self.xp.sqrt(r_guess)
+
+        xOut = self.xp.zeros_like(x0In).flatten()
+        x0In = x0In.flatten()
+
+        self.root_find(
+            xOut,
+            x0In,
+            argsIn,
+            additionalArgsIn,
+            max_iter,
+            err,
+            self.num_bin_all,
+            n,
+            num_args,
+            num_add_args,
+        )
+
+        r0, pphi0 = xOut.reshape(n, self.num_bin_all)
+
+        pr0 = self.xp.zeros(self.num_bin_all)
+        start_bounds = self.xp.tile(
+            self.xp.array([-1e-2, 0.0]), (self.num_bin_all, 1)
+        ).T.flatten()
+
+        argsIn = self.xp.zeros((num_args, self.num_bin_all))
+        argsIn[0] = r0
+        argsIn[3] = pphi0
+
+        argsIn = argsIn.flatten()
+
+        self.root_find_scalar(
+            pr0,
+            start_bounds,
+            argsIn,
+            additionalArgsIn,
+            max_iter,
+            err,
+            self.num_bin_all,
+            num_args,
+            num_add_args,
+        )
 
         return r0, pphi0, pr0
 
-    def run_trajectory(self, r0, pphi0, pr0, m_1, m_2, chi_1, chi_2, fs=20.0, **kwargs):
+    def run_trajectory(self, r0, pphi0, pr0, m_1, m_2, chi_1, chi_2, fs=10.0, **kwargs):
 
         # TODO: constants from LAL
         mt = m_1 + m_2  # Total mass in solar masses
@@ -195,7 +256,7 @@ class SEOBNRv4PHM:
         distance,
         phiRef,
         modes=None,
-        fs=20.0,  # Hz
+        fs=10.0,  # Hz
     ):
         if modes is not None:
             ells = self.xp.asarray([ell for ell, mm in modes], dtype=self.xp.int32)
@@ -211,25 +272,25 @@ class SEOBNRv4PHM:
 
         self.num_bin_all = len(m1)
 
-        r0, pphi0, pr0 = self.get_initial_conditions(m1, m2, chi1z, chi2z)
+        r0, pphi0, pr0 = self.get_initial_conditions(m1, m2, chi1z, chi2z, fs=fs)
 
-        t, traj, num_steps = self.run_trajectory(r0, pphi0, pr0, m1, m2, chi1z, chi2z)
+        t, traj, num_steps = self.run_trajectory(
+            r0, pphi0, pr0, m1, m2, chi1z, chi2z, fs=fs
+        )
         hlms = self.get_hlms(traj, m1, m2, chi1z, chi2z, num_steps, ells, mms)
 
         phi = traj[:, 1]
-        self.lengths = num_steps
-        self.t = [t[i, : num_steps[i]] for i in range(self.num_bin_all)]
-        self.hlms_real = [
-            self.xp.concatenate(
-                [
-                    hlms[i, : num_steps[i]].real,
-                    hlms[i, : num_steps[i]].imag,
-                    self.xp.array([phi[i, : num_steps[i]]]),
-                ],
-                axis=0,
-            )
-            for i in range(self.num_bin_all)
-        ]
+        self.lengths = num_steps.astype(self.xp.int32)
+        num_steps_max = num_steps.max()
+        self.t = t[:, :num_steps_max]
+        self.hlms_real = self.xp.concatenate(
+            [
+                hlms[:, :num_steps_max].real,
+                hlms[:, :num_steps_max].imag,
+                phi[:, self.xp.newaxis, :num_steps_max],
+            ],
+            axis=1,
+        )
 
         self.ells = ells
         self.mms = mms

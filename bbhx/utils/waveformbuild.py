@@ -379,8 +379,14 @@ class BBHWaveform:
 
         t_mrg = tRef_sampling_frame + tBase * YRSID_SI
 
+        self.num_bin_all = len(m1)
+
         if shift_t_limits is False:
-            t_start = tRef_sampling_frame + tBase * YRSID_SI - t_obs_start * YRSID_SI
+            t_start = (
+                tRef_sampling_frame + tBase * YRSID_SI - t_obs_start * YRSID_SI
+                if t_obs_start > 0.0
+                else np.zeros(self.num_bin_all)
+            )
             t_end = (
                 tRef_sampling_frame + tBase * YRSID_SI - t_obs_end * YRSID_SI
                 if t_obs_end > 0.0
@@ -390,8 +396,6 @@ class BBHWaveform:
         else:
             t_start = np.atleast_1d(t_obs_start)
             t_end = np.atleast_1d(t_obs_end)
-
-        self.num_bin_all = len(m1)
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")

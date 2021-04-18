@@ -36,7 +36,7 @@ def hdyn_wrap(likeOut1, likeOut2,
             numBinAll, data_length, nChannels, full);
 
 @pointer_adjust
-def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll, full):
+def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll):
 
     cdef size_t d_h_in = d_h
     cdef size_t h_h_in = h_h

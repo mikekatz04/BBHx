@@ -349,6 +349,7 @@ class RelativeBinning:
             and inds is not None
             and num_bin_here <= self.num_bin_all / 2
         ):
+            # TODO: improve this
             inds_keep = np.arange(self.num_bin_all)[self.temp_half :: 2][inds]
             waveform_kwargs["freqs"] = self.freqs[inds_keep]
             self.h_short = self.template_gen(*params, **waveform_kwargs)
@@ -428,10 +429,12 @@ class RelativeBinning:
             self.xp.isnan(out).astype(int)
             + (self.xp.isinf(out)).astype(int)
             + (out < -100.0).astype(int)
+            + (self.hdyn_h_h < 0.0).astype(int)
         ).astype(bool)
-        breakpoint()
+
         out[bad_inds] = 2 * self.base_d_d
 
+        breakpoint()
         try:
             self.h_h = self.hdyn_h_h.get()
             self.d_h = self.hdyn_d_h.get()

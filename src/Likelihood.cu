@@ -9,6 +9,7 @@
 #include <gsl/gsl_cblas.h>
 #endif
 
+
 #define  NUM_THREADS_LIKE 256
 
 #define  DATA_BLOCK2 512
@@ -176,104 +177,22 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
 }
 #endif
 
-CUDA_KERNEL
-void hdynLikelihood_full(cmplx* likeOut1, cmplx* likeOut2,
-                    cmplx* templateChannels, cmplx* dataConstants,
-                    double* dataFreqsIn,
-                    int numBinAll, int data_length, int nChannels)
-{
-
-    int start, increment;
-    #ifdef __CUDACC__
-    start = threadIdx.x + blockDim.x * blockIdx.x;
-    increment = blockDim.x * gridDim.x;
-    #else
-    start = 0;
-    increment = 1;
-    #endif
-
-    for (int binNum = start; binNum < numBinAll; binNum += increment)
-    {
-        cmplx tempLike1 = 0.0;
-        cmplx tempLike2 = 0.0;
-
-        for (int channel = 0; channel < nChannels; channel += 1)
-        {
-            cmplx trans_complex(0.0, 0.0);
-            cmplx prev_trans_complex(0.0, 0.0);
-            double prevFreq = 0.0;
-            double freq = 0.0;
-
-            for (int i = 0; i < data_length; i += 1)
-            {
-                int channel_ind = ((i * nChannels) + channel) * numBinAll + binNum;
-                int freq_ind = i * numBinAll + binNum;
-                freq = dataFreqsIn[freq_ind];
-                cmplx A0 = dataConstants[0 * nChannels * data_length * numBinAll + channel_ind]; // constants will need to be aligned with 1..n-1 because there are data_length - 1 bins
-                cmplx A1 = dataConstants[1 * nChannels * data_length * numBinAll + channel_ind];
-                cmplx B0 = dataConstants[2 * nChannels * data_length * numBinAll + channel_ind];
-                cmplx B1 = dataConstants[3 * nChannels * data_length * numBinAll + channel_ind];
-
-                trans_complex = templateChannels[channel_ind];
-
-                if ((prevFreq != 0.0) && (i > 0))
-                {
-                    cmplx r1 = (trans_complex - prev_trans_complex)/(freq - prevFreq);
-                    double midFreq = (freq + prevFreq)/2.0;
-
-                    cmplx r0 = trans_complex - r1 * (freq - midFreq);
-
-                    //if (((binNum == 767) || (binNum == 768)) & (channel == 0))
-                    //    printf("CHECK2: %d %d %d %e %e\n", jj + currentStart, binNum, jj, A0); // , %e %e, %e %e, %e %e, %e %e,  %e %e,  %e %e , %e\n", ind, binNum, jj + currentStart, A0, A1, B0, B1, freq, prevFreq, trans_complex, prev_trans_complex, midFreq);
-
-                    cmplx r1Conj = gcmplx::conj(r1);
-
-                    tempLike1 += A0 * gcmplx::conj(r0) + A1 * r1Conj;
-
-                    cmplx mag_r0 = gcmplx::abs(r0);
-                    tempLike2 += B0 * (mag_r0 * mag_r0) + 2. * B1 * gcmplx::real(r0 * r1Conj);
-
-                }
-                prev_trans_complex = trans_complex;
-                prevFreq = freq;
-            }
-        }
-
-        likeOut1[binNum] = tempLike1;
-        likeOut2[binNum] = tempLike2;
-
-    }
-}
 
 void hdyn(cmplx* likeOut1, cmplx* likeOut2,
                     cmplx* templateChannels, cmplx* dataConstants,
                     double* dataFreqs,
-                    int numBinAll, int data_length, int nChannels, bool full)
+                    int numBinAll, int data_length, int nChannels)
 {
 
     int nblocks4 = std::ceil((numBinAll + NUM_THREADS_LIKE -1)/NUM_THREADS_LIKE);
-    if (!full)
-    {
-        #ifdef __CUDACC__
-        hdynLikelihood <<<nblocks4, NUM_THREADS_LIKE>>> (likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
-        cudaDeviceSynchronize();
-        gpuErrchk(cudaGetLastError());
-        #else
-        hdynLikelihood(likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
-        #endif
-    }
-    else
-    {
-        #ifdef __CUDACC__
-        hdynLikelihood_full <<<nblocks4, NUM_THREADS_LIKE>>> (likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
-        cudaDeviceSynchronize();
-        gpuErrchk(cudaGetLastError());
-        #else
-        hdynLikelihood_full(likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
-        #endif
-    }
+    #ifdef __CUDACC__
+    hdynLikelihood <<<nblocks4, NUM_THREADS_LIKE>>> (likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+    #else
+    hdynLikelihood(likeOut1, likeOut2, templateChannels, dataConstants, dataFreqs, numBinAll, data_length, nChannels);
+    #endif
 }
-
 
 #ifdef __CUDACC__
 __device__ double atomicAddDouble(double* address, double val)

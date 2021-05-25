@@ -396,6 +396,7 @@ class BBHWaveform:
         else:
             t_start = np.atleast_1d(t_obs_start)
             t_end = np.atleast_1d(t_obs_end)
+            breakpoint()
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")
@@ -448,6 +449,39 @@ class BBHWaveform:
         )
 
         if self.lisa:
+            out_buffer = out_buffer.reshape(
+                self.num_interp_params, self.num_bin_all, self.num_modes, self.length
+            )
+
+            phases = out_buffer[1]
+
+            phases = (
+                self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
+                * self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis])
+                * 2
+                * np.pi
+            )[:, self.xp.newaxis, :] + phases
+
+            phases_in = phases.flatten().copy()
+
+            spl_phase = CubicSplineInterpolant(
+                self.amp_phase_gen.freqs,
+                phases_in / (2 * np.pi),
+                self.length,
+                1,
+                self.num_modes,
+                self.num_bin_all,
+                use_gpu=self.use_gpu,
+            )
+
+            tf = spl_phase.c1_shaped
+            tf[:, :, :, -1] = tf[:, :, :, -2]
+
+            out_buffer[1] = phases
+            out_buffer[2] = tf
+
+            out_buffer = out_buffer.flatten().copy()
+
             self.response_gen(
                 self.amp_phase_gen.freqs,
                 inc,

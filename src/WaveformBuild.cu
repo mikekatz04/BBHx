@@ -48,7 +48,8 @@ CUDA_CALLABLE_MEMBER
 void combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, double amp, double phase, double tf, cmplx transferL1, cmplx transferL2, cmplx transferL3, double t_start, double t_end)
 {
     // TODO: make sure the end of the ringdown is included
-    if (((tf >= t_start) || (t_start <= 0.0)) && ((tf <= t_end) || (t_end <= 0.0))) // && (amp > 1e-40))
+    // TODO: do I need the  || (t_start <= 0.0)
+    if (((tf >= t_start)) && ((tf <= t_end) || (t_end <= 0.0))) // && (amp > 1e-40))
     {
         cmplx amp_phase_term = amp*gcmplx::exp(cmplx(0.0, phase));  // add phase shift
 

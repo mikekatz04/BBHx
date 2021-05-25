@@ -394,9 +394,8 @@ class BBHWaveform:
             )
 
         else:
-            t_start = np.atleast_1d(t_obs_start)
-            t_end = np.atleast_1d(t_obs_end)
-            breakpoint()
+            t_start = np.atleast_1d(t_obs_start) * YRSID_SI
+            t_end = np.atleast_1d(t_obs_end) * YRSID_SI
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")

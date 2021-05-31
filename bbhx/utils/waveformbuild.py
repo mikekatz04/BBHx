@@ -381,6 +381,7 @@ class BBHWaveform:
 
         self.num_bin_all = len(m1)
 
+        # TODO: add sanity checks for t_start, t_end
         if shift_t_limits is False:
             t_start = (
                 tRef_sampling_frame + tBase * YRSID_SI - t_obs_start * YRSID_SI

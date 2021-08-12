@@ -478,7 +478,7 @@ class BBHWaveform:
             tf[:, :, :, -1] = tf[:, :, :, -2]
 
             out_buffer[1] = phases
-            out_buffer[2] = tf
+            out_buffer[2] = tf[0]
 
             out_buffer = out_buffer.flatten().copy()
 

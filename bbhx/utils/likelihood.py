@@ -21,7 +21,7 @@ from lisatools.sensitivity import get_sensitivity
 
 class Likelihood:
     def __init__(
-        self, waveform_model, dataFreqs, dataChannels, noiseFactors, use_gpu=False
+        self, waveform_model, dataFreqs, dataChannels, noiseFactors, return_extracted_snr=False, use_gpu=False
     ):
 
         self.use_gpu = use_gpu
@@ -39,6 +39,7 @@ class Likelihood:
         self.noiseFactors = noiseFactors.flatten()
         self.waveform_gen = waveform_model
         self.data_stream_length = len(dataFreqs)
+        self.return_extracted_snr = return_extracted_snr
 
         # assumes dataChannels is already factored by noiseFactors
         self.d_d = (
@@ -81,10 +82,11 @@ class Likelihood:
 
         out = 1 / 2 * (self.d_d + self.h_h - 2 * self.d_h)
         try:
-            return out.get()
+            out = out.get()
 
         except AttributeError:
-            return out
+            pass
+        return np.array([out, self.d_h / np.sqrt(self.h_h)]).T
 
 
 class RelativeBinning:

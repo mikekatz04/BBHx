@@ -80,13 +80,17 @@ class Likelihood:
             self.waveform_gen.num_bin_all,
         )
 
-        out = 1 / 2 * (self.d_d + self.h_h - 2 * self.d_h)
+        out = -1 / 2 * (self.d_d + self.h_h - 2 * self.d_h)
         try:
             out = out.get()
 
         except AttributeError:
             pass
-        return np.array([out, self.d_h / np.sqrt(self.h_h)]).T
+
+        if self.return_extracted_snr:
+            return np.array([out, self.d_h / np.sqrt(self.h_h)]).T
+        else:
+            return out
 
 
 class RelativeBinning:
@@ -99,10 +103,12 @@ class RelativeBinning:
         length_f_rel,
         template_gen_kwargs={},
         noise_kwargs_AE={},
-        noise_kwargs_T={},
+        noise_kwargs_T={}, 
+        return_extracted_snr=False,
         use_gpu=False,
     ):
 
+        self.return_extracted_snr = return_extracted_snr
         self.template_gen = template_gen
         self.f_dense = f_dense
         self.d = d
@@ -231,7 +237,7 @@ class RelativeBinning:
 
         self.base_d_h = self.xp.sum(A0_flat).real
 
-        self.base_ll = 1 / 2 * (self.base_d_d + self.base_h_h - 2 * self.base_d_h)
+        self.base_ll = -1 / 2 * (self.base_d_d + self.base_h_h - 2 * self.base_d_h)
 
         self.freqs = freqs
         self.f_m = f_m
@@ -293,7 +299,7 @@ class RelativeBinning:
             3,
         )
 
-        out = 1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
+        out = -1 / 2.0 * (self.base_d_d + self.hdyn_h_h - 2 * self.hdyn_d_h).real
 
         try:
             self.h_h = self.hdyn_h_h.get()
@@ -303,7 +309,12 @@ class RelativeBinning:
             self.d_h = self.hdyn_d_h
 
         try:
-            return out.get()
+            out = out.get()
 
         except AttributeError:
+            pass
+
+        if self.return_extracted_snr:
+            return np.array([out, self.d_h / np.sqrt(self.h_h)]).T
+        else:
             return out

@@ -477,8 +477,11 @@ class BBHWaveform:
             tf = spl_phase.c1_shaped
             tf[:, :, :, -1] = tf[:, :, :, -2]
 
+            # can switch between spline derivatives and actual derivatives
             out_buffer[1] = phases
-            out_buffer[2] = tf[0]
+            out_buffer[2] = tf
+            # out_buffer[2] /= 2 * np.pi
+            # out_buffer[2] += self.xp.asarray(tRef_sampling_frame[:, self.xp.newaxis])
 
             out_buffer = out_buffer.flatten().copy()
 

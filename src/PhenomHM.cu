@@ -2682,12 +2682,15 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
 
       if (!(Mf_wf > q.fi))
       { /* in mathematica -> IMRPhenDPhaseA */
+
           Mf = q.ai * Mf_wf + q.bi;
+
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ai;
       }
       else if (!(Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseB */
           Mf = q.am * Mf_wf + q.bm;
+
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
       }
       else if ((Mf_wf > q.fr))
@@ -2718,6 +2721,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
      double phase_i = cshift[mm];
 
      phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
+     double temp_phase = IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
 
      double phase_term1 = - t0 * (Mf - Mf_ref);
      double phase_term2 = phase_i - (mm * phi0);
@@ -2809,12 +2813,10 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
              get_phase(&phase_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
 
              amps[mode_index] = amp_i;
+
              phases[mode_index] = phase_i;
 
-             get_phase(&phase_up, freq_geom + 0.5 * eps, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
-             get_phase(&phase_down, freq_geom - 0.5 * eps, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
-
-             dphidf = M_tot_sec * (phase_up - phase_down)/eps;
+             dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
              phases_deriv[mode_index] = dphidf;
 
               //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
@@ -2935,8 +2937,6 @@ void IMRPhenomHMCore(
         pHM->Mf_DM_22 = Mf_DM_lm[0];
     }
 
-
-
     /* (l,m) = (2,2) */
     int ell, mm;
     ell = 2;
@@ -2944,6 +2944,18 @@ void IMRPhenomHMCore(
     pHM->Rho22 = 1.0;
     pHM->Tau22 = 1.0;
 
+    double Mf_RD_22_in, Mf_DM_22_in;
+
+    if (!run_phenomd)
+    {
+        Mf_RD_22_in = Mf_RD_lm[numModes];
+        Mf_DM_22_in = Mf_DM_lm[numModes];
+    }
+    else
+    {
+        Mf_RD_22_in = Mf_RD_lm[0];
+        Mf_DM_22_in = Mf_DM_lm[0];
+    }
 
     // Prepare 22 coefficients
     PhenDAmpAndPhasePreComp pDPreComp22;
@@ -2955,8 +2967,8 @@ void IMRPhenomHMCore(
         pHM->chi2z,
         pHM->Rho22,
         pHM->Tau22,
-        pHM->Mf_RD_22,
-        pHM->Mf_DM_22
+        Mf_RD_22_in,
+        Mf_DM_22_in
     );
 
     // set f_ref to f_max
@@ -3030,8 +3042,10 @@ void IMRPhenomHMCore(
                 pHM->chi2z,
                 Rholm,
                 Taulm,
-                pHM->Mf_RD_lm,
-                pHM->Mf_DM_lm);
+                Mf_RD_22_in,
+                Mf_DM_22_in);
+                //pHM->Mf_RD_lm,
+                //pHM->Mf_DM_lm);
 
             retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
 
@@ -3122,8 +3136,8 @@ void IMRPhenomHMCore(
     CUDA_SHARED int mms[MAX_MODES];
 
     #ifdef __CUDACC__
-    CUDA_SHARED double Mf_RD_lm[MAX_MODES];
-    CUDA_SHARED double Mf_DM_lm[MAX_MODES];
+    CUDA_SHARED double Mf_RD_lm[MAX_MODES + 1];
+    CUDA_SHARED double Mf_DM_lm[MAX_MODES + 1];
     #endif
 
     if THREAD_ZERO
@@ -3166,10 +3180,13 @@ void IMRPhenomHMCore(
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
+
+        int add = 0;
+        if (!run_phenomd) add = 1;
         #ifdef __CUDACC__
         #else
-        double Mf_RD_lm[MAX_MODES];
-        double Mf_DM_lm[MAX_MODES];
+        double Mf_RD_lm[MAX_MODES + 1];
+        double Mf_DM_lm[MAX_MODES + 1];
         #endif
 
         int start2, increment2;
@@ -3181,7 +3198,7 @@ void IMRPhenomHMCore(
         increment2 = 1;
         #pragma omp parallel for
         #endif
-        for (int i = start2; i < numModes; i += increment2)
+        for (int i = start2; i < numModes + add; i += increment2)
         {
             Mf_RD_lm[i] = Mf_RD_lm_all[binNum * numModes + i];
             Mf_DM_lm[i] = Mf_DM_lm_all[binNum * numModes + i];

@@ -65,9 +65,9 @@ class PhenomHMAmpPhase:
             self.mms_default = self.xp.array([2], dtype=self.xp.int32)
 
         self.Mf_min = 1e-4
-        self.Mf_max = 0.2
+        self.Mf_max = 0.6
 
-        if self.run_phenomd:
+        if True:  # self.run_phenomd:
             self._init_phenomd_fring_spline()
 
     def _init_phenomd_fring_spline(self):
@@ -257,7 +257,7 @@ class PhenomHMAmpPhase:
         self.fringdown = self.xp.zeros(self.num_modes * self.num_bin_all)
         self.fdamp = self.xp.zeros(self.num_modes * self.num_bin_all)
 
-        if self.run_phenomd:
+        if True:  # self.run_phenomd:
             self.phenomd_ringdown_freqs(
                 self.fringdown,
                 self.fdamp,
@@ -276,7 +276,10 @@ class PhenomHMAmpPhase:
                 self.c3_dm,
                 dspin,
             )
-        else:
+
+        if not self.run_phenomd:  # else:
+            append_phenomd_frd = self.fringdown.copy()
+            append_phenomd_fdm = self.fdamp.copy()
             self.phenomhm_ringdown_freqs(
                 self.fringdown,
                 self.fdamp,
@@ -289,6 +292,12 @@ class PhenomHMAmpPhase:
                 self.num_modes,
                 self.num_bin_all,
             )
+
+            # this adds the phenomD frequencies to keep everything consistent
+            self.fringdown = self.xp.concatenate(
+                [self.fringdown, append_phenomd_frd]
+            ).copy()
+            self.fdamp = self.xp.concatenate([self.fdamp, append_phenomd_fdm]).copy()
 
         self.waveform_gen(
             self.waveform_carrier,

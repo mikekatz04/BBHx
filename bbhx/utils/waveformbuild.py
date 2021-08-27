@@ -453,7 +453,7 @@ class BBHWaveform:
                 self.num_interp_params, self.num_bin_all, self.num_modes, self.length
             )
 
-            phases = out_buffer[1]
+            phases = out_buffer[1].copy()
 
             phases = (
                 self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
@@ -477,11 +477,14 @@ class BBHWaveform:
             tf = spl_phase.c1_shaped
             tf[:, :, :, -1] = tf[:, :, :, -2]
 
+            self.tf = tf
+
             # can switch between spline derivatives and actual derivatives
-            out_buffer[1] = phases
-            out_buffer[2] = tf
-            # out_buffer[2] /= 2 * np.pi
-            # out_buffer[2] += self.xp.asarray(tRef_sampling_frame[:, self.xp.newaxis])
+            out_buffer[1] = phases.copy()
+            #out_buffer[2] = tf.copy()
+            out_buffer[2] += self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis])
+
+            self.out_buffer = out_buffer.reshape(9, self.num_bin_all, self.num_modes, self.length).copy()
 
             out_buffer = out_buffer.flatten().copy()
 
@@ -501,6 +504,9 @@ class BBHWaveform:
                 out_buffer=out_buffer,
                 modes=self.amp_phase_gen.modes,
             )
+
+            self.out_buffer2 = out_buffer.reshape(9, self.num_bin_all, self.num_modes, self.length).copy()
+
 
         if direct and compress:
 
@@ -567,6 +573,8 @@ class BBHWaveform:
                     amp_phase * transfer_L3,
                 ]
             )
+
+            breakpoint()
 
             # out[:, ~inds] = 0.0
             if squeeze:

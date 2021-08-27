@@ -2667,9 +2667,9 @@ void get_amp(double* amp, double freq_geom, int ell, int mm, PhenomHMStorage* pH
 
 
 CUDA_CALLABLE_MEMBER
-void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
+void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
 {
-        double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
+        double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2, phase_deriv_i;
       Mf_wf = 0.0;
       double Mf = 0.0;
       Mfr = 0.0;
@@ -2686,12 +2686,14 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
           Mf = q.ai * Mf_wf + q.bi;
 
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ai;
+          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
       else if (!(Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseB */
           Mf = q.am * Mf_wf + q.bm;
 
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
+          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
       else if ((Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseC */
@@ -2699,6 +2701,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
           tmpphaseC = IMRPhenomDPhase_OneFrequency(Mfr, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
           Mf = q.ar * Mf_wf + q.br;
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ar - q.PhDCconst + tmpphaseC;
+          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
 
       Mf = freq_geom;
@@ -2706,6 +2709,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
       phase_term2 = phase_i - (mm * phi0);
 
       *phase = (phase_term1 + phase_term2);
+      *phase_deriv = (phase_deriv_i) / (2. * PI);
 }
 
 
@@ -2796,7 +2800,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
              //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
              //int freq_index = i * numBinAll + binNum;
 
-             double amp_i, phase_i, dphidf, phase_up, phase_down;
+             double amp_i, phase_i, phase_deriv_i, dphidf, phase_up, phase_down;
              double t_wave_frame, t_sampling_frame;
              int status_in_for;
              UsefulPowers powers_of_f;
@@ -2810,14 +2814,16 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
              get_amp(&amp_i, freq_geom, ell, mm, pHM, powers_of_f, pAmp, amp_prefactors, amp0);
 
-             get_phase(&phase_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
+             get_phase(i, &phase_i, &phase_deriv_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
 
              amps[mode_index] = amp_i;
 
              phases[mode_index] = phase_i;
 
-             dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
-             phases_deriv[mode_index] = dphidf;
+             if ((ell == 2) & (mm == 2) & (i == 0)) printf("NOWHMMMM5 %d %d %d %.18e, %.18e, %.18e, %.18e, %.18e\n", ell, mm, i, freq_geom, phase_deriv_i, Rholm, Taulm, t0);
+             if ((ell == 2) & (mm == 1) & (i == 0)) printf("NOWHMMMM5 %d %d %d %.18e, %.18e, %.18e, %.18e, %.18e\n", ell, mm, i, freq_geom, phase_deriv_i, Rholm, Taulm, t0);
+
+             phases_deriv[mode_index] = M_tot_sec * (phase_deriv_i) - t0 / (2. * PI) * M_tot_sec;
 
               //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
               //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;

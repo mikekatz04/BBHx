@@ -103,7 +103,7 @@ class RelativeBinning:
         length_f_rel,
         template_gen_kwargs={},
         noise_kwargs_AE={},
-        noise_kwargs_T={}, 
+        noise_kwargs_T={},
         return_extracted_snr=False,
         use_gpu=False,
     ):
@@ -144,13 +144,21 @@ class RelativeBinning:
         minF = self.f_dense.min() * 0.999999999999
         maxF = self.f_dense.max() * 1.000000000001
 
+        # TODO: deal with
+        test_kwargs = template_gen_kwargs.copy()
+        test_kwargs["squeeze"] = True
+        test_kwargs["compress"] = True
+        test_kwargs["direct"] = False
+        test_kwargs["length"] = 8096
+        test_kwargs["fill"] = True
+
         freqs = self.xp.logspace(
             self.xp.log10(minF), self.xp.log10(maxF), self.length_f_rel
         )
 
         h0 = self.template_gen(
-            *template_gen_args, freqs=self.f_dense, **template_gen_kwargs
-        )
+            *template_gen_args, freqs=self.f_dense, **test_kwargs
+        )[0]
 
         h0_temp = self.template_gen(
             *template_gen_args, freqs=freqs, **template_gen_kwargs

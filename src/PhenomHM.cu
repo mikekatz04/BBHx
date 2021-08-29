@@ -2820,10 +2820,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
              phases[mode_index] = phase_i;
 
-             if ((ell == 2) & (mm == 2) & (i == 0)) printf("NOWHMMMM5 %d %d %d %.18e, %.18e, %.18e, %.18e, %.18e\n", ell, mm, i, freq_geom, phase_deriv_i, Rholm, Taulm, t0);
-             if ((ell == 2) & (mm == 1) & (i == 0)) printf("NOWHMMMM5 %d %d %d %.18e, %.18e, %.18e, %.18e, %.18e\n", ell, mm, i, freq_geom, phase_deriv_i, Rholm, Taulm, t0);
-
-             phases_deriv[mode_index] = M_tot_sec * (phase_deriv_i) - t0 / (2. * PI) * M_tot_sec;
+             phases_deriv[mode_index] = (M_tot_sec * phase_deriv_i) - (t0 / (2. * PI) * M_tot_sec);
 
               //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
               //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
@@ -3206,8 +3203,8 @@ void IMRPhenomHMCore(
         #endif
         for (int i = start2; i < numModes + add; i += increment2)
         {
-            Mf_RD_lm[i] = Mf_RD_lm_all[binNum * numModes + i];
-            Mf_DM_lm[i] = Mf_DM_lm_all[binNum * numModes + i];
+            Mf_RD_lm[i] = Mf_RD_lm_all[binNum * (numModes + add) + i];
+            Mf_DM_lm[i] = Mf_DM_lm_all[binNum * (numModes + add) + i];
         }
         CUDA_SYNC_THREADS;
 

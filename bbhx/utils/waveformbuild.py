@@ -455,13 +455,18 @@ class BBHWaveform:
 
             phases = out_buffer[1].copy()
 
-            phases = (
-                self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
-                * self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis])
-                * 2
-                * np.pi
-            )[:, self.xp.newaxis, :] + phases
+            try:
+                phases = (
+                    self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
+                    * self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis])
+                    * 2
+                    * np.pi
+                )[:, self.xp.newaxis, :] + phases
+            except ValueError:
+                breakpoint()
 
+            """
+            # TODO
             phases_in = phases.flatten().copy()
 
             spl_phase = CubicSplineInterpolant(
@@ -478,11 +483,12 @@ class BBHWaveform:
             tf[:, :, :, -1] = tf[:, :, :, -2]
 
             self.tf = tf
+            """
 
             # can switch between spline derivatives and actual derivatives
             out_buffer[1] = phases.copy()
             #out_buffer[2] = tf.copy()
-            out_buffer[2] += self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis])
+            out_buffer[2] += self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis, self.xp.newaxis])
 
             self.out_buffer = out_buffer.reshape(9, self.num_bin_all, self.num_modes, self.length).copy()
 

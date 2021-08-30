@@ -2725,7 +2725,7 @@ void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int 
      double phase_i = cshift[mm];
 
      phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
-     double temp_phase = IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
+     //double temp_phase = IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
 
      double phase_term1 = - t0 * (Mf - Mf_ref);
      double phase_term2 = phase_i - (mm * phi0);
@@ -2770,8 +2770,8 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
         amps[freq_index] = amp_i * amp0;
         phases[freq_index] = phase_i;
 
-        dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0);
-        phases_deriv[freq_index] = dphidf;
+        dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0) / (2 * PI);
+        phases_deriv[freq_index] = dphidf - (t0 / (2. * PI) * M_tot_sec);
 
          //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
          //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;

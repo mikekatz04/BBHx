@@ -288,8 +288,8 @@ class PhenomHMAmpPhase:
             )
 
             # this adds the phenomD frequencies to keep everything consistent
-            self.fringdown = self.xp.concatenate([self.fringdown.reshape(-1, num_modes), np.array([append_phenomd_frd]).T], axis=1).flatten().copy()
-            self.fdamp = self.xp.concatenate([self.fdamp.reshape(-1, num_modes), np.array([append_phenomd_fdm]).T], axis=1).flatten().copy()
+            self.fringdown = self.xp.concatenate([self.fringdown.reshape(-1, num_modes), self.xp.array([append_phenomd_frd]).T], axis=1).flatten().copy()
+            self.fdamp = self.xp.concatenate([self.fdamp.reshape(-1, num_modes), self.xp.array([append_phenomd_fdm]).T], axis=1).flatten().copy()
 
         self.waveform_gen(
             self.waveform_carrier,

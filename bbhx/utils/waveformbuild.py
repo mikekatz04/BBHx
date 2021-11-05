@@ -10,6 +10,8 @@ except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as xp
 
+from lisatools.utils.transform import tSSBfromLframe
+
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
@@ -375,27 +377,44 @@ class BBHWaveform:
         beta = np.atleast_1d(beta)
         psi = np.atleast_1d(psi)
         tRef_wave_frame = np.atleast_1d(tRef_wave_frame)
-        tRef_sampling_frame = np.atleast_1d(tRef_sampling_frame)
 
+        # TODO: fix this all
+        tRef_sampling_frame = np.atleast_1d(tRef_wave_frame)
+
+        # TODO: remove this from everywhere
         t_mrg = tRef_sampling_frame + tBase * YRSID_SI
 
         self.num_bin_all = len(m1)
 
+        if tBase != 0.0:
+            raise NotImplementedError
+
         # TODO: add sanity checks for t_start, t_end
         if shift_t_limits is False:
+            t_obs_start_L = (tRef_wave_frame - t_obs_start * YRSID_SI)
+            t_obs_end_L = (tRef_wave_frame - t_obs_end * YRSID_SI)
+
+            t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, tBase)
+            t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, tBase)
+
             t_start = (
-                tRef_sampling_frame + tBase * YRSID_SI - t_obs_start * YRSID_SI
+                t_obs_start_SSB
                 if t_obs_start > 0.0
                 else np.zeros(self.num_bin_all)
             )
             t_end = (
-                tRef_sampling_frame + tBase * YRSID_SI - t_obs_end * YRSID_SI
+                t_obs_end_SSB
                 if t_obs_end > 0.0
                 else np.zeros_like(t_start)
             )
 
         else:
-            t_start = np.atleast_1d(t_obs_start) * YRSID_SI
+            t_obs_start_L = t_obs_start * YRSID_SI
+            t_obs_end_L = t_obs_end * YRSID_SI
+
+            t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, tBase)
+            t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, tBase)
+            t_start = np.atleast_1d(t_obs_start_SSB)
             t_end = np.atleast_1d(t_obs_end) * YRSID_SI
 
         if freqs is None and length is None:

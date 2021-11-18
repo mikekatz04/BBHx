@@ -2667,9 +2667,9 @@ void get_amp(double* amp, double freq_geom, int ell, int mm, PhenomHMStorage* pH
 
 
 CUDA_CALLABLE_MEMBER
-void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
+void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
 {
-        double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2;
+        double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2, phase_deriv_i;
       Mf_wf = 0.0;
       double Mf = 0.0;
       Mfr = 0.0;
@@ -2682,13 +2682,18 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
 
       if (!(Mf_wf > q.fi))
       { /* in mathematica -> IMRPhenDPhaseA */
+
           Mf = q.ai * Mf_wf + q.bi;
+
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ai;
+          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
       else if (!(Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseB */
           Mf = q.am * Mf_wf + q.bm;
+
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
+          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
       else if ((Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseC */
@@ -2696,6 +2701,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
           tmpphaseC = IMRPhenomDPhase_OneFrequency(Mfr, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
           Mf = q.ar * Mf_wf + q.br;
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ar - q.PhDCconst + tmpphaseC;
+          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
 
       Mf = freq_geom;
@@ -2703,6 +2709,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
       phase_term2 = phase_i - (mm * phi0);
 
       *phase = (phase_term1 + phase_term2);
+      *phase_deriv = (phase_deriv_i) / (2. * PI);
 }
 
 
@@ -2718,6 +2725,7 @@ void get_phase(double* phase, double freq_geom, int ell, int mm, PhenomHMStorage
      double phase_i = cshift[mm];
 
      phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
+     //double temp_phase = IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
 
      double phase_term1 = - t0 * (Mf - Mf_ref);
      double phase_term2 = phase_i - (mm * phi0);
@@ -2762,8 +2770,8 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
         amps[freq_index] = amp_i * amp0;
         phases[freq_index] = phase_i;
 
-        dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0);
-        phases_deriv[freq_index] = dphidf;
+        dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0) / (2 * PI);
+        phases_deriv[freq_index] = dphidf - (t0 / (2. * PI) * M_tot_sec);
 
          //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
          //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
@@ -2792,7 +2800,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
              //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
              //int freq_index = i * numBinAll + binNum;
 
-             double amp_i, phase_i, dphidf, phase_up, phase_down;
+             double amp_i, phase_i, phase_deriv_i, dphidf, phase_up, phase_down;
              double t_wave_frame, t_sampling_frame;
              int status_in_for;
              UsefulPowers powers_of_f;
@@ -2806,16 +2814,13 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
              get_amp(&amp_i, freq_geom, ell, mm, pHM, powers_of_f, pAmp, amp_prefactors, amp0);
 
-             get_phase(&phase_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
+             get_phase(i, &phase_i, &phase_deriv_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
 
              amps[mode_index] = amp_i;
+
              phases[mode_index] = phase_i;
 
-             get_phase(&phase_up, freq_geom + 0.5 * eps, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
-             get_phase(&phase_down, freq_geom - 0.5 * eps, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
-
-             dphidf = M_tot_sec * (phase_up - phase_down)/eps;
-             phases_deriv[mode_index] = dphidf;
+             phases_deriv[mode_index] = (M_tot_sec * phase_deriv_i) - (t0 / (2. * PI) * M_tot_sec);
 
               //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
               //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
@@ -2935,8 +2940,6 @@ void IMRPhenomHMCore(
         pHM->Mf_DM_22 = Mf_DM_lm[0];
     }
 
-
-
     /* (l,m) = (2,2) */
     int ell, mm;
     ell = 2;
@@ -2944,6 +2947,18 @@ void IMRPhenomHMCore(
     pHM->Rho22 = 1.0;
     pHM->Tau22 = 1.0;
 
+    double Mf_RD_22_in, Mf_DM_22_in;
+
+    if (!run_phenomd)
+    {
+        Mf_RD_22_in = Mf_RD_lm[numModes];
+        Mf_DM_22_in = Mf_DM_lm[numModes];
+    }
+    else
+    {
+        Mf_RD_22_in = Mf_RD_lm[0];
+        Mf_DM_22_in = Mf_DM_lm[0];
+    }
 
     // Prepare 22 coefficients
     PhenDAmpAndPhasePreComp pDPreComp22;
@@ -2955,8 +2970,8 @@ void IMRPhenomHMCore(
         pHM->chi2z,
         pHM->Rho22,
         pHM->Tau22,
-        pHM->Mf_RD_22,
-        pHM->Mf_DM_22
+        Mf_RD_22_in,
+        Mf_DM_22_in
     );
 
     // set f_ref to f_max
@@ -3030,8 +3045,10 @@ void IMRPhenomHMCore(
                 pHM->chi2z,
                 Rholm,
                 Taulm,
-                pHM->Mf_RD_lm,
-                pHM->Mf_DM_lm);
+                Mf_RD_22_in,
+                Mf_DM_22_in);
+                //pHM->Mf_RD_lm,
+                //pHM->Mf_DM_lm);
 
             retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
 
@@ -3122,8 +3139,8 @@ void IMRPhenomHMCore(
     CUDA_SHARED int mms[MAX_MODES];
 
     #ifdef __CUDACC__
-    CUDA_SHARED double Mf_RD_lm[MAX_MODES];
-    CUDA_SHARED double Mf_DM_lm[MAX_MODES];
+    CUDA_SHARED double Mf_RD_lm[MAX_MODES + 1];
+    CUDA_SHARED double Mf_DM_lm[MAX_MODES + 1];
     #endif
 
     if THREAD_ZERO
@@ -3166,10 +3183,13 @@ void IMRPhenomHMCore(
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
+
+        int add = 0;
+        if (!run_phenomd) add = 1;
         #ifdef __CUDACC__
         #else
-        double Mf_RD_lm[MAX_MODES];
-        double Mf_DM_lm[MAX_MODES];
+        double Mf_RD_lm[MAX_MODES + 1];
+        double Mf_DM_lm[MAX_MODES + 1];
         #endif
 
         int start2, increment2;
@@ -3181,10 +3201,10 @@ void IMRPhenomHMCore(
         increment2 = 1;
         #pragma omp parallel for
         #endif
-        for (int i = start2; i < numModes; i += increment2)
+        for (int i = start2; i < numModes + add; i += increment2)
         {
-            Mf_RD_lm[i] = Mf_RD_lm_all[binNum * numModes + i];
-            Mf_DM_lm[i] = Mf_DM_lm_all[binNum * numModes + i];
+            Mf_RD_lm[i] = Mf_RD_lm_all[binNum * (numModes + add) + i];
+            Mf_DM_lm[i] = Mf_DM_lm_all[binNum * (numModes + add) + i];
         }
         CUDA_SYNC_THREADS;
 

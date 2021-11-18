@@ -10,6 +10,8 @@ except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as xp
 
+from lisatools.utils.transform import tSSBfromLframe
+
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
@@ -375,23 +377,45 @@ class BBHWaveform:
         beta = np.atleast_1d(beta)
         psi = np.atleast_1d(psi)
         tRef_wave_frame = np.atleast_1d(tRef_wave_frame)
-        tRef_sampling_frame = np.atleast_1d(tRef_sampling_frame)
 
+        # TODO: fix this all
+        tRef_sampling_frame = np.atleast_1d(tRef_wave_frame)
+
+        # TODO: remove this from everywhere
         t_mrg = tRef_sampling_frame + tBase * YRSID_SI
 
+        self.num_bin_all = len(m1)
+
+        if tBase != 0.0:
+            raise NotImplementedError
+
+        # TODO: add sanity checks for t_start, t_end
         if shift_t_limits is False:
-            t_start = tRef_sampling_frame + tBase * YRSID_SI - t_obs_start * YRSID_SI
+            t_obs_start_L = (tRef_wave_frame - t_obs_start * YRSID_SI)
+            t_obs_end_L = (tRef_wave_frame - t_obs_end * YRSID_SI)
+
+            t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, tBase)
+            t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, tBase)
+
+            t_start = (
+                t_obs_start_SSB
+                if t_obs_start > 0.0
+                else np.zeros(self.num_bin_all)
+            )
             t_end = (
-                tRef_sampling_frame + tBase * YRSID_SI - t_obs_end * YRSID_SI
+                t_obs_end_SSB
                 if t_obs_end > 0.0
                 else np.zeros_like(t_start)
             )
 
         else:
-            t_start = np.atleast_1d(t_obs_start)
-            t_end = np.atleast_1d(t_obs_end)
+            t_obs_start_L = t_obs_start * YRSID_SI
+            t_obs_end_L = t_obs_end * YRSID_SI
 
-        self.num_bin_all = len(m1)
+            t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, tBase)
+            t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, tBase)
+            t_start = np.atleast_1d(t_obs_start_SSB)
+            t_end = np.atleast_1d(t_obs_end) * YRSID_SI
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")
@@ -444,6 +468,51 @@ class BBHWaveform:
         )
 
         if self.lisa:
+            out_buffer = out_buffer.reshape(
+                self.num_interp_params, self.num_bin_all, self.num_modes, self.length
+            )
+
+            phases = out_buffer[1].copy()
+
+            try:
+                phases = (
+                    self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
+                    * self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis])
+                    * 2
+                    * np.pi
+                )[:, self.xp.newaxis, :] + phases
+            except ValueError:
+                breakpoint()
+
+            """
+            # TODO
+            phases_in = phases.flatten().copy()
+
+            spl_phase = CubicSplineInterpolant(
+                self.amp_phase_gen.freqs,
+                phases_in / (2 * np.pi),
+                self.length,
+                1,
+                self.num_modes,
+                self.num_bin_all,
+                use_gpu=self.use_gpu,
+            )
+
+            tf = spl_phase.c1_shaped
+            tf[:, :, :, -1] = tf[:, :, :, -2]
+
+            self.tf = tf
+            """
+
+            # can switch between spline derivatives and actual derivatives
+            out_buffer[1] = phases.copy()
+            #out_buffer[2] = tf.copy()
+            out_buffer[2] += self.xp.asarray(tRef_wave_frame[:, self.xp.newaxis, self.xp.newaxis])
+
+            self.out_buffer = out_buffer.reshape(9, self.num_bin_all, self.num_modes, self.length).copy()
+
+            out_buffer = out_buffer.flatten().copy()
+
             self.response_gen(
                 self.amp_phase_gen.freqs,
                 inc,
@@ -460,6 +529,9 @@ class BBHWaveform:
                 out_buffer=out_buffer,
                 modes=self.amp_phase_gen.modes,
             )
+
+            self.out_buffer2 = out_buffer.reshape(9, self.num_bin_all, self.num_modes, self.length).copy()
+
 
         if direct and compress:
 
@@ -526,6 +598,8 @@ class BBHWaveform:
                     amp_phase * transfer_L3,
                 ]
             )
+
+            breakpoint()
 
             # out[:, ~inds] = 0.0
             if squeeze:

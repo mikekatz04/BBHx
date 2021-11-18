@@ -303,10 +303,10 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              double freq = freqs[freq_index];
              //double freq_geom = freq*M_tot_sec;
 
-             double dphidf = phases_deriv[mode_index];
-
-             double t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
-             double t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
+             //double dphidf = phases_deriv[mode_index];
+             double t_wave_frame = phases_deriv[mode_index];
+             //double t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
+             //double t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
 
              //if ((binNum == 0) && (mode_i == 0)) printf("%d %.10e\n", i, t_wave_frame);
              d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
@@ -337,8 +337,8 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              response_out[start_ind + mode_index] = gcmplx::imag(transferL.transferL3);
 
              // time_freq_corr update
-             phases_deriv[mode_index] = t_sampling_frame;
-             double phase_change = transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
+             //phases_deriv[mode_index] = t_sampling_frame;
+             double phase_change = transferL.phaseRdelay; //  + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
              //if (mode_index == 0) printf("%e %e %e %e %e\n", transferL.phaseRdelay, 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq, tRef_wave_frame, tBase, freq);
              phases[mode_index] +=  phase_change; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
              //if ((mode_i == 3) && (i == 1000)) printf(" %.18e %.18e %.18e %.18e %.18e %.18e %.18e %.18e \n", freq, t_wave_frame, lam, beta, tBase, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));

@@ -153,7 +153,7 @@ class LISATDIResponse:
         lam,
         beta,
         psi,
-        tRef_wave_frame,
+        t_ref,
         tRef_sampling_frame,
         phiRef,
         f_ref,
@@ -198,7 +198,7 @@ class LISATDIResponse:
         lam = self.xp.asarray(lam).copy()
         beta = self.xp.asarray(beta).copy()
         psi = self.xp.asarray(psi).copy()
-        tRef_wave_frame = self.xp.asarray(tRef_wave_frame).copy()
+        t_ref = self.xp.asarray(t_ref).copy()
         tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame).copy()
         phiRef = self.xp.asarray(phiRef).copy()
         f_ref = self.xp.asarray(f_ref).copy()
@@ -256,7 +256,7 @@ class LISATDIResponse:
             lam,
             beta,
             psi,
-            tRef_wave_frame,
+            t_ref,
             tRef_sampling_frame,
             tBase,
             self.TDItag_int,

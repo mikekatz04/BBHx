@@ -298,7 +298,7 @@ class SEOBNRv4PHM:
 
 if __name__ == "__main__":
 
-    from bbhx.utils.waveformbuild import BBHWaveformTD
+    from bbhx.waveformbuild import BBHWaveformTD
 
     # eob = SEOBNRv4PHM()
 
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     lam = np.full(num, np.pi / 4.0)
     beta = np.full(num, np.pi / 5.0)
     psi = np.full(num, np.pi / 6.0)
-    tRef_wave_frame = np.full(num, np.pi / 7.0)
+    t_ref = np.full(num, np.pi / 7.0)
 
     # eob(m1, m2, chi1z, chi2z, distance, phiRef)
 
@@ -338,7 +338,7 @@ if __name__ == "__main__":
         lam,
         beta,
         psi,
-        tRef_wave_frame,
+        t_ref,
         sampling_frequency=1024,
         Tobs=60.0,
         modes=None,

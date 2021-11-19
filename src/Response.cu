@@ -278,7 +278,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
   */
  CUDA_CALLABLE_MEMBER
  void response_modes(double* phases, double* response_out, int binNum, int mode_i, double* phases_deriv, double* freqs, double phiRef, int ell, int mm, int length, int numBinAll, int numModes,
- cmplx* H, double lam, double beta, double tRef_wave_frame, double tRef_sampling_frame, double tBase, int TDItag, int order_fresnel_stencil)
+ cmplx* H, double lam, double beta, double t_ref, int TDItag, int order_fresnel_stencil)
  {
 
          double eps = 1e-9;
@@ -294,22 +294,14 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
          #endif
          for (int i = start; i < length; i += increment)
          {
-             //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
-             //int freq_index = i * numBinAll + binNum;
-
              int mode_index = (binNum * numModes + mode_i) * length + i;
              int freq_index = binNum * length + i;
 
              double freq = freqs[freq_index];
-             //double freq_geom = freq*M_tot_sec;
 
-             //double dphidf = phases_deriv[mode_index];
              double t_wave_frame = phases_deriv[mode_index];
-             //double t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame + tBase * YRSID_SI;
-             //double t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame + tBase * YRSID_SI;
 
-             //if ((binNum == 0) && (mode_i == 0)) printf("%d %.10e\n", i, t_wave_frame);
-             d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
+             d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, TDItag, order_fresnel_stencil);
 
              // transferL1_re
              int start_ind = 0 * numBinAll * numModes * length;
@@ -337,11 +329,10 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              response_out[start_ind + mode_index] = gcmplx::imag(transferL.transferL3);
 
              // time_freq_corr update
-             //phases_deriv[mode_index] = t_sampling_frame;
-             double phase_change = transferL.phaseRdelay; //  + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq;
-             //if (mode_index == 0) printf("%e %e %e %e %e\n", transferL.phaseRdelay, 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq, tRef_wave_frame, tBase, freq);
-             phases[mode_index] +=  phase_change; // transferL.phaseRdelay + 2.*PI*(tRef_wave_frame + tBase * YRSID_SI)*freq; // TODO: check this / I think I just need to remove it if phaseRdelay is exactly equal to (tRef_wave_frame * f) phase shift
-             //if ((mode_i == 3) && (i == 1000)) printf(" %.18e %.18e %.18e %.18e %.18e %.18e %.18e %.18e \n", freq, t_wave_frame, lam, beta, tBase, tRef_wave_frame, gcmplx::real(transferL.transferL1), gcmplx::imag(transferL.transferL1));
+             double phase_change = transferL.phaseRdelay;
+
+             phases[mode_index] +=  phase_change;
+
          }
 }
 
@@ -427,18 +418,16 @@ void responseCore(
     double* phases_deriv,
     double* freqs,                      /**< GW frequecny list [Hz] */
     const double phiRef,                        /**< orbital phase at f_ref */
-    double f_ref,
     double inc,
     double lam,
     double beta,
     double psi,
-    double tRef_wave_frame,
-    double tRef_sampling_frame,
+    double t_ref,
     int length,                              /**< reference GW frequency */
     int numModes,
     int binNum,
     int numBinAll,
-    double tBase, int TDItag, int order_fresnel_stencil
+    int TDItag, int order_fresnel_stencil
 )
 {
 
@@ -574,7 +563,7 @@ void responseCore(
 
          //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
         response_modes(phases, response_out, binNum, mode_i, phases_deriv, freqs, phiRef, ell, mm, length, numBinAll, numModes,
-        H_mat, lam, beta, tRef_wave_frame, tRef_sampling_frame, tBase, TDItag, order_fresnel_stencil);
+        H_mat, lam, beta, t_ref, TDItag, order_fresnel_stencil);
 
     }
 }
@@ -596,14 +585,12 @@ void responseCore(
      int* mms_in,
      double* freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
      double* phiRef,                 /**< reference orbital phase (rad) */
-     double* f_ref,                        /**< Reference frequency */
      double* inc,
      double* lam,
      double* beta,
      double* psi,
-     double* tRef_wave_frame,
-     double* tRef_sampling_frame,
-     double tBase, int TDItag, int order_fresnel_stencil,
+     double* t_ref,
+     int TDItag, int order_fresnel_stencil,
      int numModes,
      int length,
      int numBinAll
@@ -640,8 +627,8 @@ void responseCore(
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
-        responseCore(phases, response_out, ells, mms, phases_deriv, freqs, phiRef[binNum], f_ref[binNum], inc[binNum], lam[binNum], beta[binNum], psi[binNum], tRef_wave_frame[binNum], tRef_sampling_frame[binNum], length, numModes, binNum, numBinAll,
-        tBase, TDItag, order_fresnel_stencil);
+        responseCore(phases, response_out, ells, mms, phases_deriv, freqs, phiRef[binNum], inc[binNum], lam[binNum], beta[binNum], psi[binNum], t_ref[binNum], length, numModes, binNum, numBinAll,
+        TDItag, order_fresnel_stencil);
     }
 }
 
@@ -653,14 +640,12 @@ void LISA_response(
     int* mms_in,
     double* freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
     double* phiRef,                 /**< reference orbital phase (rad) */
-    double* f_ref,                        /**< Reference frequency */
     double* inc,
     double* lam,
     double* beta,
     double* psi,
-    double* tRef_wave_frame,
-    double* tRef_sampling_frame,
-    double tBase, int TDItag, int order_fresnel_stencil,
+    double* t_ref,
+    int TDItag, int order_fresnel_stencil,
     int numModes,
     int length,
     int numBinAll,
@@ -686,14 +671,12 @@ void LISA_response(
         mms_in,
         freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
         phiRef,                 /**< reference orbital phase (rad) */
-        f_ref,                        /**< Reference frequency */
         inc,
         lam,
         beta,
         psi,
-        tRef_wave_frame,
-        tRef_sampling_frame,
-        tBase, TDItag, order_fresnel_stencil,
+        t_ref,
+        TDItag, order_fresnel_stencil,
         numModes,
         length,
         numBinAll
@@ -710,14 +693,12 @@ void LISA_response(
         mms_in,
         freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
         phiRef,                 /**< reference orbital phase (rad) */
-        f_ref,                        /**< Reference frequency */
         inc,
         lam,
         beta,
         psi,
-        tRef_wave_frame,
-        tRef_sampling_frame,
-        tBase, TDItag, order_fresnel_stencil,
+        t_ref,
+        TDItag, order_fresnel_stencil,
         numModes,
         length,
         numBinAll

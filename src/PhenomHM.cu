@@ -2773,7 +2773,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
         dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0) / (2 * PI);
         phases_deriv[freq_index] = dphidf - (t0 / (2. * PI) * M_tot_sec);
 
-         //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+         //t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
          //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
          //d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
@@ -2822,7 +2822,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
              phases_deriv[mode_index] = (M_tot_sec * phase_deriv_i) - (t0 / (2. * PI) * M_tot_sec);
 
-              //t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+              //t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
               //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
               //d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
@@ -2854,11 +2854,11 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
                  }
 
-                 t_wave_frame = 1./(2.0*PI)*dphidf + tRef_wave_frame;
+                 t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
                  t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
 
                  // adjust phase values stored in mode vals to reflect the tRef shift
-                 //mode_vals[mode_index].phase[i] += 2.0*PI*f*tRef_wave_frame;
+                 //mode_vals[mode_index].phase[i] += 2.0*PI*f*t_ref;
 
                  d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
 

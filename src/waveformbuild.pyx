@@ -8,7 +8,7 @@ assert sizeof(int) == sizeof(np.int32_t)
 cdef extern from "WaveformBuild.hh":
     ctypedef void* cmplx 'cmplx'
 
-    void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_mrg, double* t_start, double* t_end, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths);
+    void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start, double* t_end, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths);
 
     void direct_sum(cmplx* templateChannels,
                     double* bbh_buffer,
@@ -19,7 +19,7 @@ cdef extern from "WaveformBuild.hh":
     void TDInterp2(cmplx* templateChannels, double* dataTime, double* tsAll, double* propArraysAll, double* c1All, double* c2All, double* c3All, double* Fplus_in, double* Fcross_in, int old_length, int* old_lengths, int data_length, int numBinAll, int numModes, int* ls, int* ms, int* inds, int* lengths, int max_length, int numChannels);
 
 @pointer_adjust
-def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, t_start, t_end, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, inds_ptrs, inds_start, ind_lengths):
+def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_start, t_end, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, inds_ptrs, inds_start, ind_lengths):
 
     cdef size_t freqs_in = freqs
     cdef size_t propArrays_in = propArrays
@@ -28,14 +28,13 @@ def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, dlog10f, freqs, propArrays,
     cdef size_t c1_in = c1
     cdef size_t c2_in = c2
     cdef size_t c3_in = c3
-    cdef size_t t_mrg_in = t_mrg
     cdef size_t t_start_in = t_start
     cdef size_t t_end_in = t_end
     cdef size_t inds_ptrs_in = inds_ptrs
     cdef size_t inds_start_in = inds_start
     cdef size_t ind_lengths_in = ind_lengths
 
-    InterpTDI(<long*> templateChannels_ptrs_in, <double*> dataFreqs_in, dlog10f, <double*> freqs_in, <double*> propArrays_in, <double*> c1_in, <double*> c2_in, <double*> c3_in, <double*> t_mrg_in, <double*> t_start_in, <double*> t_end_in, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, <long*> inds_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in);
+    InterpTDI(<long*> templateChannels_ptrs_in, <double*> dataFreqs_in, dlog10f, <double*> freqs_in, <double*> propArrays_in, <double*> c1_in, <double*> c2_in, <double*> c3_in, <double*> t_start_in, <double*> t_end_in, length, data_length, numBinAll, numModes, t_obs_start, t_obs_end, <long*> inds_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in);
 
 @pointer_adjust
 def direct_sum_wrap(templateChannels,

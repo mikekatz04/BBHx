@@ -37,7 +37,7 @@ def test_phenomhm(
     lam,
     beta,
     psi,
-    tRef_wave_frame,
+    t_ref,
     tRef_sampling_frame,
     tBase,
     t_obs_start,
@@ -90,7 +90,7 @@ def test_phenomhm(
         lam[:1],
         beta[:1],
         psi[:1],
-        tRef_wave_frame[:1],
+        t_ref[:1],
         tRef_sampling_frame[:1],
         tBase=tBase,
         t_obs_start=t_obs_start,
@@ -129,7 +129,7 @@ def test_phenomhm(
                 lam[:numBinAll],
                 beta[:numBinAll],
                 psi[:numBinAll],
-                tRef_wave_frame[:numBinAll],
+                t_ref[:numBinAll],
                 tRef_sampling_frame[:numBinAll],
             ],
             tBase=tBase,
@@ -160,7 +160,7 @@ def test_phenomhm(
             lam[:1],
             beta[:1],
             psi[:1],
-            tRef_wave_frame[:1],
+            t_ref[:1],
             tRef_sampling_frame[:1],
         ],
         tBase=tBase,
@@ -188,7 +188,7 @@ def test_phenomhm(
         lam[:1],
         beta[:1],
         psi[:1],
-        tRef_wave_frame[:1],
+        t_ref[:1],
         tRef_sampling_frame[:1],
     )
 
@@ -233,7 +233,7 @@ def test_phenomhm(
                 lam,
                 beta,
                 psi,
-                tRef_wave_frame,
+                t_ref,
                 tRef_sampling_frame,
             ],
             tBase=tBase,
@@ -270,7 +270,7 @@ if __name__ == "__main__":
     lam = np.full_like(m1, 0.0)
     beta = np.full_like(m1, 0.3)
     psi = np.full_like(m1, 0.4)
-    tRef_wave_frame = np.full_like(m1, 100.0)
+    t_ref = np.full_like(m1, 100.0)
     tRef_sampling_frame = np.full_like(m1, 120.0)
     tBase = 1.0
 
@@ -290,7 +290,7 @@ if __name__ == "__main__":
         lam,
         beta,
         psi,
-        tRef_wave_frame,
+        t_ref,
         tRef_sampling_frame,
         tBase,
         t_obs_start,

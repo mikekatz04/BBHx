@@ -65,7 +65,7 @@ void combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, doub
 #define  MAX_NUM_COEFF_TERMS 1200
 
 CUDA_KERNEL
-void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, double t_mrg, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, int* inds, int ind_start, int ind_length, int bin_i)
+void TDI(cmplx* templateChannels, double* dataFreqsIn, double dlog10f, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, int* inds, int ind_start, int ind_length, int bin_i)
 {
 
     int start, increment;
@@ -253,7 +253,7 @@ void direct_sum(cmplx* templateChannels,
 }
 
 
-void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_mrg_in, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths)
+void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, long* inds_ptrs, int* inds_start, int* ind_lengths)
 {
     #ifdef __CUDACC__
     cudaStream_t streams[numBinAll];
@@ -266,7 +266,6 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
         int ind_start = inds_start[bin_i];
         int* inds = (int*) inds_ptrs[bin_i];
 
-        double t_mrg = t_mrg_in[bin_i];
         double t_start = t_start_in[bin_i];
         double t_end = t_end_in[bin_i];
 
@@ -277,9 +276,9 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double dlog10f, d
         #ifdef __CUDACC__
         dim3 gridDim(nblocks3, 1);
         cudaStreamCreate(&streams[bin_i]);
-        TDI<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
+        TDI<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
         #else
-        TDI(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, t_mrg, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
+        TDI(templateChannels, dataFreqs, dlog10f, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
         #endif
 
     }

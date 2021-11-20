@@ -193,6 +193,23 @@ class BBHWaveformFD:
             of the interpolation class: :class:`TemplateInterp`.
         use_gpu (bool, optional): If ``True``, use a GPU. (Default: ``False``)
 
+    Attributes:
+        amp_phase_gen (obj): Waveform generation class.
+        data_length (int): Length of the final output data.
+        interp_response (obj): Interpolation class.
+        length (int): Length of initial evaluations of waveform and response.
+        num_bin_all (int): Total number of binaries analyzed.
+        num_interp_params (int): Number of parameters to interpolate (9).
+        num_modes (int): Number of harmonic modes.
+        out_buffer_final (xp.ndarray): Array with buffer information with shape:
+            ``(self.num_interp_params, self.num_bin_all, self.num_modes, self.length)``.
+            The order of the parameters is amplitude, phase, t-f, transferL1re, transferL1im,
+            transferL2re, transferL2im, transferL3re, transferL3im.
+        response_gen (obj): Response generation class.
+        use_gpu (bool): A GPU is being used if ``use_gpu==True``.
+        waveform_gen (obj): Direct summation waveform generation class.
+        xp (obj): Either ``numpy`` or ``cupy``.
+
     """
 
     def __init__(
@@ -236,9 +253,9 @@ class BBHWaveformFD:
         length=None,
         modes=None,
         shift_t_limits=False,
-        direct=True,
+        direct=False,
         compress=True,
-        squeeze=True,
+        squeeze=False,
         fill=False,
         combine=False,
     ):
@@ -260,12 +277,14 @@ class BBHWaveformFD:
             beta (double): Ecliptic latitude :math:`(\\beta\in[-\pi/2, \pi/2])`.
             psi (double): Polarization angle in radians :math:`(\psi\in[0.0, \pi])`.
             t_ref (double): Reference time in seconds. It is set at ``f_ref``.
-            t_obs_start (double, optional): Start time of observation in years. If
-                ``shift_t_limits==True``, this is with reference to :math:`t=0`.
-                If ``shift_t_limits==False`` this is with reference to ``t_ref``
-                and works backwards. So, in this case, ``t_obs_start`` gives how much time
-                back from merger to start the waveform. (Default: 1.0)
-            t_obs_end (double, optional): End time of observation in years. If
+            t_obs_start (double, optional): Start time of observation in years
+                in the LISA constellation reference frame. If ``shift_t_limits==True``,
+                this is with reference to :math:`t=0`. If ``shift_t_limits==False`` this is
+                with reference to ``t_ref`` and works backwards. So, in this case,
+                ``t_obs_start`` gives how much time back from merger to start the waveform.
+                (Default: 1.0)
+            t_obs_end (double, optional): End time of observation in years in the
+                LISA constellation reference frame. If
                 ``shift_t_limits==True``, this is with reference to :math:`t=0`.
                 If ``shift_t_limits==False`` this is with reference to ``t_ref``
                 and works backwards. So, in this case, ``t_obs_end`` gives how much time
@@ -285,14 +304,42 @@ class BBHWaveformFD:
             shift_t_limits (bool, optional): If ``False``, ``t_obs_start`` and ``t_obs_end``
                 are relative to ``t_ref`` counting backwards in time. If ``True``,
                 those quantities are relative to :math:`t=0`. (Default: ``False``)
-            direct=True,
-            compress=True,
-            squeeze=True,
-            fill=False,
-            combine=False,
+            direct (bool, optional): If ``True``, directly compute the waveform without
+                interpolation. (Default: ``False``)
+            compress (bool, optional): If ``True``, combine harmonics into single channel
+                waveforms. (Default: ``True``)
+            squeeze (bool, optional): If ``True``, remove any axes of length 1 from the
+                final return information. (Default: ``False``)
+            fill (bool, optional): If ``True``, fill data streams according to the ``combine``
+                keyword argument. If ``False, returns information for the fast likelihood functions.
+            combine (bool, optional): If ``True``, combine all waveforms into the same output
+                data stream. (Default: ``False``)
+
+
+        Returns:
+            xp.ndarray: Shape ``(3, self.length, self.num_bin_all)``.
+                Final waveform for each binary. If ``direct==True`` and ``compress==True``.
+                # TODO: switch dimensions?
+            xp.ndarray:  Shape ``(3, self.num_modes, self.length, self.num_bin_all)``.
+                Final waveform for each binary. If ``direct==True`` and ``compress==False``.
+            xp.ndarray:  Shape ``(3, self.data_length)``.
+                Final waveform of all binaries in the same data stream.
+                If ``fill==True`` and ``combine==True``.
+            xp.ndarray:  Shape ``(self.num_bin_all, 3, self.data_length)``.
+                Final waveform of all binaries in the same data stream.
+                If ``fill==True`` and ``combine==False``.
+            tuple: Information for fast likelihood functions.
+                First entry is ``template_channels`` property from :class:`TemplateInterp`.
+                Second entry is ``start_inds`` attribute from ``self.interp_response``.
+                Third entry is ``lengths`` attribute from ``self.interp_response``.
+
+        Raises:
+            ValueError: ``length`` and ``freqs`` not given. Modes are given but not in a list.
+
 
         """
 
+        # make sure everything is at least a 1D array
         m1 = np.atleast_1d(m1)
         m2 = np.atleast_1d(m2)
         chi1z = np.atleast_1d(chi1z)
@@ -308,46 +355,55 @@ class BBHWaveformFD:
         self.num_bin_all = len(m1)
 
         # TODO: add sanity checks for t_start, t_end
+        # how to set up time limits
         if shift_t_limits is False:
+            # start and end times are defined in the LISA reference frame
             t_obs_start_L = t_ref - t_obs_start * YRSID_SI
             t_obs_end_L = t_ref - t_obs_end * YRSID_SI
 
+            # convert to SSB frame
             t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)
             t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
 
+            # fix zeros and less than zero
             t_start = (
                 t_obs_start_SSB if t_obs_start > 0.0 else np.zeros(self.num_bin_all)
             )
             t_end = t_obs_end_SSB if t_obs_end > 0.0 else np.zeros_like(t_start)
 
         else:
+            # start and end times are defined in the LISA reference frame
             t_obs_start_L = t_obs_start * YRSID_SI
             t_obs_end_L = t_obs_end * YRSID_SI
 
+            # convert to SSB frame
             t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)
             t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
             t_start = np.atleast_1d(t_obs_start_SSB)
-            t_end = np.atleast_1d(t_obs_end) * YRSID_SI
+            t_end = np.atleast_1d(t_obs_end_SSB)
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")
 
+        # if computing directly, set info
         elif freqs is not None and direct is True:
             if freqs.ndim == 1:
+                # set the length of the input
                 length = len(freqs)
             else:
-                if direct is False:
-                    raise ValueError(
-                        "If 2D frequency array provided, must have direct == True."
-                    )
                 length = freqs.shape[1]
 
+        # this means the frequencies are what needs to be interpolated to
         elif direct is False:
             self.data_length = len(freqs)
+            if length is None:
+                raise ValueError("If direct is False, length parameter must be given.")
 
         self.length = length
 
+        # setup harmonic modes
         if modes is None:
+            # default mode setup
             self.num_modes = len(self.amp_phase_gen.allowable_modes)
         else:
             if not isinstance(modes, list):
@@ -362,10 +418,7 @@ class BBHWaveformFD:
 
         freqs_temp = freqs if direct else None
 
-        if self.lisa:
-            phiRef_amp_phase = np.zeros_like(m1)
-        else:
-            phiRef_amp_phase = phiRef
+        phiRef_amp_phase = np.zeros_like(m1)
 
         self.amp_phase_gen(
             m1,
@@ -381,78 +434,59 @@ class BBHWaveformFD:
             modes=modes,
         )
 
-        if self.lisa:
-            out_buffer = out_buffer.reshape(
-                self.num_interp_params, self.num_bin_all, self.num_modes, self.length
-            )
+        # setup buffer to carry around all the quantities of interest
+        # params are amp, phase, tf, transferL1re, transferL1im, transferL2re, transferL2im, transferL3re, transferL3im
+        out_buffer = out_buffer.reshape(
+            self.num_interp_params, self.num_bin_all, self.num_modes, self.length
+        )
 
-            phases = out_buffer[1].copy()
+        # adjust phases based on shift from t_ref
+        phases = out_buffer[1].copy()
+        phases = (
+            self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
+            * self.xp.asarray(t_ref[:, self.xp.newaxis])
+            * 2
+            * np.pi
+        )[:, self.xp.newaxis, :] + phases
 
-            try:
-                phases = (
-                    self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
-                    * self.xp.asarray(t_ref[:, self.xp.newaxis])
-                    * 2
-                    * np.pi
-                )[:, self.xp.newaxis, :] + phases
-            except ValueError:
-                breakpoint()
+        # TODO: can switch between spline derivatives and actual derivatives
+        out_buffer[1] = phases.copy()
 
-            """
-            # TODO
-            phases_in = phases.flatten().copy()
+        # adjust t-f for shift of t_ref
+        out_buffer[2] += self.xp.asarray(t_ref[:, self.xp.newaxis, self.xp.newaxis])
 
-            spl_phase = CubicSplineInterpolant(
-                self.amp_phase_gen.freqs,
-                phases_in / (2 * np.pi),
-                self.length,
-                1,
-                self.num_modes,
-                self.num_bin_all,
-                use_gpu=self.use_gpu,
-            )
+        out_buffer = out_buffer.flatten().copy()
 
-            tf = spl_phase.c1_shaped
-            tf[:, :, :, -1] = tf[:, :, :, -2]
+        # compute response function
+        self.response_gen(
+            self.amp_phase_gen.freqs,
+            inc,
+            lam,
+            beta,
+            psi,
+            t_ref,
+            phiRef,
+            length,
+            includes_amps=True,
+            out_buffer=out_buffer,  # fill into this buffer
+            modes=self.amp_phase_gen.modes,
+        )
 
-            self.tf = tf
-            """
+        # for checking
+        self.out_buffer_final = out_buffer.reshape(
+            9, self.num_bin_all, self.num_modes, self.length
+        ).copy()
 
-            # can switch between spline derivatives and actual derivatives
-            out_buffer[1] = phases.copy()
-            # out_buffer[2] = tf.copy()
-            out_buffer[2] += self.xp.asarray(t_ref[:, self.xp.newaxis, self.xp.newaxis])
-
-            self.out_buffer = out_buffer.reshape(
-                9, self.num_bin_all, self.num_modes, self.length
-            ).copy()
-
-            out_buffer = out_buffer.flatten().copy()
-
-            self.response_gen(
-                self.amp_phase_gen.freqs,
-                inc,
-                lam,
-                beta,
-                psi,
-                t_ref,
-                phiRef,
-                length,
-                includes_amps=True,
-                out_buffer=out_buffer,
-                modes=self.amp_phase_gen.modes,
-            )
-
-            self.out_buffer2 = out_buffer.reshape(
-                9, self.num_bin_all, self.num_modes, self.length
-            ).copy()
-
+        # direct computation from buffer
+        # + compressing all harmonics into a single data stream by diret combination
         if direct and compress:
 
+            # setup template
             templateChannels = self.xp.zeros(
                 (self.num_bin_all * 3 * self.length), dtype=self.xp.complex128
             )
 
+            # direct computation of 3 channel waveform
             self.waveform_gen(
                 templateChannels,
                 out_buffer,
@@ -487,7 +521,7 @@ class BBHWaveformFD:
 
             amp = temp[0]
             phase = temp[1]
-            # tf = temp[2].get()
+
             transfer_L1 = temp[3] + 1j * temp[4]
             transfer_L2 = temp[5] + 1j * temp[6]
             transfer_L3 = temp[7] + 1j * temp[8]
@@ -523,6 +557,7 @@ class BBHWaveformFD:
 
         else:
 
+            # setup interpolant
             spline = CubicSplineInterpolant(
                 self.amp_phase_gen.freqs,
                 out_buffer,
@@ -535,34 +570,23 @@ class BBHWaveformFD:
 
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
 
-            if self.lisa:
-                template_channels = self.interp_response(
-                    freqs,
-                    spline.container,
-                    t_start,
-                    t_end,
-                    self.length,
-                    self.data_length,
-                    self.num_modes,
-                    t_obs_start,
-                    t_obs_end,
-                    3,
-                )
-            else:
-                template_channels = self.interp_response(
-                    freqs,
-                    spline.container,
-                    lam,
-                    beta,
-                    psi,
-                    self.length,
-                    self.data_length,
-                    self.num_modes,
-                    3,
-                )
+            template_channels = self.interp_response(
+                freqs,
+                spline.container,
+                t_start,
+                t_end,
+                self.length,
+                self.data_length,
+                self.num_modes,
+                t_obs_start,
+                t_obs_end,
+                3,
+            )
 
+            # fill the data stream
             if fill:
                 if combine:
+                    # combine into one data stream
                     data_out = self.xp.zeros((3, len(freqs)), dtype=self.xp.complex128)
                     for temp, start_i, length_i in zip(
                         template_channels,
@@ -571,6 +595,7 @@ class BBHWaveformFD:
                     ):
                         data_out[:, start_i : start_i + length_i] = temp
                 else:
+                    # put in separate data streams
                     data_out = self.xp.zeros(
                         (self.num_bin_all, 3, len(freqs)), dtype=self.xp.complex128
                     )
@@ -585,7 +610,7 @@ class BBHWaveformFD:
 
                 return data_out
             else:
-
+                # return information for the fast likelihood functions
                 return (
                     template_channels,
                     self.interp_response.start_inds,

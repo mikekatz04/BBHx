@@ -1,71 +1,37 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Full TDI Waveforms &mdash; bbhx  documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-
-  
-  
-  
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="bbhx Tutorial" href="../bbhx_tutorial.html" />
     <link rel="prev" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" href="../index.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search"  style="background: coral" >
-          
-
-          
-            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> bbhx
-          
-
-          
+            <a href="../index.html" class="icon icon-home"> bbhx
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -73,100 +39,44 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <p class="caption"><span class="caption-text">Documentation:</span></p>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Full TDI Waveforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#response">Response</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tutorial:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../bbhx_tutorial.html"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: coral" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">bbhx</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
       <li>Full TDI Waveforms</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-            
             <a href="../_sources/user/main.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
-  </ul>
-
-  
-  <div class="rst-breadcrumbs-buttons" role="navigation" aria-label="breadcrumb navigation">
-      
-        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../index.html" class="btn btn-neutral float-left" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="../index.html" class="btn btn-neutral float-left" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   
 <style>
 /* CSS overrides for sphinx_rtd_theme */
@@ -191,8 +101,8 @@
     text-align: unset;
 }
 </style>
-<div class="section" id="full-tdi-waveforms">
-<h1>Full TDI Waveforms<a class="headerlink" href="#full-tdi-waveforms" title="Permalink to this headline">¶</a></h1>
+<section id="full-tdi-waveforms">
+<h1>Full TDI Waveforms<a class="headerlink" href="#full-tdi-waveforms" title="Permalink to this headline"></a></h1>
 <p>TDI observable waveforms are produced in three main parts:</p>
 <blockquote>
 <div><ol class="arabic simple">
@@ -208,8 +118,8 @@
 \[\tilde{h}^{AET}(f) = \sum_{lm}\mathcal{T}^{AET}(f, t_{lm}(f))\tilde{h}_{lm}(f).\]</div>
 </div></blockquote>
 <dl class="py class">
-<dt id="bbhx.waveformbuild.BBHWaveformFD">
-<em class="property">class </em><code class="sig-prename descclassname">bbhx.waveformbuild.</code><code class="sig-name descname">BBHWaveformFD</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">amp_phase_kwargs</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">response_kwargs</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">interp_kwargs</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">use_gpu</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">bbhx.waveformbuild.</span></span><span class="sig-name descname"><span class="pre">BBHWaveformFD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">amp_phase_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Generate waveforms put through response functions</p>
 <p>This class generates waveforms put through the LISA response function. In the
@@ -242,9 +152,144 @@ of the interpolation class: <code class="xref py py-class docutils literal notra
 </ul>
 </dd>
 </dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.amp_phase_gen">
+<span class="sig-name descname"><span class="pre">amp_phase_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.amp_phase_gen" title="Permalink to this definition"></a></dt>
+<dd><p>Waveform generation class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.data_length">
+<span class="sig-name descname"><span class="pre">data_length</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.data_length" title="Permalink to this definition"></a></dt>
+<dd><p>Length of the final output data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.interp_response">
+<span class="sig-name descname"><span class="pre">interp_response</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.interp_response" title="Permalink to this definition"></a></dt>
+<dd><p>Interpolation class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.length">
+<span class="sig-name descname"><span class="pre">length</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.length" title="Permalink to this definition"></a></dt>
+<dd><p>Length of initial evaluations of waveform and response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.num_bin_all">
+<span class="sig-name descname"><span class="pre">num_bin_all</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.num_bin_all" title="Permalink to this definition"></a></dt>
+<dd><p>Total number of binaries analyzed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.num_interp_params">
+<span class="sig-name descname"><span class="pre">num_interp_params</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.num_interp_params" title="Permalink to this definition"></a></dt>
+<dd><p>Number of parameters to interpolate (9).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.num_modes">
+<span class="sig-name descname"><span class="pre">num_modes</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.num_modes" title="Permalink to this definition"></a></dt>
+<dd><p>Number of harmonic modes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.out_buffer_final">
+<span class="sig-name descname"><span class="pre">out_buffer_final</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.out_buffer_final" title="Permalink to this definition"></a></dt>
+<dd><p>Array with buffer information with shape:
+<code class="docutils literal notranslate"><span class="pre">(self.num_interp_params,</span> <span class="pre">self.num_bin_all,</span> <span class="pre">self.num_modes,</span> <span class="pre">self.length)</span></code>.
+The order of the parameters is amplitude, phase, t-f, transferL1re, transferL1im,
+transferL2re, transferL2im, transferL3re, transferL3im.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>xp.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.response_gen">
+<span class="sig-name descname"><span class="pre">response_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.response_gen" title="Permalink to this definition"></a></dt>
+<dd><p>Response generation class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.use_gpu">
+<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.use_gpu" title="Permalink to this definition"></a></dt>
+<dd><p>A GPU is being used if <code class="docutils literal notranslate"><span class="pre">use_gpu==True</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.waveform_gen">
+<span class="sig-name descname"><span class="pre">waveform_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.waveform_gen" title="Permalink to this definition"></a></dt>
+<dd><p>Direct summation waveform generation class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.xp">
+<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.xp" title="Permalink to this definition"></a></dt>
+<dd><p>Either <code class="docutils literal notranslate"><span class="pre">numpy</span></code> or <code class="docutils literal notranslate"><span class="pre">cupy</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
-<dt id="bbhx.waveformbuild.BBHWaveformFD.__call__">
-<code class="sig-name descname">__call__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">m1</span></em>, <em class="sig-param"><span class="n">m2</span></em>, <em class="sig-param"><span class="n">chi1z</span></em>, <em class="sig-param"><span class="n">chi2z</span></em>, <em class="sig-param"><span class="n">distance</span></em>, <em class="sig-param"><span class="n">phiRef</span></em>, <em class="sig-param"><span class="n">f_ref</span></em>, <em class="sig-param"><span class="n">inc</span></em>, <em class="sig-param"><span class="n">lam</span></em>, <em class="sig-param"><span class="n">beta</span></em>, <em class="sig-param"><span class="n">psi</span></em>, <em class="sig-param"><span class="n">t_ref</span></em>, <em class="sig-param"><span class="n">t_obs_start</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">t_obs_end</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">freqs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">length</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">modes</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">shift_t_limits</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">direct</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">compress</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">squeeze</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">fill</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">combine</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.__call__" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi1z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi2z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phiRef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_obs_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_obs_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_t_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">squeeze</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">combine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.__call__" title="Permalink to this definition"></a></dt>
 <dd><p>Generate the binary black hole frequency-domain TDI waveforms</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -263,12 +308,14 @@ to <span class="math notranslate nohighlight">\(f_\text{max} = \text{max}(f^2A_{
 <li><p><strong>beta</strong> (<em>double</em>) – Ecliptic latitude <span class="math notranslate nohighlight">\((\beta\in[-\pi/2, \pi/2])\)</span>.</p></li>
 <li><p><strong>psi</strong> (<em>double</em>) – Polarization angle in radians <span class="math notranslate nohighlight">\((\psi\in[0.0, \pi])\)</span>.</p></li>
 <li><p><strong>t_ref</strong> (<em>double</em>) – Reference time in seconds. It is set at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
-<li><p><strong>t_obs_start</strong> (<em>double</em><em>, </em><em>optional</em>) – Start time of observation in years. If
-<code class="docutils literal notranslate"><span class="pre">shift_t_limits==True</span></code>, this is with reference to <span class="math notranslate nohighlight">\(t=0\)</span>.
-If <code class="docutils literal notranslate"><span class="pre">shift_t_limits==False</span></code> this is with reference to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>
-and works backwards. So, in this case, <code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code> gives how much time
-back from merger to start the waveform. (Default: 1.0)</p></li>
-<li><p><strong>t_obs_end</strong> (<em>double</em><em>, </em><em>optional</em>) – End time of observation in years. If
+<li><p><strong>t_obs_start</strong> (<em>double</em><em>, </em><em>optional</em>) – Start time of observation in years
+in the LISA constellation reference frame. If <code class="docutils literal notranslate"><span class="pre">shift_t_limits==True</span></code>,
+this is with reference to <span class="math notranslate nohighlight">\(t=0\)</span>. If <code class="docutils literal notranslate"><span class="pre">shift_t_limits==False</span></code> this is
+with reference to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> and works backwards. So, in this case,
+<code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code> gives how much time back from merger to start the waveform.
+(Default: 1.0)</p></li>
+<li><p><strong>t_obs_end</strong> (<em>double</em><em>, </em><em>optional</em>) – End time of observation in years in the
+LISA constellation reference frame. If
 <code class="docutils literal notranslate"><span class="pre">shift_t_limits==True</span></code>, this is with reference to <span class="math notranslate nohighlight">\(t=0\)</span>.
 If <code class="docutils literal notranslate"><span class="pre">shift_t_limits==False</span></code> this is with reference to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>
 and works backwards. So, in this case, <code class="docutils literal notranslate"><span class="pre">t_obs_end</span></code> gives how much time
@@ -288,82 +335,83 @@ default to those available in the waveform model. For PhenomHM:
 <li><p><strong>shift_t_limits</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code> and <code class="docutils literal notranslate"><span class="pre">t_obs_end</span></code>
 are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> counting backwards in time. If <code class="docutils literal notranslate"><span class="pre">True</span></code>,
 those quantities are relative to <span class="math notranslate nohighlight">\(t=0\)</span>. (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
-<li><p><strong>direct=True</strong> – </p></li>
+<li><p><strong>direct</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, directly compute the waveform without
+interpolation. (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
+<li><p><strong>compress</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, combine harmonics into single channel
+waveforms. (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</p></li>
+<li><p><strong>squeeze</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, remove any axes of length 1 from the
+final return information. (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
+<li><p><strong>fill</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, fill data streams according to the <code class="docutils literal notranslate"><span class="pre">combine</span></code>
+keyword argument. If <a href="#id1"><span class="problematic" id="id2">``</span></a>False, returns information for the fast likelihood functions.</p></li>
+<li><p><strong>combine</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, combine all waveforms into the same output
+data stream. (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">self.length,</span> <span class="pre">self.num_bin_all)</span></code>.</dt><dd><p>Final waveform for each binary. If <code class="docutils literal notranslate"><span class="pre">direct==True</span></code> and <code class="docutils literal notranslate"><span class="pre">compress==True</span></code>.
+# TODO: switch dimensions?</p>
+</dd>
+<dt>xp.ndarray:  Shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">self.num_modes,</span> <span class="pre">self.length,</span> <span class="pre">self.num_bin_all)</span></code>.</dt><dd><p>Final waveform for each binary. If <code class="docutils literal notranslate"><span class="pre">direct==True</span></code> and <code class="docutils literal notranslate"><span class="pre">compress==False</span></code>.</p>
+</dd>
+<dt>xp.ndarray:  Shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">self.data_length)</span></code>.</dt><dd><p>Final waveform of all binaries in the same data stream.
+If <code class="docutils literal notranslate"><span class="pre">fill==True</span></code> and <code class="docutils literal notranslate"><span class="pre">combine==True</span></code>.</p>
+</dd>
+<dt>xp.ndarray:  Shape <code class="docutils literal notranslate"><span class="pre">(self.num_bin_all,</span> <span class="pre">3,</span> <span class="pre">self.data_length)</span></code>.</dt><dd><p>Final waveform of all binaries in the same data stream.
+If <code class="docutils literal notranslate"><span class="pre">fill==True</span></code> and <code class="docutils literal notranslate"><span class="pre">combine==False</span></code>.</p>
+</dd>
+<dt>tuple: Information for fast likelihood functions.</dt><dd><p>First entry is <code class="docutils literal notranslate"><span class="pre">template_channels</span></code> property from <code class="xref py py-class docutils literal notranslate"><span class="pre">TemplateInterp</span></code>.
+Second entry is <code class="docutils literal notranslate"><span class="pre">start_inds</span></code> attribute from <code class="docutils literal notranslate"><span class="pre">self.interp_response</span></code>.
+Third entry is <code class="docutils literal notranslate"><span class="pre">lengths</span></code> attribute from <code class="docutils literal notranslate"><span class="pre">self.interp_response</span></code>.</p>
+</dd>
 </dl>
-<p>:param :
-:param compress=True:
-:param :
-:param squeeze=True:
-:param :
-:param fill=False:
-:param :
-:param combine=False:
-:param :</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>xp.ndarray</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – <code class="docutils literal notranslate"><span class="pre">length</span></code> and <code class="docutils literal notranslate"><span class="pre">freqs</span></code> not given. Modes are given but not in a list.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="response">
-<h1>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h1>
-</div>
+</section>
+<section id="response">
+<h1>Response<a class="headerlink" href="#response" title="Permalink to this headline"></a></h1>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../index.html" class="btn btn-neutral float-left" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        
-        &copy; Copyright 2021, Michael L. Katz
-
-    </p>
+    <p>&#169; Copyright 2021, Michael L. Katz.</p>
   </div>
-    
-    
-    
-    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
-    
-    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
-
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

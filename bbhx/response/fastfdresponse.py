@@ -154,10 +154,7 @@ class LISATDIResponse:
         beta,
         psi,
         t_ref,
-        tRef_sampling_frame,
         phiRef,
-        f_ref,
-        tBase,
         length,
         modes=None,
         includes_amps=False,
@@ -199,9 +196,7 @@ class LISATDIResponse:
         beta = self.xp.asarray(beta).copy()
         psi = self.xp.asarray(psi).copy()
         t_ref = self.xp.asarray(t_ref).copy()
-        tRef_sampling_frame = self.xp.asarray(tRef_sampling_frame).copy()
         phiRef = self.xp.asarray(phiRef).copy()
-        f_ref = self.xp.asarray(f_ref).copy()
 
         if out_buffer is None:
             includes_amps = 0
@@ -251,14 +246,11 @@ class LISATDIResponse:
             mms,
             self.freqs,
             phiRef,
-            f_ref,
             inc,
             lam,
             beta,
             psi,
             t_ref,
-            tRef_sampling_frame,
-            tBase,
             self.TDItag_int,
             self.order_fresnel_stencil,
             num_modes,

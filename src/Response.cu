@@ -219,8 +219,7 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
 
 
 CUDA_CALLABLE_MEMBER
-d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, double t0, int TDItag, int order_fresnel_stencil){
-    t = t + t0*YRSID_SI;
+d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, int TDItag, int order_fresnel_stencil){
 
     //funck
     CUDA_SHARED double kvec_all[3];

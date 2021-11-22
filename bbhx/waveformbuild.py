@@ -18,8 +18,9 @@ from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
 
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
 from bbhx.response.fastfdresponse import LISATDIResponse
-from bbhx.utils.interpolate import CubicSplineInterpolant, CubicSplineInterpolantTD
+from bbhx.utils.interpolate import CubicSplineInterpolant
 from bbhx.utils.constants import *
+from bbhx.utils.citations import *
 
 
 class TemplateInterp:
@@ -232,6 +233,17 @@ class BBHWaveformFD:
 
         # setup the final interpolant
         self.interp_response = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
+
+    @property
+    def citation(self):
+        return (
+            katz_1
+            + katz_2
+            + marsat_1
+            + marsat_2
+            + phenomhm_citation
+            + phenomd_citations
+        )
 
     def __call__(
         self,
@@ -480,7 +492,6 @@ class BBHWaveformFD:
         # direct computation from buffer
         # + compressing all harmonics into a single data stream by diret combination
         if direct and compress:
-
             # setup template
             templateChannels = self.xp.zeros(
                 (self.num_bin_all * 3 * self.length), dtype=self.xp.complex128
@@ -498,58 +509,43 @@ class BBHWaveformFD:
                 self.xp.asarray(t_end),
             )
 
-            out = templateChannels.reshape(self.num_bin_all, 3, self.length).transpose(
-                (1, 2, 0)
-            )
+            out = templateChannels.reshape(self.num_bin_all, 3, self.length)
 
             if squeeze:
                 out = out.squeeze()
 
             return out
 
-        if direct:
-            temp = self.xp.swapaxes(
-                out_buffer.reshape(
-                    self.num_interp_params,
+        elif direct:
+            out = self.xp.zeros(
+                (self.num_bin_all, 3, self.num_modes, self.length),
+                dtype=self.xp.complex128,
+            )
+            for mode_i in range(self.num_modes):
+                # setup template
+                templateChannels = self.xp.zeros(
+                    (self.num_bin_all * 3 * self.length), dtype=self.xp.complex128
+                )
+
+                out_buffer_temp = (
+                    self.out_buffer_final[:, :, mode_i, :].copy().flatten()
+                )
+                # direct computation of 3 channel waveform
+                self.waveform_gen(
+                    templateChannels,
+                    out_buffer_temp,
                     self.num_bin_all,
-                    self.num_modes,
                     self.length,
-                ),
-                1,
-                3,
-            )
+                    3,
+                    1,  # num_modes
+                    self.xp.asarray(t_start),
+                    self.xp.asarray(t_end),
+                )
 
-            amp = temp[0]
-            phase = temp[1]
+                out[:, :, mode_i, :] += templateChannels.reshape(
+                    self.num_bin_all, 3, self.length
+                )
 
-            transfer_L1 = temp[3] + 1j * temp[4]
-            transfer_L2 = temp[5] + 1j * temp[6]
-            transfer_L3 = temp[7] + 1j * temp[8]
-
-            # TODO: check this combination
-            # TODO: produce combination as same in CUDA
-            amp_phase = amp * self.xp.exp(1j * phase)
-
-            # if t_obs_end <= 0.0:
-            #    test = np.full_like(amp_phase.get(), True)
-
-            # else:
-            #    test = np.full_like(amp_phase.get(), False)
-
-            # temp2 = ((tf <= t_end[0]) + (test)).astype(bool)
-            # inds = (tf >= t_start[0]) & temp2 & (amp.get() > 1e-40)
-
-            out = self.xp.asarray(
-                [
-                    amp_phase * transfer_L1,
-                    amp_phase * transfer_L2,
-                    amp_phase * transfer_L3,
-                ]
-            )
-
-            breakpoint()
-
-            # out[:, ~inds] = 0.0
             if squeeze:
                 out = out.squeeze()
 
@@ -594,6 +590,12 @@ class BBHWaveformFD:
                         self.interp_response.lengths,
                     ):
                         data_out[:, start_i : start_i + length_i] = temp
+
+                    if squeeze:
+                        return data_out.squeeze()
+
+                    return data_out
+
                 else:
                     # put in separate data streams
                     data_out = self.xp.zeros(

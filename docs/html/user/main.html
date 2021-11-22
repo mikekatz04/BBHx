@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="bbhx Tutorial" href="../bbhx_tutorial.html" />
+    <link rel="next" title="Utility Functions" href="utils.html" />
     <link rel="prev" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" href="../index.html" /> 
 </head>
 
@@ -43,7 +43,7 @@
               <p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Full TDI Waveforms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#response">Response</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Functions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
@@ -70,7 +70,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../index.html" class="btn btn-neutral float-left" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utility Functions" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -147,7 +147,7 @@ initialization of the ampltidue-phase waveform class: <code class="xref py py-cl
 <li><p><strong>response_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Keyword arguments for the initialization
 of the response class: <code class="xref py py-class docutils literal notranslate"><span class="pre">LISATDIResponse</span></code>.</p></li>
 <li><p><strong>interp_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Keyword arguments for the initialization
-of the interpolation class: <code class="xref py py-class docutils literal notranslate"><span class="pre">TemplateInterp</span></code>.</p></li>
+of the interpolation class: <a class="reference internal" href="utils.html#bbhx.waveformbuild.TemplateInterpFD" title="bbhx.waveformbuild.TemplateInterpFD"><code class="xref py py-class docutils literal notranslate"><span class="pre">TemplateInterpFD</span></code></a>.</p></li>
 <li><p><strong>use_gpu</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, use a GPU. (Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
 </ul>
 </dd>
@@ -294,20 +294,20 @@ transferL2re, transferL2im, transferL3re, transferL3im.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>m1</strong> (<em>double</em>) – Mass 1 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
-<li><p><strong>m2</strong> (<em>double</em>) – Mass 2 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
-<li><p><strong>chi1z</strong> (<em>double</em>) – Dimensionless spin 1 (for Mass 1) in Solar Masses.</p></li>
-<li><p><strong>chi2z</strong> (<em>double</em>) – Dimensionless spin 2 (for Mass 1) in Solar Masses.</p></li>
-<li><p><strong>distance</strong> (<em>double</em>) – Luminosity distance in m.</p></li>
-<li><p><strong>phiRef</strong> (<em>double</em>) – Phase at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
-<li><p><strong>f_ref</strong> (<em>double</em>) – Reference frequency at which <code class="docutils literal notranslate"><span class="pre">phi_ref</span></code> and <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> are set.
+<li><p><strong>m1</strong> (<em>double scalar</em><em> or </em><em>np.ndarray</em>) – Mass 1 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
+<li><p><strong>m2</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Mass 2 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
+<li><p><strong>chi1z</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Dimensionless spin 1 (for Mass 1) in Solar Masses.</p></li>
+<li><p><strong>chi2z</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Dimensionless spin 2 (for Mass 1) in Solar Masses.</p></li>
+<li><p><strong>distance</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Luminosity distance in m.</p></li>
+<li><p><strong>phiRef</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Phase at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
+<li><p><strong>f_ref</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Reference frequency at which <code class="docutils literal notranslate"><span class="pre">phi_ref</span></code> and <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> are set.
 If <code class="docutils literal notranslate"><span class="pre">f_ref</span> <span class="pre">==</span> <span class="pre">0</span></code>, it will be set internally by the PhenomHM code
 to <span class="math notranslate nohighlight">\(f_\text{max} = \text{max}(f^2A_{22}(f))\)</span>.</p></li>
-<li><p><strong>inc</strong> (<em>double</em>) – Inclination of the binary in radians <span class="math notranslate nohighlight">\((\iota\in[0.0, \pi])\)</span>.</p></li>
-<li><p><strong>lam</strong> (<em>double</em>) – Ecliptic longitude <span class="math notranslate nohighlight">\((\lambda\in[0.0, 2\pi])\)</span>.</p></li>
-<li><p><strong>beta</strong> (<em>double</em>) – Ecliptic latitude <span class="math notranslate nohighlight">\((\beta\in[-\pi/2, \pi/2])\)</span>.</p></li>
-<li><p><strong>psi</strong> (<em>double</em>) – Polarization angle in radians <span class="math notranslate nohighlight">\((\psi\in[0.0, \pi])\)</span>.</p></li>
-<li><p><strong>t_ref</strong> (<em>double</em>) – Reference time in seconds. It is set at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
+<li><p><strong>inc</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Inclination of the binary in radians <span class="math notranslate nohighlight">\((\iota\in[0.0, \pi])\)</span>.</p></li>
+<li><p><strong>lam</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Ecliptic longitude <span class="math notranslate nohighlight">\((\lambda\in[0.0, 2\pi])\)</span>.</p></li>
+<li><p><strong>beta</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Ecliptic latitude <span class="math notranslate nohighlight">\((\beta\in[-\pi/2, \pi/2])\)</span>.</p></li>
+<li><p><strong>psi</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Polarization angle in radians <span class="math notranslate nohighlight">\((\psi\in[0.0, \pi])\)</span>.</p></li>
+<li><p><strong>t_ref</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Reference time in seconds. It is set at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
 <li><p><strong>t_obs_start</strong> (<em>double</em><em>, </em><em>optional</em>) – Start time of observation in years
 in the LISA constellation reference frame. If <code class="docutils literal notranslate"><span class="pre">shift_t_limits==True</span></code>,
 this is with reference to <span class="math notranslate nohighlight">\(t=0\)</span>. If <code class="docutils literal notranslate"><span class="pre">shift_t_limits==False</span></code> this is
@@ -360,7 +360,7 @@ If <code class="docutils literal notranslate"><span class="pre">fill==True</span
 <dt>xp.ndarray:  Shape <code class="docutils literal notranslate"><span class="pre">(self.num_bin_all,</span> <span class="pre">3,</span> <span class="pre">self.data_length)</span></code>.</dt><dd><p>Final waveform of all binaries in the same data stream.
 If <code class="docutils literal notranslate"><span class="pre">fill==True</span></code> and <code class="docutils literal notranslate"><span class="pre">combine==False</span></code>.</p>
 </dd>
-<dt>tuple: Information for fast likelihood functions.</dt><dd><p>First entry is <code class="docutils literal notranslate"><span class="pre">template_channels</span></code> property from <code class="xref py py-class docutils literal notranslate"><span class="pre">TemplateInterp</span></code>.
+<dt>tuple: Information for fast likelihood functions.</dt><dd><p>First entry is <code class="docutils literal notranslate"><span class="pre">template_channels</span></code> property from <a class="reference internal" href="utils.html#bbhx.waveformbuild.TemplateInterpFD" title="bbhx.waveformbuild.TemplateInterpFD"><code class="xref py py-class docutils literal notranslate"><span class="pre">TemplateInterpFD</span></code></a>.
 Second entry is <code class="docutils literal notranslate"><span class="pre">start_inds</span></code> attribute from <code class="docutils literal notranslate"><span class="pre">self.interp_response</span></code>.
 Third entry is <code class="docutils literal notranslate"><span class="pre">lengths</span></code> attribute from <code class="docutils literal notranslate"><span class="pre">self.interp_response</span></code>.</p>
 </dd>
@@ -379,16 +379,13 @@ Third entry is <code class="docutils literal notranslate"><span class="pre">leng
 </dd></dl>
 
 </section>
-<section id="response">
-<h1>Response<a class="headerlink" href="#response" title="Permalink to this headline"></a></h1>
-</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../index.html" class="btn btn-neutral float-left" title="GPU-Accelerated Black Hole Binary Waveforms (bbhx)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utility Functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

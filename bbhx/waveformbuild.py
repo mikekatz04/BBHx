@@ -14,7 +14,6 @@ from lisatools.utils.transform import tSSBfromLframe
 
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
-from pyWaveformBuild_cpu import TDInterp_wrap2 as TDInterp_wrap_cpu
 
 from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
 from bbhx.response.fastfdresponse import LISATDIResponse
@@ -23,8 +22,24 @@ from bbhx.utils.constants import *
 from bbhx.utils.citations import *
 
 
-class TemplateInterp:
-    def __init__(self, max_init_len=-1, use_gpu=False):
+class TemplateInterpFD:
+    """Interpolate frequency domain template
+
+    This class wraps :class:`CubicSplineInterpolant` so
+    that it fits into this specific waveform production method.
+
+    This class has GPU capabilities.
+
+    Args:
+        use_gpu (bool, optional): If ``True``, use GPU.
+
+    Attributes:
+        template_gen (obj): C/CUDA wrapped function for computing interpolated
+            waveforms.
+
+
+    """
+    def __init__(self, use_gpu=False):
 
         if use_gpu:
             self.template_gen = InterpTDI_wrap_gpu
@@ -34,81 +49,112 @@ class TemplateInterp:
             self.template_gen = InterpTDI_wrap_cpu
             self.xp = np
 
-        if max_init_len > 0:
-            self.use_buffers = True
-            raise NotImplementedError
-
-        else:
-            self.use_buffers = False
-
-    def _initialize_template_container(self):
-        self.template_carrier = self.xp.zeros(
-            (self.num_bin_all * self.nChannels * self.data_length),
-            dtype=self.xp.complex128,
-        )
-
     @property
     def template_channels(self):
+        """Get template channels from ``self.template_carrier``."""
         return [
-            self.template_carrier[i].reshape(self.nChannels, self.lengths[i])
+            self.template_carrier[i].reshape(self.num_channels, self.lengths[i])
             for i in range(self.num_bin_all)
         ]
 
+    @property
+    def citation(self):
+        """citations for this class"""
+        return katz_1 + katz_2
+
     def __call__(
         self,
-        dataFreqs,
+        data_freqs,
         interp_container,
         t_start,
         t_end,
         length,
-        data_length,
         num_modes,
-        t_obs_start,
-        t_obs_end,
-        nChannels,
+        num_channels,
     ):
+        """Generate frequency domain template via interpolation
 
-        numBinAll = len(t_start)
+        This class takes all waveform and response information as sparse arrays
+        and then interpolates to the proper frequency array.
+
+        This class acts in a unique why by passing arrays of pointers from python
+        into C++/CUDA.
+
+        Args:
+            data_freqs (double xp.ndarray): Frequencies to interpolate to.
+            interp_container (obj): ``container`` attribute from the interpolant
+                class: :class:`CubicSplineInterpolant`.
+            t_start (double xp.ndarray): Array of start times (sec) for each binary.
+            t_end (double xp.ndarray): Array of end times (sec) for each binary.
+            length (int): Length of original frequency array.
+            num_modes (int): Number of harmonics.
+            num_channels (int): Number of channels in data.
+
+        Attributes:
+            data_length (int): Length of data. This class interpolates to this length.
+            length (int): Length of original frequency array.
+            num_bin_all (int): Number of binaries.
+            num_channels (int): Number of channels in data.
+            num_modes (int): Number of harmonics.
+            template_carrier (complex128 xp.ndarray): Carrier for output templates.
+                Templates can be accessed through the ``template_channels`` property.
+            use_gpu (bool): If True, using GPU.
+            xp (obj): Either numpy or cupy.
+
+        Returns:
+            list: List of template arrays for all binaries.
+                shape of each array: ``(self.num_channels, self.data_length)``
+
+        """
+
+        # fill important quantities
+        num_bin_all = len(t_start)
         self.length = length
         self.num_modes = num_modes
-        self.num_bin_all = numBinAll
-        self.data_length = data_length
-        self.nChannels = nChannels
+        self.num_bin_all = num_bin_all
+        self.data_length = len(data_freqs)
+        self.num_channels = num_channels
 
-        # self._initialize_template_container()
-
+        # unpack interp_container
         (freqs, y, c1, c2, c3) = interp_container
 
         freqs_shaped = freqs.reshape(self.num_bin_all, -1)
+
+        # find where each binary's signal starts and ends in the data array
 
         start_and_end = self.xp.asarray([freqs_shaped[:, 0], freqs_shaped[:, -1],]).T
 
         inds_start_and_end = self.xp.asarray(
             [
-                self.xp.searchsorted(dataFreqs, temp, side="right")
+                self.xp.searchsorted(data_freqs, temp, side="right")
                 for temp in start_and_end
             ]
         )
 
+        # find proper interpolation window for each point in data stream
         inds = [
             self.xp.searchsorted(
-                freqs_shaped[i], dataFreqs[st:et], side="right"
+                freqs_shaped[i], data_freqs[st:et], side="right"
             ).astype(self.xp.int32)
             - 1
             for i, (st, et) in enumerate(inds_start_and_end)
         ]
 
+        # lengths of the signals in frequency domain
         self.lengths = lengths = np.asarray(
             [len(inds_i) for inds_i in inds], dtype=self.xp.int32
         )
 
+        # make sure have this quantity available on CPU
         try:
             temp_inds = inds_start_and_end[:, 0].get()
         except AttributeError:
             temp_inds = inds_start_and_end[:, 0]
 
+        # where to start filling waveform
         self.start_inds = start_inds = (temp_inds.copy()).astype(np.int32)
 
+        # get pointers to all the index arrays of different length
         try:
             self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
         except AttributeError:
@@ -116,11 +162,13 @@ class TemplateInterp:
                 [ind_i.__array_interface__["data"][0] for ind_i in inds]
             )
 
+        # initialize template information
         self.template_carrier = [
-            self.xp.zeros(int(self.nChannels * temp_length), dtype=self.xp.complex128,)
+            self.xp.zeros(int(self.num_channels * temp_length), dtype=self.xp.complex128,)
             for temp_length in lengths
         ]
 
+        # get pointers to template carriers so they can be run in streams
         try:
             template_carrier_ptrs = np.asarray(
                 [temp_carrier.data.ptr for temp_carrier in self.template_carrier]
@@ -133,12 +181,10 @@ class TemplateInterp:
                 ]
             )
 
-        dlog10f = 1.0
-
+        # fill templates
         self.template_gen(
             template_carrier_ptrs,
-            dataFreqs,
-            dlog10f,
+            data_freqs,
             freqs,
             y,
             c1,
@@ -150,13 +196,12 @@ class TemplateInterp:
             self.data_length,
             self.num_bin_all,
             self.num_modes,
-            t_obs_start,
-            t_obs_end,
             ptrs,
             start_inds,
             lengths,
         )
 
+        # return templates in the right shape
         return self.template_channels
 
 
@@ -191,7 +236,7 @@ class BBHWaveformFD:
         response_kwargs (dict, optional): Keyword arguments for the initialization
             of the response class: :class:`LISATDIResponse`.
         interp_kwargs (dict, optional): Keyword arguments for the initialization
-            of the interpolation class: :class:`TemplateInterp`.
+            of the interpolation class: :class:`TemplateInterpFD`.
         use_gpu (bool, optional): If ``True``, use a GPU. (Default: ``False``)
 
     Attributes:
@@ -232,7 +277,7 @@ class BBHWaveformFD:
         self.num_interp_params = 9
 
         # setup the final interpolant
-        self.interp_response = TemplateInterp(**interp_kwargs, use_gpu=use_gpu)
+        self.interp_response = TemplateInterpFD(**interp_kwargs, use_gpu=use_gpu)
 
     @property
     def citation(self):
@@ -275,20 +320,20 @@ class BBHWaveformFD:
 
 
         Args:
-            m1 (double): Mass 1 in Solar Masses :math:`(m1 > m2)`.
-            m2 (double): Mass 2 in Solar Masses :math:`(m1 > m2)`.
-            chi1z (double): Dimensionless spin 1 (for Mass 1) in Solar Masses.
-            chi2z (double): Dimensionless spin 2 (for Mass 1) in Solar Masses.
-            distance (double): Luminosity distance in m.
-            phiRef (double): Phase at ``f_ref``.
-            f_ref (double): Reference frequency at which ``phi_ref`` and ``t_ref`` are set.
+            m1 (double scalar or np.ndarray): Mass 1 in Solar Masses :math:`(m1 > m2)`.
+            m2 (double or np.ndarray): Mass 2 in Solar Masses :math:`(m1 > m2)`.
+            chi1z (double or np.ndarray): Dimensionless spin 1 (for Mass 1) in Solar Masses.
+            chi2z (double or np.ndarray): Dimensionless spin 2 (for Mass 1) in Solar Masses.
+            distance (double or np.ndarray): Luminosity distance in m.
+            phiRef (double or np.ndarray): Phase at ``f_ref``.
+            f_ref (double or np.ndarray): Reference frequency at which ``phi_ref`` and ``t_ref`` are set.
                 If ``f_ref == 0``, it will be set internally by the PhenomHM code
                 to :math:`f_\\text{max} = \\text{max}(f^2A_{22}(f))`.
-            inc (double): Inclination of the binary in radians :math:`(\iota\in[0.0, \pi])`.
-            lam (double): Ecliptic longitude :math:`(\lambda\in[0.0, 2\pi])`.
-            beta (double): Ecliptic latitude :math:`(\\beta\in[-\pi/2, \pi/2])`.
-            psi (double): Polarization angle in radians :math:`(\psi\in[0.0, \pi])`.
-            t_ref (double): Reference time in seconds. It is set at ``f_ref``.
+            inc (double or np.ndarray): Inclination of the binary in radians :math:`(\iota\in[0.0, \pi])`.
+            lam (double or np.ndarray): Ecliptic longitude :math:`(\lambda\in[0.0, 2\pi])`.
+            beta (double or np.ndarray): Ecliptic latitude :math:`(\\beta\in[-\pi/2, \pi/2])`.
+            psi (double or np.ndarray): Polarization angle in radians :math:`(\psi\in[0.0, \pi])`.
+            t_ref (double or np.ndarray): Reference time in seconds. It is set at ``f_ref``.
             t_obs_start (double, optional): Start time of observation in years
                 in the LISA constellation reference frame. If ``shift_t_limits==True``,
                 this is with reference to :math:`t=0`. If ``shift_t_limits==False`` this is
@@ -341,7 +386,7 @@ class BBHWaveformFD:
                 Final waveform of all binaries in the same data stream.
                 If ``fill==True`` and ``combine==False``.
             tuple: Information for fast likelihood functions.
-                First entry is ``template_channels`` property from :class:`TemplateInterp`.
+                First entry is ``template_channels`` property from :class:`TemplateInterpFD`.
                 Second entry is ``start_inds`` attribute from ``self.interp_response``.
                 Third entry is ``lengths`` attribute from ``self.interp_response``.
 
@@ -572,10 +617,7 @@ class BBHWaveformFD:
                 t_start,
                 t_end,
                 self.length,
-                self.data_length,
                 self.num_modes,
-                t_obs_start,
-                t_obs_end,
                 3,
             )
 

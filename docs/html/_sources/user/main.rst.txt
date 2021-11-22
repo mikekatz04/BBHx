@@ -20,7 +20,3 @@ TDI observable waveforms are produced in three main parts:
     :members:
     :show-inheritance:
     :inherited-members:
-
-
-Response
-~~~~~~~~~~~~~~~~~~~~~~~~~~

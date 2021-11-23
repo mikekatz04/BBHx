@@ -273,10 +273,6 @@ if run_cuda_install:
         **gpu_extension
     )
 
-    pyEOB_ext = Extension(
-        "pyEOB", sources=["src/EOB.cu", "src/eob.pyx"], **gpu_extension
-    )
-
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
 fps_cu_to_cpp = [
     "PhenomHM",
@@ -284,9 +280,8 @@ fps_cu_to_cpp = [
     "Interpolate",
     "WaveformBuild",
     "Likelihood",
-    "EOB",
 ]
-fps_pyx = ["phenomhm", "response", "interpolate", "waveformbuild", "likelihood", "eob"]
+fps_pyx = ["phenomhm", "response", "interpolate", "waveformbuild", "likelihood"]
 
 for fp in fps_cu_to_cpp:
     shutil.copy("src/" + fp + ".cu", "src/" + fp + ".cpp")
@@ -334,10 +329,6 @@ pyLikelihood_cpu_ext = Extension(
     **cpu_extension
 )
 
-pyEOB_cpu_ext = Extension(
-    "pyEOB_cpu", sources=["src/EOB.cpp", "src/eob_cpu.pyx"], **cpu_extension
-)
-
 fp_out_name = "bbhx/utils/constants.py"
 fp_in_name = "include/constants.h"
 
@@ -363,7 +354,6 @@ extensions = [
     pyInterpolate_cpu_ext,
     pyWaveformBuild_cpu_ext,
     pyLikelihood_cpu_ext,
-    pyEOB_cpu_ext,
 ]
 
 if run_cuda_install:
@@ -373,7 +363,6 @@ if run_cuda_install:
         pyInterpolate_ext,
         pyWaveformBuild_ext,
         pyLikelihood_ext,
-        pyEOB_ext,
     ] + extensions
 
 setup(

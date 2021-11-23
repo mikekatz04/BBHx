@@ -1,6 +1,29 @@
+# Wraps codes for PhenomHM originally from
+# arXiv:1708.00404
+# arXiv:1508.07250
+# arXiv:1508.07253
+# but now adjusted for GPU usage.
+
+# Copyright (C) 2021 Michael L. Katz
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 import numpy as np
 from scipy.interpolate import CubicSpline
 
+# import GPU stuff
 try:
     from pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
     from pyPhenomHM import (
@@ -22,13 +45,59 @@ from pyPhenomHM_cpu import (
 from pyPhenomHM_cpu import (
     get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_cpu,
 )
-from bbhx.utils.constants import *
-from bbhx.waveforms.ringdownphenomd import *
+
+from ..utils.constants import *
+from ..waveforms.ringdownphenomd import *
 
 
 class PhenomHMAmpPhase:
+    """Produce PhenomHM in the amplitude and phase representation
+
+    This class implements PhenomD and PhenomHM in a GPU-accelerated form.
+    If you use this class, please cite
+    `arXiv:2005.01827 <https://arxiv.org/abs/2005.01827>`_,
+    `arXiv:2111.01064 <https://arxiv.org/abs/2111.01064>`_
+    `arXiv:1708.00404 <https://arxiv.org/abs/1708.00404>`_,
+    `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_, and
+    `arXiv:1508.07253 <https://arxiv.org/abs/1508.07253>_.
+
+    Args:
+        use_gpu (bool, optional): If ``True``, run on the GPU.
+        run_phenomd (bool, optional): If ``True``, run the PhenomD
+            waveform rather than PhenomHM. Really this is the same
+            as choosing ``modes=[(2,2)]`` in the PhenomHM waveform.
+
+    Attributes:
+        allowable_modes (list): Allowed list of mode tuple pairs ``(l,m)`` for
+            the chosen waveform model.
+        ells_default (np.ndarray): Default values for the ``l`` index of the harmonic.
+        mms_default (np.ndarray): Default values for the ``m`` index of the harmonic.
+        mf_max (double): Default maximum frequency to use when performing
+            interpolation:  :math:`6\\times10^{-1}`. # TODO: make adjustable?
+        mf_min (double): Default minimum frequency to use when performing
+            interpolation: :math:`10^{-4}`. # TODO: make adjustable?
+        phenomhm_ringdown_freqs (obj): Ringdown frequency determination in PhenomHM.
+        phenomd_ringdown_freqs (obj): Ringdown frequency determination in PhenomD.
+        run_phenomd (bool): If ``True``, run the PhenomD
+            waveform rather than PhenomHM. Really this is the same
+            as choosing ``modes=[(2,2)]`` in the PhenomHM waveform.
+        use_gpu (bool): If ``True``, run on the GPU.
+        waveform_gen (obj): Amplitude, phase, tf determination.
+        xp (obj): numpy or cupy
+        y_rd (xp.ndarray): Y-values for PhenomD ringdown frequncy for Cubic Spline.
+        c1_rd (xp.ndarray): Cubic Spline c1 values for PhenomD ringdown frequency.
+        c2_rd (xp.ndarray): Cubic Spline c2 values for PhenomD ringdown frequency.
+        c3_rd (xp.ndarray): Cubic Spline c3 values for PhenomD ringdown frequency.
+        y_dm (xp.ndarray): Y-values for PhenomD damping frequncy for Cubic Spline.
+        c1_dm (xp.ndarray): Cubic Spline c1 values for PhenomD damping frequency.
+        c2_dm (xp.ndarray): Cubic Spline c2 values for PhenomD damping frequency.
+        c3_dm (xp.ndarray): Cubic Spline c3 values for PhenomD damping frequency.
+        waveform_carrier (xp.ndarray): Carrier for amplitude, phase, and tf information.
+
+    """
+
     def __init__(
-        self, max_init_len=-1, use_gpu=False, run_phenomd=False,
+        self, use_gpu=False, run_phenomd=False,
     ):
 
         self.run_phenomd = run_phenomd
@@ -44,13 +113,6 @@ class PhenomHMAmpPhase:
             self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_cpu
             self.phenomd_ringdown_freqs = get_phenomd_ringdown_frequencies_cpu
 
-        if max_init_len > 0:
-            self.use_buffers = True
-            raise NotImplementedError
-
-        else:
-            self.use_buffers = False
-
         self.allowable_modes = [(2, 2), (3, 3), (4, 4), (2, 1), (3, 2), (4, 3)]
 
         self.ells_default = self.xp.array([2, 3, 4, 2, 3, 4], dtype=self.xp.int32)
@@ -64,11 +126,10 @@ class PhenomHMAmpPhase:
 
             self.mms_default = self.xp.array([2], dtype=self.xp.int32)
 
-        self.Mf_min = 1e-4
-        self.Mf_max = 0.6
+        self.mf_min = 1e-4
+        self.mf_max = 0.6
 
-        if True:  # self.run_phenomd:
-            self._init_phenomd_fring_spline()
+        self._init_phenomd_fring_spline()
 
     def _init_phenomd_fring_spline(self):
         spl_ring = CubicSpline(QNMData_a, QNMData_fring)
@@ -128,7 +189,7 @@ class PhenomHMAmpPhase:
         M_tot_sec = (m1 + m2) * MTSUN_SI
 
         base_freqs = self.xp.logspace(
-            self.xp.log10(self.Mf_min), self.xp.log10(self.Mf_max), self.length
+            self.xp.log10(self.mf_min), self.xp.log10(self.mf_max), self.length
         )
 
         self.freqs = (
@@ -272,8 +333,8 @@ class PhenomHMAmpPhase:
             )
 
         if not self.run_phenomd:  # else:
-            append_phenomd_frd = self.fringdown[:self.num_bin_all].copy()
-            append_phenomd_fdm = self.fdamp[:self.num_bin_all].copy()
+            append_phenomd_frd = self.fringdown[: self.num_bin_all].copy()
+            append_phenomd_fdm = self.fdamp[: self.num_bin_all].copy()
             self.phenomhm_ringdown_freqs(
                 self.fringdown,
                 self.fdamp,
@@ -288,8 +349,28 @@ class PhenomHMAmpPhase:
             )
 
             # this adds the phenomD frequencies to keep everything consistent
-            self.fringdown = self.xp.concatenate([self.fringdown.reshape(-1, num_modes), self.xp.array([append_phenomd_frd]).T], axis=1).flatten().copy()
-            self.fdamp = self.xp.concatenate([self.fdamp.reshape(-1, num_modes), self.xp.array([append_phenomd_fdm]).T], axis=1).flatten().copy()
+            self.fringdown = (
+                self.xp.concatenate(
+                    [
+                        self.fringdown.reshape(-1, num_modes),
+                        self.xp.array([append_phenomd_frd]).T,
+                    ],
+                    axis=1,
+                )
+                .flatten()
+                .copy()
+            )
+            self.fdamp = (
+                self.xp.concatenate(
+                    [
+                        self.fdamp.reshape(-1, num_modes),
+                        self.xp.array([append_phenomd_fdm]).T,
+                    ],
+                    axis=1,
+                )
+                .flatten()
+                .copy()
+            )
 
         self.waveform_gen(
             self.waveform_carrier,

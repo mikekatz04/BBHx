@@ -6,6 +6,7 @@
 
    user/main
    user/utils
+   user/waveforms
 
 .. toctree::
    :maxdepth: 4

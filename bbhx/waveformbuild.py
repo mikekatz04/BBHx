@@ -27,16 +27,15 @@ except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as xp
 
-from bbhx.utils.transform import tSSBfromLframe
-
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 
-from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
-from bbhx.response.fastfdresponse import LISATDIResponse
-from bbhx.utils.interpolate import CubicSplineInterpolant
-from bbhx.utils.constants import *
-from bbhx.utils.citations import *
+from .waveforms.phenomhm import PhenomHMAmpPhase
+from .response.fastfdresponse import LISATDIResponse
+from .utils.transform import tSSBfromLframe
+from .utils.interpolate import CubicSplineInterpolant
+from .utils.constants import *
+from .utils.citations import *
 
 
 class TemplateInterpFD:

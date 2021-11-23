@@ -1,16 +1,33 @@
+# Main waveform class location
+
+# Copyright (C) 2021 Michael L. Katz
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
+# import gpu stuff
 try:
     import cupy as xp
     from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
     from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
-    from pyWaveformBuild import TDInterp_wrap2 as TDInterp_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as xp
 
-from lisatools.utils.transform import tSSBfromLframe
+from bbhx.utils.transform import tSSBfromLframe
 
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
@@ -39,6 +56,7 @@ class TemplateInterpFD:
 
 
     """
+
     def __init__(self, use_gpu=False):
 
         if use_gpu:
@@ -164,7 +182,9 @@ class TemplateInterpFD:
 
         # initialize template information
         self.template_carrier = [
-            self.xp.zeros(int(self.num_channels * temp_length), dtype=self.xp.complex128,)
+            self.xp.zeros(
+                int(self.num_channels * temp_length), dtype=self.xp.complex128,
+            )
             for temp_length in lengths
         ]
 
@@ -281,6 +301,7 @@ class BBHWaveformFD:
 
     @property
     def citation(self):
+        """Citations for this class"""
         return (
             katz_1
             + katz_2
@@ -612,13 +633,7 @@ class BBHWaveformFD:
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
 
             template_channels = self.interp_response(
-                freqs,
-                spline.container,
-                t_start,
-                t_end,
-                self.length,
-                self.num_modes,
-                3,
+                freqs, spline.container, t_start, t_end, self.length, self.num_modes, 3,
             )
 
             # fill the data stream

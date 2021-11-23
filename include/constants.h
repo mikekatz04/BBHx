@@ -57,6 +57,7 @@
 //#define SQRT2 1.4142135623730951
 #define L_SI 2.5e9
 #define eorbit 0.004824185218078991
+#define ConstOmega 1.99098659277e-7
 //#define C_SI 299792458.0
 
 

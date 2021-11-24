@@ -6,6 +6,7 @@
 
    user/main
    user/waveforms
+   user/response
    user/utils
 
 .. toctree::

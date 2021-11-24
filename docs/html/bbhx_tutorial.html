@@ -43,6 +43,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="user/main.html">Full TDI Waveforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/waveforms.html">Available Waveform Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/response.html">LISA Response Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/utils.html">Utility Functions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
@@ -62,6 +63,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Fast-FD-Response">Fast FD Response</a></li>
 </ul>
 </li>
 </ul>
@@ -377,6 +379,7 @@ div.rendered_html tbody tr:hover {
 
 <span class="kn">from</span> <span class="nn">bbhx.waveformbuild</span> <span class="kn">import</span> <span class="n">BBHWaveformFD</span>
 <span class="kn">from</span> <span class="nn">bbhx.waveforms.phenomhm</span> <span class="kn">import</span> <span class="n">PhenomHMAmpPhase</span>
+<span class="kn">from</span> <span class="nn">bbhx.response.fastfdresponse</span> <span class="kn">import</span> <span class="n">LISATDIResponse</span>
 <span class="kn">from</span> <span class="nn">bbhx.utils.constants</span> <span class="kn">import</span> <span class="o">*</span>
 </pre></div>
 </div>
@@ -966,7 +969,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -999,7 +1002,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <p>Plot Amplitudes</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1011,12 +1014,12 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7fd5eeabd9d0&gt;
+&lt;matplotlib.legend.Legend at 0x7fdb7440cd90&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1025,6 +1028,213 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="output_area docutils container">
 <img alt="_images/bbhx_tutorial_40_1.png" src="_images/bbhx_tutorial_40_1.png" />
 </div>
+</div>
+</section>
+<section id="Fast-FD-Response">
+<h2>Fast FD Response<a class="headerlink" href="#Fast-FD-Response" title="Permalink to this headline"></a></h2>
+<p>A large amount of the Fast FD Response codes were provided by Sylvain Marsat, so thank you to him! Detailed information on the response can be found in <a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a> and <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>. The response works by applying an effective transfer function, <span class="math notranslate nohighlight">\(\mathcal{T}(f, t(f))\)</span>, to the waveform to get the TDI channels:</p>
+<div class="math notranslate nohighlight">
+\[\tilde{h}^{AET}(f) = \mathcal{T}(f, t(f))\tilde{h}^\text{SSB}(f),\]</div>
+<p>where <span class="math notranslate nohighlight">\(t(f)\)</span> is the time-frequency correspondence. This determines where the LISA constellation is in its orbit. This response function assumes the arms of the constellation are constant in time.</p>
+<p>The response function operates directly on information coming from the base waveform generation in PhenomHM when you run <code class="docutils literal notranslate"><span class="pre">BBHWaveformFD</span></code>. To run the response separately you need to provide a phase and tf vector. The phase is adjusted inside the response code. If you do not want that to happen, you can add the keyword argument <code class="docutils literal notranslate"><span class="pre">adjust_phase=False</span></code>. If you are just running the response function to use it itself and not using to adjust phase, you can just put in zeros for the phase, it will not
+affect the computation. All parameters for the response are in the SSB frame. This function can take 1D arrays for the parameters as well. In this case, you need <code class="docutils literal notranslate"><span class="pre">freqs.shape=(num_bin_all,</span> <span class="pre">length)</span></code>, <code class="docutils literal notranslate"><span class="pre">phases.shape=tf.shape=(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code> with <code class="docutils literal notranslate"><span class="pre">num_bin_all</span></code> the total number of binaries, <code class="docutils literal notranslate"><span class="pre">num_modes</span></code> the number of harmonics, and <code class="docutils literal notranslate"><span class="pre">length</span></code> number of frequencies to evaluate per binary.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># use phase/tf information from last waveform run</span>
+<span class="n">freqs</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">phase</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">tf</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">modes</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">modes</span>
+
+<span class="n">phi_ref</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
+<span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">5</span>
+<span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">7</span>
+
+<span class="n">length</span> <span class="o">=</span> <span class="n">freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">LISATDIResponse</span><span class="p">()</span>
+<span class="n">response</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span>
+        <span class="n">inc</span><span class="p">,</span>
+        <span class="n">lam</span><span class="p">,</span>
+        <span class="n">beta</span><span class="p">,</span>
+        <span class="n">psi</span><span class="p">,</span>
+        <span class="n">phi_ref</span><span class="p">,</span>
+        <span class="n">length</span><span class="p">,</span>
+        <span class="n">phase</span><span class="o">=</span><span class="n">phase</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">=</span><span class="n">tf</span><span class="p">,</span>
+        <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">)</span>
+
+<span class="c1"># plot parts of the response</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+
+    <span class="c1"># (2, 2) mode</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">modes</span><span class="o">.</span><span class="n">index</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1"># response.transferL1</span>
+    <span class="n">transfer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;transferL</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span> <span class="n">transfer</span><span class="o">.</span><span class="n">real</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Real&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;solid&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span> <span class="n">transfer</span><span class="o">.</span><span class="n">imag</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Imag&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7fdb72b07790&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/bbhx_tutorial_43_1.png" src="_images/bbhx_tutorial_43_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># use phase/tf information from last waveform run</span>
+
+<span class="n">num_bin_all</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">tf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="n">phi_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">)</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">7</span><span class="p">)</span>
+
+<span class="n">length</span> <span class="o">=</span> <span class="n">freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">response</span><span class="p">(</span>
+    <span class="n">freqs</span><span class="p">,</span>
+    <span class="n">inc</span><span class="p">,</span>
+    <span class="n">lam</span><span class="p">,</span>
+    <span class="n">beta</span><span class="p">,</span>
+    <span class="n">psi</span><span class="p">,</span>
+    <span class="n">phi_ref</span><span class="p">,</span>
+    <span class="n">length</span><span class="p">,</span>
+    <span class="n">phase</span><span class="o">=</span><span class="n">phase</span><span class="p">,</span>
+    <span class="n">tf</span><span class="o">=</span><span class="n">tf</span><span class="p">,</span>
+    <span class="n">modes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># defaults to phenomhm modes</span>
+    <span class="n">adjust_phase</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="c1"># if you want to keep the phase array you input the same, set this to false.</span>
+<span class="p">)</span>  <span class="c1"># You can get adjusted phases with response.phase</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">phase</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">transferL1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="c1"># get phase adjustment by response function</span>
+<span class="n">phase_diff</span> <span class="o">=</span> <span class="n">phase</span> <span class="o">-</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(10, 1024) (10, 6, 1024) (10, 6, 1024) (10, 6, 1024)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&lt;matplotlib.lines.Line2D at 0x7fdb72b2b810&gt;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/bbhx_tutorial_44_2.png" src="_images/bbhx_tutorial_44_2.png" />
+</div>
+</div>
+<p>If building a waveform, you can also put a larger buffer object directly into the response code. This larger buffer object would be carrying amplitudes, phases, and tf from the source-frame waveform generator.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">num_bin_all</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">length</span> <span class="o">=</span> <span class="mi">1024</span>
+<span class="n">num_modes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">modes</span><span class="p">)</span>
+<span class="n">buffer_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="n">num_bin_all</span><span class="p">,</span> <span class="n">num_modes</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+<span class="n">out_buffer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">buffer_shape</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+<span class="n">f_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># let phenom codes set f_ref -&gt; fmax = max(f^2A(f))</span>
+<span class="n">phi_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="c1"># phase at f_ref</span>
+<span class="n">m1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">)</span>
+<span class="n">m2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">5e5</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">)</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">3e3</span><span class="p">)</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
+
+<span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">)</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">7</span><span class="p">)</span>
+
+<span class="n">phenomhm</span><span class="p">(</span>
+    <span class="n">m1</span><span class="p">,</span>
+    <span class="n">m2</span><span class="p">,</span>
+    <span class="n">a1</span><span class="p">,</span>
+    <span class="n">a2</span><span class="p">,</span>
+    <span class="n">dist</span><span class="p">,</span>
+    <span class="n">phi_ref</span><span class="p">,</span>
+    <span class="n">f_ref</span><span class="p">,</span>
+    <span class="n">length</span><span class="p">,</span>
+    <span class="n">out_buffer</span><span class="o">=</span><span class="n">out_buffer</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">out_buffer</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">buffer_shape</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+<span class="n">response</span><span class="p">(</span>
+    <span class="n">freqs</span><span class="p">,</span>
+    <span class="n">inc</span><span class="p">,</span>
+    <span class="n">lam</span><span class="p">,</span>
+    <span class="n">beta</span><span class="p">,</span>
+    <span class="n">psi</span><span class="p">,</span>
+    <span class="n">phi_ref</span><span class="p">,</span>
+    <span class="n">length</span><span class="p">,</span>
+    <span class="n">out_buffer</span><span class="o">=</span><span class="n">out_buffer</span><span class="p">,</span>
+    <span class="n">modes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># defaults to phenomhm modes</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">out_buffer</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">buffer_shape</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="c1"># these are all numbers at the first frequency for (2,2) mode for</span>
+<span class="c1"># amp, phase, tf, transferL1re, transferL1im, transferL2re, transferL2im, transferL3re, transferL3im</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[ 2.59987559e-12  7.38281574e+04 -1.44109019e+09  0.00000000e+00
+  0.00000000e+00  0.00000000e+00  0.00000000e+00  0.00000000e+00
+  0.00000000e+00]
+[ 2.59987559e-12  7.38281579e+04 -1.44109019e+09 -1.19852960e-07
+ -1.27213427e-07  2.47978234e-07 -6.83021491e-08  1.66473821e-18
+  3.80562821e-19]
+</pre></div></div>
 </div>
 </section>
 </section>

@@ -541,10 +541,8 @@ class BBHWaveformFD:
             lam,
             beta,
             psi,
-            t_ref,
             phiRef,
             length,
-            includes_amps=True,
             out_buffer=out_buffer,  # fill into this buffer
             modes=self.amp_phase_gen.modes,
         )

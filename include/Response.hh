@@ -25,12 +25,11 @@ void LISA_response(
     int* ells_in,
     int* mms_in,
     double* freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-    double* phiRef,                 /**< reference orbital phase (rad) */
+    double* phi_ref,                 /**< reference orbital phase (rad) */
     double* inc,
     double* lam,
     double* beta,
     double* psi,
-    double* t_ref,
     int TDItag, int order_fresnel_stencil,
     int numModes,
     int length,

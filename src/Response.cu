@@ -276,8 +276,8 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
   * internal function that filles amplitude and phase for a specific frequency and mode.
   */
  CUDA_CALLABLE_MEMBER
- void response_modes(double* phases, double* response_out, int binNum, int mode_i, double* phases_deriv, double* freqs, double phiRef, int ell, int mm, int length, int numBinAll, int numModes,
- cmplx* H, double lam, double beta, double t_ref, int TDItag, int order_fresnel_stencil)
+ void response_modes(double* phases, double* response_out, int binNum, int mode_i, double* tf, double* freqs, double phi_ref, int ell, int mm, int length, int numBinAll, int numModes,
+ cmplx* H, double lam, double beta, int TDItag, int order_fresnel_stencil)
  {
 
          double eps = 1e-9;
@@ -298,7 +298,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
 
              double freq = freqs[freq_index];
 
-             double t_wave_frame = phases_deriv[mode_index];
+             double t_wave_frame = tf[mode_index];
 
              d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, TDItag, order_fresnel_stencil);
 
@@ -414,14 +414,13 @@ void responseCore(
     double* response_out,
     int *ells,
     int *mms,
-    double* phases_deriv,
+    double* tf,
     double* freqs,                      /**< GW frequecny list [Hz] */
-    const double phiRef,                        /**< orbital phase at f_ref */
+    const double phi_ref,                        /**< orbital phase at f_ref */
     double inc,
     double lam,
     double beta,
     double psi,
-    double t_ref,
     int length,                              /**< reference GW frequency */
     int numModes,
     int binNum,
@@ -540,8 +539,8 @@ void responseCore(
 
         if THREAD_ZERO
         {
-            Ylm = SpinWeightedSphericalHarmonic(-2, ell, mm, inc, phiRef);
-            Yl_m = pow(-1.0, ell)*gcmplx::conj(SpinWeightedSphericalHarmonic(-2, ell, -1*mm, inc, phiRef));
+            Ylm = SpinWeightedSphericalHarmonic(-2, ell, mm, inc, phi_ref);
+            Yl_m = pow(-1.0, ell)*gcmplx::conj(SpinWeightedSphericalHarmonic(-2, ell, -1*mm, inc, phi_ref));
             Yfactorplus = 1./2 * (Ylm + Yl_m);
             //# Yfactorcross = 1j/2 * (Y22 - Y2m2)  ### SB, should be for correct phase conventions
             Yfactorcross = 1./2. * I * (Ylm - Yl_m); //  ### SB, minus because the phase convention is opposite, we'll tace c.c. at the end
@@ -560,9 +559,9 @@ void responseCore(
         }
         CUDA_SYNC_THREADS;
 
-         //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phiRef, psi);
-        response_modes(phases, response_out, binNum, mode_i, phases_deriv, freqs, phiRef, ell, mm, length, numBinAll, numModes,
-        H_mat, lam, beta, t_ref, TDItag, order_fresnel_stencil);
+         //if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phi_ref, psi);
+        response_modes(phases, response_out, binNum, mode_i, tf, freqs, phi_ref, ell, mm, length, numBinAll, numModes,
+        H_mat, lam, beta, TDItag, order_fresnel_stencil);
 
     }
 }
@@ -579,16 +578,15 @@ void responseCore(
  void response(
      double* phases,
      double* response_out,
-     double* phases_deriv,
+     double* tf,
      int* ells_in,
      int* mms_in,
      double* freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-     double* phiRef,                 /**< reference orbital phase (rad) */
+     double* phi_ref,                 /**< reference orbital phase (rad) */
      double* inc,
      double* lam,
      double* beta,
      double* psi,
-     double* t_ref,
      int TDItag, int order_fresnel_stencil,
      int numModes,
      int length,
@@ -626,7 +624,7 @@ void responseCore(
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
-        responseCore(phases, response_out, ells, mms, phases_deriv, freqs, phiRef[binNum], inc[binNum], lam[binNum], beta[binNum], psi[binNum], t_ref[binNum], length, numModes, binNum, numBinAll,
+        responseCore(phases, response_out, ells, mms, tf, freqs, phi_ref[binNum], inc[binNum], lam[binNum], beta[binNum], psi[binNum], length, numModes, binNum, numBinAll,
         TDItag, order_fresnel_stencil);
     }
 }
@@ -638,12 +636,11 @@ void LISA_response(
     int* ells_in,
     int* mms_in,
     double* freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-    double* phiRef,                 /**< reference orbital phase (rad) */
+    double* phi_ref,                 /**< reference orbital phase (rad) */
     double* inc,
     double* lam,
     double* beta,
     double* psi,
-    double* t_ref,
     int TDItag, int order_fresnel_stencil,
     int numModes,
     int length,
@@ -655,7 +652,7 @@ void LISA_response(
     int start_param = includesAmps;  // if it has amps, start_param is 1, else 0
 
     double* phases = &response_out[start_param * numBinAll * numModes * length];
-    double* phases_deriv = &response_out[(start_param + 1) * numBinAll * numModes * length];
+    double* tf = &response_out[(start_param + 1) * numBinAll * numModes * length];
     double* response_vals = &response_out[(start_param + 2) * numBinAll * numModes * length];
 
     int nblocks2 = numBinAll; //std::ceil((numBinAll + NUM_THREADS_RESPONSE -1)/NUM_THREADS_RESPONSE);
@@ -665,16 +662,15 @@ void LISA_response(
     (
         phases,
         response_vals,
-        phases_deriv,
+        tf,
         ells_in,
         mms_in,
         freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-        phiRef,                 /**< reference orbital phase (rad) */
+        phi_ref,                 /**< reference orbital phase (rad) */
         inc,
         lam,
         beta,
         psi,
-        t_ref,
         TDItag, order_fresnel_stencil,
         numModes,
         length,
@@ -687,16 +683,15 @@ void LISA_response(
     (
         phases,
         response_vals,
-        phases_deriv,
+        tf,
         ells_in,
         mms_in,
         freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
-        phiRef,                 /**< reference orbital phase (rad) */
+        phi_ref,                 /**< reference orbital phase (rad) */
         inc,
         lam,
         beta,
         psi,
-        t_ref,
         TDItag, order_fresnel_stencil,
         numModes,
         length,

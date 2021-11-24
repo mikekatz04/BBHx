@@ -135,6 +135,11 @@ class PhenomHMAmpPhase:
         # prepare the PhenomD spline info for fRD and fDM
         self._init_phenomd_fring_spline()
 
+    @property
+    def citation(self):
+        """Return citations for this class"""
+        return katz_1 + katz_2 + phenomhm_citation + phenomd_citations
+
     def _init_phenomd_fring_spline(self):
         """Prepare PhenomD fring and fdamp splines"""
         # setup splines
@@ -355,6 +360,7 @@ class PhenomHMAmpPhase:
             self._initialize_waveform_container()
 
         else:
+            # TODO: add sanity checks for buffer size like response
             self.waveform_carrier = out_buffer
 
         # initialize frequencies if not given

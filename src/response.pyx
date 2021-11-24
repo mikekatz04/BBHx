@@ -13,12 +13,11 @@ cdef extern from "Response.hh":
         int* ells_in,
         int* mms_in,
         double* freqs,
-        double* phiRef,
+        double* phi_ref,
         double* inc,
         double* lam,
         double* beta,
         double* psi,
-        double* t_ref,
         int TDItag, int order_fresnel_stencil,
         int numModes,
         int length,
@@ -32,12 +31,11 @@ def LISA_response_wrap(
      ells,
      mms,
      freqs,
-     phiRef,
+     phi_ref,
      inc,
      lam,
      beta,
      psi,
-     t_ref,
     TDItag, order_fresnel_stencil,
     numModes,
     length,
@@ -53,20 +51,18 @@ def LISA_response_wrap(
     cdef size_t lam_in = lam
     cdef size_t beta_in = beta
     cdef size_t psi_in = psi
-    cdef size_t t_ref_in = t_ref
-    cdef size_t phiRef_in = phiRef
+    cdef size_t phi_ref_in = phi_ref
 
     LISA_response(
         <double*> response_out_in,
         <int*> ells_in,
         <int*> mms_in,
         <double*> freqs_in,
-        <double*> phiRef_in,
+        <double*> phi_ref_in,
         <double*> inc_in,
         <double*> lam_in,
         <double*> beta_in,
         <double*> psi_in,
-        <double*> t_ref_in,
         TDItag, order_fresnel_stencil,
         numModes,
         length,

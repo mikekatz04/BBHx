@@ -136,15 +136,15 @@ class LISATDIResponse:
         return phase
 
     @property
-    def phase_deriv(self):
-        phase_deriv = self.response_carrier[
+    def tf(self):
+        tf = self.response_carrier[
             (self.includes_amps + 1)
             * self.num_per_param : (self.includes_amps + 2)
             * self.num_per_param
         ].reshape(self.length, self.num_modes, self.num_bin_all)
 
-        phase_deriv = self.xp.transpose(phase_deriv, axes=(2, 1, 0))
-        return phase_deriv
+        tf = self.xp.transpose(tf, axes=(2, 1, 0))
+        return tf
 
     def __call__(
         self,

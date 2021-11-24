@@ -20,7 +20,9 @@
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" /> 
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="bbhx Tutorial" href="../bbhx_tutorial.html" />
+    <link rel="prev" title="Utility Functions" href="utils.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,9 +41,13 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="main.html">Full TDI Waveforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Functions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Available Waveform Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#phenomhm-phenomd">PhenomHM (PhenomD)</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
@@ -66,7 +72,10 @@
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/user/waveforms.rst.txt" rel="nofollow"> View page source</a>
       </li>
-  </ul>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="utils.html" class="btn btn-neutral float-left" title="Utility Functions" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
@@ -347,10 +356,71 @@ as choosing <code class="docutils literal notranslate"><span class="pre">modes=[
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.amp">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">amp</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.amp" title="Permalink to this definition"></a></dt>
+<dd><p>Get the amplitude array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phase">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">phase</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phase" title="Permalink to this definition"></a></dt>
+<dd><p>Get the phase array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.tf">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">tf</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.tf" title="Permalink to this definition"></a></dt>
+<dd><p>Get the tf array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs_shaped">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">freqs_shaped</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs_shaped" title="Permalink to this definition"></a></dt>
+<dd><p>Get the freqs array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">length)</span></code></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">freqs</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs" title="Permalink to this definition"></a></dt>
+<dd><p>Get the flat freqs array</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__">
 <span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi1z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi2z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phiRef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__" title="Permalink to this definition"></a></dt>
-<dd><p>Call self as a function.</p>
+<dd><p>Generate PhenomHM/D waveforms</p>
+<p>Generate PhenomHM/PhenomD waveforms based on user given quantitites
+in the Amplitude-Phase representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m1</strong> (<em>double scalar</em><em> or </em><em>np.ndarray</em>) – Mass 1 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
+<li><p><strong>m2</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Mass 2 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
+<li><p><strong>chi1z</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Dimensionless spin 1 (for Mass 1) in Solar Masses.</p></li>
+<li><p><strong>chi2z</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Dimensionless spin 2 (for Mass 1) in Solar Masses.</p></li>
+<li><p><strong>distance</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Luminosity distance in m.</p></li>
+<li><p><strong>phiRef</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Phase at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
+<li><p><strong>f_ref</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Reference frequency at which <code class="docutils literal notranslate"><span class="pre">phi_ref</span></code> and <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> are set.
+If <code class="docutils literal notranslate"><span class="pre">f_ref</span> <span class="pre">==</span> <span class="pre">0</span></code>, it will be set internally by the PhenomHM code
+to <span class="math notranslate nohighlight">\(f_\text{max} = \text{max}(f^2A_{22}(f))\)</span>.</p></li>
+<li><p><strong>length</strong> (<em>int</em>) – Length of the frequency array over which the waveform is created.</p></li>
+<li><p><strong>freqs</strong> (<em>1D</em><em> or </em><em>2D xp.ndarray</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the class will generate the
+frequency array over which the waveform is evaluated. If 1D xp.ndarray,
+this array will be copied for all binaries evaluated. If 2D,
+it must have shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">length)</span></code>. (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>out_buffer</strong> (<em>xp.ndarray</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a buffer array will be created.
+If provided, it should be flattened from shape
+<code class="docutils literal notranslate"><span class="pre">(nparams,</span> <span class="pre">length,</span> <span class="pre">num_modes,</span> <span class="pre">num_bin_all)</span></code>. <code class="docutils literal notranslate"><span class="pre">nparams</span></code> can
+be 3 if just evaluating PhenomHM/D. If using the same buffer for
+the response it must be 9. (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>modes</strong> (<em>list</em><em>, </em><em>optional</em>) – Harmonic modes to use. If not given, they will
+default to those available in the waveform model. For PhenomHM:
+[(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]. For PhenomD: [(2,2)].
+(Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -361,7 +431,10 @@ as choosing <code class="docutils literal notranslate"><span class="pre">modes=[
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="utils.html" class="btn btn-neutral float-left" title="Utility Functions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

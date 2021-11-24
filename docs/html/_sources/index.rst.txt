@@ -5,8 +5,8 @@
    :caption: Documentation:
 
    user/main
-   user/utils
    user/waveforms
+   user/utils
 
 .. toctree::
    :maxdepth: 4

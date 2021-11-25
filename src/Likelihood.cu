@@ -368,7 +368,7 @@ void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df
 #define NUM_THREADS_LIKE 256
 
 #ifdef __CUDACC__
-void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
 {
 
     cudaStream_t streams[numBinAll];
@@ -413,7 +413,8 @@ void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_we
                 exit(0);
             }
 
-            d_h[bin_i] += 4.0 * cuCreal(result_d_h[bin_i]);
+            cmplx temp_d_h = (cmplx)result_d_h[bin_i];
+            d_h[bin_i] += 4.0 * temp_d_h;
 
             cublasSetStream(handle, streams[bin_i]);
             stat = cublasZdotc(handle, length_bin_i,
@@ -426,8 +427,8 @@ void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_we
                 exit(0);
             }
 
-
-            h_h[bin_i] += 4.0 * cuCreal(result_h_h[bin_i]);
+            cmplx temp_h_h = (cmplx)result_h_h[bin_i];
+            h_h[bin_i] += 4.0 * temp_h_h;
 
         }
     }
@@ -446,7 +447,7 @@ void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_we
 }
 
 #else
-void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
 {
 
     cmplx result_d_h[numBinAll];
@@ -471,14 +472,14 @@ void direct_like(double* d_h, double* h_h, cmplx* dataChannels, double* noise_we
                               (void*)&templateChannels[j * length_bin_i], 1,
                               (void*)&result_d_h[bin_i]);
 
-            d_h[bin_i] += 4.0 * result_d_h[bin_i].real();
+            d_h[bin_i] += 4.0 * result_d_h[bin_i];
 
             cblas_zdotc_sub(length_bin_i,
                               (void*)&templateChannels[j * length_bin_i], 1,
                               (void*)&templateChannels[j * length_bin_i], 1,
                               (void*)&result_h_h[bin_i]);
 
-            h_h[bin_i] += 4.0 * result_h_h[bin_i].real();
+            h_h[bin_i] += 4.0 * result_h_h[bin_i];
             //printf("%e %e\n", cuCreal(result_h_h[bin_i]), cuCreal(result_d_h[bin_i]));
 
         }

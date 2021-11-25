@@ -132,3 +132,31 @@ phenomd_citations = """
     year = {2016}
 }
 """
+
+Cornish_Heterodyning = """
+@article{Cornish:2021lje,
+    author = "Cornish, Neil J.",
+    title = "{Heterodyned likelihood for rapid gravitational wave parameter inference}",
+    eprint = "2109.02728",
+    archivePrefix = "arXiv",
+    primaryClass = "gr-qc",
+    doi = "10.1103/PhysRevD.104.104054",
+    journal = "Phys. Rev. D",
+    volume = "104",
+    number = "10",
+    pages = "104054",
+    year = "2021"
+}
+"""
+
+Rel_Bin_citation = """
+@article{Zackay:2018qdy,
+    author = "Zackay, Barak and Dai, Liang and Venumadhav, Tejaswi",
+    title = "{Relative Binning and Fast Likelihood Evaluation for Gravitational Wave Parameter Estimation}",
+    eprint = "1806.08792",
+    archivePrefix = "arXiv",
+    primaryClass = "astro-ph.IM",
+    month = "6",
+    year = "2018"
+}
+"""

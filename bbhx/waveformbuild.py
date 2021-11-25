@@ -50,9 +50,17 @@ class TemplateInterpFD:
         use_gpu (bool, optional): If ``True``, use GPU.
 
     Attributes:
+        data_length (int): Length of data. This class interpolates to this length.
+        length (int): Length of original frequency array.
+        num_bin_all (int): Number of binaries.
+        num_channels (int): Number of channels in data.
+        num_modes (int): Number of harmonics.
+        template_carrier (complex128 xp.ndarray): Carrier for output templates.
+            Templates can be accessed through the ``template_channels`` property.
         template_gen (obj): C/CUDA wrapped function for computing interpolated
             waveforms.
-
+        use_gpu (bool): If True, using GPU.
+        xp (obj): Either numpy or cupy.
 
     """
 
@@ -106,17 +114,6 @@ class TemplateInterpFD:
             length (int): Length of original frequency array.
             num_modes (int): Number of harmonics.
             num_channels (int): Number of channels in data.
-
-        Attributes:
-            data_length (int): Length of data. This class interpolates to this length.
-            length (int): Length of original frequency array.
-            num_bin_all (int): Number of binaries.
-            num_channels (int): Number of channels in data.
-            num_modes (int): Number of harmonics.
-            template_carrier (complex128 xp.ndarray): Carrier for output templates.
-                Templates can be accessed through the ``template_channels`` property.
-            use_gpu (bool): If True, using GPU.
-            xp (obj): Either numpy or cupy.
 
         Returns:
             list: List of template arrays for all binaries.

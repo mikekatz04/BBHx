@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user/main.html">Full TDI Waveforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/waveforms.html">Available Waveform Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/response.html">LISA Response Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user/like.html">Likelihood Methods</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user/utils.html">Utility Functions</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
@@ -64,6 +65,11 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#Fast-FD-Response">Fast FD Response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Computing-the-Likelihood">Computing the Likelihood</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">Computing the log-Likelihood for MBHBs directly against the Fourier transform of data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Heterodyned-Likelihoods">Heterodyned Likelihoods</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -380,7 +386,12 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">bbhx.waveformbuild</span> <span class="kn">import</span> <span class="n">BBHWaveformFD</span>
 <span class="kn">from</span> <span class="nn">bbhx.waveforms.phenomhm</span> <span class="kn">import</span> <span class="n">PhenomHMAmpPhase</span>
 <span class="kn">from</span> <span class="nn">bbhx.response.fastfdresponse</span> <span class="kn">import</span> <span class="n">LISATDIResponse</span>
+<span class="kn">from</span> <span class="nn">bbhx.likelihood</span> <span class="kn">import</span> <span class="n">Likelihood</span><span class="p">,</span> <span class="n">HeterodynedLikelihood</span>
 <span class="kn">from</span> <span class="nn">bbhx.utils.constants</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">from</span> <span class="nn">lisatools.sensitivity</span> <span class="kn">import</span> <span class="n">get_sensitivity</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">111222</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -393,6 +404,7 @@ No CuPy
 No CuPy or GPU PhenomHM module.
 No CuPy or GPU response available.
 No CuPy or GPU interpolation available.
+No CuPy
 </pre></div></div>
 </div>
 <section id="GPU-accelerated-MBHB-waveforms-for-LISA">
@@ -969,7 +981,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1004,7 +1016,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <p>Plot Amplitudes</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1018,12 +1030,12 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7fbf59612fd0&gt;
+&lt;matplotlib.legend.Legend at 0x7fd2b92dd990&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1043,7 +1055,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>The response function operates directly on information coming from the base waveform generation in PhenomHM when you run <code class="docutils literal notranslate"><span class="pre">BBHWaveformFD</span></code>. To run the response separately you need to provide a phase and tf vector. The phase is adjusted inside the response code. If you do not want that to happen, you can add the keyword argument <code class="docutils literal notranslate"><span class="pre">adjust_phase=False</span></code>. If you are just running the response function to use it itself and not using to adjust phase, you can just put in zeros for the phase, it will not
 affect the computation. All parameters for the response are in the SSB frame. This function can take 1D arrays for the parameters as well. In this case, you need <code class="docutils literal notranslate"><span class="pre">freqs.shape=(num_bin_all,</span> <span class="pre">length)</span></code>, <code class="docutils literal notranslate"><span class="pre">phases.shape=tf.shape=(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code> with <code class="docutils literal notranslate"><span class="pre">num_bin_all</span></code> the total number of binaries, <code class="docutils literal notranslate"><span class="pre">num_modes</span></code> the number of harmonics, and <code class="docutils literal notranslate"><span class="pre">length</span></code> number of frequencies to evaluate per binary.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1089,12 +1101,12 @@ affect the computation. All parameters for the response are in the SSB frame. Th
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Text(0.5, 0, &#39;Frequency (Hz)&#39;)
+Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1143,7 +1155,9 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 <span class="c1"># get phase adjustment by response function</span>
 <span class="n">phase_diff</span> <span class="o">=</span> <span class="n">phase</span> <span class="o">-</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency (Hz)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Phase Difference from Response Function&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1161,7 +1175,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[&lt;matplotlib.lines.Line2D at 0x7fbf57c3f790&gt;]
+Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1173,7 +1187,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 </div>
 <p>If building a waveform, you can also put a larger buffer object directly into the response code. This larger buffer object would be carrying amplitudes, phases, and tf from the source-frame waveform generator in a flattened 1D array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1244,15 +1258,246 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
   3.80562821e-19]
 </pre></div></div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</section>
+<section id="Computing-the-Likelihood">
+<h2>Computing the Likelihood<a class="headerlink" href="#Computing-the-Likelihood" title="Permalink to this headline"></a></h2>
+<p>The gravitational-wave likelihood, <span class="math notranslate nohighlight">\(\mathcal{L}\)</span>, is given by</p>
+<div class="math notranslate nohighlight">
+\[\log{\mathcal{L}}\propto -\frac{1}{2}\langle d-h|d-h\rangle = -\frac{1}{2}\left( \langle d|d\rangle + \langle h|h\rangle - 2\langle d|h\rangle \right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\langle a|b\rangle\)</span> is the noise-weighted inner product between time-domain strain signals <span class="math notranslate nohighlight">\(a(t)\)</span> and <span class="math notranslate nohighlight">\(b(t)\)</span>. This inner product is given by</p>
+<div class="math notranslate nohighlight">
+\[\langle a|b\rangle = 4\text{Re}\int_0^\infty\frac{\tilde{a}(f)^*\tilde{b}(f)}{S_n(f)}df,\]</div>
+<p>where <span class="math notranslate nohighlight">\(S_n(f)\)</span> is the one-sided Power Spectral Density in the noise.</p>
+<section id="Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">
+<h3>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Permalink to this headline"></a></h3>
+<p>One option in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> for computing the likelihood is a direct Likeihood computation: <code class="docutils literal notranslate"><span class="pre">bbhx.likelihood.Likelihood</span></code>. You will need <code class="docutils literal notranslate"><span class="pre">lisatools</span></code> if you want to compute the sensitivity curves. Otherwise, put in your own sensitivity functions or np.ones to get it to work.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span>
+<span></span><span class="c1">######## generate data</span>
+<span class="c1"># set parameters</span>
+<span class="n">f_ref</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># let phenom codes set f_ref -&gt; fmax = max(f^2A(f))</span>
+<span class="n">phi_ref</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="c1"># phase at f_ref</span>
+<span class="n">m1</span> <span class="o">=</span> <span class="mf">1e6</span>
+<span class="n">m2</span> <span class="o">=</span> <span class="mf">5e5</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="mf">0.4</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="mf">3e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
+<span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">3.</span>
+<span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span>  <span class="c1"># ecliptic latitude</span>
+<span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">5.</span>  <span class="c1"># ecliptic longitude</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">6.</span>  <span class="c1"># polarization angle</span>
+<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># t_ref  (in the SSB reference frame)</span>
+
+<span class="n">T_obs</span> <span class="o">=</span> <span class="mf">1.2</span> <span class="c1"># years</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">10.0</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">T_obs</span> <span class="o">*</span> <span class="n">YRSID_SI</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+<span class="n">data_freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dt</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># remove DC</span>
+
+<span class="c1"># frequencies to interpolate to</span>
+<span class="n">modes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">)]</span>
+<span class="n">waveform_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span> <span class="n">direct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+
+<span class="n">data_channels</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
+                          <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span>
+                          <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">data_freqs</span><span class="p">,</span>
+                          <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1">######## get noise information (need lisatools)</span>
+<span class="n">PSD_A</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_AE&quot;</span><span class="p">)</span>
+<span class="n">PSD_E</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_AE&quot;</span><span class="p">)</span>
+<span class="n">PSD_T</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_T&quot;</span><span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">data_freqs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">data_freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="n">psd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">PSD_A</span><span class="p">,</span> <span class="n">PSD_E</span><span class="p">,</span> <span class="n">PSD_T</span><span class="p">])</span>
+
+<span class="c1"># initialize Likelihood</span>
+<span class="n">like</span> <span class="o">=</span> <span class="n">Likelihood</span><span class="p">(</span>
+    <span class="n">wave_gen</span><span class="p">,</span>
+    <span class="n">data_freqs</span><span class="p">,</span>
+    <span class="n">data_channels</span><span class="p">,</span>
+    <span class="n">psd</span><span class="p">,</span>
+    <span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># get params</span>
+<span class="n">num_bins</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">params_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">]),</span> <span class="p">(</span><span class="n">num_bins</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># change masses for test</span>
+<span class="n">params_in</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">1e-5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_bins</span><span class="p">))</span>
+
+<span class="c1"># get_ll and not __call__ to work with lisatools</span>
+<span class="n">ll</span> <span class="o">=</span> <span class="n">like</span><span class="o">.</span><span class="n">get_ll</span><span class="p">(</span><span class="n">params_in</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">ll</span><span class="p">),</span> <span class="n">like</span><span class="o">.</span><span class="n">d_h</span>
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[-0.39102243 -3.54102475 -0.29899859 -2.32105449 -3.76126212 -0.06766487
+ -0.13088474 -0.94952771 -0.41880084 -2.07989533]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(None,
+ array([32585930.12415724-2493.23456942j, 32585805.81205318-7503.02380467j,
+        32586043.24467641+2180.20406938j, 32585841.58068655-6074.50924356j,
+        32585800.03359698-7732.84363398j, 32585965.66360701-1037.13397628j,
+        32586025.57000791+1442.4580846j , 32585895.89972323-3885.2453791j ,
+        32586052.80092949+2580.28313149j, 32585849.66338766-5750.27576785j]))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">psd</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([[1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
+        5.67313626e-40, 5.67311162e-40, 5.67308698e-40],
+       [1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
+        5.67313626e-40, 5.67311162e-40, 5.67308698e-40],
+       [6.65292981e-56, 2.66124904e-55, 5.98786818e-55, ...,
+        1.87651528e-39, 1.87650894e-39, 1.87650260e-39]])
+</pre></div></div>
+</div>
+<p>You can also phase marginalize. This occurs in the <span class="math notranslate nohighlight">\(\langle d|h \rangle\)</span> term in the Likelihood.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># get_ll and not __call__ to work with lisatools</span>
+<span class="n">ll_marg</span> <span class="o">=</span> <span class="n">like</span><span class="o">.</span><span class="n">get_ll</span><span class="p">(</span><span class="n">params_in</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">phase_marginalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ll</span><span class="p">,</span> <span class="n">ll_marg</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[[-0.39102243 -0.29564048]
+ [-3.54102475 -2.6772228 ]
+ [-0.29899859 -0.22606415]
+ [-2.32105449 -1.75486285]
+ [-3.76126212 -2.84373255]
+ [-0.06766487 -0.05116011]
+ [-0.13088474 -0.0989587 ]
+ [-0.94952771 -0.71790707]
+ [-0.41880084 -0.3166427 ]
+ [-2.07989533 -1.5725329 ]]
+</pre></div></div>
+</div>
+<p>You can also return the signal-to-noise ratio: <span class="math notranslate nohighlight">\(\langle d|h \rangle / \sqrt{\langle h|h \rangle}\)</span>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># get_ll and not __call__ to work with lisatools</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">like</span><span class="o">.</span><span class="n">get_ll</span><span class="p">(</span><span class="n">params_in</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">return_extracted_snr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)</span>
+
+<span class="c1"># first column is log-Likelihood, second is snr</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[[-3.91022425e-01  5.70841397e+03]
+ [-3.54102475e+00  5.70841342e+03]
+ [-2.98998591e-01  5.70841398e+03]
+ [-2.32105449e+00  5.70841363e+03]
+ [-3.76126212e+00  5.70841338e+03]
+ [-6.76648691e-02  5.70841402e+03]
+ [-1.30884737e-01  5.70841401e+03]
+ [-9.49527707e-01  5.70841387e+03]
+ [-4.18800838e-01  5.70841396e+03]
+ [-2.07989533e+00  5.70841367e+03]]
+</pre></div></div>
+</div>
+</section>
+<section id="Heterodyned-Likelihoods">
+<h3>Heterodyned Likelihoods<a class="headerlink" href="#Heterodyned-Likelihoods" title="Permalink to this headline"></a></h3>
+<p>Heterodyned Likelihoods are also available. See <a class="reference external" href="https://arxiv.org/abs/2109.02728">arXiv:2109.02728</a> for details on Heterodyning in general. We specifically implement the method used in <a class="reference external" href="https://arxiv.org/abs/1806.08792">arXiv:1806.08792</a>. The practical reason for using a Heterodyned Likelihood method is the computation can be performed along a sparse array of frequencies, rather than a dense array comming from a Fourier transform.</p>
+<p>It is reasonably accurate with higher modes. It gets more accurate as modes are removed.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">reference_index</span> <span class="o">=</span> <span class="n">ll</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+
+<span class="n">reference_params</span> <span class="o">=</span> <span class="n">params_in</span><span class="p">[</span><span class="n">reference_index</span><span class="p">]</span>
+
+<span class="c1"># how many frequencies to use</span>
+<span class="n">length_f_het</span> <span class="o">=</span> <span class="mi">128</span>
+
+<span class="c1"># initialize Likelihood</span>
+<span class="n">like_het</span> <span class="o">=</span> <span class="n">HeterodynedLikelihood</span><span class="p">(</span>
+    <span class="n">wave_gen</span><span class="p">,</span>
+    <span class="n">data_freqs</span><span class="p">,</span>
+    <span class="n">data_channels</span><span class="p">,</span>
+    <span class="n">reference_params</span><span class="p">,</span>
+    <span class="n">length_f_het</span><span class="p">,</span>
+    <span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="c1"># get_ll and not __call__ to work with lisatools</span>
+<span class="n">ll_het</span> <span class="o">=</span> <span class="n">like_het</span><span class="o">.</span><span class="n">get_ll</span><span class="p">(</span><span class="n">params_in</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ll</span><span class="p">,</span> <span class="n">ll_het</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[[-0.39102243 -0.38849574]
+ [-3.54102475 -3.31537127]
+ [-0.29899859 -0.29498889]
+ [-2.32105449 -2.18277054]
+ [-3.76126212 -3.5197815 ]
+ [-0.06766487 -0.086341  ]
+ [-0.13088474 -0.14052708]
+ [-0.94952771 -0.90836701]
+ [-0.41880084 -0.40528708]
+ [-2.07989533 -1.95880217]]
+</pre></div></div>
+</div>
+</section>
 </section>
 </section>
 

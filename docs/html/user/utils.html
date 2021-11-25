@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="bbhx Tutorial" href="../bbhx_tutorial.html" />
-    <link rel="prev" title="LISA Response Models" href="response.html" /> 
+    <link rel="prev" title="Likelihood Methods" href="like.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -43,6 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="main.html">Full TDI Waveforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="waveforms.html">Available Waveform Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="response.html">LISA Response Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="like.html">Likelihood Methods</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Utility Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#interpolation-utilities">Interpolation Utilities</a></li>
 </ul>
@@ -72,7 +73,7 @@
             <a href="../_sources/user/utils.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="response.html" class="btn btn-neutral float-left" title="LISA Response Models" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="like.html" class="btn btn-neutral float-left" title="Likelihood Methods" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -119,52 +120,6 @@ that it fits into this specific waveform production method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>use_gpu</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, use GPU.</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_gen">
-<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Permalink to this definition"></a></dt>
-<dd><p>C/CUDA wrapped function for computing interpolated
-waveforms.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_channels">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">template_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels" title="Permalink to this definition"></a></dt>
-<dd><p>Get template channels from <code class="docutils literal notranslate"><span class="pre">self.template_carrier</span></code>.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.citation">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.citation" title="Permalink to this definition"></a></dt>
-<dd><p>citations for this class</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.__call__" title="Permalink to this definition"></a></dt>
-<dd><p>Generate frequency domain template via interpolation</p>
-<p>This class takes all waveform and response information as sparse arrays
-and then interpolates to the proper frequency array.</p>
-<p>This class acts in a unique why by passing arrays of pointers from python
-into C++/CUDA.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data_freqs</strong> (<em>double xp.ndarray</em>) – Frequencies to interpolate to.</p></li>
-<li><p><strong>interp_container</strong> (<em>obj</em>) – <code class="docutils literal notranslate"><span class="pre">container</span></code> attribute from the interpolant
-class: <code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code>.</p></li>
-<li><p><strong>t_start</strong> (<em>double xp.ndarray</em>) – Array of start times (sec) for each binary.</p></li>
-<li><p><strong>t_end</strong> (<em>double xp.ndarray</em>) – Array of end times (sec) for each binary.</p></li>
-<li><p><strong>length</strong> (<em>int</em>) – Length of original frequency array.</p></li>
-<li><p><strong>num_modes</strong> (<em>int</em>) – Number of harmonics.</p></li>
-<li><p><strong>num_channels</strong> (<em>int</em>) – Number of channels in data.</p></li>
-</ul>
 </dd>
 </dl>
 <dl class="py attribute">
@@ -235,6 +190,18 @@ Templates can be accessed through the <code class="docutils literal notranslate"
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_gen">
+<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Permalink to this definition"></a></dt>
+<dd><p>C/CUDA wrapped function for computing interpolated
+waveforms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.use_gpu">
 <span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu" title="Permalink to this definition"></a></dt>
 <dd><p>If True, using GPU.</p>
@@ -256,16 +223,48 @@ Templates can be accessed through the <code class="docutils literal notranslate"
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_channels">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">template_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Get template channels from <code class="docutils literal notranslate"><span class="pre">self.template_carrier</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.citation">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.citation" title="Permalink to this definition"></a></dt>
+<dd><p>citations for this class</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Generate frequency domain template via interpolation</p>
+<p>This class takes all waveform and response information as sparse arrays
+and then interpolates to the proper frequency array.</p>
+<p>This class acts in a unique why by passing arrays of pointers from python
+into C++/CUDA.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><dl class="simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_freqs</strong> (<em>double xp.ndarray</em>) – Frequencies to interpolate to.</p></li>
+<li><p><strong>interp_container</strong> (<em>obj</em>) – <code class="docutils literal notranslate"><span class="pre">container</span></code> attribute from the interpolant
+class: <code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code>.</p></li>
+<li><p><strong>t_start</strong> (<em>double xp.ndarray</em>) – Array of start times (sec) for each binary.</p></li>
+<li><p><strong>t_end</strong> (<em>double xp.ndarray</em>) – Array of end times (sec) for each binary.</p></li>
+<li><p><strong>length</strong> (<em>int</em>) – Length of original frequency array.</p></li>
+<li><p><strong>num_modes</strong> (<em>int</em>) – Number of harmonics.</p></li>
+<li><p><strong>num_channels</strong> (<em>int</em>) – Number of channels in data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
 <dt>List of template arrays for all binaries.</dt><dd><p>shape of each array: <code class="docutils literal notranslate"><span class="pre">(self.num_channels,</span> <span class="pre">self.data_length)</span></code></p>
 </dd>
 </dl>
 </p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>list</p>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
@@ -279,7 +278,7 @@ Templates can be accessed through the <code class="docutils literal notranslate"
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="response.html" class="btn btn-neutral float-left" title="LISA Response Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="like.html" class="btn btn-neutral float-left" title="Likelihood Methods" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../bbhx_tutorial.html" class="btn btn-neutral float-right" title="bbhx Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

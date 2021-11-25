@@ -317,7 +317,7 @@ class BBHWaveformFD:
         chi1z,
         chi2z,
         distance,
-        phiRef,
+        phi_ref,
         f_ref,
         inc,
         lam,
@@ -345,7 +345,7 @@ class BBHWaveformFD:
             chi1z (double or np.ndarray): Dimensionless spin 1 (for Mass 1) in Solar Masses.
             chi2z (double or np.ndarray): Dimensionless spin 2 (for Mass 1) in Solar Masses.
             distance (double or np.ndarray): Luminosity distance in m.
-            phiRef (double or np.ndarray): Phase at ``f_ref``.
+            phi_ref (double or np.ndarray): Phase at ``f_ref``.
             f_ref (double or np.ndarray): Reference frequency at which ``phi_ref`` and ``t_ref`` are set.
                 If ``f_ref == 0``, it will be set internally by the PhenomHM code
                 to :math:`f_\\text{max} = \\text{max}(f^2A_{22}(f))`.
@@ -422,7 +422,7 @@ class BBHWaveformFD:
         chi1z = np.atleast_1d(chi1z)
         chi2z = np.atleast_1d(chi2z)
         distance = np.atleast_1d(distance)
-        phiRef = np.atleast_1d(phiRef)
+        phi_ref = np.atleast_1d(phi_ref)
         inc = np.atleast_1d(inc)
         lam = np.atleast_1d(lam)
         beta = np.atleast_1d(beta)
@@ -495,7 +495,7 @@ class BBHWaveformFD:
 
         freqs_temp = freqs if direct else None
 
-        phiRef_amp_phase = np.zeros_like(m1)
+        phi_ref_amp_phase = np.zeros_like(m1)
 
         self.amp_phase_gen(
             m1,
@@ -503,8 +503,9 @@ class BBHWaveformFD:
             chi1z,
             chi2z,
             distance,
-            phiRef_amp_phase,
+            phi_ref_amp_phase,
             f_ref,
+            t_ref,
             length,
             freqs=freqs_temp,
             out_buffer=out_buffer,
@@ -517,21 +518,6 @@ class BBHWaveformFD:
             self.num_interp_params, self.num_bin_all, self.num_modes, self.length
         )
 
-        # adjust phases based on shift from t_ref
-        phases = out_buffer[1].copy()
-        phases = (
-            self.amp_phase_gen.freqs.reshape(self.num_bin_all, -1)
-            * self.xp.asarray(t_ref[:, self.xp.newaxis])
-            * 2
-            * np.pi
-        )[:, self.xp.newaxis, :] + phases
-
-        # TODO: can switch between spline derivatives and actual derivatives
-        out_buffer[1] = phases.copy()
-
-        # adjust t-f for shift of t_ref
-        out_buffer[2] += self.xp.asarray(t_ref[:, self.xp.newaxis, self.xp.newaxis])
-
         out_buffer = out_buffer.flatten().copy()
 
         # compute response function
@@ -541,7 +527,7 @@ class BBHWaveformFD:
             lam,
             beta,
             psi,
-            phiRef,
+            phi_ref,
             length,
             out_buffer=out_buffer,  # fill into this buffer
             modes=self.amp_phase_gen.modes,

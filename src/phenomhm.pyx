@@ -16,7 +16,6 @@ cdef extern from "PhenomHM.hh":
         double* chi1z,
         double* chi2z,
         double* distance,
-        double* phiRef,
         double* f_ref,
         int numModes,
         int length,
@@ -69,7 +68,6 @@ def waveform_amp_phase_wrap(
     chi1z,
     chi2z,
     distance,
-    phiRef,
     f_ref,
     numModes,
     length,
@@ -88,7 +86,6 @@ def waveform_amp_phase_wrap(
     cdef size_t chi1z_in = chi1z
     cdef size_t chi2z_in = chi2z
     cdef size_t distance_in = distance
-    cdef size_t phiRef_in = phiRef
     cdef size_t f_ref_in = f_ref
     cdef size_t Mf_RD_lm_all_in = Mf_RD_lm_all
     cdef size_t Mf_DM_lm_all_in = Mf_DM_lm_all
@@ -104,7 +101,6 @@ def waveform_amp_phase_wrap(
         <double*> chi1z_in,
         <double*> chi2z_in,
         <double*> distance_in,
-        <double*> phiRef_in,
         <double*> f_ref_in,
         numModes,
         length,

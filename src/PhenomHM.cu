@@ -2216,7 +2216,7 @@ static void init_PhenomHM_Storage(
     const double chi1z,
     const double chi2z,
     const double f_ref,
-    const double phiRef
+    const double phi_ref
 )
 {
 
@@ -2230,7 +2230,7 @@ static void init_PhenomHM_Storage(
     p->eta = p->m1 * p->m2 / (p->Mtot * p->Mtot);
     p->chi1z = chi1z;
     p->chi2z = chi2z;
-    p->phiRef = phiRef;
+    p->phi_ref = phi_ref;
 
     retcode = PhenomInternal_AlignedSpinEnforcePrimaryIsm1(
         &(p->m1),
@@ -2734,7 +2734,7 @@ void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int 
  }
 
 CUDA_CALLABLE_MEMBER
-void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* phases_deriv, double* freqs, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, double amp0, double t0, double phi0, int length, int numBinAll, double M_tot_sec, double Mf_ref, double cshift[])
+void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* tf, double* freqs, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, double amp0, double t0, double phi0, int length, int numBinAll, double M_tot_sec, double Mf_ref, double cshift[])
 {
     double eps = 1e-9;
 
@@ -2771,7 +2771,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
         phases[freq_index] = phase_i;
 
         dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0) / (2 * PI);
-        phases_deriv[freq_index] = dphidf - (t0 / (2. * PI) * M_tot_sec);
+        tf[freq_index] = dphidf - (t0 / (2. * PI) * M_tot_sec);
 
          //t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
          //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
@@ -2782,7 +2782,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 }
 
  CUDA_CALLABLE_MEMBER
- void calculate_modes(int binNum, int mode_i, double* amps, double* phases, double* phases_deriv, double* freqs, int ell, int mm, PhenomHMStorage *pHM, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0, int length, int numBinAll, int numModes, double M_tot_sec, double cshift[])
+ void calculate_modes(int binNum, int mode_i, double* amps, double* phases, double* tf, double* freqs, int ell, int mm, PhenomHMStorage *pHM, IMRPhenomDAmplitudeCoefficients *pAmp, AmpInsPrefactors amp_prefactors, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double amp0, double Rholm, double Taulm, double t0, double phi0, int length, int numBinAll, int numModes, double M_tot_sec, double cshift[])
  {
          double eps = 1e-9;
 
@@ -2820,7 +2820,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* p
 
              phases[mode_index] = phase_i;
 
-             phases_deriv[mode_index] = (M_tot_sec * phase_deriv_i) - (t0 / (2. * PI) * M_tot_sec);
+             tf[mode_index] = (M_tot_sec * phase_deriv_i) - (t0 / (2. * PI) * M_tot_sec);
 
               //t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
               //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
@@ -2880,14 +2880,13 @@ void IMRPhenomHMCore(
     int *mms,
     double* amps,
     double* phases,
-    double* phases_deriv,
+    double* tf,
     double* freqs,                      /**< GW frequecny list [Hz] */
     double m1_SI,                               /**< primary mass [kg] */
     double m2_SI,                               /**< secondary mass [kg] */
     double chi1z,                               /**< aligned spin of primary */
     double chi2z,                               /**< aligned spin of secondary */
     const double distance,                      /**< distance [m] */
-    const double phiRef,                        /**< orbital phase at f_ref */
     double f_ref,
     int length,                              /**< reference GW frequency */
     int numModes,
@@ -2902,7 +2901,8 @@ void IMRPhenomHMCore(
 
     // TODO: run_phenomd int -> bool
 
-
+    // set phi_ref to zero
+    double phi_ref = 0.0;
     double t0, amp0, phi0;
     /* setup PhenomHM model storage struct / structs */
     /* Compute quantities/parameters related to PhenomD only once and store them */
@@ -2916,7 +2916,7 @@ void IMRPhenomHMCore(
         chi1z,
         chi2z,
         f_ref,
-        phiRef
+        phi_ref
     );
 
 
@@ -2984,14 +2984,14 @@ void IMRPhenomHMCore(
     //}
 
     /* compute the reference phase shift need to align the waveform so that
-     the phase is equal to phiRef at the reference frequency f_ref. */
+     the phase is equal to phi_ref at the reference frequency f_ref. */
     /* the phase shift is computed by evaluating the phase of the
     (l,m)=(2,2) mode.
     phi0 is the correction we need to add to each mode. */
-    double phiRef_to_zero = 0.0;
     double phi_22_at_f_ref = IMRPhenomDPhase_OneFrequency(pHM->Mf_ref, pDPreComp22,  1.0, 1.0);
 
-    phi0 = 0.5 * (phi_22_at_f_ref + phiRef_to_zero); // TODO: check this, I think it should be half of phiRef as well
+    // REMINDER: phi_ref is set to zero
+    phi0 = 0.5 * (phi_22_at_f_ref + phi_ref);
 
     //t0 = IMRPhenomDComputet0(pHM->eta, pHM->chi1z, pHM->chi2z, pHM->finspin, &(pDPreComp22.pPhi), &(pDPreComp22.pAmp));
     t0 = IMRPhenDPhaseDerivative(pHM->Mf_ref, &pDPreComp22.pPhi, &pDPreComp22.pn, 1.0, 1.0);
@@ -3009,7 +3009,7 @@ void IMRPhenomHMCore(
 
     if (run_phenomd)
     {
-        calculate_modes_phenomd(binNum, amps, phases, phases_deriv, freqs,  &(pDPreComp22.pAmp), pDPreComp22.amp_prefactors, pDPreComp22, amp0, t0, phi0, length, numBinAll, M_tot_sec, pHM->Mf_ref, cshift);
+        calculate_modes_phenomd(binNum, amps, phases, tf, freqs,  &(pDPreComp22.pAmp), pDPreComp22.amp_prefactors, pDPreComp22, amp0, t0, phi0, length, numBinAll, M_tot_sec, pHM->Mf_ref, cshift);
     }
     else
     {
@@ -3052,7 +3052,7 @@ void IMRPhenomHMCore(
 
             retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
 
-            calculate_modes(binNum, mode_i, amps, phases, phases_deriv, freqs, ell, mm, pHM, &(pDPreComplm.pAmp), pDPreComplm.amp_prefactors, pDPreComplm, qlm, amp0, Rholm, Taulm, t0, phi0, length, numBinAll, numModes, M_tot_sec, cshift);
+            calculate_modes(binNum, mode_i, amps, phases, tf, freqs, ell, mm, pHM, &(pDPreComplm.pAmp), pDPreComplm.amp_prefactors, pDPreComplm, qlm, amp0, Rholm, Taulm, t0, phi0, length, numBinAll, numModes, M_tot_sec, cshift);
 
         }
     }
@@ -3107,7 +3107,7 @@ void IMRPhenomHMCore(
  void IMRPhenomHM(
      double* amps, /**< [out] Frequency-domain waveform hx */
      double* phases,
-     double* phases_deriv,
+     double* tf,
      int* ells_in,
      int* mms_in,
      double* freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
@@ -3116,7 +3116,6 @@ void IMRPhenomHMCore(
      double* chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
      double* chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
      double* distance,               /**< distance of source (m) */
-     double* phiRef,                 /**< reference orbital phase (rad) */
      double* f_ref,                        /**< Reference frequency */
      int numModes,
      int length,
@@ -3208,7 +3207,7 @@ void IMRPhenomHMCore(
         }
         CUDA_SYNC_THREADS;
 
-        IMRPhenomHMCore(ells, mms, amps, phases, phases_deriv, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], phiRef[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift, Mf_RD_lm, Mf_DM_lm, run_phenomd);
+        IMRPhenomHMCore(ells, mms, amps, phases, tf, freqs, m1_SI[binNum], m2_SI[binNum], chi1z[binNum], chi2z[binNum], distance[binNum], f_ref[binNum], length, numModes, binNum, numBinAll, cShift, Mf_RD_lm, Mf_DM_lm, run_phenomd);
     }
 }
 
@@ -3223,7 +3222,6 @@ void waveform_amp_phase(
     double* chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
     double* chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
     double* distance,               /**< distance of source (m) */
-    double* phiRef,                 /**< reference orbital phase (rad) */
     double* f_ref,                        /**< Reference frequency */
     int numModes,
     int length,
@@ -3236,7 +3234,7 @@ void waveform_amp_phase(
 
     double* amps = &waveformOut[0];
     double* phases = &waveformOut[numBinAll * numModes * length];
-    double* phases_deriv = &waveformOut[2 * numBinAll * numModes * length];
+    double* tf = &waveformOut[2 * numBinAll * numModes * length];
 
     //int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
     int nblocks = numBinAll; //std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
@@ -3251,7 +3249,7 @@ void waveform_amp_phase(
     IMRPhenomHM<<<nblocks, NUM_THREADS_PHENOMHM>>>(
         amps, /**< [out] Frequency-domain waveform hx */
         phases,
-        phases_deriv,
+        tf,
         ells_in,
         mms_in,
         freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
@@ -3260,7 +3258,6 @@ void waveform_amp_phase(
         chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
         chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
         distance,               /**< distance of source (m) */
-        phiRef,                 /**< reference orbital phase (rad) */
         f_ref,                        /**< Reference frequency */
         numModes,
         length,
@@ -3277,7 +3274,7 @@ void waveform_amp_phase(
     IMRPhenomHM(
         amps, /**< [out] Frequency-domain waveform hx */
         phases,
-        phases_deriv,
+        tf,
         ells_in,
         mms_in,
         freqs,               /**< Frequency points at which to evaluate the waveform (Hz) */
@@ -3286,7 +3283,6 @@ void waveform_amp_phase(
         chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
         chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
         distance,               /**< distance of source (m) */
-        phiRef,                 /**< reference orbital phase (rad) */
         f_ref,                        /**< Reference frequency */
         numModes,
         length,

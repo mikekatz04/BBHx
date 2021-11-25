@@ -265,8 +265,9 @@ class PhenomHMAmpPhase:
         chi1z,
         chi2z,
         distance,
-        phiRef,
+        phi_ref,
         f_ref,
+        t_ref,
         length,
         freqs=None,
         out_buffer=None,
@@ -283,10 +284,11 @@ class PhenomHMAmpPhase:
             chi1z (double or np.ndarray): Dimensionless spin 1 (for Mass 1) in Solar Masses.
             chi2z (double or np.ndarray): Dimensionless spin 2 (for Mass 1) in Solar Masses.
             distance (double or np.ndarray): Luminosity distance in m.
-            phiRef (double or np.ndarray): Phase at ``f_ref``.
+            phi_ref (double or np.ndarray): Phase at ``f_ref``.
             f_ref (double or np.ndarray): Reference frequency at which ``phi_ref`` and ``t_ref`` are set.
                 If ``f_ref == 0``, it will be set internally by the PhenomHM code
                 to :math:`f_\\text{max} = \\text{max}(f^2A_{22}(f))`.
+            t_ref (double or np.ndarray): Reference time in seconds. It is set at ``f_ref``.
             length (int): Length of the frequency array over which the waveform is created.
             freqs (1D or 2D xp.ndarray, optional): If ``None``, the class will generate the
                 frequency array over which the waveform is evaluated. If 1D xp.ndarray,
@@ -310,8 +312,9 @@ class PhenomHMAmpPhase:
         chi1z = np.atleast_1d(chi1z)
         chi2z = np.atleast_1d(chi2z)
         distance = np.atleast_1d(distance)
-        phiRef = np.atleast_1d(phiRef)
+        phi_ref = np.atleast_1d(phi_ref)
         f_ref = np.atleast_1d(f_ref)
+        t_ref = np.atleast_1d(t_ref)
 
         # make sure parameters are okay and ordered so m1 > m2
         m1, m2, chi1z, chi2z = self._sanity_check_params(m1, m2, chi1z, chi2z)
@@ -352,7 +355,7 @@ class PhenomHMAmpPhase:
         chi1z = self.xp.asarray(chi1z).copy()
         chi2z = self.xp.asarray(chi2z).copy()
         distance = self.xp.asarray(distance).copy()
-        phiRef = self.xp.asarray(phiRef).copy()
+        phi_ref = self.xp.asarray(phi_ref).copy()
         f_ref = self.xp.asarray(f_ref).copy()
 
         # setup out_buffer if not given
@@ -444,6 +447,7 @@ class PhenomHMAmpPhase:
                 .copy()
             )
 
+        # inside this code, t_ref is zero and phi_ref is zero
         self.waveform_gen(
             self.waveform_carrier,
             ells,
@@ -454,7 +458,6 @@ class PhenomHMAmpPhase:
             chi1z,
             chi2z,
             distance,
-            phiRef,
             f_ref,
             num_modes,
             length,
@@ -463,3 +466,25 @@ class PhenomHMAmpPhase:
             self.fdamp,
             self.run_phenomd,
         )
+
+        # adjust phases based on shift from t_ref
+        # do this inplace
+        temp = (
+            self.freqs.reshape(self.num_bin_all, -1)
+            * self.xp.asarray(t_ref[:, self.xp.newaxis])
+            * 2
+            * np.pi
+        )
+
+        # phases = self.waveform_carrier[1]  (waveform carrier is flat)
+        self.waveform_carrier[
+            1 * self.num_per_param : 2 * self.num_per_param
+        ] += self.xp.tile(temp[:, None, :], (1, self.num_modes, 1)).flatten()
+
+        # adjust t-f for shift of t_ref
+        # t_ref array = self.waveform_carrier[2] (waveform carrier is flat)
+        self.waveform_carrier[
+            2 * self.num_per_param : 3 * self.num_per_param
+        ] += self.xp.tile(
+            self.xp.asarray(t_ref)[:, None, None], (1, self.num_modes, self.length)
+        ).flatten()

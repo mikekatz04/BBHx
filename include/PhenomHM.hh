@@ -266,7 +266,7 @@ typedef struct tagPhenomHMStorage
     double f_max;
     double f_ref;
     double Mf_ref; /**< reference frequnecy in geometric units */
-    double phiRef;
+    double phi_ref;
     unsigned int freq_is_uniform; /**< If = 1 then assume uniform spaced, If = 0 then assume arbitrarily spaced. */
     int npts;           /**< number of points in waveform array */
     int nmodes;           /**< number of modes */
@@ -361,7 +361,6 @@ void waveform_amp_phase(
     double* chi1z,                        /**< z-component of the dimensionless spin of object 1 w.r.t. Lhat = (0,0,1) */
     double* chi2z,                        /**< z-component of the dimensionless spin of object 2 w.r.t. Lhat = (0,0,1) */
     double* distance,               /**< distance of source (m) */
-    double* phiRef,                 /**< reference orbital phase (rad) */
     double* f_ref,                        /**< Reference frequency */
     int numModes,
     int length,

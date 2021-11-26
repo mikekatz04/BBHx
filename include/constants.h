@@ -5,7 +5,7 @@
 //#include "pdbParam.h" // LISA constants
 #define MSUN_SI 1.98848e+30
 #define YRSID_SI 31558149.763545603
-#define AU_SI 149597870700.
+#define AU_SI 149597870700.0
 #define C_SI 299792458.
 #define G_SI 6.674080e-11
 #define GMSUN 1.3271244210789466e+20
@@ -58,7 +58,6 @@
 #define L_SI 2.5e9
 #define eorbit 0.004824185218078991
 #define ConstOmega 1.99098659277e-7
-//#define C_SI 299792458.0
 
 
 #endif // __CONSTANTS_H__

@@ -1,6 +1,6 @@
-# Utilities to aid in FastEMRIWaveforms Packages
+# Utilities to aid in bbhx Package Cython GPU/CPU Agnostic setup
 
-# Copyright (C) 2020 Michael L. Katz, Alvin J.K. Chua, Niels Warburton, Scott A. Hughes
+# Copyright (C) 2020 Michael L. Katz
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
+:code:`bbhx.utils.utility`:
+
+This module contains tools used in the Cython CPU/GPU Agnostic framework.
+
+"""
 
 import os
 import subprocess

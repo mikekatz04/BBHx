@@ -260,17 +260,17 @@ if run_cuda_install:
     pyInterpolate_ext = Extension(
         "pyInterpolate",
         sources=["src/Interpolate.cu", "src/interpolate.pyx"],
-        **gpu_extension
+        **gpu_extension,
     )
     pyWaveformBuild_ext = Extension(
         "pyWaveformBuild",
         sources=["src/WaveformBuild.cu", "src/waveformbuild.pyx"],
-        **gpu_extension
+        **gpu_extension,
     )
     pyLikelihood_ext = Extension(
         "pyLikelihood",
         sources=["src/Likelihood.cu", "src/likelihood.pyx"],
-        **gpu_extension
+        **gpu_extension,
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
@@ -303,49 +303,88 @@ cpu_extension = dict(
 pyPhenomHM_cpu_ext = Extension(
     "pyPhenomHM_cpu",
     sources=["src/PhenomHM.cpp", "src/phenomhm_cpu.pyx"],
-    **cpu_extension
+    **cpu_extension,
 )
 pyResponse_cpu_ext = Extension(
     "pyResponse_cpu",
     sources=["src/Response.cpp", "src/response_cpu.pyx"],
-    **cpu_extension
+    **cpu_extension,
 )
 
 pyInterpolate_cpu_ext = Extension(
     "pyInterpolate_cpu",
     sources=["src/Interpolate.cpp", "src/interpolate_cpu.pyx"],
-    **cpu_extension
+    **cpu_extension,
 )
 
 pyWaveformBuild_cpu_ext = Extension(
     "pyWaveformBuild_cpu",
     sources=["src/WaveformBuild.cpp", "src/waveformbuild_cpu.pyx"],
-    **cpu_extension
+    **cpu_extension,
 )
 
 pyLikelihood_cpu_ext = Extension(
     "pyLikelihood_cpu",
     sources=["src/Likelihood.cpp", "src/likelihood_cpu.pyx"],
-    **cpu_extension
+    **cpu_extension,
 )
 
+initial_text_for_constants_file = """
+# Collection of citations for modules in bbhx package
+
+# Copyright (C) 2020 Michael L. Katz
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+"""
+
+initial_text_for_constants_file2 = """
+
+Constants
+*******************************
+
+The module :code:`bbhx.utils.constants` houses the constants used throughout the package.
+
+Constants list:
+
+"""
+
 fp_out_name = "bbhx/utils/constants.py"
+fp_out_name2 = "docs/source/user/constants.rst"
 fp_in_name = "include/constants.h"
 
 # develop few.utils.constants.py
 with open(fp_out_name, "w") as fp_out:
-    with open(fp_in_name, "r") as fp_in:
-        lines = fp_in.readlines()
-        for line in lines:
-            if len(line.split()) == 3:
-                if line.split()[0] == "#define":
-                    try:
-                        _ = float(line.split()[2])
-                        string_out = line.split()[1] + " = " + line.split()[2] + "\n"
-                        fp_out.write(string_out)
+    with open(fp_out_name2, "w") as fp_out2:
+        fp_out.write(initial_text_for_constants_file)
+        fp_out2.write(initial_text_for_constants_file2)
+        with open(fp_in_name, "r") as fp_in:
+            lines = fp_in.readlines()
+            for line in lines:
+                if len(line.split()) == 3:
+                    if line.split()[0] == "#define":
+                        try:
+                            _ = float(line.split()[2])
+                            string_out = (
+                                line.split()[1] + " = " + line.split()[2] + "\n"
+                            )
+                            fp_out.write(string_out)
+                            fp_out2.write(f"\t* {string_out}")
 
-                    except (ValueError) as e:
-                        continue
+                        except (ValueError) as e:
+                            continue
 
 
 extensions = [

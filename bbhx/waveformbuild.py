@@ -39,9 +39,9 @@ from .utils.citations import *
 
 
 class TemplateInterpFD:
-    """Interpolate frequency domain template
+    """Interpolate frequency domain template.
 
-    This class wraps :class:`CubicSplineInterpolant` so
+    This class wraps :class:`~CubicSplineInterpolant` so
     that it fits into this specific waveform production method.
 
     This class has GPU capabilities.
@@ -97,7 +97,7 @@ class TemplateInterpFD:
         num_modes,
         num_channels,
     ):
-        """Generate frequency domain template via interpolation
+        """Generate frequency domain template via interpolation.
 
         This class takes all waveform and response information as sparse arrays
         and then interpolates to the proper frequency array.
@@ -233,7 +233,7 @@ class BBHWaveformFD:
     listed for the waveform and response given just below.
 
     Right now, it is hard coded to produce the waveform with
-    :class:`PhenomHMAmpPhase`. This can also be used
+    :class:`~PhenomHMAmpPhase`. This can also be used
     to produce PhenomD. See the docs for that waveform. The papers describing PhenomHM/PhenomD
     waveforms are here: `arXiv:1708.00404 <https://arxiv.org/abs/1708.00404>`_,
     `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_, and
@@ -248,7 +248,7 @@ class BBHWaveformFD:
 
     Args:
         amp_phase_kwargs (dict, optional): Keyword arguments for the
-            initialization of the ampltidue-phase waveform class: :class:`PhenomHMAmpPhase`.
+            initialization of the ampltidue-phase waveform class: :class:`PhenomHMAmpPhase <bbhx.waveforms.phenomhm.PhenomHMAmpPhase>`.
         response_kwargs (dict, optional): Keyword arguments for the initialization
             of the response class: :class:`LISATDIResponse`.
         interp_kwargs (dict, optional): Keyword arguments for the initialization

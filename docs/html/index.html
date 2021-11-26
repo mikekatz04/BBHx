@@ -48,6 +48,12 @@
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Fast-FD-Response">Fast FD Response</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Computing-the-Likelihood">Computing the Likelihood</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Utility-functions">Utility functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Citations">Citations</a></li>
 </ul>
 
         </div>
@@ -122,6 +128,10 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="user/utils.html">Utility Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user/utils.html#interpolation-utilities">Interpolation Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/utils.html#useful-transformation-functions">Useful Transformation Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/utils.html#constants">Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/utils.html#module-bbhx.utils.citations">Citation Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/utils.html#module-bbhx.utils.utility">Cython GPU/CPU Agnostic Tools</a></li>
 </ul>
 </li>
 </ul>
@@ -129,29 +139,36 @@
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Adjust-inspiral-timing-with-shift_t_limits=False">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Adjust-inspiral-timing-with-shift_t_limits=True">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Controlling-interpolation">Controlling interpolation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="bbhx_tutorial.html#Check-number-of-points-that-is-good-for-interpolation:">Check number of points that is good for interpolation:</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Adjust-inspiral-timing-with-shift_t_limits=False">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Adjust-inspiral-timing-with-shift_t_limits=True">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Controlling-interpolation">Controlling interpolation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Check-number-of-points-that-is-good-for-interpolation:">Check number of points that is good for interpolation:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Generate-waveforms-without-interpolation">Generate waveforms without interpolation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Adjusting-mode-content">Adjusting mode content</a></li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#All-of-these-functions-can-take-arrays-for-parameters">All of these functions can take arrays for parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#The-fill-keyword-argument">The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Generate-waveforms-without-interpolation">Generate waveforms without interpolation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Adjusting-mode-content">Adjusting mode content</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#All-of-these-functions-can-take-arrays-for-parameters">All of these functions can take arrays for parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#The-fill-keyword-argument">The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Fast-FD-Response">Fast FD Response</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Computing-the-Likelihood">Computing the Likelihood</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">Computing the log-Likelihood for MBHBs directly against the Fourier transform of data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Heterodyned-Likelihoods">Heterodyned Likelihoods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Fast-FD-Response">Fast FD Response</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Computing-the-Likelihood">Computing the Likelihood</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">Computing the log-Likelihood for MBHBs directly against the Fourier transform of data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Heterodyned-Likelihoods">Heterodyned Likelihoods</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Utility-functions">Utility functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bbhx_tutorial.html#Transformation-functions">Transformation functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Transformations-to-and-from-LISA-and-SSB-reference-frames">Transformations to and from LISA and SSB reference frames</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bbhx_tutorial.html#Posterior-sky-mode-transformation">Posterior sky-mode transformation</a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Citations">Citations</a></li>
 </ul>
 </div>
 </section>

@@ -1,3 +1,21 @@
+# Interpolant for GPUs
+
+# Copyright (C) 2021 Michael L. Katz
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 import numpy as np
 
 try:
@@ -18,25 +36,99 @@ from bbhx.utils.constants import *
 class CubicSplineInterpolant:
     """GPU-accelerated Multiple Cubic Splines
 
-    This class produces multiple cubic splines on a GPU. It has a CPU option
-    as well. The cubic splines are produced with "not-a-knot" boundary
-    conditions.
+    This class produces multiple cubic splines. The cubic splines are produced
+    with "not-a-knot" boundary conditions.
 
-    This class can be run on GPUs and CPUs.
+    This class has GPU capability.
 
-    args:
-        t (1D double xp.ndarray): t values as input for the spline.
-        y_all (2D double xp.ndarray): y values for the spline.
-            Shape: (ninterps, length).
+    Args:
+        x (xp.ndarray): f values as input for the spline. Can be 1D flattend array
+            of total length
+            ``(num_bin_all * length)`` or 2D array with shape: ``(num_bin_all, length)``.
+        y_all (xp.ndarray): y values for the spline. This can be a 1D flattened
+            array with length
+            ``(num_interp_params * num_bin_all * num_modes * length)``
+            or 4D arrays of shape: ``(num_interp_params, num_bin_all, num_modes, length)``.
+        num_interp_params (int, optional): If ``x`` and ``y_all`` are flattened,
+            the user must provide the number of interpolation parameters.
+            (Default: ``None``)
+        num_bin_all (int, optional): If ``x`` and ``y_all`` are flattened,
+            the user must provide the number of total binaries.
+            (Default: ``None``)
+        num_modes (int, optional): If ``x`` and ``y_all`` are flattened,
+            the user must provide the number of modes.
+            (Default: ``None``)
+        length (int, optional): If ``x`` and ``y_all`` are flattened,
+            the user must provide the length of the frequency array for each binary.
+            (Default: ``None``)
         use_gpu (bool, optional): If True, prepare arrays for a GPU. Default is
             False.
+
+    Raises:
+        ValueError: If input arguments are not correct.
 
     """
 
     def __init__(
-        self, x, y_all, length, num_interp_params, num_modes, num_bin_all, use_gpu=False
+        self,
+        x,
+        y_all,
+        num_interp_params=None,
+        num_bin_all=None,
+        num_modes=None,
+        length=None,
+        use_gpu=False,
     ):
 
+        # check all inputs
+
+        # first check is for flattened arrays
+        if x.ndim == 1 or y_all.ndim == 1:
+            if x.ndim != 1 or y_all.ndim != 1:
+                raise ValueError(
+                    "If providing flattened x and y_all, need to both be flattened."
+                )
+            if (
+                length is None
+                or num_modes is None
+                or num_bin_all is None
+                or num_interp_params is None
+            ):
+                raise ValueError(
+                    "If providing flattened arrays, need to provide dimensional information: length, num_modes, num_bin_all, num_interp_params."
+                )
+
+            if len(x) != length * num_bin_all:
+                raise ValueError(
+                    f"Length of the x array is not correct. It is supposed to be {length * num_bin_all}. It is currently {len(x)}."
+                )
+            if len(y_all) != length * num_modes * num_bin_all * num_interp_params:
+                raise ValueError(
+                    f"Length of the y_all array is not correct. It is supposed to be {length * num_modes * num_bin_all * num_interp_params}. It is currently {len(y_all)}."
+                )
+
+        else:
+            # arrays are shaped
+            if x.ndim != 2:
+                raise ValueError(
+                    "If providing shaped array, needs to be 2D with shape (num_bin_all, length)."
+                )
+            if y_all.ndim != 4:
+                raise ValueError(
+                    "If providing shaped array, needs to be 2D with shape (num_interp_params, num_bin_all, num_modes, length)."
+                )
+
+            num_interp_params, num_bin_all, num_modes, length = y_all.shape
+
+            if x.shape != (num_bin_all, length):
+                raise ValueError(
+                    "Provided y_all array has shape {y_all.shape}. Provided x array has shape {x.shape}. The 2nd and 4th dimension of y_all should match the x shape."
+                )
+
+            x = x.flatten()
+            y_all = y_all.flatten()
+
+        # adjust for GPU
         if use_gpu:
             self.xp = xp
             self.interpolate_arrays = interpolate_wrap_gpu
@@ -45,19 +137,25 @@ class CubicSplineInterpolant:
             self.xp = np
             self.interpolate_arrays = interpolate_wrap_cpu
 
+        # get/store info
         ninterps = num_modes * num_interp_params * num_bin_all
         self.degree = 3
 
         self.length = length
 
+        # get reshape information
         self.reshape_shape = (num_interp_params, num_bin_all, num_modes, length)
+        self.x_reshape_shape = (num_bin_all, length)
 
+        # setup all arrays for interpolation
+        x = self.xp.asarray(x)
         B = self.xp.zeros((ninterps * length,))
         self.c1 = upper_diag = self.xp.zeros_like(B)
         self.c2 = diag = self.xp.zeros_like(B)
         self.c3 = lower_diag = self.xp.zeros_like(B)
         self.y = y_all
 
+        # perform interpolation
         self.interpolate_arrays(
             x,
             y_all,
@@ -71,100 +169,34 @@ class CubicSplineInterpolant:
             num_bin_all,
         )
 
-        # TODO: need to fix last point
-        self.x = x
+        self.x = x.copy()
+
+    @property
+    def x_shaped(self):
+        """Get shaped x array."""
+        return self.x.reshape(self.x_reshape_shape)
 
     @property
     def y_shaped(self):
+        """Get shaped y array."""
         return self.y.reshape(self.reshape_shape)
 
     @property
     def c1_shaped(self):
+        """Get shaped c1 array."""
         return self.c1.reshape(self.reshape_shape)
 
     @property
     def c2_shaped(self):
+        """Get shaped c2 array."""
         return self.c2.reshape(self.reshape_shape)
 
     @property
     def c3_shaped(self):
+        """Get shaped c3 array."""
         return self.c3.reshape(self.reshape_shape)
 
     @property
     def container(self):
-        return [self.x, self.y, self.c1, self.c2, self.c3]
-
-
-class CubicSplineInterpolantTD:
-    """GPU-accelerated Multiple Cubic Splines
-
-    This class produces multiple cubic splines on a GPU. It has a CPU option
-    as well. The cubic splines are produced with "not-a-knot" boundary
-    conditions.
-
-    This class can be run on GPUs and CPUs.
-
-    args:
-        t (1D double xp.ndarray): t values as input for the spline.
-        y_all (2D double xp.ndarray): y values for the spline.
-            Shape: (ninterps, length).
-        use_gpu (bool, optional): If True, prepare arrays for a GPU. Default is
-            False.
-
-    """
-
-    def __init__(self, x, y_all, lengths, nsubs, num_bin_all, use_gpu=False):
-
-        if use_gpu:
-            self.xp = xp
-            self.interpolate_arrays = interpolate_TD_wrap_gpu
-
-        else:
-            self.xp = np
-            self.interpolate_arrays = interpolate_TD_wrap_cpu
-
-        ninterps = nsubs * num_bin_all
-        self.degree = 3
-
-        self.lengths = lengths.astype(self.xp.int32)
-        self.max_length = lengths.max().item()
-        self.num_bin_all = num_bin_all
-        self.nsubs = nsubs
-
-        self.reshape_shape = (self.max_length, nsubs, num_bin_all)
-
-        B = self.xp.zeros((ninterps * self.max_length,))
-        self.c1 = upper_diag = self.xp.zeros_like(B)
-        self.c2 = diag = self.xp.zeros_like(B)
-        self.c3 = lower_diag = self.xp.zeros_like(B)
-        self.y = y_all
-
-        self.interpolate_arrays(
-            x, y_all, B, upper_diag, diag, lower_diag, lengths, num_bin_all, nsubs,
-        )
-        # TODO: need to fix last point
-        self.x = x
-
-    @property
-    def t_shaped(self):
-        return self.x.reshape(self.max_length, self.num_bin_all).T
-
-    @property
-    def y_shaped(self):
-        return self.y.reshape(self.max_length, self.nsubs, self.num_bin_all).T
-
-    @property
-    def c1_shaped(self):
-        return self.c1.reshape(self.max_length, self.nsubs, self.num_bin_all).T
-
-    @property
-    def c2_shaped(self):
-        return self.c2.reshape(self.max_length, self.nsubs, self.num_bin_all).T
-
-    @property
-    def c3_shaped(self):
-        return self.c3.reshape(self.max_length, self.nsubs, self.num_bin_all).T
-
-    @property
-    def container(self):
+        """Container for easy transit of interpolation information."""
         return [self.x, self.y, self.c1, self.c2, self.c3]

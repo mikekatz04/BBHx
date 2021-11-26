@@ -46,6 +46,12 @@
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Fast-FD-Response">Fast FD Response</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Computing-the-Likelihood">Computing the Likelihood</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Utility-functions">Utility functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bbhx_tutorial.html#Citations">Citations</a></li>
 </ul>
 
         </div>
@@ -90,6 +96,7 @@
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#W"><strong>W</strong></a>
@@ -136,6 +143,29 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/main.html#bbhx.waveformbuild.BBHWaveformFD">BBHWaveformFD (class in bbhx.waveformbuild)</a>
 </li>
+      <li>
+    bbhx.utils.citations
+
+      <ul>
+        <li><a href="user/utils.html#module-bbhx.utils.citations">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    bbhx.utils.transform
+
+      <ul>
+        <li><a href="user/utils.html#module-bbhx.utils.transform">module</a>
+</li>
+      </ul></li>
+      <li>
+    bbhx.utils.utility
+
+      <ul>
+        <li><a href="user/utils.html#module-bbhx.utils.utility">module</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -146,15 +176,21 @@
 </li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c1_rd">c1_rd (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped">c1_shaped (bbhx.utils.interpolate.CubicSplineInterpolant property)</a>
+</li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c2_dm">c2_dm (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c2_rd">c2_rd (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped">c2_shaped (bbhx.utils.interpolate.CubicSplineInterpolant property)</a>
 </li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c3_dm">c3_dm (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c3_rd">c3_rd (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped">c3_shaped (bbhx.utils.interpolate.CubicSplineInterpolant property)</a>
 </li>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse.citation">citation (bbhx.response.fastfdresponse.LISATDIResponse property)</a>
 
@@ -166,6 +202,10 @@
         <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.citation">(bbhx.waveforms.phenomhm.PhenomHMAmpPhase property)</a>
 </li>
       </ul></li>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant.container">container (bbhx.utils.interpolate.CubicSplineInterpolant property)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant">CubicSplineInterpolant (class in bbhx.utils.interpolate)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -244,11 +284,13 @@
         <li><a href="user/utils.html#bbhx.waveformbuild.TemplateInterpFD.length">(bbhx.waveformbuild.TemplateInterpFD attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/like.html#bbhx.likelihood.Likelihood.like_gen">like_gen (bbhx.likelihood.Likelihood attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/like.html#bbhx.likelihood.Likelihood">Likelihood (class in bbhx.likelihood)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.transform.LISA_to_SSB">LISA_to_SSB() (in module bbhx.utils.transform)</a>
 </li>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse">LISATDIResponse (class in bbhx.response.fastfdresponse)</a>
 </li>
@@ -258,18 +300,37 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/utils.html#bbhx.utils.transform.mbh_sky_mode_transform">mbh_sky_mode_transform() (in module bbhx.utils.transform)</a>
+</li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_max">mf_max (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_min">mf_min (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse.mms_default">mms_default (bbhx.response.fastfdresponse.LISATDIResponse attribute)</a>
 
       <ul>
         <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mms_default">(bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
       </ul></li>
+      <li><a href="user/utils.html#bbhx.utils.transform.mod2pi">mod2pi() (in module bbhx.utils.transform)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/utils.html#bbhx.utils.transform.modpi">modpi() (in module bbhx.utils.transform)</a>
+</li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="user/utils.html#module-bbhx.utils.citations">bbhx.utils.citations</a>
+</li>
+        <li><a href="user/utils.html#module-bbhx.utils.transform">bbhx.utils.transform</a>
+</li>
+        <li><a href="user/utils.html#module-bbhx.utils.utility">bbhx.utils.utility</a>
+</li>
+      </ul></li>
+      <li><a href="user/utils.html#bbhx.utils.transform.mT_q">mT_q() (in module bbhx.utils.transform)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -322,13 +383,15 @@
       </ul></li>
       <li><a href="user/like.html#bbhx.likelihood.Likelihood.phase_marginalize">phase_marginalize (bbhx.likelihood.Likelihood attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phenomd_ringdown_freqs">phenomd_ringdown_freqs (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phenomhm_ringdown_freqs">phenomhm_ringdown_freqs (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase">PhenomHMAmpPhase (class in bbhx.waveforms.phenomhm)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.utility.pointer_adjust">pointer_adjust() (in module bbhx.utils.utility)</a>
 </li>
       <li><a href="user/like.html#bbhx.likelihood.Likelihood.psd">psd (bbhx.likelihood.Likelihood attribute)</a>
 </li>
@@ -353,6 +416,14 @@
   </ul></td>
 </tr></table>
 
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/utils.html#bbhx.utils.transform.SSB_to_LISA">SSB_to_LISA() (in module bbhx.utils.transform)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -368,21 +439,25 @@
         <li><a href="user/utils.html#bbhx.waveformbuild.TemplateInterpFD.template_gen">(bbhx.waveformbuild.TemplateInterpFD attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/utils.html#bbhx.waveformbuild.TemplateInterpFD">TemplateInterpFD (class in bbhx.waveformbuild)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse.tf">tf (bbhx.response.fastfdresponse.LISATDIResponse property)</a>
 
       <ul>
         <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.tf">(bbhx.waveforms.phenomhm.PhenomHMAmpPhase property)</a>
 </li>
       </ul></li>
+      <li><a href="user/utils.html#bbhx.utils.transform.tLfromSSBframe">tLfromSSBframe() (in module bbhx.utils.transform)</a>
+</li>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse.transferL1">transferL1 (bbhx.response.fastfdresponse.LISATDIResponse property)</a>
 </li>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse.transferL2">transferL2 (bbhx.response.fastfdresponse.LISATDIResponse property)</a>
 </li>
       <li><a href="user/response.html#bbhx.response.fastfdresponse.LISATDIResponse.transferL3">transferL3 (bbhx.response.fastfdresponse.LISATDIResponse property)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.transform.tSSBfromLframe">tSSBfromLframe() (in module bbhx.utils.transform)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -410,8 +485,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.waveform_carrier">waveform_carrier (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/main.html#bbhx.waveformbuild.BBHWaveformFD.waveform_gen">waveform_gen (bbhx.waveformbuild.BBHWaveformFD attribute)</a>
 
       <ul>
@@ -419,11 +492,17 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/utils.html#bbhx.utils.utility.wrapper">wrapper() (in module bbhx.utils.utility)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="X">X</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped">x_shaped (bbhx.utils.interpolate.CubicSplineInterpolant property)</a>
+</li>
       <li><a href="user/like.html#bbhx.likelihood.Likelihood.xp">xp (bbhx.likelihood.Likelihood attribute)</a>
 
       <ul>
@@ -447,6 +526,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="user/waveforms.html#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.y_rd">y_rd (bbhx.waveforms.phenomhm.PhenomHMAmpPhase attribute)</a>
+</li>
+      <li><a href="user/utils.html#bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped">y_shaped (bbhx.utils.interpolate.CubicSplineInterpolant property)</a>
 </li>
   </ul></td>
 </tr></table>

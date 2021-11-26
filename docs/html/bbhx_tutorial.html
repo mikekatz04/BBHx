@@ -49,29 +49,36 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorial:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Adjust-inspiral-timing-with-shift_t_limits=False">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Adjust-inspiral-timing-with-shift_t_limits=True">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Controlling-interpolation">Controlling interpolation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#Check-number-of-points-that-is-good-for-interpolation:">Check number of points that is good for interpolation:</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Adjust-inspiral-timing-with-shift_t_limits=False">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Adjust-inspiral-timing-with-shift_t_limits=True">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Controlling-interpolation">Controlling interpolation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Check-number-of-points-that-is-good-for-interpolation:">Check number of points that is good for interpolation:</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#Generate-waveforms-without-interpolation">Generate waveforms without interpolation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Adjusting-mode-content">Adjusting mode content</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#All-of-these-functions-can-take-arrays-for-parameters">All of these functions can take arrays for parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#The-fill-keyword-argument">The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Generate-waveforms-without-interpolation">Generate waveforms without interpolation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Adjusting-mode-content">Adjusting mode content</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#All-of-these-functions-can-take-arrays-for-parameters">All of these functions can take arrays for parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#The-fill-keyword-argument">The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Fast-FD-Response">Fast FD Response</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Computing-the-Likelihood">Computing the Likelihood</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">Computing the log-Likelihood for MBHBs directly against the Fourier transform of data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Heterodyned-Likelihoods">Heterodyned Likelihoods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Fast-FD-Response">Fast FD Response</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Computing-the-Likelihood">Computing the Likelihood</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">Computing the log-Likelihood for MBHBs directly against the Fourier transform of data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Heterodyned-Likelihoods">Heterodyned Likelihoods</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#Utility-functions">Utility functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Transformation-functions">Transformation functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Transformations-to-and-from-LISA-and-SSB-reference-frames">Transformations to and from LISA and SSB reference frames</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Posterior-sky-mode-transformation">Posterior sky-mode transformation</a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="#Citations">Citations</a></li>
 </ul>
 
         </div>
@@ -388,6 +395,7 @@ div.rendered_html tbody tr:hover {
 <span class="kn">from</span> <span class="nn">bbhx.response.fastfdresponse</span> <span class="kn">import</span> <span class="n">LISATDIResponse</span>
 <span class="kn">from</span> <span class="nn">bbhx.likelihood</span> <span class="kn">import</span> <span class="n">Likelihood</span><span class="p">,</span> <span class="n">HeterodynedLikelihood</span>
 <span class="kn">from</span> <span class="nn">bbhx.utils.constants</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">bbhx.utils.transform</span> <span class="kn">import</span> <span class="o">*</span>
 
 <span class="kn">from</span> <span class="nn">lisatools.sensitivity</span> <span class="kn">import</span> <span class="n">get_sensitivity</span>
 
@@ -407,8 +415,9 @@ No CuPy or GPU interpolation available.
 No CuPy
 </pre></div></div>
 </div>
+</section>
 <section id="GPU-accelerated-MBHB-waveforms-for-LISA">
-<h2>GPU accelerated MBHB waveforms for LISA<a class="headerlink" href="#GPU-accelerated-MBHB-waveforms-for-LISA" title="Permalink to this headline"></a></h2>
+<h1>GPU accelerated MBHB waveforms for LISA<a class="headerlink" href="#GPU-accelerated-MBHB-waveforms-for-LISA" title="Permalink to this headline"></a></h1>
 <p>First, we will detail how to produce full waveforms for MBHBs to be detected by LISA. We will look at how to generate PhenomHM waveforms (<a class="reference external" href="https://arxiv.org/abs/1708.00404">arXiv:1708.00404</a>, <a class="reference external" href="https://arxiv.org/abs/1508.07253">arXiv:1508.07253</a>, <a class="reference external" href="https://arxiv.org/abs/1508.07250">arXiv:1508.07250</a>) put through the LISA response function ((<a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a>, <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>). More information on generating the
 waveforms and response separately can be found below.</p>
 <div class="nbinput nblast docutils container">
@@ -432,7 +441,7 @@ waveforms and response separately can be found below.</p>
 <span class="n">m2</span> <span class="o">=</span> <span class="mf">5e5</span>
 <span class="n">a1</span> <span class="o">=</span> <span class="mf">0.2</span>
 <span class="n">a2</span> <span class="o">=</span> <span class="mf">0.4</span>
-<span class="n">dist</span> <span class="o">=</span> <span class="mf">3e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="mf">18e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
 <span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">3.</span>
 <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span>  <span class="c1"># ecliptic latitude</span>
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">5.</span>  <span class="c1"># ecliptic longitude</span>
@@ -481,7 +490,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <section id="Adjust-inspiral-timing-with-shift_t_limits=False">
-<h3>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=False" title="Permalink to this headline"></a></h3>
+<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=False" title="Permalink to this headline"></a></h2>
 <p>You can move the end of the signal further back in time from merger by changing <code class="docutils literal notranslate"><span class="pre">t_obs_end</span></code>. You can also adjust how far back in time the waveform starts with <code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code>. With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
 <p>Chopping the signal can make the signal look like it abrubtly loses power. This is the case because different harmonic modes turn off abruptly at different frequencies.</p>
 <div class="nbinput docutils container">
@@ -527,7 +536,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Adjust-inspiral-timing-with-shift_t_limits=True">
-<h3>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=True" title="Permalink to this headline"></a></h3>
+<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=True" title="Permalink to this headline"></a></h2>
 <p>With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
 <p>Based on the <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> of the system we are examining, with <code class="docutils literal notranslate"><span class="pre">t_obs_start=0</span></code>, <code class="docutils literal notranslate"><span class="pre">t_obs_end=0.75</span></code> years, <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, only an early low-power portion of the signal is observed.</p>
 <div class="nbinput docutils container">
@@ -573,7 +582,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Controlling-interpolation">
-<h3>Controlling interpolation<a class="headerlink" href="#Controlling-interpolation" title="Permalink to this headline"></a></h3>
+<h2>Controlling interpolation<a class="headerlink" href="#Controlling-interpolation" title="Permalink to this headline"></a></h2>
 <p>The user has the option to control the interpolation by providing the number of frequencies to interpolate over with the <code class="docutils literal notranslate"><span class="pre">length</span></code> keyword argument.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -627,7 +636,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 </div>
 </div>
 <section id="Check-number-of-points-that-is-good-for-interpolation:">
-<h4>Check number of points that is good for interpolation:<a class="headerlink" href="#Check-number-of-points-that-is-good-for-interpolation:" title="Permalink to this headline"></a></h4>
+<h3>Check number of points that is good for interpolation:<a class="headerlink" href="#Check-number-of-points-that-is-good-for-interpolation:" title="Permalink to this headline"></a></h3>
 <p>Generally, most reasonable numbers of points are fine for interpolation. We usually put 1024 to be conservative. It can slightly affect the waveform timing.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
@@ -682,7 +691,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 </section>
 </section>
 <section id="Generate-waveforms-without-interpolation">
-<h3>Generate waveforms without interpolation<a class="headerlink" href="#Generate-waveforms-without-interpolation" title="Permalink to this headline"></a></h3>
+<h2>Generate waveforms without interpolation<a class="headerlink" href="#Generate-waveforms-without-interpolation" title="Permalink to this headline"></a></h2>
 <p>When interpolating, frequencies between <span class="math notranslate nohighlight">\(10^{-4}/M\)</span> and <span class="math notranslate nohighlight">\(0.6/M\)</span> are evaluated. Therefore, when not interpolating, the evaluation of the waveform will stretch outside these limits if frequencies outside those limits are given by the user.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">compress=True</span></code>, all modes will be directly combined.</p>
 <div class="nbinput docutils container">
@@ -762,7 +771,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Adjusting-mode-content">
-<h3>Adjusting mode content<a class="headerlink" href="#Adjusting-mode-content" title="Permalink to this headline"></a></h3>
+<h2>Adjusting mode content<a class="headerlink" href="#Adjusting-mode-content" title="Permalink to this headline"></a></h2>
 <p>You can adjust the mode content with the <code class="docutils literal notranslate"><span class="pre">modes</span></code> keyword argument. You will receive an error if the requested mode indices <span class="math notranslate nohighlight">\((l,m)\)</span> are not available for the given waveform model chosen.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
@@ -804,7 +813,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="All-of-these-functions-can-take-arrays-for-parameters">
-<h3>All of these functions can take arrays for parameters<a class="headerlink" href="#All-of-these-functions-can-take-arrays-for-parameters" title="Permalink to this headline"></a></h3>
+<h2>All of these functions can take arrays for parameters<a class="headerlink" href="#All-of-these-functions-can-take-arrays-for-parameters" title="Permalink to this headline"></a></h2>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
@@ -860,7 +869,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="The-fill-keyword-argument">
-<h3>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument<a class="headerlink" href="#The-fill-keyword-argument" title="Permalink to this headline"></a></h3>
+<h2>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument<a class="headerlink" href="#The-fill-keyword-argument" title="Permalink to this headline"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument allows the user to fill the data stream as in the first example above. However, it can give two other returns. (It is only available when <code class="docutils literal notranslate"><span class="pre">direct=False</span></code>.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">fill=False</span></code>, it will return special information used in the fast likelihood function. This includes templates as shortened arrays (only the values where <span class="math notranslate nohighlight">\(\tilde{h}(f)\)</span> is non-zero), the information on which frequency each array starts at and its length.</p>
 <div class="nbinput docutils container">
@@ -969,7 +978,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </section>
 </section>
 <section id="Generating-PhenomHM-waveforms">
-<h2>Generating PhenomHM waveforms<a class="headerlink" href="#Generating-PhenomHM-waveforms" title="Permalink to this headline"></a></h2>
+<h1>Generating PhenomHM waveforms<a class="headerlink" href="#Generating-PhenomHM-waveforms" title="Permalink to this headline"></a></h1>
 <p>Now we will create PhenomHM waveforms in the source frame, but scaled for the distance.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
@@ -991,7 +1000,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <span class="n">m2</span> <span class="o">=</span> <span class="mf">5e5</span>
 <span class="n">a1</span> <span class="o">=</span> <span class="mf">0.2</span>
 <span class="n">a2</span> <span class="o">=</span> <span class="mf">0.4</span>
-<span class="n">dist</span> <span class="o">=</span> <span class="mf">3e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="mf">18e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
 <span class="n">t_ref</span> <span class="o">=</span> <span class="mf">0.0</span>
 
 <span class="n">phenomhm</span><span class="p">(</span>
@@ -1035,7 +1044,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7fd2b92dd990&gt;
+&lt;matplotlib.legend.Legend at 0x7fd2d4ae4150&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1047,7 +1056,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Fast-FD-Response">
-<h2>Fast FD Response<a class="headerlink" href="#Fast-FD-Response" title="Permalink to this headline"></a></h2>
+<h1>Fast FD Response<a class="headerlink" href="#Fast-FD-Response" title="Permalink to this headline"></a></h1>
 <p>A large amount of the Fast FD Response codes were provided by Sylvain Marsat, so thank you to him! Detailed information on the response can be found in <a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a> and <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>. The response works by applying an effective transfer function, <span class="math notranslate nohighlight">\(\mathcal{T}(f, t(f))\)</span>, to the waveform to get the TDI channels:</p>
 <div class="math notranslate nohighlight">
 \[\tilde{h}^{AET}(f) = \mathcal{T}(f, t(f))\tilde{h}^\text{SSB}(f),\]</div>
@@ -1260,7 +1269,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 </section>
 <section id="Computing-the-Likelihood">
-<h2>Computing the Likelihood<a class="headerlink" href="#Computing-the-Likelihood" title="Permalink to this headline"></a></h2>
+<h1>Computing the Likelihood<a class="headerlink" href="#Computing-the-Likelihood" title="Permalink to this headline"></a></h1>
 <p>The gravitational-wave likelihood, <span class="math notranslate nohighlight">\(\mathcal{L}\)</span>, is given by</p>
 <div class="math notranslate nohighlight">
 \[\log{\mathcal{L}}\propto -\frac{1}{2}\langle d-h|d-h\rangle = -\frac{1}{2}\left( \langle d|d\rangle + \langle h|h\rangle - 2\langle d|h\rangle \right),\]</div>
@@ -1269,7 +1278,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 \[\langle a|b\rangle = 4\text{Re}\int_0^\infty\frac{\tilde{a}(f)^*\tilde{b}(f)}{S_n(f)}df,\]</div>
 <p>where <span class="math notranslate nohighlight">\(S_n(f)\)</span> is the one-sided Power Spectral Density in the noise.</p>
 <section id="Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">
-<h3>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Permalink to this headline"></a></h3>
+<h2>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Permalink to this headline"></a></h2>
 <p>One option in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> for computing the likelihood is a direct Likeihood computation: <code class="docutils literal notranslate"><span class="pre">bbhx.likelihood.Likelihood</span></code>. You will need <code class="docutils literal notranslate"><span class="pre">lisatools</span></code> if you want to compute the sensitivity curves. Otherwise, put in your own sensitivity functions or np.ones to get it to work.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
@@ -1284,7 +1293,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <span class="n">m2</span> <span class="o">=</span> <span class="mf">5e5</span>
 <span class="n">a1</span> <span class="o">=</span> <span class="mf">0.2</span>
 <span class="n">a2</span> <span class="o">=</span> <span class="mf">0.4</span>
-<span class="n">dist</span> <span class="o">=</span> <span class="mf">3e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="mf">18e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
 <span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">3.</span>
 <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span>  <span class="c1"># ecliptic latitude</span>
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">5.</span>  <span class="c1"># ecliptic longitude</span>
@@ -1329,64 +1338,31 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <span class="n">params_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">]),</span> <span class="p">(</span><span class="n">num_bins</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
 <span class="c1"># change masses for test</span>
-<span class="n">params_in</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">1e-5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_bins</span><span class="p">))</span>
+<span class="n">params_in</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">1e-4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_bins</span><span class="p">))</span>
 
 <span class="c1"># get_ll and not __call__ to work with lisatools</span>
 <span class="n">ll</span> <span class="o">=</span> <span class="n">like</span><span class="o">.</span><span class="n">get_ll</span><span class="p">(</span><span class="n">params_in</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">ll</span><span class="p">),</span> <span class="n">like</span><span class="o">.</span><span class="n">d_h</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ll</span><span class="p">,</span> <span class="n">like</span><span class="o">.</span><span class="n">d_h</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="nboutput docutils container">
+<div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[-0.39102243 -3.54102475 -0.29899859 -2.32105449 -3.76126212 -0.06766487
- -0.13088474 -0.94952771 -0.41880084 -2.07989533]
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-(None,
- array([32585930.12415724-2493.23456942j, 32585805.81205318-7503.02380467j,
-        32586043.24467641+2180.20406938j, 32585841.58068655-6074.50924356j,
-        32585800.03359698-7732.84363398j, 32585965.66360701-1037.13397628j,
-        32586025.57000791+1442.4580846j , 32585895.89972323-3885.2453791j ,
-        32586052.80092949+2580.28313149j, 32585849.66338766-5750.27576785j]))
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">psd</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-array([[1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
-        5.67313626e-40, 5.67311162e-40, 5.67308698e-40],
-       [1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
-        5.67313626e-40, 5.67311162e-40, 5.67308698e-40],
-       [6.65292981e-56, 2.66124904e-55, 5.98786818e-55, ...,
-        1.87651528e-39, 1.87650894e-39, 1.87650260e-39]])
+[ -1.08564575  -9.78986947  -0.83013822  -6.42756082 -10.39568583
+  -0.18793697  -0.36347664  -2.63434773  -1.16255004  -5.76160463] [905148.57604934 -692.56805835j 905106.21592967-2083.93242728j
+ 905180.22834893 +605.58849218j 905119.1749811 -1687.25495497j
+ 905104.06618791-2147.74363854j 905159.25598343 -288.09476858j
+ 905175.73869922 +400.67391197j 905137.67572526-1079.22170972j
+ 905182.58375341 +716.70964209j 905122.0191435 -1597.2112494j ]
 </pre></div></div>
 </div>
 <p>You can also phase marginalize. This occurs in the <span class="math notranslate nohighlight">\(\langle d|h \rangle\)</span> term in the Likelihood.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1402,21 +1378,21 @@ array([[1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[-0.39102243 -0.29564048]
- [-3.54102475 -2.6772228 ]
- [-0.29899859 -0.22606415]
- [-2.32105449 -1.75486285]
- [-3.76126212 -2.84373255]
- [-0.06766487 -0.05116011]
- [-0.13088474 -0.0989587 ]
- [-0.94952771 -0.71790707]
- [-0.41880084 -0.3166427 ]
- [-2.07989533 -1.5725329 ]]
+[[ -1.08564575  -0.820689  ]
+ [ -9.78986947  -7.39083137]
+ [ -0.83013822  -0.62756123]
+ [ -6.42756082  -4.85493541]
+ [-10.39568583  -7.84747264]
+ [ -0.18793697  -0.14208946]
+ [ -0.36347664  -0.27479797]
+ [ -2.63434773  -1.9909544 ]
+ [ -1.16255004  -0.87881025]
+ [ -5.76160463  -4.35235718]]
 </pre></div></div>
 </div>
 <p>You can also return the signal-to-noise ratio: <span class="math notranslate nohighlight">\(\langle d|h \rangle / \sqrt{\langle h|h \rangle}\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1433,25 +1409,25 @@ array([[1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[-3.91022425e-01  5.70841397e+03]
- [-3.54102475e+00  5.70841342e+03]
- [-2.98998591e-01  5.70841398e+03]
- [-2.32105449e+00  5.70841363e+03]
- [-3.76126212e+00  5.70841338e+03]
- [-6.76648691e-02  5.70841402e+03]
- [-1.30884737e-01  5.70841401e+03]
- [-9.49527707e-01  5.70841387e+03]
- [-4.18800838e-01  5.70841396e+03]
- [-2.07989533e+00  5.70841367e+03]]
+[[-1.08564575e+00  9.51401198e+02]
+ [-9.78986947e+00  9.51392050e+02]
+ [-8.30138221e-01  9.51401467e+02]
+ [-6.42756082e+00  9.51395584e+02]
+ [-1.03956858e+01  9.51391414e+02]
+ [-1.87936968e-01  9.51402142e+02]
+ [-3.63476644e-01  9.51401957e+02]
+ [-2.63434773e+00  9.51399571e+02]
+ [-1.16255004e+00  9.51401118e+02]
+ [-5.76160463e+00  9.51396284e+02]]
 </pre></div></div>
 </div>
 </section>
 <section id="Heterodyned-Likelihoods">
-<h3>Heterodyned Likelihoods<a class="headerlink" href="#Heterodyned-Likelihoods" title="Permalink to this headline"></a></h3>
+<h2>Heterodyned Likelihoods<a class="headerlink" href="#Heterodyned-Likelihoods" title="Permalink to this headline"></a></h2>
 <p>Heterodyned Likelihoods are also available. See <a class="reference external" href="https://arxiv.org/abs/2109.02728">arXiv:2109.02728</a> for details on Heterodyning in general. We specifically implement the method used in <a class="reference external" href="https://arxiv.org/abs/1806.08792">arXiv:1806.08792</a>. The practical reason for using a Heterodyned Likelihood method is the computation can be performed along a sparse array of frequencies, rather than a dense array comming from a Fourier transform.</p>
-<p>It is reasonably accurate with higher modes. It gets more accurate as modes are removed.</p>
+<p>It is reasonably accurate with higher modes and produces the same posteriors as the full Likelihood. It uses a direct sum of modes prior to residual computation. It gets more accurate as modes are removed.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1485,20 +1461,338 @@ array([[1.53396789e-34, 3.83491978e-35, 1.70440883e-35, ...,
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[-0.39102243 -0.38849574]
- [-3.54102475 -3.31537127]
- [-0.29899859 -0.29498889]
- [-2.32105449 -2.18277054]
- [-3.76126212 -3.5197815 ]
- [-0.06766487 -0.086341  ]
- [-0.13088474 -0.14052708]
- [-0.94952771 -0.90836701]
- [-0.41880084 -0.40528708]
- [-2.07989533 -1.95880217]]
+[[ -1.08564575  -1.02679107]
+ [ -9.78986947  -9.10891033]
+ [ -0.83013822  -0.76848715]
+ [ -6.42756082  -5.98933239]
+ [-10.39568583  -9.67090151]
+ [ -0.18793697  -0.18846779]
+ [ -0.36347664  -0.33934525]
+ [ -2.63434773  -2.46732275]
+ [ -1.16255004  -1.07485673]
+ [ -5.76160463  -5.37128679]]
 </pre></div></div>
 </div>
 </section>
 </section>
+<section id="Utility-functions">
+<h1>Utility functions<a class="headerlink" href="#Utility-functions" title="Permalink to this headline"></a></h1>
+<p>There are some utility functions in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> than can be very useful.</p>
+<section id="Transformation-functions">
+<h2>Transformation functions<a class="headerlink" href="#Transformation-functions" title="Permalink to this headline"></a></h2>
+<p>When sampling on MBHBs, it can be useful to sample in the LISA constellation reference frame where the posterior modes in the sky have a generally predictable structure. In the LISA constellation referenence frame, the sky localization for a source generally has 8 sky modes: 4 longitudinal and 2 latitudinal. Longitudinal modes involve <span class="math notranslate nohighlight">\(\lambda + (0, 1, 2, 3)\times\pi/2\)</span> and <span class="math notranslate nohighlight">\(\psi + (0, 1, 2, 3)\times\pi/2\)</span>, where <span class="math notranslate nohighlight">\(\lambda\)</span> is the ecliptic longitude and <span class="math notranslate nohighlight">\(\psi\)</span> is the
+polarization angle. The latitudinal modes are at <span class="math notranslate nohighlight">\((\pm\beta, \pm\cos{\iota}, \pm\cos{\psi})\)</span> where <span class="math notranslate nohighlight">\(\beta\)</span> and <span class="math notranslate nohighlight">\(\iota\)</span> are the ecliptic latitude and inclination, respectively.</p>
+<section id="Transformations-to-and-from-LISA-and-SSB-reference-frames">
+<h3>Transformations to and from LISA and SSB reference frames<a class="headerlink" href="#Transformations-to-and-from-LISA-and-SSB-reference-frames" title="Permalink to this headline"></a></h3>
+<p>First, we will examine transformations of coordinates to and from the LISA and SSB reference frames. All of these functions can take arrays as input as well.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># start in the LISA frame</span>
+<span class="n">tL</span> <span class="o">=</span> <span class="n">YRSID_SI</span>  <span class="c1"># time</span>
+<span class="n">lambdaL</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="n">betaL</span> <span class="o">=</span> <span class="mf">0.8</span>
+<span class="n">psiL</span> <span class="o">=</span> <span class="mf">0.3</span>
+
+<span class="n">tSSB</span><span class="p">,</span> <span class="n">lambdaSSB</span><span class="p">,</span> <span class="n">betaSSB</span><span class="p">,</span> <span class="n">psiSSB</span> <span class="o">=</span> <span class="n">LISA_to_SSB</span><span class="p">(</span><span class="n">tL</span><span class="p">,</span> <span class="n">lambdaL</span><span class="p">,</span> <span class="n">betaL</span><span class="p">,</span> <span class="n">psiL</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tSSB</span><span class="p">,</span> <span class="n">lambdaSSB</span><span class="p">,</span> <span class="n">betaSSB</span><span class="p">,</span> <span class="n">psiSSB</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+31557992.305078838 2.327701567520846 1.0933520437673627 2.3134690745168953
+</pre></div></div>
+</div>
+<p>From SSB to LISA:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">tL</span><span class="p">,</span> <span class="n">lambdaL</span><span class="p">,</span> <span class="n">betaL</span><span class="p">,</span> <span class="n">psiL</span> <span class="o">=</span> <span class="n">SSB_to_LISA</span><span class="p">(</span><span class="n">tSSB</span><span class="p">,</span> <span class="n">lambdaSSB</span><span class="p">,</span> <span class="n">betaSSB</span><span class="p">,</span> <span class="n">psiSSB</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tL</span><span class="p">,</span> <span class="n">lambdaL</span><span class="p">,</span> <span class="n">betaL</span><span class="p">,</span> <span class="n">psiL</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+31558149.7635457 0.49999999999998856 0.8000000000000037 0.2999999999999905
+</pre></div></div>
+</div>
+</section>
+<section id="Posterior-sky-mode-transformation">
+<h3>Posterior sky-mode transformation<a class="headerlink" href="#Posterior-sky-mode-transformation" title="Permalink to this headline"></a></h3>
+<p>You can transform your sky mode parameters to all longitudinal modes. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 4 times as long as the input array.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">inc</span> <span class="o">=</span> <span class="mf">0.4</span>
+<span class="n">lam</span> <span class="o">=</span> <span class="mf">3.42</span>
+<span class="n">beta</span> <span class="o">=</span> <span class="mf">0.6</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+<span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">])</span>
+
+<span class="c1"># if we had the whole mbh parameter array like used in BBHWaveformFD,</span>
+<span class="c1"># it would be dict(inc=7, lam=8, beta=9, psi=10) included f_ref as a parameter</span>
+<span class="n">ind_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">inc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lam</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">psi</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">out_coords</span> <span class="o">=</span> <span class="n">mbh_sky_mode_transform</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">ind_map</span><span class="o">=</span><span class="n">ind_map</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;long&quot;</span><span class="p">,</span> <span class="n">cos_i</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;end params: </span><span class="si">{</span><span class="n">out_coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+start params: [0.4  3.42 0.6  1.  ]
+end params: [[0.4        3.42       0.6        1.        ]
+ [0.4        4.99079633 0.6        2.57079633]
+ [0.4        0.27840735 0.6        1.        ]
+ [0.4        1.84920367 0.6        2.57079633]]
+</pre></div></div>
+</div>
+<p>Or latitudinal transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 2 times as long as the input array.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">out_coords</span> <span class="o">=</span> <span class="n">mbh_sky_mode_transform</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">ind_map</span><span class="o">=</span><span class="n">ind_map</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="n">cos_i</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;end params: </span><span class="si">{</span><span class="n">out_coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+start params: [0.4  3.42 0.6  1.  ]
+end params: [[ 0.4         3.42        0.6         1.        ]
+ [ 2.74159265  3.42       -0.6         2.14159265]]
+</pre></div></div>
+</div>
+<p>Or both transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 8 times as long as the input array.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">out_coords</span> <span class="o">=</span> <span class="n">mbh_sky_mode_transform</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">ind_map</span><span class="o">=</span><span class="n">ind_map</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">,</span> <span class="n">cos_i</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;end params: </span><span class="si">{</span><span class="n">out_coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+start params: [0.4  3.42 0.6  1.  ]
+end params: [[ 0.4         3.42        0.6         1.        ]
+ [ 2.74159265  3.42       -0.6         2.14159265]
+ [ 0.4         4.99079633  0.6         2.57079633]
+ [ 2.74159265  4.99079633 -0.6         0.57079633]
+ [ 0.4         0.27840735  0.6         1.        ]
+ [ 2.74159265  0.27840735 -0.6         2.14159265]
+ [ 0.4         1.84920367  0.6         2.57079633]
+ [ 2.74159265  1.84920367 -0.6         0.57079633]]
+</pre></div></div>
+</div>
+<p>You can also do these transformations in-place. When you do this, the input binaries will be assigned to new sky modes based on the transformation. Every 2, 4, or 8 binaries will be given the same sky mode transformation if latitudinal, longitudinal, or both transformations are applied, respectively.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">in_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">]),</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">in_coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">out_coords</span> <span class="o">=</span> <span class="n">mbh_sky_mode_transform</span><span class="p">(</span><span class="n">in_coords</span><span class="p">,</span> <span class="n">ind_map</span><span class="o">=</span><span class="n">ind_map</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">,</span> <span class="n">cos_i</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;end params: </span><span class="si">{</span><span class="n">out_coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+start params: [[0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]
+ [0.4  3.42 0.6  1.  ]]
+end params: [[ 0.4         3.42        0.6         1.        ]
+ [ 2.74159265  3.42       -0.6         2.14159265]
+ [ 0.4         4.99079633  0.6         2.57079633]
+ [ 2.74159265  4.99079633 -0.6         0.57079633]
+ [ 0.4         0.27840735  0.6         1.        ]
+ [ 2.74159265  0.27840735 -0.6         2.14159265]
+ [ 0.4         1.84920367  0.6         2.57079633]
+ [ 2.74159265  1.84920367 -0.6         0.57079633]
+ [ 0.4         3.42        0.6         1.        ]
+ [ 2.74159265  3.42       -0.6         2.14159265]
+ [ 0.4         4.99079633  0.6         2.57079633]
+ [ 2.74159265  4.99079633 -0.6         0.57079633]
+ [ 0.4         0.27840735  0.6         1.        ]
+ [ 2.74159265  0.27840735 -0.6         2.14159265]
+ [ 0.4         1.84920367  0.6         2.57079633]
+ [ 2.74159265  1.84920367 -0.6         0.57079633]]
+</pre></div></div>
+</div>
+</section>
+</section>
+</section>
+<section id="Citations">
+<h1>Citations<a class="headerlink" href="#Citations" title="Permalink to this headline"></a></h1>
+<p>You can access citations for each class with the <code class="docutils literal notranslate"><span class="pre">citation</span></code> property.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="n">wave_gen</span><span class="o">.</span><span class="n">citation</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+@article{Katz:2020hku,
+    author = &#34;Katz, Michael L. and Marsat, Sylvain and Chua, Alvin J. K. and Babak, Stanislav and Larson, Shane L.&#34;,
+    title = &#34;{GPU-accelerated massive black hole binary parameter estimation with LISA}&#34;,
+    eprint = &#34;2005.01827&#34;,
+    archivePrefix = &#34;arXiv&#34;,
+    primaryClass = &#34;gr-qc&#34;,
+    doi = &#34;10.1103/PhysRevD.102.023033&#34;,
+    journal = &#34;Phys. Rev. D&#34;,
+    volume = &#34;102&#34;,
+    number = &#34;2&#34;,
+    pages = &#34;023033&#34;,
+    year = &#34;2020&#34;
+}
+
+@article{Katz:2021uax,
+    author = &#34;Katz, Michael L.&#34;,
+    title = &#34;{A fully-automated end-to-end pipeline for massive black hole binary signal extraction from LISA data}&#34;,
+    eprint = &#34;2111.01064&#34;,
+    archivePrefix = &#34;arXiv&#34;,
+    primaryClass = &#34;gr-qc&#34;,
+    month = &#34;11&#34;,
+    year = &#34;2021&#34;
+}
+
+@article{Marsat:2018oam,
+    author = &#34;Marsat, Sylvain and Baker, John G.&#34;,
+    title = &#34;{Fourier-domain modulations and delays of gravitational-wave signals}&#34;,
+    eprint = &#34;1806.10734&#34;,
+    archivePrefix = &#34;arXiv&#34;,
+    primaryClass = &#34;gr-qc&#34;,
+    month = &#34;6&#34;,
+    year = &#34;2018&#34;
+}
+
+@article{Marsat:2020rtl,
+    author = &#34;Marsat, Sylvain and Baker, John G. and Dal Canton, Tito&#34;,
+    title = &#34;{Exploring the Bayesian parameter estimation of binary black holes with LISA}&#34;,
+    eprint = &#34;2003.00357&#34;,
+    archivePrefix = &#34;arXiv&#34;,
+    primaryClass = &#34;gr-qc&#34;,
+    doi = &#34;10.1103/PhysRevD.103.083011&#34;,
+    journal = &#34;Phys. Rev. D&#34;,
+    volume = &#34;103&#34;,
+    number = &#34;8&#34;,
+    pages = &#34;083011&#34;,
+    year = &#34;2021&#34;
+}
+
+@article{London2018,
+    archivePrefix = {arXiv},
+    arxivId = {gr-qc/1708.00404},
+    author = {London, Lionel and Khan, Sebastian and Fauchon-Jones, Edward and Garc&#39;ia, Cecilio and Hannam, Mark and Husa, Sascha and Jim{&#39;{e}}nez-Forteza, Xisco and Kalaghatgi, Chinmay and Ohme, Frank and Pannarale, Francesco},
+    doi = {10.1103/PhysRevLett.120.161102},
+    eprint = {1708.00404},
+    journal = {\prl},
+    keywords = {General Relativity and Quantum Cosmology},
+    month = {apr},
+    number = {16},
+    pages = {161102},
+    primaryClass = {gr-qc},
+    title = {{First Higher-Multipole Model of Gravitational Waves from Spinning and Coalescing Black-Hole Binaries}},
+    volume = {120},
+    year = {2018}
+}
+
+@article{Husa2016,
+    archivePrefix = {arXiv},
+    arxivId = {gr-qc/1508.07250},
+    author = {Husa, S and Khan, S and Hannam, M and P{&#34;{u}}rrer, M and Ohme, F and Forteza, X.$\sim$J. and Boh{&#39;{e}}, A},
+    doi = {10.1103/PhysRevD.93.044006},
+    eprint = {1508.07250},
+    journal = {\prd},
+    month = {feb},
+    number = {4},
+    pages = {44006},
+    primaryClass = {gr-qc},
+    title = {{Frequency-domain gravitational waves from nonprecessing black-hole binaries. I. New numerical waveforms and anatomy of the signal}},
+    volume = {93},
+    year = {2016}
+}
+
+
+@article{Khan2016,
+    archivePrefix = {arXiv},
+    arxivId = {gr-qc/1508.07253},
+    author = {Khan, S and Husa, S and Hannam, M and Ohme, F and P{&#34;{u}}rrer, M and Forteza, X.$\sim$J. and Boh{&#39;{e}}, A},
+    doi = {10.1103/PhysRevD.93.044007},
+    eprint = {1508.07253},
+    journal = {\prd},
+    month = {feb},
+    number = {4},
+    pages = {44007},
+    primaryClass = {gr-qc},
+    title = {{Frequency-domain gravitational waves from nonprecessing black-hole binaries. II. A phenomenological model for the advanced detector era}},
+    volume = {93},
+    year = {2016}
+}
+
+</pre></div></div>
+</div>
 </section>
 
 

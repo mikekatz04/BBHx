@@ -1,6 +1,6 @@
-# Collection of citations for modules in FastEMRIWaveforms package
+# Collection of citations for modules in bbhx package
 
-# Copyright (C) 2020 Michael L. Katz, Alvin J.K. Chua, Niels Warburton, Scott A. Hughes
+# Copyright (C) 2020 Michael L. Katz
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

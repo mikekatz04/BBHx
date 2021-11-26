@@ -41,7 +41,7 @@ from .utils.citations import *
 class TemplateInterpFD:
     """Interpolate frequency domain template.
 
-    This class wraps :class:`~CubicSplineInterpolant` so
+    This class wraps :class:`CubicSplineInterpolant <bbhx.utils.interpolate.CubicSplineInterpolant>` so
     that it fits into this specific waveform production method.
 
     This class has GPU capabilities.
@@ -108,7 +108,7 @@ class TemplateInterpFD:
         Args:
             data_freqs (double xp.ndarray): Frequencies to interpolate to.
             interp_container (obj): ``container`` attribute from the interpolant
-                class: :class:`CubicSplineInterpolant`.
+                class: :class:`CubicSplineInterpolant <bbhx.utils.interpolate.CubicSplineInterpolant>`.
             t_start (double xp.ndarray): Array of start times (sec) for each binary.
             t_end (double xp.ndarray): Array of end times (sec) for each binary.
             length (int): Length of original frequency array.
@@ -233,7 +233,7 @@ class BBHWaveformFD:
     listed for the waveform and response given just below.
 
     Right now, it is hard coded to produce the waveform with
-    :class:`~PhenomHMAmpPhase`. This can also be used
+    :class:`PhenomHMAmpPhase <bbhx.waveforms.phenomhm.PhenomHMAmpPhase>`. This can also be used
     to produce PhenomD. See the docs for that waveform. The papers describing PhenomHM/PhenomD
     waveforms are here: `arXiv:1708.00404 <https://arxiv.org/abs/1708.00404>`_,
     `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_, and
@@ -242,7 +242,7 @@ class BBHWaveformFD:
     The response function is the fast frequency domain response function
     from `arXiv:1806.10734 <https://arxiv.org/abs/1806.10734>`_ and
     `arXiv:2003.00357 <https://arxiv.org/abs/2003.00357>`_. It is implemented in
-    :class:`LISATDIResponse`.
+    :class:`LISATDIResponse <bbhx.response.fastfdresponse.LISATDIResponse`.
 
     This class is GPU accelerated.
 
@@ -250,7 +250,7 @@ class BBHWaveformFD:
         amp_phase_kwargs (dict, optional): Keyword arguments for the
             initialization of the ampltidue-phase waveform class: :class:`PhenomHMAmpPhase <bbhx.waveforms.phenomhm.PhenomHMAmpPhase>`.
         response_kwargs (dict, optional): Keyword arguments for the initialization
-            of the response class: :class:`LISATDIResponse`.
+            of the response class: :class:`LISATDIResponse <bbhx.response.fastfdresponse.LISATDIResponse`.
         interp_kwargs (dict, optional): Keyword arguments for the initialization
             of the interpolation class: :class:`TemplateInterpFD`.
         use_gpu (bool, optional): If ``True``, use a GPU. (Default: ``False``)
@@ -603,10 +603,10 @@ class BBHWaveformFD:
             spline = CubicSplineInterpolant(
                 self.amp_phase_gen.freqs,
                 out_buffer,
-                self.length,
-                self.num_interp_params,
-                self.num_modes,
-                self.num_bin_all,
+                length=self.length,
+                num_interp_params=self.num_interp_params,
+                num_modes=self.num_modes,
+                num_bin_all=self.num_bin_all,
                 use_gpu=self.use_gpu,
             )
 

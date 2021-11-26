@@ -126,7 +126,7 @@
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">bbhx.waveformbuild.</span></span><span class="sig-name descname"><span class="pre">TemplateInterpFD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Interpolate frequency domain template.</p>
-<p>This class wraps <code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code> so
+<p>This class wraps <a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="bbhx.utils.interpolate.CubicSplineInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a> so
 that it fits into this specific waveform production method.</p>
 <p>This class has GPU capabilities.</p>
 <dl class="field-list simple">
@@ -260,7 +260,7 @@ into C++/CUDA.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data_freqs</strong> (<em>double xp.ndarray</em>) – Frequencies to interpolate to.</p></li>
 <li><p><strong>interp_container</strong> (<em>obj</em>) – <code class="docutils literal notranslate"><span class="pre">container</span></code> attribute from the interpolant
-class: <code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code>.</p></li>
+class: <a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="bbhx.utils.interpolate.CubicSplineInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a>.</p></li>
 <li><p><strong>t_start</strong> (<em>double xp.ndarray</em>) – Array of start times (sec) for each binary.</p></li>
 <li><p><strong>t_end</strong> (<em>double xp.ndarray</em>) – Array of end times (sec) for each binary.</p></li>
 <li><p><strong>length</strong> (<em>int</em>) – Length of original frequency array.</p></li>

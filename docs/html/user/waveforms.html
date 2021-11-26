@@ -58,6 +58,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../bbhx_tutorial.html#Generating-PhenomHM-waveforms">Generating PhenomHM waveforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../bbhx_tutorial.html#Fast-FD-Response">Fast FD Response</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../bbhx_tutorial.html#Computing-the-Likelihood">Computing the Likelihood</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bbhx_tutorial.html#Utility-functions">Utility functions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../bbhx_tutorial.html#Citations">Citations</a></li>
 </ul>
 
@@ -118,7 +119,7 @@
 <h2>PhenomHM (PhenomD)<a class="headerlink" href="#phenomhm-phenomd" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">bbhx.waveforms.phenomhm.</span></span><span class="sig-name descname"><span class="pre">PhenomHMAmpPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_phenomd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">bbhx.waveforms.phenomhm.</span></span><span class="sig-name descname"><span class="pre">PhenomHMAmpPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_phenomd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Produce PhenomHM in the amplitude and phase representation</p>
 <p>This class implements PhenomD and PhenomHM in a GPU-accelerated form.
@@ -135,6 +136,10 @@ If you use this class, please cite
 <li><p><strong>run_phenomd</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, run the PhenomD
 waveform rather than PhenomHM. Really this is the same
 as choosing <code class="docutils literal notranslate"><span class="pre">modes=[(2,2)]</span></code> in the PhenomHM waveform.</p></li>
+<li><p><strong>mf_min</strong> (<em>double</em><em>, </em><em>optional</em>) – Dimensionless minimum frequency to use when performing
+interpolation. (Default: <code class="docutils literal notranslate"><span class="pre">1e-4</span></code>)</p></li>
+<li><p><strong>mf_max</strong> (<em>double</em><em>, </em><em>optional</em>) – Dimensionless maximum frequency to use when performing
+interpolation. (Default: <code class="docutils literal notranslate"><span class="pre">6e-1</span></code>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -175,8 +180,8 @@ the chosen waveform model.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_max">
 <span class="sig-name descname"><span class="pre">mf_max</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_max" title="Permalink to this definition"></a></dt>
-<dd><p>Default maximum frequency to use when performing
-interpolation:  <span class="math notranslate nohighlight">\(6\times10^{-1}\)</span>. # TODO: make adjustable?</p>
+<dd><p>Dimensionless maximum frequency to use when performing
+interpolation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>double</p>
@@ -187,8 +192,8 @@ interpolation:  <span class="math notranslate nohighlight">\(6\times10^{-1}\)</s
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_min">
 <span class="sig-name descname"><span class="pre">mf_min</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_min" title="Permalink to this definition"></a></dt>
-<dd><p>Default minimum frequency to use when performing
-interpolation: <span class="math notranslate nohighlight">\(10^{-4}\)</span>. # TODO: make adjustable?</p>
+<dd><p>Dimensionless minimum frequency to use when performing
+interpolation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>double</p>

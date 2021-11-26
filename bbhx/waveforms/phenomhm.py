@@ -66,16 +66,20 @@ class PhenomHMAmpPhase:
         run_phenomd (bool, optional): If ``True``, run the PhenomD
             waveform rather than PhenomHM. Really this is the same
             as choosing ``modes=[(2,2)]`` in the PhenomHM waveform.
+        mf_min (double, optional): Dimensionless minimum frequency to use when performing
+            interpolation. (Default: ``1e-4``)
+        mf_max (double, optional): Dimensionless maximum frequency to use when performing
+            interpolation. (Default: ``6e-1``)
 
     Attributes:
         allowable_modes (list): Allowed list of mode tuple pairs ``(l,m)`` for
             the chosen waveform model.
         ells_default (np.ndarray): Default values for the ``l`` index of the harmonic.
         mms_default (np.ndarray): Default values for the ``m`` index of the harmonic.
-        mf_max (double): Default maximum frequency to use when performing
-            interpolation:  :math:`6\\times10^{-1}`. # TODO: make adjustable?
-        mf_min (double): Default minimum frequency to use when performing
-            interpolation: :math:`10^{-4}`. # TODO: make adjustable?
+        mf_max (double): Dimensionless maximum frequency to use when performing
+            interpolation.
+        mf_min (double): Dimensionless minimum frequency to use when performing
+            interpolation.
         phenomhm_ringdown_freqs (obj): Ringdown frequency determination in PhenomHM.
         phenomd_ringdown_freqs (obj): Ringdown frequency determination in PhenomD.
         run_phenomd (bool): If ``True``, run the PhenomD
@@ -96,9 +100,7 @@ class PhenomHMAmpPhase:
 
     """
 
-    def __init__(
-        self, use_gpu=False, run_phenomd=False,
-    ):
+    def __init__(self, use_gpu=False, run_phenomd=False, mf_min=1e-4, mf_max=0.6):
 
         self.run_phenomd = run_phenomd
         if use_gpu:
@@ -129,8 +131,8 @@ class PhenomHMAmpPhase:
 
         # max/min dimensionless frequencies evaluated when
         # freqs are not given, but a length is given
-        self.mf_min = 1e-4
-        self.mf_max = 0.6
+        self.mf_min = mf_min
+        self.mf_max = mf_max
 
         # prepare the PhenomD spline info for fRD and fDM
         self._init_phenomd_fring_spline()

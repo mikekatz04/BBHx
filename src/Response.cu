@@ -44,14 +44,13 @@ double d_sinc(double x){
  */
 CUDA_CALLABLE_MEMBER
 d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int response, double* p0){
-    // response == 1 is full ,, response anything else is constellation
-    //# Trajectories, p0 used only for the full response
+    // response == 1 is full, response anything else is constellation
+    // Trajectories, p0 used only for the full response
     cmplx I(0.0, 1.0);
     cmplx m_I(0.0, -1.0);
     double alpha = Omega0*t; double c = cos(alpha); double s = sin(alpha);
     double a = AU_SI; double e = eorbit;
 
-    //double p0[3] = {a*c, a*s, 0.*t}; // funcp0(t)
     #ifdef __CUDACC__
     CUDA_SHARED double p1L_all[NUM_THREADS_RESPONSE * 3];
     double* p1L = &p1L_all[threadIdx.x * 3];
@@ -161,8 +160,6 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double* k, int respon
     Gslr_out.G31 = commonfac * n2Hn2 * factorsinc31 * factorcexp31;
     Gslr_out.G13 = commonfac * n2Hn2 * factorsinc13 * factorcexp31;
 
-    // ### FIXME
-    // # G13 = -1j * prefactor * n2Hn2 * factorsinc31 * np.conjugate(factorcexp31)
     return Gslr_out;
 }
 
@@ -269,8 +266,6 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
 
 
 
-
-
  /**
   * Michael Katz added this function.
   * internal function that filles amplitude and phase for a specific frequency and mode.
@@ -327,9 +322,9 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
              start_ind = 5 * numBinAll * numModes * length;
              response_out[start_ind + mode_index] = gcmplx::imag(transferL.transferL3);
 
-             // time_freq_corr update
              double phase_change = transferL.phaseRdelay;
 
+             // adjust phase
              phases[mode_index] +=  phase_change;
 
          }
@@ -467,13 +462,6 @@ void responseCore(
 
 
     //##### Based on the f-n by Sylvain   #####
-    //CUDA_SHARED double Hplus_all[NUM_THREADS_RESPONSE * 3 * 3];
-    //CUDA_SHARED double Hcross_all[NUM_THREADS_RESPONSE * 3 * 3];
-    //double* Hplus = &Hplus_all[threadIdx.x * 3 * 3];
-    //double* Hcross = &Hcross_all[threadIdx.x * 3 * 3];
-
-    //double* Htemp = (double*) &H_mat[0];  // Htemp alternates with Hplus and Hcross in order to save shared memory: Hp[0], Hc[0], Hp[1], Hc1]
-    // Htemp is then transformed into H_mat
 
     // Wave unit vector
 
@@ -488,7 +476,6 @@ void responseCore(
     double cpsi = cos(psi); double spsi = sin(psi);
 
 
-    //double* O1 = &O1_all[threadIdx.x * 3 * 3];
     O1[0] = cpsi*slambd-clambd*sbeta*spsi;
     O1[1] = -clambd*cpsi*sbeta-slambd*spsi;
     O1[2] = -cbeta*clambd;
@@ -500,7 +487,6 @@ void responseCore(
     O1[8] = -sbeta;
 
 
-    //double* invO1 = &invO1_all[threadIdx.x * 3 * 3];;
     invO1[0] = cpsi*slambd-clambd*sbeta*spsi;
     invO1[1] = -clambd*cpsi-sbeta*slambd*spsi;
     invO1[2] = cbeta*spsi;
@@ -512,12 +498,8 @@ void responseCore(
     invO1[8] = -sbeta;
 
 
-    //double* out1 = &out1_all[threadIdx.x * 3 * 3];
-
 
     // get Hplus
-    //if ((threadIdx.x + blockDim.x * blockIdx.x <= 1)) printf("INNER %d %e %e %e\n", threadIdx.x + blockDim.x * blockIdx.x, invO1[0], invO1[1], invO1[6]);
-
     dot_product_2d(out1, HSplus, 3, 3, invO1, 3, 3);
 
     dot_product_2d(Hplus, O1, 3, 3, out1, 3, 3);
@@ -651,11 +633,14 @@ void LISA_response(
 
     int start_param = includesAmps;  // if it has amps, start_param is 1, else 0
 
+    // get arrays out of main holder
     double* phases = &response_out[start_param * numBinAll * numModes * length];
     double* tf = &response_out[(start_param + 1) * numBinAll * numModes * length];
     double* response_vals = &response_out[(start_param + 2) * numBinAll * numModes * length];
 
-    int nblocks2 = numBinAll; //std::ceil((numBinAll + NUM_THREADS_RESPONSE -1)/NUM_THREADS_RESPONSE);
+    int nblocks2 = numBinAll;
+
+    // put each binary on its own block
 
     #ifdef __CUDACC__
     response<<<nblocks2, NUM_THREADS_RESPONSE>>>

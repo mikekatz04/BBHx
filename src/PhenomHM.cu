@@ -2667,9 +2667,9 @@ void get_amp(double* amp, double freq_geom, int ell, int mm, PhenomHMStorage* pH
 
 
 CUDA_CALLABLE_MEMBER
-void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
+void get_phase(int i, double* phase, double* tf, double freq_geom, int ell, int mm, PhenomHMStorage* pHM, UsefulPowers powers_of_f, PhenDAmpAndPhasePreComp pDPreComp, HMPhasePreComp q, double cshift[], double Rholm, double Taulm, double t0, double phi0)
 {
-        double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2, phase_deriv_i;
+        double Mf_wf, Mfr, tmpphaseC, phase_term1, phase_term2, tf_i;
       Mf_wf = 0.0;
       double Mf = 0.0;
       Mfr = 0.0;
@@ -2686,14 +2686,14 @@ void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int 
           Mf = q.ai * Mf_wf + q.bi;
 
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ai;
-          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
+          tf_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
       else if (!(Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseB */
           Mf = q.am * Mf_wf + q.bm;
 
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
-          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
+          tf_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
       else if ((Mf_wf > q.fr))
       { /* in mathematica -> IMRPhenDPhaseC */
@@ -2701,7 +2701,7 @@ void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int 
           tmpphaseC = IMRPhenomDPhase_OneFrequency(Mfr, pDPreComp, Rholm, Taulm) / q.am - q.PhDBconst + q.PhDBAterm;
           Mf = q.ar * Mf_wf + q.br;
           phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, Rholm, Taulm) / q.ar - q.PhDCconst + tmpphaseC;
-          phase_deriv_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
+          tf_i = IMRPhenDPhaseDerivative(Mf, &pDPreComp.pPhi, &pDPreComp.pn, Rholm, Taulm);
       }
 
       Mf = freq_geom;
@@ -2709,7 +2709,7 @@ void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int 
       phase_term2 = phase_i - (mm * phi0);
 
       *phase = (phase_term1 + phase_term2);
-      *phase_deriv = (phase_deriv_i) / (2. * PI);
+      *tf = (tf_i) / (2. * PI);
 }
 
 
@@ -2725,7 +2725,6 @@ void get_phase(int i, double* phase, double* phase_deriv, double freq_geom, int 
      double phase_i = cshift[mm];
 
      phase_i += IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
-     //double temp_phase = IMRPhenomDPhase_OneFrequency(Mf, pDPreComp, 1.0, 1.0);
 
      double phase_term1 = - t0 * (Mf - Mf_ref);
      double phase_term2 = phase_i - (mm * phi0);
@@ -2773,11 +2772,6 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
         dphidf = M_tot_sec * IMRPhenDPhaseDerivative(freq_geom, &pDPreComp.pPhi, &pDPreComp.pn, 1.0, 1.0) / (2 * PI);
         tf[freq_index] = dphidf - (t0 / (2. * PI) * M_tot_sec);
 
-         //t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
-         //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
-
-         //d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
-
     }
 }
 
@@ -2797,10 +2791,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
          #endif
          for (int i = start; i < length; i += increment)
          {
-             //int mode_index = (i * numModes + mode_i) * numBinAll + binNum;
-             //int freq_index = i * numBinAll + binNum;
-
-             double amp_i, phase_i, phase_deriv_i, dphidf, phase_up, phase_down;
+             double amp_i, phase_i, tf_i, dphidf, phase_up, phase_down;
              double t_wave_frame, t_sampling_frame;
              int status_in_for;
              UsefulPowers powers_of_f;
@@ -2814,55 +2805,15 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
 
              get_amp(&amp_i, freq_geom, ell, mm, pHM, powers_of_f, pAmp, amp_prefactors, amp0);
 
-             get_phase(i, &phase_i, &phase_deriv_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
+             get_phase(i, &phase_i, &tf_i, freq_geom, ell, mm, pHM, powers_of_f, pDPreComp, q, cshift, Rholm, Taulm, t0, phi0);
 
              amps[mode_index] = amp_i;
 
              phases[mode_index] = phase_i;
 
-             tf[mode_index] = (M_tot_sec * phase_deriv_i) - (t0 / (2. * PI) * M_tot_sec);
-
-              //t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
-              //t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
-
-              //d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, tBase, TDItag, order_fresnel_stencil);
+             tf[mode_index] = (M_tot_sec * tf_i) - (t0 / (2. * PI) * M_tot_sec);
 
          }
-
-         /*
-         double phasetimeshift;
-         double phi_up, phi;
-
-         double t, t_wave_frame, t_sampling_frame, x, x2, x3, coeff_0, coeff_1, coeff_2, coeff_3, f_last, Shift, t_merger, dphidf, dphidf_merger;
-         int old_ind_below;
-
-         double eps = 1e-6;
-
-
-
-                 if(i == num_points-1){
-                   coeff_1 = mode_vals[mode_index].phase_coeff_1[num_points-2];
-                   coeff_2 = mode_vals[mode_index].phase_coeff_2[num_points-2];
-                   coeff_3 = mode_vals[mode_index].phase_coeff_3[num_points-2];
-
-                   x = old_freqs[walker_i*num_points + i] - old_freqs[walker_i*num_points + (i-1)];
-                   x2 = x*x;
-                   dphidf = coeff_1 + 2.0*coeff_2*x + 3.0*coeff_3*x2;
-
-                 } else{
-                   dphidf = mode_vals[mode_index].phase_coeff_1[i];
-
-                 }
-
-                 t_wave_frame = 1./(2.0*PI)*dphidf + t_ref;
-                 t_sampling_frame = 1./(2.0*PI)*dphidf + tRef_sampling_frame;
-
-                 // adjust phase values stored in mode vals to reflect the tRef shift
-                 //mode_vals[mode_index].phase[i] += 2.0*PI*f*t_ref;
-
-                 d_transferL_holder transferL = d_JustLISAFDresponseTDI(&H[mode_index*9], f, t_wave_frame, lam, beta, t0, TDItag, order_fresnel_stencil);
-
-                 mode_vals[mode_index].time_freq_corr[i] = t_sampling_frame + t0*YRSID_SI; // TODO: decide how to cutoff because it should be in terms of tL but it*/
 }
 
 
@@ -2899,11 +2850,10 @@ void IMRPhenomHMCore(
 )
 {
 
-    // TODO: run_phenomd int -> bool
-
     // set phi_ref to zero
     double phi_ref = 0.0;
     double t0, amp0, phi0;
+
     /* setup PhenomHM model storage struct / structs */
     /* Compute quantities/parameters related to PhenomD only once and store them */
     //PhenomHMStorage *pHM;
@@ -2923,8 +2873,6 @@ void IMRPhenomHMCore(
     /* populate the ringdown frequency array */
     /* If you want to model a new mode then you have to add it here. */
     /* (l,m) = (2,2) */
-
-
 
     if (!run_phenomd)
     {
@@ -2976,12 +2924,11 @@ void IMRPhenomHMCore(
 
     // set f_ref to f_max
 
-    //if (pHM->f_ref == 0.0){
+    if (pHM->f_ref == 0.0)
+    {
         pHM->Mf_ref = pDPreComp22.pAmp.fmaxCalc;
-
         pHM->f_ref = PhenomUtilsMftoHz(pHM->Mf_ref, pHM->Mtot);
-        //printf("%e, %e\n", pHM->f_ref, pHM->Mf_ref);
-    //}
+    }
 
     /* compute the reference phase shift need to align the waveform so that
      the phase is equal to phi_ref at the reference frequency f_ref. */
@@ -3047,8 +2994,6 @@ void IMRPhenomHMCore(
                 Taulm,
                 Mf_RD_22_in,
                 Mf_DM_22_in);
-                //pHM->Mf_RD_lm,
-                //pHM->Mf_DM_lm);
 
             retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
 
@@ -3236,8 +3181,7 @@ void waveform_amp_phase(
     double* phases = &waveformOut[numBinAll * numModes * length];
     double* tf = &waveformOut[2 * numBinAll * numModes * length];
 
-    //int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
-    int nblocks = numBinAll; //std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
+    int nblocks = numBinAll;
     /*
     cudaEvent_t start, stop;
     cudaEventCreate(&start);

@@ -15,18 +15,23 @@
 #define  DATA_BLOCK2 512
 
 #ifdef __CUDACC__
+
+// special way to run this. Need to separate CPU and GPU for this one
 CUDA_KERNEL
 void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
                     cmplx* templateChannels, cmplx* dataConstants,
                     double* dataFreqsIn,
                     int numBinAll, int data_length, int nChannels)
 {
+
+    // shared memory arrays for heterodyning coefficients
     __shared__ cmplx A0temp[DATA_BLOCK2];
     __shared__ cmplx A1temp[DATA_BLOCK2];
     __shared__ cmplx B0temp[DATA_BLOCK2];
     __shared__ cmplx B1temp[DATA_BLOCK2];
     __shared__ double dataFreqs[DATA_BLOCK2];
 
+    // declare variables
     cmplx A0, A1, B0, B1;
 
     cmplx trans_complex(0.0, 0.0);
@@ -41,78 +46,82 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
 
     int binNum = threadIdx.x + blockDim.x * blockIdx.x;
 
-    if (true) // for (int binNum = threadIdx.x + blockDim.x * blockIdx.x; binNum < numBinAll; binNum += blockDim.x * gridDim.x)
+    tempLike1 = 0.0;
+    tempLike2 = 0.0;
+    // loop over channels
+    for (int channel = 0; channel < nChannels; channel += 1)
     {
-        tempLike1 = 0.0;
-        tempLike2 = 0.0;
-        for (int channel = 0; channel < nChannels; channel += 1)
+        // need to loop through frequencies and store the in shared memory carefully
+        prevFreq = 0.0;
+        currentStart = 0;
+        while (currentStart < data_length)
         {
-            prevFreq = 0.0;
-            currentStart = 0;
-            while (currentStart < data_length)
+            __syncthreads();
+            for (int jj = threadIdx.x; jj < DATA_BLOCK2; jj += blockDim.x)
             {
-                __syncthreads();
-                for (int jj = threadIdx.x; jj < DATA_BLOCK2; jj += blockDim.x)
+                // load in all the information for this group computation
+                if ((jj + currentStart) >= data_length) continue;
+                A0temp[jj] = dataConstants[(0 * nChannels + channel) * data_length + currentStart + jj];
+                A1temp[jj] = dataConstants[(1 * nChannels + channel) * data_length + currentStart + jj];
+                B0temp[jj] = dataConstants[(2 * nChannels + channel) * data_length + currentStart + jj];
+                B1temp[jj] = dataConstants[(3 * nChannels + channel) * data_length + currentStart + jj];
+
+                dataFreqs[jj] = dataFreqsIn[currentStart + jj];
+
+            }
+            __syncthreads();
+            if (binNum < numBinAll)
+            {
+                for (int jj = 0; jj < DATA_BLOCK2; jj += 1)
                 {
                     if ((jj + currentStart) >= data_length) continue;
-                    A0temp[jj] = dataConstants[(0 * nChannels + channel) * data_length + currentStart + jj];
-                    A1temp[jj] = dataConstants[(1 * nChannels + channel) * data_length + currentStart + jj];
-                    B0temp[jj] = dataConstants[(2 * nChannels + channel) * data_length + currentStart + jj];
-                    B1temp[jj] = dataConstants[(3 * nChannels + channel) * data_length + currentStart + jj];
+                    freq = dataFreqs[jj];
+                    trans_complex = templateChannels[((jj + currentStart) * nChannels + channel) * numBinAll + binNum];
 
-                    dataFreqs[jj] = dataFreqsIn[currentStart + jj];
-
-                    //if ((jj + currentStart < 3) && (binNum == 0) & (channel == 0))
-                    //    printf("check %e %e, %e %e, %e %e, %e %e, %e \n", A0temp[jj], A1temp[jj], B0temp[jj], B1temp[jj], dataFreqs[jj]);
-
-                }
-                __syncthreads();
-                if (binNum < numBinAll)
-                {
-                    for (int jj = 0; jj < DATA_BLOCK2; jj += 1)
+                    // If we are after the first point
+                    if ((prevFreq != 0.0) && (jj + currentStart > 0))
                     {
-                        if ((jj + currentStart) >= data_length) continue;
-                        freq = dataFreqs[jj];
-                        trans_complex = templateChannels[((jj + currentStart) * nChannels + channel) * numBinAll + binNum];
+                        A0 = A0temp[jj]; // constants will need to be aligned with 1..n-1 because there are data_length - 1 bins
+                        A1 = A1temp[jj];
+                        B0 = B0temp[jj];
+                        B1 = B1temp[jj];
 
-                        if ((prevFreq != 0.0) && (jj + currentStart > 0))
-                        {
-                            A0 = A0temp[jj]; // constants will need to be aligned with 1..n-1 because there are data_length - 1 bins
-                            A1 = A1temp[jj];
-                            B0 = B0temp[jj];
-                            B1 = B1temp[jj];
+                        // perform the actual computation
 
-                            r1 = (trans_complex - prev_trans_complex)/(freq - prevFreq);
-                            midFreq = (freq + prevFreq)/2.0;
+                        // slope
+                        r1 = (trans_complex - prev_trans_complex)/(freq - prevFreq);
+                        midFreq = (freq + prevFreq)/2.0;
 
-                            r0 = trans_complex - r1 * (freq - midFreq);
+                        // intercept
+                        r0 = trans_complex - r1 * (freq - midFreq);
 
-                            //if (((binNum == 767) || (binNum == 768)) & (channel == 0))
-                            //    printf("CHECK2: %d %d %d %e %e\n", jj + currentStart, binNum, jj, A0); // , %e %e, %e %e, %e %e, %e %e,  %e %e,  %e %e , %e\n", ind, binNum, jj + currentStart, A0, A1, B0, B1, freq, prevFreq, trans_complex, prev_trans_complex, midFreq);
+                        r1Conj = gcmplx::conj(r1);
 
-                            r1Conj = gcmplx::conj(r1);
+                        tempLike1 += A0 * gcmplx::conj(r0) + A1 * r1Conj;
 
-                            tempLike1 += A0 * gcmplx::conj(r0) + A1 * r1Conj;
-
-                            mag_r0 = gcmplx::abs(r0);
-                            tempLike2 += B0 * (mag_r0 * mag_r0) + 2. * B1 * gcmplx::real(r0 * r1Conj);
-                        }
-
-                        prev_trans_complex = trans_complex;
-                        prevFreq = freq;
+                        mag_r0 = gcmplx::abs(r0);
+                        tempLike2 += B0 * (mag_r0 * mag_r0) + 2. * B1 * gcmplx::real(r0 * r1Conj);
                     }
+                    // each step needs info from the last
+                    prev_trans_complex = trans_complex;
+                    prevFreq = freq;
                 }
-                currentStart += DATA_BLOCK2;
             }
-        }
-        if (binNum < numBinAll)
-        {
-            likeOut1[binNum] = tempLike1;
-            likeOut2[binNum] = tempLike2;
+            currentStart += DATA_BLOCK2;
         }
     }
+
+    // Fill info
+    if (binNum < numBinAll)
+    {
+        likeOut1[binNum] = tempLike1;
+        likeOut2[binNum] = tempLike2;
+    }
 }
+
 #else
+
+// More straighforward on the CPU
 void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
                     cmplx* templateChannels, cmplx* dataConstants,
                     double* dataFreqsIn,
@@ -155,9 +164,6 @@ void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,
                     midFreq = (freq + prevFreq)/2.0;
 
                     r0 = trans_complex - r1 * (freq - midFreq);
-
-                    //if (((binNum == 767) || (binNum == 768)) & (channel == 0))
-                    //    printf("CHECK2: %d %d %d %e %e\n", jj + currentStart, binNum, jj, A0); // , %e %e, %e %e, %e %e, %e %e,  %e %e,  %e %e , %e\n", ind, binNum, jj + currentStart, A0, A1, B0, B1, freq, prevFreq, trans_complex, prev_trans_complex, midFreq);
 
                     r1Conj = gcmplx::conj(r1);
 
@@ -226,6 +232,8 @@ __device__ void atomicAddComplex(cmplx* a, cmplx b){
 
 #define MAX_LENGTH_F_REL 512
 
+// Not used any more but here in case fast computations of all coefficients are needed
+// Needs to be checked
 CUDA_KERNEL
 void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_arr, cmplx* h0_arr, double* S_n_arr, double df, int* bins, double* f_dense, double* f_m_arr, int data_length, int nchannels, int length_f_rel)
 {
@@ -344,6 +352,7 @@ void prep_hdyn_wrap(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmpl
     #endif
 }
 
+// add noise weighting efficiently to template
 CUDA_KERNEL
 void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df, int ind_start, int length, int data_stream_length)
 {
@@ -367,10 +376,13 @@ void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df
 
 #define NUM_THREADS_LIKE 256
 
+// compute the likelihood directly
+// different for CPU and GPU cause of streams
 #ifdef __CUDACC__
 void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
 {
 
+    // initialize everything
     cudaStream_t streams[numBinAll];
     cublasHandle_t handle;
 
@@ -384,9 +396,11 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
       exit(0);
     }
 
+    // omp over streams
     #pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
+        // get information for this template
         int length_bin_i = ind_lengths[bin_i];
         int ind_start = inds_start[bin_i];
 
@@ -401,7 +415,9 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
 
         for (int j = 0; j < 3; j += 1)
         {
+            // setup cublas stream and run compuation in the desired frequency bounds
 
+            // d_h computation
             cublasSetStream(handle, streams[bin_i]);
             stat = cublasZdotc(handle, length_bin_i,
                               (cuDoubleComplex*)&dataChannels[j * data_stream_length + ind_start], 1,
@@ -416,6 +432,7 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
             cmplx temp_d_h = (cmplx)result_d_h[bin_i];
             d_h[bin_i] += 4.0 * temp_d_h;
 
+            // h_h computation
             cublasSetStream(handle, streams[bin_i]);
             stat = cublasZdotc(handle, length_bin_i,
                               (cuDoubleComplex*)&templateChannels[j * length_bin_i], 1,

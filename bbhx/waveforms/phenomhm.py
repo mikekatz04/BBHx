@@ -140,7 +140,7 @@ class PhenomHMAmpPhase:
     @property
     def citation(self):
         """Return citations for this class"""
-        return katz_1 + katz_2 + phenomhm_citation + phenomd_citations
+        return katz_citations + phenomhm_citation + phenomd_citations
 
     def _init_phenomd_fring_spline(self):
         """Prepare PhenomD fring and fdamp splines"""

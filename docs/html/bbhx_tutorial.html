@@ -380,7 +380,7 @@ div.rendered_html tbody tr:hover {
 <section id="bbhx-Tutorial">
 <h1><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial<a class="headerlink" href="#bbhx-Tutorial" title="Permalink to this headline"></a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> is a software package that produces black hole binary waveforms. It focuses on LISA and provides the proper LISA response function for MBHBs (<a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a>, <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>). <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> also provides fast likelihood functions. The package is GPU-accelerated for fast analysis.</p>
-<p>If you use this software please cite <a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a> and <a class="reference external" href="https://arxiv.org/abs/2111.01064">arXiv:2111.01064</a> any parts within the package that you use (like waveforms and response functions). See the <code class="docutils literal notranslate"><span class="pre">citation</span></code> attribute for each class.</p>
+<p>If you use this software please cite <a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a>, <a class="reference external" href="https://arxiv.org/abs/2111.01064">arXiv:2111.01064</a>, and the associated <a class="reference external" href="https://zenodo.org/record/5730688#.YaFvRkJKhTY">Zenodo page</a> Please also cite any consituent parts used like the response function or waveforms. See the <code class="docutils literal notranslate"><span class="pre">citation</span></code> attribute for each class or docstring for functions for more information.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -1044,7 +1044,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7fd2d4ae4150&gt;
+&lt;matplotlib.legend.Legend at 0x7ffe90dcbc90&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1533,7 +1533,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 <h3>Posterior sky-mode transformation<a class="headerlink" href="#Posterior-sky-mode-transformation" title="Permalink to this headline"></a></h3>
 <p>You can transform your sky mode parameters to all longitudinal modes. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 4 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1569,7 +1569,7 @@ end params: [[0.4        3.42       0.6        1.        ]
 </div>
 <p>Or latitudinal transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 2 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1592,7 +1592,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </div>
 <p>Or both transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 8 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1621,7 +1621,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </div>
 <p>You can also do these transformations in-place. When you do this, the input binaries will be assigned to new sky modes based on the transformation. Every 2, 4, or 8 binaries will be given the same sky mode transformation if latitudinal, longitudinal, or both transformations are applied, respectively.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1679,7 +1679,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 <h1>Citations<a class="headerlink" href="#Citations" title="Permalink to this headline"></a></h1>
 <p>You can access citations for each class with the <code class="docutils literal notranslate"><span class="pre">citation</span></code> property.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
@@ -1715,6 +1715,16 @@ end params: [[ 0.4         3.42        0.6         1.        ]
     primaryClass = &#34;gr-qc&#34;,
     month = &#34;11&#34;,
     year = &#34;2021&#34;
+}
+
+@article{michael katz_2021,
+    title={mikekatz04/BBHx: First official public release},
+    DOI={10.5281/zenodo.5730688},
+    abstractNote={No description provided.},
+    publisher={Zenodo},
+    author={Michael Katz},
+    year={2021},
+    month={Nov}
 }
 
 @article{Marsat:2018oam,

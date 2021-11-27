@@ -3,11 +3,11 @@
 ### Designed for LISA data analysis of Massive Black Hole Binaries.
 
 
-This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and likelihood computations from [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). The various parts of this package are arranged to be modular as waveform or response changes or improvements are made. Generally, the modules fall into four categories: waveforms, response, waveform building, and utilities. Please see the [documentation](https://mikekatz04.github.io/BBHx/) for further information on these modules. The code can be found on Github [here](https://github.com/mikekatz04/BBHx). The data necessary for various modules in this package will automatically download the first time it is needed. If you would like to view the data, it can be found on [Zenodo](https://zenodo.org/record/3981654#.XzS_KRNKjlw).
+This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and likelihood computations from [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). The various parts of this package are arranged to be modular as waveform or response changes or improvements are made. Generally, the modules fall into four categories: waveforms, response, waveform building, and utilities. Please see the [documentation](https://mikekatz04.github.io/BBHx/) for further information on these modules. The code can be found on Github [here](https://github.com/mikekatz04/BBHx).
 
 This package is a part of the LISA Analysis Tools environment.
 
-If you use all or any parts of this code, please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). See the [documentation](https://bhptoolkit.org/FastEMRIWaveforms/) to properly cite specific modules.
+If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/record/5730688#.YaFvRkJKhTY) Please also cite any consituent parts used like the response function or waveforms. See the `citation` attribute for each class or docstring for functions for more information. 
 
 ## Getting Started
 
@@ -135,7 +135,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/tags).
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/mikekatz04/BBHx/tags).
 
 Current Version: 1.0.0
 

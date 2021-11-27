@@ -21,14 +21,13 @@ import numpy as np
 try:
     import cupy as xp
     from pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
-    from pyInterpolate import interpolate_TD_wrap as interpolate_TD_wrap_gpu
+
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU interpolation available.")
     import numpy as xp
 
 from pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
-from pyInterpolate_cpu import interpolate_TD_wrap as interpolate_TD_wrap_cpu
 
 from bbhx.utils.constants import *
 

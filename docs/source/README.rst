@@ -11,30 +11,25 @@ waveforms and likelihood computations from
 parts of this package are arranged to be modular as waveform or response
 changes or improvements are made. Generally, the modules fall into four
 categories: waveforms, response, waveform building, and utilities.
-Please see the
-`documentation <https://bhptoolkit.org/FastEMRIWaveforms/>`__ for
-further information on these modules. The code can be found on Github
-`here <https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms>`__.
-The data necessary for various modules in this package will
-automatically download the first time it is needed. If you would like to
-view the data, it can be found on
-`Zenodo <https://zenodo.org/record/3981654#.XzS_KRNKjlw>`__. The current
-and all past code release zip files can also be found on Zenodo
-`here <https://zenodo.org/record/4005001>`__.
+Please see the `documentation <https://mikekatz04.github.io/BBHx/>`__
+for further information on these modules. The code can be found on
+Github `here <https://github.com/mikekatz04/BBHx>`__.
 
-This package is a part of the `Black Hole Perturbation
-Toolkit <https://bhptoolkit.org/>`__.
+This package is a part of the LISA Analysis Tools environment.
 
-If you use all or any parts of this code, please cite
-`arxiv.org/2104.04582 <https://arxiv.org/abs/2104.04582>`__ and
-`arxiv.org/2008.06071 <https://arxiv.org/abs/2008.06071>`__. See the
-`documentation <https://bhptoolkit.org/FastEMRIWaveforms/>`__ to
-properly cite specific modules.
+If you use this software please cite
+`arXiv:2005.01827 <https://arxiv.org/abs/2005.01827>`__,
+`arXiv:2111.01064 <https://arxiv.org/abs/2111.01064>`__, and the
+associated `Zenodo
+page <https://zenodo.org/record/5730688#.YaFvRkJKhTY>`__ Please also
+cite any consituent parts used like the response function or waveforms.
+See the ``citation`` attribute for each class or docstring for functions
+for more information.
 
 Getting Started
 ---------------
 
-Below is a quick set of instructions to get you started with ``few``.
+Below is a quick set of instructions to get you started with ``bbhx``.
 
 0) `Install Anaconda <https://docs.anaconda.com/anaconda/install/>`__ if
    you do not have it.
@@ -46,8 +41,8 @@ Below is a quick set of instructions to get you started with ``few``.
 
 ::
 
-   conda create -n few_env -c conda-forge gcc_linux-64 gxx_linux-64 wget gsl lapack=3.6.1 hdf5 numpy Cython scipy tqdm jupyter ipython h5py requests matplotlib python=3.7
-   conda activate few_env
+   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy Cython jupyter ipython matplotlib python=3.9
+   conda activate bbhx_env
 
 ::
 
@@ -57,23 +52,23 @@ Below is a quick set of instructions to get you started with ``few``.
 
 ::
 
-   git clone https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms.git
-   cd FastEMRIWaveforms
+   git clone https://mikekatz04.github.io/BBHx.git
+   cd BBHx
 
-3) Run install. Make sure CUDA is on your PATH.
+3) Run install.
 
 ::
 
    python setup.py install
 
-4) To import few:
+4) To import ``bbhx``:
 
 ::
 
-   from few.waveform import FastSchwarzschildEccentricFlux
+   from bbhx.waveform import BBHWaveformFD
 
 See `examples
-notebook <https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/blob/master/examples/FastEMRIWaveforms_tutorial.ipynb>`__.
+notebook <https://github.com/mikekatz04/BBHx/blob/master/examples/bbhx_tutorial.ipynb>`__.
 
 Prerequisites
 ~~~~~~~~~~~~~
@@ -81,15 +76,15 @@ Prerequisites
 To install this software for CPU usage, you need `gsl
 >2.0 <https://www.gnu.org/software/gsl/>`__ , `lapack
 (3.6.1) <https://www.netlib.org/lapack/lug/node14.html>`__, Python >3.4,
-wget, and NumPy. If you install lapack with conda, the new version (3.9)
-seems to not install the correct header files. Therefore, the lapack
-version must be 3.6.1. To run the examples, you will also need jupyter
-and matplotlib. We generally recommend installing everything, including
-gcc and g++ compilers, in the conda environment as is shown in the
-examples here. This generally helps avoid compilation and linking
-issues. If you use your own chosen compiler, you will need to make sure
-all necessary information is passed to the setup command (see below).
-You also may need to add information to the ``setup.py`` file.
+and NumPy. If you install lapack with conda, the new version (3.9) seems
+to not install the correct header files. Therefore, the lapack version
+must be 3.6.1. To run the examples, you will also need jupyter and
+matplotlib. We generally recommend installing everything, including gcc
+and g++ compilers, in the conda environment as is shown in the examples
+here. This generally helps avoid compilation and linking issues. If you
+use your own chosen compiler, you will need to make sure all necessary
+information is passed to the setup command (see below). You also may
+need to add information to the ``setup.py`` file.
 
 To install this software for use with NVIDIA GPUs (compute capability
 >2.0), you need the `CUDA
@@ -98,13 +93,6 @@ and `CuPy <https://cupy.chainer.org/>`__. The CUDA toolkit must have
 cuda version >8.0. Be sure to properly install CuPy within the correct
 CUDA toolkit version. Make sure the nvcc binary is on ``$PATH`` or set
 it as the ``CUDAHOME`` environment variable.
-
-There are a set of files required for total use of this package. They
-will download automatically when the first time they are needed. Files
-are generally under 10MB. However, there is a 100MB file needed for the
-slow waveform and the bicubic amplitude interpolation. This larger file
-will only download if you run either of those two modules. The files are
-hosted on `Zenodo <https://zenodo.org/record/3981654#.XzS_KRNKjlw>`__.
 
 Installing
 ~~~~~~~~~~
@@ -116,21 +104,21 @@ Installing
 
 ::
 
-   conda create -n few_env -c conda-forge gcc_linux-64 gxx_linux-64 wget gsl lapack=3.6.1 hdf5 numpy Cython scipy tqdm jupyter ipython h5py requests matplotlib python=3.7
-   conda activate few_env
+   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy Cython jupyter ipython matplotlib python=3.9
+   conda activate bbhx_env
 
 ::
 
    If on MACOSX, substitute `gcc_linux-64` and `gxx_linus-64` with `clang_osx-64` and `clangxx_osx-64`.
 
-   If you want a faster install, you can install the python packages (numpy, Cython, scipy, tqdm, jupyter, ipython, h5py, requests, matplotlib) with pip.
+   If you want a faster install, you can install the python packages (numpy, Cython, jupyter, ipython, matplotlib) with pip.
 
 2) Clone the repository.
 
 ::
 
-   git clone https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms.git
-   cd FastEMRIWaveforms
+   git clone https://mikekatz04.github.io/BBHx.git
+   cd BBHx
 
 3) If using GPUs, use pip to `install
    cupy <https://docs-cupy.chainer.org/en/stable/install.html>`__. If
@@ -140,7 +128,8 @@ Installing
 
    pip install cupy-cuda92
 
-4) Run install. Make sure CUDA is on your PATH.
+4) Run install. Make sure CUDA is on your PATH or ``CUDAHOME`` variable
+   is set to the path to nvcc and other CUDA files.
 
 ::
 
@@ -200,25 +189,20 @@ Versioning
 
 We use `SemVer <http://semver.org/>`__ for versioning. For the versions
 available, see the `tags on this
-repository <https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/tags>`__.
+repository <https://github.com/mikekatz04/BBHx/tags>`__.
 
-Current Version: 1.4.4
+Current Version: 1.0.0
 
 Authors
 -------
 
 -  **Michael Katz**
--  Alvin J. K. Chua
--  Niels Warburton
--  Lorenzo Speri
--  Scott Hughes
 
 Contibutors
 ~~~~~~~~~~~
 
--  Christian Chapman-Bird
--  Soichiro Isoyama
--  Ryuichi Fujita
+-  Sylvain Marsat
+-  John Baker
 
 License
 -------
@@ -229,10 +213,6 @@ This project is licensed under the GNU License - see the
 Acknowledgments
 ---------------
 
--  This research resulting in this code was supported by National
-   Science Foundation under grant DGE-0948017 and the Chateaubriand
-   Fellowship from the Office for Science & Technology of the Embassy of
-   France in the United States.
--  It was also supported in part through the computational resources and
-   staff contributions provided for the Quest/Grail high performance
-   computing facility at Northwestern University.
+-  This research was also supported in part through the computational
+   resources and staff contributions provided for the Quest/Grail high
+   performance computing facility at Northwestern University.

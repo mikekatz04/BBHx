@@ -5,8 +5,4 @@ void interpolate(double* freqs, double* propArrays,
                  double* B, double* upper_diag, double* diag, double* lower_diag,
                  int length, int numInterpParams, int numModes, int numBinAll);
 
- void interpolate_TD(double* t_arr, double* propArrays,
-                  double* B, double* upper_diag, double* diag, double* lower_diag,
-                  int* lengths, int numBinAll, int nsubs);
-
 #endif // __INTERPOLATE_HH__

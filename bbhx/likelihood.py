@@ -135,7 +135,7 @@ class Likelihood:
 
     @property
     def citation(self):
-        return katz_1 + katz_2
+        return katz_citations
 
     def get_ll(
         self,
@@ -361,7 +361,7 @@ class HeterodynedLikelihood:
     @property
     def citation(self):
         """Citations for this class"""
-        return katz_1 + katz_2 + Cornish_Heterodyning + Rel_Bin_citation
+        return katz_citations + Cornish_Heterodyning + Rel_Bin_citation
 
     def init_heterodyne_info(
         self,

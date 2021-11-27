@@ -102,7 +102,7 @@ class LISATDIResponse:
     @property
     def citation(self):
         """Return citations for this class"""
-        return katz_1 + katz_2 + marsat_1 + marsat_2
+        return katz_citations + marsat_1 + marsat_2
 
     def _sanity_check_modes(self, ells, mms):
         """Make sure modes are allowed"""

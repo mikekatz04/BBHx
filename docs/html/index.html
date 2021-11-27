@@ -117,26 +117,21 @@ waveforms and likelihood computations from
 parts of this package are arranged to be modular as waveform or response
 changes or improvements are made. Generally, the modules fall into four
 categories: waveforms, response, waveform building, and utilities.
-Please see the
-<a class="reference external" href="https://bhptoolkit.org/FastEMRIWaveforms/">documentation</a> for
-further information on these modules. The code can be found on Github
-<a class="reference external" href="https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms">here</a>.
-The data necessary for various modules in this package will
-automatically download the first time it is needed. If you would like to
-view the data, it can be found on
-<a class="reference external" href="https://zenodo.org/record/3981654#.XzS_KRNKjlw">Zenodo</a>. The current
-and all past code release zip files can also be found on Zenodo
-<a class="reference external" href="https://zenodo.org/record/4005001">here</a>.</p>
-<p>This package is a part of the <a class="reference external" href="https://bhptoolkit.org/">Black Hole Perturbation
-Toolkit</a>.</p>
-<p>If you use all or any parts of this code, please cite
-<a class="reference external" href="https://arxiv.org/abs/2104.04582">arxiv.org/2104.04582</a> and
-<a class="reference external" href="https://arxiv.org/abs/2008.06071">arxiv.org/2008.06071</a>. See the
-<a class="reference external" href="https://bhptoolkit.org/FastEMRIWaveforms/">documentation</a> to
-properly cite specific modules.</p>
+Please see the <a class="reference external" href="https://mikekatz04.github.io/BBHx/">documentation</a>
+for further information on these modules. The code can be found on
+Github <a class="reference external" href="https://github.com/mikekatz04/BBHx">here</a>.</p>
+<p>This package is a part of the LISA Analysis Tools environment.</p>
+<p>If you use this software please cite
+<a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a>,
+<a class="reference external" href="https://arxiv.org/abs/2111.01064">arXiv:2111.01064</a>, and the
+associated <a class="reference external" href="https://zenodo.org/record/5730688#.YaFvRkJKhTY">Zenodo
+page</a> Please also
+cite any consituent parts used like the response function or waveforms.
+See the <code class="docutils literal notranslate"><span class="pre">citation</span></code> attribute for each class or docstring for functions
+for more information.</p>
 <section id="getting-started">
 <h3>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h3>
-<p>Below is a quick set of instructions to get you started with <code class="docutils literal notranslate"><span class="pre">few</span></code>.</p>
+<p>Below is a quick set of instructions to get you started with <code class="docutils literal notranslate"><span class="pre">bbhx</span></code>.</p>
 <ol class="arabic simple" start="0">
 <li><p><a class="reference external" href="https://docs.anaconda.com/anaconda/install/">Install Anaconda</a> if
 you do not have it.</p></li>
@@ -145,8 +140,8 @@ you do not have it.</p></li>
 you will probably need to add libraries and include paths to the
 <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> file.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">few_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">wget</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">1</span> <span class="n">hdf5</span> <span class="n">numpy</span> <span class="n">Cython</span> <span class="n">scipy</span> <span class="n">tqdm</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">h5py</span> <span class="n">requests</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.7</span>
-<span class="n">conda</span> <span class="n">activate</span> <span class="n">few_env</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">bbhx_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">1</span> <span class="n">numpy</span> <span class="n">Cython</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">bbhx_env</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>If on MACOSX, substitute `gcc_linux-64` and `gxx_linus-64` with `clang_osx-64` and `clangxx_osx-64`.
@@ -155,23 +150,23 @@ you will probably need to add libraries and include paths to the
 <ol class="arabic simple" start="2">
 <li><p>Clone the repository.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">BlackHolePerturbationToolkit</span><span class="o">/</span><span class="n">FastEMRIWaveforms</span><span class="o">.</span><span class="n">git</span>
-<span class="n">cd</span> <span class="n">FastEMRIWaveforms</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">mikekatz04</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">BBHx</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">BBHx</span>
 </pre></div>
 </div>
 <ol class="arabic simple" start="3">
-<li><p>Run install. Make sure CUDA is on your PATH.</p></li>
+<li><p>Run install.</p></li>
 </ol>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
-<li><p>To import few:</p></li>
+<li><p>To import <code class="docutils literal notranslate"><span class="pre">bbhx</span></code>:</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">few.waveform</span> <span class="kn">import</span> <span class="n">FastSchwarzschildEccentricFlux</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">bbhx.waveform</span> <span class="kn">import</span> <span class="n">BBHWaveformFD</span>
 </pre></div>
 </div>
-<p>See <a class="reference external" href="https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/blob/master/examples/FastEMRIWaveforms_tutorial.ipynb">examples
+<p>See <a class="reference external" href="https://github.com/mikekatz04/BBHx/blob/master/examples/bbhx_tutorial.ipynb">examples
 notebook</a>.</p>
 </section>
 </section>
@@ -180,15 +175,15 @@ notebook</a>.</p>
 <p>To install this software for CPU usage, you need <a class="reference external" href="https://www.gnu.org/software/gsl/">gsl
 &gt;2.0</a> , <a class="reference external" href="https://www.netlib.org/lapack/lug/node14.html">lapack
 (3.6.1)</a>, Python &gt;3.4,
-wget, and NumPy. If you install lapack with conda, the new version (3.9)
-seems to not install the correct header files. Therefore, the lapack
-version must be 3.6.1. To run the examples, you will also need jupyter
-and matplotlib. We generally recommend installing everything, including
-gcc and g++ compilers, in the conda environment as is shown in the
-examples here. This generally helps avoid compilation and linking
-issues. If you use your own chosen compiler, you will need to make sure
-all necessary information is passed to the setup command (see below).
-You also may need to add information to the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> file.</p>
+and NumPy. If you install lapack with conda, the new version (3.9) seems
+to not install the correct header files. Therefore, the lapack version
+must be 3.6.1. To run the examples, you will also need jupyter and
+matplotlib. We generally recommend installing everything, including gcc
+and g++ compilers, in the conda environment as is shown in the examples
+here. This generally helps avoid compilation and linking issues. If you
+use your own chosen compiler, you will need to make sure all necessary
+information is passed to the setup command (see below). You also may
+need to add information to the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> file.</p>
 <p>To install this software for use with NVIDIA GPUs (compute capability
 &gt;2.0), you need the <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html">CUDA
 toolkit</a>
@@ -196,12 +191,6 @@ and <a class="reference external" href="https://cupy.chainer.org/">CuPy</a>. The
 cuda version &gt;8.0. Be sure to properly install CuPy within the correct
 CUDA toolkit version. Make sure the nvcc binary is on <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> or set
 it as the <code class="docutils literal notranslate"><span class="pre">CUDAHOME</span></code> environment variable.</p>
-<p>There are a set of files required for total use of this package. They
-will download automatically when the first time they are needed. Files
-are generally under 10MB. However, there is a 100MB file needed for the
-slow waveform and the bicubic amplitude interpolation. This larger file
-will only download if you run either of those two modules. The files are
-hosted on <a class="reference external" href="https://zenodo.org/record/3981654#.XzS_KRNKjlw">Zenodo</a>.</p>
 </section>
 <section id="installing">
 <h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline"></a></h2>
@@ -210,20 +199,20 @@ hosted on <a class="reference external" href="https://zenodo.org/record/3981654#
 you do not have it.</p></li>
 <li><p>Create a virtual environment.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">few_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">wget</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">1</span> <span class="n">hdf5</span> <span class="n">numpy</span> <span class="n">Cython</span> <span class="n">scipy</span> <span class="n">tqdm</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">h5py</span> <span class="n">requests</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.7</span>
-<span class="n">conda</span> <span class="n">activate</span> <span class="n">few_env</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">bbhx_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">1</span> <span class="n">numpy</span> <span class="n">Cython</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">bbhx_env</span>
 </pre></div>
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>If on MACOSX, substitute `gcc_linux-64` and `gxx_linus-64` with `clang_osx-64` and `clangxx_osx-64`.
 
-If you want a faster install, you can install the python packages (numpy, Cython, scipy, tqdm, jupyter, ipython, h5py, requests, matplotlib) with pip.
+If you want a faster install, you can install the python packages (numpy, Cython, jupyter, ipython, matplotlib) with pip.
 </pre></div>
 </div>
 <ol class="arabic simple" start="2">
 <li><p>Clone the repository.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">BlackHolePerturbationToolkit</span><span class="o">/</span><span class="n">FastEMRIWaveforms</span><span class="o">.</span><span class="n">git</span>
-<span class="n">cd</span> <span class="n">FastEMRIWaveforms</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">mikekatz04</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">BBHx</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">BBHx</span>
 </pre></div>
 </div>
 <ol class="arabic simple" start="3">
@@ -235,7 +224,8 @@ you have cuda version 9.2, for example:</p></li>
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
-<li><p>Run install. Make sure CUDA is on your PATH.</p></li>
+<li><p>Run install. Make sure CUDA is on your PATH or <code class="docutils literal notranslate"><span class="pre">CUDAHOME</span></code> variable
+is set to the path to nvcc and other CUDA files.</p></li>
 </ol>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
 </pre></div>
@@ -287,27 +277,22 @@ code of conduct, and the process for submitting pull requests to us.</p>
 <section id="versioning">
 <h3>Versioning<a class="headerlink" href="#versioning" title="Permalink to this headline"></a></h3>
 <p>We use <a class="reference external" href="http://semver.org/">SemVer</a> for versioning. For the versions
-available, see the <a class="reference external" href="https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/tags">tags on this
+available, see the <a class="reference external" href="https://github.com/mikekatz04/BBHx/tags">tags on this
 repository</a>.</p>
-<p>Current Version: 1.4.4</p>
+<p>Current Version: 1.0.0</p>
 </section>
 <section id="authors">
 <h3>Authors<a class="headerlink" href="#authors" title="Permalink to this headline"></a></h3>
 <ul class="simple">
 <li><p><strong>Michael Katz</strong></p></li>
-<li><p>Alvin J. K. Chua</p></li>
-<li><p>Niels Warburton</p></li>
-<li><p>Lorenzo Speri</p></li>
-<li><p>Scott Hughes</p></li>
 </ul>
 </section>
 </section>
 <section id="contibutors">
 <h2>Contibutors<a class="headerlink" href="#contibutors" title="Permalink to this headline"></a></h2>
 <ul class="simple">
-<li><p>Christian Chapman-Bird</p></li>
-<li><p>Soichiro Isoyama</p></li>
-<li><p>Ryuichi Fujita</p></li>
+<li><p>Sylvain Marsat</p></li>
+<li><p>John Baker</p></li>
 </ul>
 <section id="license">
 <h3>License<a class="headerlink" href="#license" title="Permalink to this headline"></a></h3>
@@ -317,13 +302,9 @@ repository</a>.</p>
 <section id="acknowledgments">
 <h3>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p>This research resulting in this code was supported by National
-Science Foundation under grant DGE-0948017 and the Chateaubriand
-Fellowship from the Office for Science &amp; Technology of the Embassy of
-France in the United States.</p></li>
-<li><p>It was also supported in part through the computational resources and
-staff contributions provided for the Quest/Grail high performance
-computing facility at Northwestern University.</p></li>
+<li><p>This research was also supported in part through the computational
+resources and staff contributions provided for the Quest/Grail high
+performance computing facility at Northwestern University.</p></li>
 </ul>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Documentation:</span></p>

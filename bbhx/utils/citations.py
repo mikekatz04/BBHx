@@ -23,7 +23,7 @@ module is then imported to add citations to module classes using their :code:`ci
 attribute.
 """
 
-katz_1 = """
+katz_citations = """
 @article{Katz:2020hku,
     author = "Katz, Michael L. and Marsat, Sylvain and Chua, Alvin J. K. and Babak, Stanislav and Larson, Shane L.",
     title = "{GPU-accelerated massive black hole binary parameter estimation with LISA}",
@@ -37,9 +37,7 @@ katz_1 = """
     pages = "023033",
     year = "2020"
 }
-"""
 
-katz_2 = """
 @article{Katz:2021uax,
     author = "Katz, Michael L.",
     title = "{A fully-automated end-to-end pipeline for massive black hole binary signal extraction from LISA data}",
@@ -48,6 +46,16 @@ katz_2 = """
     primaryClass = "gr-qc",
     month = "11",
     year = "2021"
+}
+
+@article{michael katz_2021,
+    title={mikekatz04/BBHx: First official public release},
+    DOI={10.5281/zenodo.5730688},
+    abstractNote={No description provided.},
+    publisher={Zenodo},
+    author={Michael Katz},
+    year={2021},
+    month={Nov}
 }
 """
 

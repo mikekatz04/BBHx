@@ -85,7 +85,7 @@ class TemplateInterpFD:
     @property
     def citation(self):
         """citations for this class"""
-        return katz_1 + katz_2
+        return katz_citations
 
     def __call__(
         self,
@@ -299,12 +299,7 @@ class BBHWaveformFD:
     def citation(self):
         """Citations for this class"""
         return (
-            katz_1
-            + katz_2
-            + marsat_1
-            + marsat_2
-            + phenomhm_citation
-            + phenomd_citations
+            katz_citations + marsat_1 + marsat_2 + phenomhm_citation + phenomd_citations
         )
 
     def __call__(

@@ -2791,6 +2791,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
          #endif
          for (int i = start; i < length; i += increment)
          {
+
              double amp_i, phase_i, tf_i, dphidf, phase_up, phase_down;
              double t_wave_frame, t_sampling_frame;
              int status_in_for;
@@ -2813,7 +2814,9 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
 
              tf[mode_index] = (M_tot_sec * tf_i) - (t0 / (2. * PI) * M_tot_sec);
 
+
          }
+
 }
 
 
@@ -2850,10 +2853,11 @@ void IMRPhenomHMCore(
 )
 {
 
+    // TODO: run_phenomd int -> bool
+
     // set phi_ref to zero
     double phi_ref = 0.0;
     double t0, amp0, phi0;
-
     /* setup PhenomHM model storage struct / structs */
     /* Compute quantities/parameters related to PhenomD only once and store them */
     //PhenomHMStorage *pHM;
@@ -2873,6 +2877,8 @@ void IMRPhenomHMCore(
     /* populate the ringdown frequency array */
     /* If you want to model a new mode then you have to add it here. */
     /* (l,m) = (2,2) */
+
+
 
     if (!run_phenomd)
     {
@@ -2924,11 +2930,12 @@ void IMRPhenomHMCore(
 
     // set f_ref to f_max
 
-    if (pHM->f_ref == 0.0)
-    {
+    //if (pHM->f_ref == 0.0){
         pHM->Mf_ref = pDPreComp22.pAmp.fmaxCalc;
+
         pHM->f_ref = PhenomUtilsMftoHz(pHM->Mf_ref, pHM->Mtot);
-    }
+        //printf("%e, %e\n", pHM->f_ref, pHM->Mf_ref);
+    //}
 
     /* compute the reference phase shift need to align the waveform so that
      the phase is equal to phi_ref at the reference frequency f_ref. */
@@ -2994,6 +3001,8 @@ void IMRPhenomHMCore(
                 Taulm,
                 Mf_RD_22_in,
                 Mf_DM_22_in);
+                //pHM->Mf_RD_lm,
+                //pHM->Mf_DM_lm);
 
             retcode = IMRPhenomHMPhasePreComp(&qlm, ell, mm, pHM, pDPreComplm);
 
@@ -3181,7 +3190,8 @@ void waveform_amp_phase(
     double* phases = &waveformOut[numBinAll * numModes * length];
     double* tf = &waveformOut[2 * numBinAll * numModes * length];
 
-    int nblocks = numBinAll;
+    //int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
+    int nblocks = numBinAll; //std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
     /*
     cudaEvent_t start, stop;
     cudaEventCreate(&start);

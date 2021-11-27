@@ -2,6 +2,7 @@
 #define __GLOBAL_H__
 
 #include "cuda_complex.hpp"
+#include "stdio.h"
 
 #ifdef __CUDACC__
 #define CUDA_CALLABLE_MEMBER __device__

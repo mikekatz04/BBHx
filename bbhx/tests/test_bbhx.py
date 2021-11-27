@@ -28,6 +28,15 @@ from bbhx.utils.transform import *
 
 from lisatools.sensitivity import get_sensitivity
 
+try:
+    import cupy as xp
+
+    gpu_available = True
+
+except (ImportError, ModuleNotFoundError) as e:
+    gpu_available = False
+    import numpy as xp
+
 np.random.seed(111222)
 
 
@@ -51,7 +60,9 @@ class WaveformTest(unittest.TestCase):
         freq_new = np.logspace(-4, 0, 10000)
         modes = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
 
-        wave_gen = BBHWaveformFD(amp_phase_kwargs=dict(run_phenomd=False))
+        wave_gen = BBHWaveformFD(
+            amp_phase_kwargs=dict(run_phenomd=False), use_gpu=gpu_available
+        )
 
         wave = wave_gen(
             m1,
@@ -77,7 +88,7 @@ class WaveformTest(unittest.TestCase):
         self.assertTrue(np.all(~np.isnan(wave)))
 
     def test_phenom_hm(self):
-        phenomhm = PhenomHMAmpPhase(use_gpu=False, run_phenomd=False)
+        phenomhm = PhenomHMAmpPhase(use_gpu=gpu_available, run_phenomd=False)
         f_ref = 0.0  # let phenom codes set f_ref -> fmax = max(f^2A(f))
         phi_ref = 0.0  # phase at f_ref
         m1 = 1e6
@@ -101,7 +112,7 @@ class WaveformTest(unittest.TestCase):
 
     def test_fast_fd_response(self):
 
-        phenomhm = PhenomHMAmpPhase(use_gpu=False, run_phenomd=False)
+        phenomhm = PhenomHMAmpPhase(use_gpu=gpu_available, run_phenomd=False)
         f_ref = 0.0  # let phenom codes set f_ref -> fmax = max(f^2A(f))
         phi_ref = 0.0  # phase at f_ref
         m1 = 1e6
@@ -127,7 +138,7 @@ class WaveformTest(unittest.TestCase):
 
         length = freqs.shape[-1]
 
-        response = LISATDIResponse()
+        response = LISATDIResponse(use_gpu=gpu_available)
         response(
             freqs, inc, lam, beta, psi, phi_ref, length, phase=phase, tf=tf, modes=modes
         )
@@ -140,7 +151,9 @@ class WaveformTest(unittest.TestCase):
 
     def test_direct_likelihood(self):
 
-        wave_gen = BBHWaveformFD(amp_phase_kwargs=dict(run_phenomd=False))
+        wave_gen = BBHWaveformFD(
+            amp_phase_kwargs=dict(run_phenomd=False), use_gpu=gpu_available
+        )
 
         ######## generate data
         # set parameters
@@ -196,7 +209,9 @@ class WaveformTest(unittest.TestCase):
         psd = np.array([PSD_A, PSD_E, PSD_T])
 
         # initialize Likelihood
-        like = Likelihood(wave_gen, data_freqs, data_channels, psd, use_gpu=False,)
+        like = Likelihood(
+            wave_gen, data_freqs, data_channels, psd, use_gpu=gpu_available,
+        )
 
         # get params
         num_bins = 10
@@ -217,7 +232,9 @@ class WaveformTest(unittest.TestCase):
 
     def test_het_likelihood(self):
 
-        wave_gen = BBHWaveformFD(amp_phase_kwargs=dict(run_phenomd=False))
+        wave_gen = BBHWaveformFD(
+            amp_phase_kwargs=dict(run_phenomd=False), use_gpu=gpu_available
+        )
 
         ######## generate data
         # set parameters
@@ -273,7 +290,9 @@ class WaveformTest(unittest.TestCase):
         psd = np.array([PSD_A, PSD_E, PSD_T])
 
         # initialize Likelihood
-        like = Likelihood(wave_gen, data_freqs, data_channels, psd, use_gpu=False,)
+        like = Likelihood(
+            wave_gen, data_freqs, data_channels, psd, use_gpu=gpu_available,
+        )
 
         # get params
         num_bins = 10
@@ -306,7 +325,7 @@ class WaveformTest(unittest.TestCase):
             data_channels,
             reference_params,
             length_f_het,
-            use_gpu=False,
+            use_gpu=gpu_available,
         )
 
         # get_ll and not __call__ to work with lisatools

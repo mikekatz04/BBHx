@@ -105,6 +105,11 @@ class Likelihood:
         # store required information
         self.data_freqs = data_freqs
 
+        try:
+            data_freqs_cpu = data_freqs.get()
+        except AttributeError:
+            data_freqs_cpu = data_freqs
+
         # will not store psd or delta_f on GPU if being used
         try:
             psd = psd.get()
@@ -113,7 +118,7 @@ class Likelihood:
 
         self.psd = np.asarray(psd)
         self.delta_f = np.zeros_like(self.psd)
-        self.delta_f[:, 1:] = np.diff(data_freqs)
+        self.delta_f[:, 1:] = np.diff(data_freqs_cpu)
         self.delta_f[:, 0] = self.delta_f[:, 1]
 
         self.noise_factors = self.xp.asarray(

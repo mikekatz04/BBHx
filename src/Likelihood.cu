@@ -404,6 +404,9 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
         int length_bin_i = ind_lengths[bin_i];
         int ind_start = inds_start[bin_i];
 
+        double temp_real;
+        double temp_imag;
+
         cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
 
         int nblocks = std::ceil((length_bin_i + NUM_THREADS_LIKE -1)/NUM_THREADS_LIKE);
@@ -429,7 +432,9 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
                 exit(0);
             }
 
-            cmplx temp_d_h = (cmplx)result_d_h[bin_i];
+            temp_real = cuCreal(result_d_h[bin_i]);
+            temp_imag = cuCimag(result_d_h[bin_i]);
+            cmplx temp_d_h(temp_real, temp_imag);
             d_h[bin_i] += 4.0 * temp_d_h;
 
             // h_h computation
@@ -444,7 +449,9 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
                 exit(0);
             }
 
-            cmplx temp_h_h = (cmplx)result_h_h[bin_i];
+            temp_real = cuCreal(result_h_h[bin_i]);
+            temp_imag = cuCimag(result_h_h[bin_i]);
+            cmplx temp_h_h(temp_real, temp_imag);
             h_h[bin_i] += 4.0 * temp_h_h;
 
         }

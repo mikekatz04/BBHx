@@ -27,7 +27,6 @@ import subprocess
 import warnings
 
 import numpy as np
-from scipy.interpolate import CubicSpline
 
 # check to see if cupy is available for gpus
 try:

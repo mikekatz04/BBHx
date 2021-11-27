@@ -57,7 +57,7 @@ class WaveformTest(unittest.TestCase):
         t_ref = 1.0 * YRSID_SI  # t_ref  (in the SSB reference frame)
 
         # frequencies to interpolate to
-        freq_new = np.logspace(-4, 0, 10000)
+        freq_new = xp.logspace(-4, 0, 10000)
         modes = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
 
         wave_gen = BBHWaveformFD(
@@ -174,7 +174,7 @@ class WaveformTest(unittest.TestCase):
         dt = 10.0
 
         n = int(T_obs * YRSID_SI / dt)
-        data_freqs = np.fft.rfftfreq(n, dt)[1:]  # remove DC
+        data_freqs = xp.fft.rfftfreq(n, dt)[1:]  # remove DC
 
         # frequencies to interpolate to
         modes = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
@@ -199,14 +199,19 @@ class WaveformTest(unittest.TestCase):
             **waveform_kwargs
         )[0]
 
+        try:
+            data_freqs_cpu = data_freqs.get()
+        except AttributeError:
+            data_freqs_cpu = data_freqs
+
         ######## get noise information (need lisatools)
-        PSD_A = get_sensitivity(data_freqs, sens_fn="noisepsd_AE")
-        PSD_E = get_sensitivity(data_freqs, sens_fn="noisepsd_AE")
-        PSD_T = get_sensitivity(data_freqs, sens_fn="noisepsd_T")
+        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
+        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
+        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_T")
 
         df = data_freqs[1] - data_freqs[0]
 
-        psd = np.array([PSD_A, PSD_E, PSD_T])
+        psd = xp.asarray([PSD_A, PSD_E, PSD_T])
 
         # initialize Likelihood
         like = Likelihood(
@@ -255,7 +260,7 @@ class WaveformTest(unittest.TestCase):
         dt = 10.0
 
         n = int(T_obs * YRSID_SI / dt)
-        data_freqs = np.fft.rfftfreq(n, dt)[1:]  # remove DC
+        data_freqs = xp.fft.rfftfreq(n, dt)[1:]  # remove DC
 
         # frequencies to interpolate to
         modes = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
@@ -280,14 +285,19 @@ class WaveformTest(unittest.TestCase):
             **waveform_kwargs
         )[0]
 
+        try:
+            data_freqs_cpu = data_freqs.get()
+        except AttributeError:
+            data_freqs_cpu = data_freqs
+
         ######## get noise information (need lisatools)
-        PSD_A = get_sensitivity(data_freqs, sens_fn="noisepsd_AE")
-        PSD_E = get_sensitivity(data_freqs, sens_fn="noisepsd_AE")
-        PSD_T = get_sensitivity(data_freqs, sens_fn="noisepsd_T")
+        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
+        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
+        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_T")
 
         df = data_freqs[1] - data_freqs[0]
 
-        psd = np.array([PSD_A, PSD_E, PSD_T])
+        psd = xp.asarray([PSD_A, PSD_E, PSD_T])
 
         # initialize Likelihood
         like = Likelihood(

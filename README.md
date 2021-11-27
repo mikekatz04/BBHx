@@ -7,7 +7,7 @@ This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and
 
 This package is a part of the LISA Analysis Tools environment.
 
-If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/record/5730688#.YaFvRkJKhTY) Please also cite any consituent parts used like the response function or waveforms. See the `citation` attribute for each class or docstring for functions for more information. 
+If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/record/5730688#.YaFvRkJKhTY) Please also cite any consituent parts used like the response function or waveforms. See the `citation` attribute for each class or docstring for functions for more information.
 
 ## Getting Started
 
@@ -18,7 +18,7 @@ Below is a quick set of instructions to get you started with `bbhx`.
 1) Create a virtual environment. **Note**: There is no available `conda` compiler for Windows. If you want to install for Windows, you will probably need to add libraries and include paths to the `setup.py` file.
 
 ```
-conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy Cython jupyter ipython matplotlib python=3.9
+conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy scipy Cython jupyter ipython matplotlib python=3.9
 conda activate bbhx_env
 ```
 
@@ -60,7 +60,7 @@ To install this software for use with NVIDIA GPUs (compute capability >2.0), you
 1) Create a virtual environment.
 
 ```
-conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy Cython jupyter ipython matplotlib python=3.9
+conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy scipy Cython jupyter ipython matplotlib python=3.9
 conda activate bbhx_env
 ```
 

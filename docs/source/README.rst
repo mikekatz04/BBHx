@@ -41,7 +41,7 @@ Below is a quick set of instructions to get you started with ``bbhx``.
 
 ::
 
-   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy Cython jupyter ipython matplotlib python=3.9
+   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy scipy Cython jupyter ipython matplotlib python=3.9
    conda activate bbhx_env
 
 ::
@@ -104,7 +104,7 @@ Installing
 
 ::
 
-   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy Cython jupyter ipython matplotlib python=3.9
+   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy scipy Cython jupyter ipython matplotlib python=3.9
    conda activate bbhx_env
 
 ::
@@ -191,7 +191,7 @@ We use `SemVer <http://semver.org/>`__ for versioning. For the versions
 available, see the `tags on this
 repository <https://github.com/mikekatz04/BBHx/tags>`__.
 
-Current Version: 1.0.0
+Current Version: 1.0.1
 
 Authors
 -------

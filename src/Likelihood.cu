@@ -397,15 +397,13 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
     }
 
     // omp over streams
-    #pragma omp parallel for
+    // TODO: can cause errors
+    //#pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
         // get information for this template
         int length_bin_i = ind_lengths[bin_i];
         int ind_start = inds_start[bin_i];
-
-        double temp_real;
-        double temp_imag;
 
         cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
 
@@ -419,6 +417,8 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
         for (int j = 0; j < 3; j += 1)
         {
             // setup cublas stream and run compuation in the desired frequency bounds
+            double temp_real = 0.0;
+            double temp_imag = 0.0;
 
             // d_h computation
             cublasSetStream(handle, streams[bin_i]);

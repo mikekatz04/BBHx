@@ -32,7 +32,7 @@ from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 
 from .waveforms.phenomhm import PhenomHMAmpPhase
 from .response.fastfdresponse import LISATDIResponse
-from .utils.transform import tSSBfromLframe
+from .utils.transform import tSSBfromLframe, tLfromSSBframe
 from .utils.interpolate import CubicSplineInterpolant
 from .utils.constants import *
 from .utils.citations import *
@@ -426,9 +426,11 @@ class BBHWaveformFD:
         # TODO: add sanity checks for t_start, t_end
         # how to set up time limits
         if shift_t_limits is False:
+            t_ref_L = tLfromSSBframe(t_ref, lam, beta)
+
             # start and end times are defined in the LISA reference frame
-            t_obs_start_L = t_ref - t_obs_start * YRSID_SI
-            t_obs_end_L = t_ref - t_obs_end * YRSID_SI
+            t_obs_start_L = t_ref_L - t_obs_start * YRSID_SI
+            t_obs_end_L = t_ref_L - t_obs_end * YRSID_SI
 
             # convert to SSB frame
             t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)

@@ -27,7 +27,7 @@ conda activate bbhx_env
 2) Clone the repository.
 
 ```
-git clone https://mikekatz04.github.io/BBHx.git
+git clone https://github.com/mikekatz04/BBHx.git
 cd BBHx
 ```
 

@@ -417,6 +417,9 @@ class HeterodynedLikelihood:
         minF = self.f_dense.min() * 0.999999999999
         maxF = self.f_dense.max() * 1.000000000001
 
+        if minF == 0.0:
+            minF = 1e-6
+            
         reference_gen_kwargs["squeeze"] = True
         reference_gen_kwargs["compress"] = True
         reference_gen_kwargs["fill"] = True

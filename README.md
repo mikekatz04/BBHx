@@ -137,7 +137,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/mikekatz04/BBHx/tags).
 
-Current Version: 1.0.2
+Current Version: 1.0.3
 
 ## Authors
 

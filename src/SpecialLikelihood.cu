@@ -66,18 +66,24 @@ void combine_information(cmplx* channel1, cmplx* channel2, cmplx* channel3, doub
 
 // interpolate to TDI channels
 CUDA_KERNEL
-void TDI(cmplx* templateChannels, double* dataFreqsIn, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, int* inds, int ind_start, int ind_length, int bin_i)
+void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* dataFreqsIn, double* freqsOld, double* propArrays, double* c1In, double* c2In, double* c3In, int old_length, int data_length, int numBinAll, int numModes, double t_obs_start, double t_obs_end, int* inds, int ind_start, int ind_length, int bin_i, double df, int data_index, int num_data_sets, int noise_index, int num_noise_sets)
 {
 
+    __shared__ cmplx d_h_contrib[NUM_THREADS_BUILD];
+    __shared__ cmplx h_h_contrib[NUM_THREADS_BUILD];
+
+    int tid = threadIdx.x;
+
+    for (int i = threadIdx.x; i < NUM_THREADS_BUILD; i += blockDim.x)
+    {
+        d_h_contrib[i] = 0.0;
+        h_h_contrib[i] = 0.0;
+    }
+    __syncthreads();
+
     int start, increment;
-    #ifdef __CUDACC__
     start = blockIdx.x * blockDim.x + threadIdx.x;
     increment = blockDim.x *gridDim.x;
-    #else
-    start = 0;
-    increment = 1;
-    #pragma omp parallel for
-    #endif
     for (int i = start; i < ind_length; i += increment)
     {
         // get x information for this spline evaluation
@@ -136,18 +142,47 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double* freqsOld, double*
             trans_complex3 += channel3;
         }
 
-        templateChannels[0 * ind_length + i] = trans_complex1;
-        templateChannels[1 * ind_length + i] = trans_complex2;
-        templateChannels[2 * ind_length + i] = trans_complex3;
+        cmplx data_val1 = dataChannels[(0 * num_data_sets + data_index) * data_length + (ind_start + i)];
+        cmplx data_val2 = dataChannels[(1 * num_data_sets + data_index) * data_length + (ind_start + i)];
+        cmplx data_val3 = dataChannels[(2 * num_data_sets + data_index) * data_length + (ind_start + i)];
+
+        cmplx psd_val1 = psd[(0 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+        cmplx psd_val2 = psd[(1 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+        cmplx psd_val3 = psd[(2 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+
+        d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val1) * trans_complex1 / psd_val1);
+        d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val2) * trans_complex2 / psd_val2);
+        d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val3) * trans_complex3 / psd_val3);
+
+        h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1);
+        h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex2) * trans_complex2 / psd_val2);
+        h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex3) * trans_complex3 / psd_val3);
+
     }
+    __syncthreads();
+    for (unsigned int s = 1; s < blockDim.x; s *= 2)
+    {
+        if (tid % (2 * s) == 0)
+        {
+            d_h_contrib[tid] += d_h_contrib[tid + s];
+            h_h_contrib[tid] += h_h_contrib[tid + s];
+        }
+        __syncthreads();
+    }
+    __syncthreads();
+
+    if (tid == 0)
+    {
+        atomicAddComplex(&d_h[bin_i], d_h_contrib[0]);
+        atomicAddComplex(&h_h[bin_i], h_h_contrib[0]);
+    }
+    __syncthreads();
 }
 
 
-void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths)
+void InterpTDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, double df, int* data_index_all, int num_data_sets, int* noise_index_all, int num_noise_sets)
 {
-    #ifdef __CUDACC__
     cudaStream_t streams[numBinAll];
-    #endif
 
     // interpolation is done in streams on GPU
     // #pragma omp parallel for
@@ -161,21 +196,22 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, do
         double t_start = t_start_in[bin_i];
         double t_end = t_end_in[bin_i];
 
-        cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
+        int data_index = data_index_all[bin_i];
+        int noise_index = noise_index_all[bin_i];
 
         int nblocks3 = std::ceil((length_bin_i + NUM_THREADS_BUILD -1)/NUM_THREADS_BUILD);
 
-        #ifdef __CUDACC__
+        //#ifdef __CUDACC__
         dim3 gridDim(nblocks3, 1);
         cudaStreamCreate(&streams[bin_i]);
-        TDI<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(templateChannels, dataFreqs, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
-        #else
-        TDI(templateChannels, dataFreqs, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i);
-        #endif
+        TDILike<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(d_h, h_h, dataChannels, psd, dataFreqs, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i, df, data_index, num_data_sets, noise_index, num_noise_sets);
+        //#else
+        //TDILike(templateChannels, dataFreqs, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, /length_bin_i, bin_i);
+        //#endif
 
     }
 
-    #ifdef __CUDACC__
+   //#ifdef __CUDACC__
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
@@ -185,114 +221,6 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, do
         //destroy the streams
         cudaStreamDestroy(streams[bin_i]);
     }
-    #endif
+    //#endif
 }
 
-
-// directly fill waveform with no interpolation
-// parallel method here is one block per binary
-CUDA_KERNEL
-void fill_waveform(cmplx* templateChannels,
-                double* bbh_buffer,
-                int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
-{
-
-    cmplx I(0.0, 1.0);
-
-    cmplx temp_channel1 = 0.0, temp_channel2 = 0.0, temp_channel3 = 0.0;
-    int start, increment;
-    #ifdef __CUDACC__
-    start = blockIdx.x;
-    increment = gridDim.x;
-    #else
-    start = 0;
-    increment = 1;
-    #pragma omp parallel for
-    #endif
-    for (int bin_i = start; bin_i < numBinAll; bin_i += increment)
-    {
-
-        double t_start_bin = t_start[bin_i];
-        double t_end_bin = t_end[bin_i];
-
-        int start2, increment2;
-        #ifdef __CUDACC__
-        start2 = threadIdx.x;
-        increment2 = blockDim.x;
-        #else
-        start2 = 0;
-        increment2 = 1;
-        #pragma omp parallel for
-        #endif
-        for (int i = start2; i < data_length; i += increment2)
-        {
-            cmplx temp_channel1 = 0.0;
-            cmplx temp_channel2 = 0.0;
-            cmplx temp_channel3 = 0.0;
-            for (int mode_i = 0; mode_i < numModes; mode_i += 1)
-            {
-
-                // get each value directly out of the holder arrays
-
-                int ind = ((0 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double amp = bbh_buffer[ind];
-
-                ind = ((1 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double phase = bbh_buffer[ind];
-
-                ind = ((2 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double tf = bbh_buffer[ind];
-
-                ind = ((3 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double transferL1_re = bbh_buffer[ind];
-
-                ind = ((4 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double transferL1_im = bbh_buffer[ind];
-
-                ind = ((5 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double transferL2_re = bbh_buffer[ind];
-
-                ind = ((6 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double transferL2_im = bbh_buffer[ind];
-
-                ind = ((7 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double transferL3_re = bbh_buffer[ind];
-
-                ind = ((8 * numBinAll + bin_i) * numModes + mode_i) * data_length + i;
-                double transferL3_im = bbh_buffer[ind];
-
-                cmplx channel1 = 0.0 + 0.0 * I;
-                cmplx channel2 = 0.0 + 0.0 * I;
-                cmplx channel3 = 0.0 + 0.0 * I;
-
-                combine_information(&channel1, &channel2, &channel3, amp, phase, tf, cmplx(transferL1_re, transferL1_im), cmplx(transferL2_re, transferL2_im), cmplx(transferL3_re, transferL3_im), t_start_bin, t_end_bin);
-
-                temp_channel1 += channel1;
-                temp_channel2 += channel2;
-                temp_channel3 += channel3;
-            }
-
-            templateChannels[(bin_i * 3 + 0) * data_length + i] = temp_channel1;
-            templateChannels[(bin_i * 3 + 1) * data_length + i] = temp_channel2;
-            templateChannels[(bin_i * 3 + 2) * data_length + i] = temp_channel3;
-
-        }
-    }
-}
-
-void direct_sum(cmplx* templateChannels,
-                double* bbh_buffer,
-                int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
-{
-
-    // block per binary
-    int nblocks5 = numBinAll;
-
-    #ifdef __CUDACC__
-    fill_waveform<<<nblocks5, NUM_THREADS_BUILD>>>(templateChannels, bbh_buffer, numBinAll, data_length, nChannels, numModes, t_start, t_end);
-    cudaDeviceSynchronize();
-    gpuErrchk(cudaGetLastError());
-    #else
-    fill_waveform(templateChannels, bbh_buffer, numBinAll, data_length, nChannels, numModes, t_start, t_end);
-    #endif
-}

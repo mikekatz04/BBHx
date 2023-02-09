@@ -8,12 +8,11 @@ assert sizeof(int) == sizeof(np.int32_t)
 cdef extern from "WaveformBuild.hh":
     ctypedef void* cmplx 'cmplx'
 
-    void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start, double* t_end, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths);
+    void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start, double* t_end, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths) except+
 
     void direct_sum(cmplx* templateChannels,
                     double* bbh_buffer,
-                    int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
-
+                    int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end) except+
 
 @pointer_adjust
 def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, freqs, propArrays, c1, c2, c3, t_start, t_end, length, data_length, numBinAll, numModes, inds_ptrs, inds_start, ind_lengths):

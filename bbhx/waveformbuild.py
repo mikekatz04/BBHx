@@ -22,6 +22,7 @@ try:
     import cupy as xp
     from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
     from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
+    from pyGPUOnlyWaveformBuild import InterpTDILike_wrap 
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
@@ -295,6 +296,8 @@ class BBHWaveformFD:
         # setup the final interpolant
         self.interp_response = TemplateInterpFD(**interp_kwargs, use_gpu=use_gpu)
 
+        self.interp_like = InterpTDILike_wrap
+
     @property
     def citation(self):
         """Citations for this class"""
@@ -327,6 +330,7 @@ class BBHWaveformFD:
         squeeze=False,
         fill=False,
         combine=False,
+        return_splines=False,
     ):
         """Generate the binary black hole frequency-domain TDI waveforms
 
@@ -453,6 +457,9 @@ class BBHWaveformFD:
             t_start = np.atleast_1d(t_obs_start_SSB)
             t_end = np.atleast_1d(t_obs_end_SSB)
 
+        self.t_start = t_start
+        self.t_end = t_end
+
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")
 
@@ -465,7 +472,7 @@ class BBHWaveformFD:
                 length = freqs.shape[1]
 
         # this means the frequencies are what needs to be interpolated to
-        elif direct is False:
+        elif direct is False and return_splines is False:
             self.data_length = len(freqs)
             if length is None:
                 raise ValueError("If direct is False, length parameter must be given.")
@@ -607,6 +614,9 @@ class BBHWaveformFD:
                 use_gpu=self.use_gpu,
             )
 
+            if return_splines:
+                return spline
+
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
 
             template_channels = self.interp_response(
@@ -652,3 +662,147 @@ class BBHWaveformFD:
                     self.interp_response.start_inds,
                     self.interp_response.lengths,
                 )
+    
+    def get_direct_ll(
+        self,
+        data_freqs,
+        dataChannels,
+        psd,
+        df,
+        *waveform_args,
+        data_index=None,
+        noise_index=None,
+        **waveform_kwargs,
+    ):
+
+        assert "length" in waveform_kwargs and waveform_kwargs["length"] is not None
+
+        waveform_kwargs["direct"] = False
+        waveform_kwargs["compress"] = False
+        waveform_kwargs["squeeze"] = False
+        waveform_kwargs["fill"] = False
+        waveform_kwargs["combine"] = False
+
+        waveform_kwargs["return_splines"] = True
+
+        splines = self.__call__(*waveform_args, **waveform_kwargs)
+
+        t_start = self.t_start
+        t_end = self.t_end
+        
+        # fill important quantities
+        self.data_length = len(data_freqs)
+        self.num_channels = 3
+
+        # unpack interp_container
+        (freqs, y, c1, c2, c3) = splines.container
+
+        freqs_shaped = freqs.reshape(self.num_bin_all, -1)
+
+        # find where each binary's signal starts and ends in the data array
+
+        start_and_end = self.xp.asarray([freqs_shaped[:, 0], freqs_shaped[:, -1],]).T
+
+        # TODO: use 2D version
+        inds_start_and_end = self.xp.asarray(
+            [
+                self.xp.searchsorted(data_freqs, temp, side="right")
+                for temp in start_and_end
+            ]
+        )
+
+        # find proper interpolation window for each point in data stream
+        inds = [
+            self.xp.searchsorted(
+                freqs_shaped[i], data_freqs[st:et], side="right"
+            ).astype(self.xp.int32)
+            - 1
+            for i, (st, et) in enumerate(inds_start_and_end)
+        ]
+
+        # lengths of the signals in frequency domain
+        self.lengths = lengths = np.asarray(
+            [len(inds_i) for inds_i in inds], dtype=self.xp.int32
+        )
+
+        # make sure have this quantity available on CPU
+        try:
+            temp_inds = inds_start_and_end[:, 0].get()
+        except AttributeError:
+            temp_inds = inds_start_and_end[:, 0]
+
+        # where to start filling waveform
+        self.start_inds = start_inds = (temp_inds.copy()).astype(np.int32)
+
+        # get pointers to all the index arrays of different length
+        try:
+            self.ptrs = ptrs = np.asarray([ind_i.data.ptr for ind_i in inds])
+        except AttributeError:
+            self.ptrs = ptrs = np.asarray(
+                [ind_i.__array_interface__["data"][0] for ind_i in inds]
+            )
+
+        d_h = self.xp.zeros(self.num_bin_all, dtype=complex)
+        h_h = self.xp.zeros(self.num_bin_all, dtype=complex)
+
+        if data_index is None:
+            data_index = np.zeros(self.num_bin_all, dtype=np.int32)
+        if noise_index is None:
+            noise_index = np.zeros(self.num_bin_all, dtype=np.int32)
+
+        assert (data_index.max() + 1) * self.data_length * 3 <= dataChannels.shape[0]
+        assert (noise_index.max() + 1) * self.data_length * 3 <= psd.shape[0]
+        assert data_index.dtype == np.int32
+        assert noise_index.dtype == np.int32
+        assert isinstance(data_index, np.ndarray)
+        assert isinstance(noise_index, np.ndarray)
+
+        tmp = dataChannels.shape[0] / 3 / self.data_length
+        assert tmp == float(int(tmp))
+        num_data_sets = int(tmp)
+
+        tmp = psd.shape[0] / 3 / self.data_length
+        assert tmp == float(int(tmp))
+        num_noise_sets = int(tmp)
+
+        if not hasattr(self, "d_d"):
+            raise ValueError("Need to set d_d term for self.")
+        
+        # fill templates
+        self.interp_like(
+            d_h, 
+            h_h, 
+            dataChannels, 
+            psd,
+            data_freqs,
+            freqs,
+            y,
+            c1,
+            c2,
+            c3,
+            t_start,
+            t_end,
+            self.length,
+            self.data_length,
+            self.num_bin_all,
+            self.num_modes,
+            ptrs,
+            start_inds,
+            lengths,
+            df, 
+            data_index, 
+            num_data_sets, 
+            noise_index, 
+            num_noise_sets
+        )
+
+        like = -1/2 * (self.d_d + h_h - 2 * d_h)
+        self.h_h = h_h
+        self.d_h = d_h
+        # return templates in the right shape
+        return like
+
+
+
+
+

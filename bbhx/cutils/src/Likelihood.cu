@@ -379,9 +379,8 @@ void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df
 // compute the likelihood directly
 // different for CPU and GPU cause of streams
 #ifdef __CUDACC__
-void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int device)
 {
-
     // initialize everything
     cudaStream_t streams[numBinAll];
     cublasHandle_t handle;
@@ -389,6 +388,7 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
     cuDoubleComplex result_d_h[numBinAll];
     cuDoubleComplex result_h_h[numBinAll];
 
+    cudaSetDevice(device);
     cublasStatus_t stat = cublasCreate(&handle);
     if (stat != CUBLAS_STATUS_SUCCESS)
     {
@@ -460,7 +460,7 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
         //destroy the streams
@@ -471,7 +471,7 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
 }
 
 #else
-void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int device)
 {
 
     cmplx result_d_h[numBinAll];

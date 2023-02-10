@@ -219,6 +219,7 @@ class Likelihood:
         self.d_h = np.zeros(self.waveform_gen.num_bin_all, dtype=self.xp.complex128)
         self.h_h = np.zeros(self.waveform_gen.num_bin_all, dtype=self.xp.complex128)
 
+        device = self.xp.cuda.runtime.getDevice()
         self.like_gen(
             self.d_h,
             self.h_h,
@@ -229,6 +230,7 @@ class Likelihood:
             ind_lengths,
             self.data_stream_length,
             self.waveform_gen.num_bin_all,
+            device
         )
 
         # phase marginalize in d_h term

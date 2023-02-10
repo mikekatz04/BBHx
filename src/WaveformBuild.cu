@@ -146,6 +146,7 @@ void TDI(cmplx* templateChannels, double* dataFreqsIn, double* freqsOld, double*
 void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths)
 {
     #ifdef __CUDACC__
+    //cudaSetDevice(device);
     cudaStream_t streams[numBinAll];
     #endif
 
@@ -179,7 +180,8 @@ void InterpTDI(long* templateChannels_ptrs, double* dataFreqs, double* freqs, do
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    #pragma omp parallel for
+    // Need to fix device if using openmp
+    //#pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
         //destroy the streams

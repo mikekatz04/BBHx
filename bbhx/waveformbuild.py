@@ -138,6 +138,9 @@ class TemplateInterpFD:
 
         start_and_end = self.xp.asarray([freqs_shaped[:, 0], freqs_shaped[:, -1],]).T
 
+        if not isinstance(data_freqs, self.xp.ndarray):
+            raise ValueError("Make sure if using Cupy or Numpy, the input freqs array is of the same type.")
+
         inds_start_and_end = self.xp.asarray(
             [
                 self.xp.searchsorted(data_freqs, temp, side="right")

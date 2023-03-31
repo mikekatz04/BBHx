@@ -403,6 +403,13 @@ if run_cuda_install:
         pyLikelihood_ext,
     ] + extensions
 
+for line in lines:
+    if line.startswith("Current Version"):
+        version_string = line.split("Current Version: ")[1].split("\n")[0]
+
+with open("bbhx/_version.py", "w") as f:
+    f.write("__version__ = '{}'".format(version_string))
+
 setup(
     name="bbhx",
     author="Michael Katz",
@@ -413,6 +420,7 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
+    version=version_string,
     python_requires=">=3.6",
 )
 

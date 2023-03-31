@@ -403,6 +403,10 @@ if run_cuda_install:
         pyLikelihood_ext,
     ] + extensions
 
+# setup version file
+with open("README.md", "r") as fh:
+    lines = fh.readlines()
+    
 for line in lines:
     if line.startswith("Current Version"):
         version_string = line.split("Current Version: ")[1].split("\n")[0]

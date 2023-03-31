@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Available Waveform Models &mdash; bbhx  documentation</title>
@@ -11,13 +11,12 @@
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -30,11 +29,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search"  style="background: coral" >
-            <a href="../index.html" class="icon icon-home"> bbhx
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            bbhx
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -75,8 +78,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Available Waveform Models</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Available Waveform Models</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/user/waveforms.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -89,361 +92,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<section id="available-waveform-models">
-<h1>Available Waveform Models<a class="headerlink" href="#available-waveform-models" title="Permalink to this headline"></a></h1>
+  <section id="available-waveform-models">
+<h1>Available Waveform Models<a class="headerlink" href="#available-waveform-models" title="Permalink to this heading"></a></h1>
 <section id="phenomhm-phenomd">
-<h2>PhenomHM (PhenomD)<a class="headerlink" href="#phenomhm-phenomd" title="Permalink to this headline"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">bbhx.waveforms.phenomhm.</span></span><span class="sig-name descname"><span class="pre">PhenomHMAmpPhase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_phenomd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Produce PhenomHM in the amplitude and phase representation</p>
-<p>This class implements PhenomD and PhenomHM in a GPU-accelerated form.
-If you use this class, please cite
-<a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a>,
-<a class="reference external" href="https://arxiv.org/abs/2111.01064">arXiv:2111.01064</a>
-<a class="reference external" href="https://arxiv.org/abs/1708.00404">arXiv:1708.00404</a>,
-<a class="reference external" href="https://arxiv.org/abs/1508.07250">arXiv:1508.07250</a>, and
-<a href="#id1"><span class="problematic" id="id2">`</span></a>arXiv:1508.07253 &lt;https://arxiv.org/abs/1508.07253&gt;_.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>use_gpu</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, run on the GPU.</p></li>
-<li><p><strong>run_phenomd</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, run the PhenomD
-waveform rather than PhenomHM. Really this is the same
-as choosing <code class="docutils literal notranslate"><span class="pre">modes=[(2,2)]</span></code> in the PhenomHM waveform.</p></li>
-<li><p><strong>mf_min</strong> (<em>double</em><em>, </em><em>optional</em>) – Dimensionless minimum frequency to use when performing
-interpolation. (Default: <code class="docutils literal notranslate"><span class="pre">1e-4</span></code>)</p></li>
-<li><p><strong>mf_max</strong> (<em>double</em><em>, </em><em>optional</em>) – Dimensionless maximum frequency to use when performing
-interpolation. (Default: <code class="docutils literal notranslate"><span class="pre">6e-1</span></code>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.allowable_modes">
-<span class="sig-name descname"><span class="pre">allowable_modes</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.allowable_modes" title="Permalink to this definition"></a></dt>
-<dd><p>Allowed list of mode tuple pairs <code class="docutils literal notranslate"><span class="pre">(l,m)</span></code> for
-the chosen waveform model.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.ells_default">
-<span class="sig-name descname"><span class="pre">ells_default</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.ells_default" title="Permalink to this definition"></a></dt>
-<dd><p>Default values for the <code class="docutils literal notranslate"><span class="pre">l</span></code> index of the harmonic.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>np.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mms_default">
-<span class="sig-name descname"><span class="pre">mms_default</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mms_default" title="Permalink to this definition"></a></dt>
-<dd><p>Default values for the <code class="docutils literal notranslate"><span class="pre">m</span></code> index of the harmonic.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>np.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_max">
-<span class="sig-name descname"><span class="pre">mf_max</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_max" title="Permalink to this definition"></a></dt>
-<dd><p>Dimensionless maximum frequency to use when performing
-interpolation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>double</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_min">
-<span class="sig-name descname"><span class="pre">mf_min</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.mf_min" title="Permalink to this definition"></a></dt>
-<dd><p>Dimensionless minimum frequency to use when performing
-interpolation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>double</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phenomhm_ringdown_freqs">
-<span class="sig-name descname"><span class="pre">phenomhm_ringdown_freqs</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phenomhm_ringdown_freqs" title="Permalink to this definition"></a></dt>
-<dd><p>Ringdown frequency determination in PhenomHM.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phenomd_ringdown_freqs">
-<span class="sig-name descname"><span class="pre">phenomd_ringdown_freqs</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phenomd_ringdown_freqs" title="Permalink to this definition"></a></dt>
-<dd><p>Ringdown frequency determination in PhenomD.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.run_phenomd">
-<span class="sig-name descname"><span class="pre">run_phenomd</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.run_phenomd" title="Permalink to this definition"></a></dt>
-<dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, run the PhenomD
-waveform rather than PhenomHM. Really this is the same
-as choosing <code class="docutils literal notranslate"><span class="pre">modes=[(2,2)]</span></code> in the PhenomHM waveform.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.use_gpu">
-<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.use_gpu" title="Permalink to this definition"></a></dt>
-<dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, run on the GPU.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.waveform_gen">
-<span class="sig-name descname"><span class="pre">waveform_gen</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.waveform_gen" title="Permalink to this definition"></a></dt>
-<dd><p>Amplitude, phase, tf determination.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.xp">
-<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.xp" title="Permalink to this definition"></a></dt>
-<dd><p>numpy or cupy</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.y_rd">
-<span class="sig-name descname"><span class="pre">y_rd</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.y_rd" title="Permalink to this definition"></a></dt>
-<dd><p>Y-values for PhenomD ringdown frequncy for Cubic Spline.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c1_rd">
-<span class="sig-name descname"><span class="pre">c1_rd</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c1_rd" title="Permalink to this definition"></a></dt>
-<dd><p>Cubic Spline c1 values for PhenomD ringdown frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c2_rd">
-<span class="sig-name descname"><span class="pre">c2_rd</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c2_rd" title="Permalink to this definition"></a></dt>
-<dd><p>Cubic Spline c2 values for PhenomD ringdown frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c3_rd">
-<span class="sig-name descname"><span class="pre">c3_rd</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c3_rd" title="Permalink to this definition"></a></dt>
-<dd><p>Cubic Spline c3 values for PhenomD ringdown frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.y_dm">
-<span class="sig-name descname"><span class="pre">y_dm</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.y_dm" title="Permalink to this definition"></a></dt>
-<dd><p>Y-values for PhenomD damping frequncy for Cubic Spline.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c1_dm">
-<span class="sig-name descname"><span class="pre">c1_dm</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c1_dm" title="Permalink to this definition"></a></dt>
-<dd><p>Cubic Spline c1 values for PhenomD damping frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c2_dm">
-<span class="sig-name descname"><span class="pre">c2_dm</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c2_dm" title="Permalink to this definition"></a></dt>
-<dd><p>Cubic Spline c2 values for PhenomD damping frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c3_dm">
-<span class="sig-name descname"><span class="pre">c3_dm</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.c3_dm" title="Permalink to this definition"></a></dt>
-<dd><p>Cubic Spline c3 values for PhenomD damping frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.waveform_carrier">
-<span class="sig-name descname"><span class="pre">waveform_carrier</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.waveform_carrier" title="Permalink to this definition"></a></dt>
-<dd><p>Carrier for amplitude, phase, and tf information.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>xp.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.citation">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.citation" title="Permalink to this definition"></a></dt>
-<dd><p>Return citations for this class</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.amp">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">amp</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.amp" title="Permalink to this definition"></a></dt>
-<dd><p>Get the amplitude array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phase">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">phase</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.phase" title="Permalink to this definition"></a></dt>
-<dd><p>Get the phase array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.tf">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">tf</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.tf" title="Permalink to this definition"></a></dt>
-<dd><p>Get the tf array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs_shaped">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">freqs_shaped</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs_shaped" title="Permalink to this definition"></a></dt>
-<dd><p>Get the freqs array with shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">length)</span></code></p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">freqs</span></span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs" title="Permalink to this definition"></a></dt>
-<dd><p>Get the flat freqs array</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi1z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi2z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__" title="Permalink to this definition"></a></dt>
-<dd><p>Generate PhenomHM/D waveforms</p>
-<p>Generate PhenomHM/PhenomD waveforms based on user given quantitites
-in the Amplitude-Phase representation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>m1</strong> (<em>double scalar</em><em> or </em><em>np.ndarray</em>) – Mass 1 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
-<li><p><strong>m2</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Mass 2 in Solar Masses <span class="math notranslate nohighlight">\((m1 &gt; m2)\)</span>.</p></li>
-<li><p><strong>chi1z</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Dimensionless spin 1 (for Mass 1) in Solar Masses.</p></li>
-<li><p><strong>chi2z</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Dimensionless spin 2 (for Mass 1) in Solar Masses.</p></li>
-<li><p><strong>distance</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Luminosity distance in m.</p></li>
-<li><p><strong>phi_ref</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Phase at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
-<li><p><strong>f_ref</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Reference frequency at which <code class="docutils literal notranslate"><span class="pre">phi_ref</span></code> and <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> are set.
-If <code class="docutils literal notranslate"><span class="pre">f_ref</span> <span class="pre">==</span> <span class="pre">0</span></code>, it will be set internally by the PhenomHM code
-to <span class="math notranslate nohighlight">\(f_\text{max} = \text{max}(f^2A_{22}(f))\)</span>.</p></li>
-<li><p><strong>t_ref</strong> (<em>double</em><em> or </em><em>np.ndarray</em>) – Reference time in seconds. It is set at <code class="docutils literal notranslate"><span class="pre">f_ref</span></code>.</p></li>
-<li><p><strong>length</strong> (<em>int</em>) – Length of the frequency array over which the waveform is created.</p></li>
-<li><p><strong>freqs</strong> (<em>1D</em><em> or </em><em>2D xp.ndarray</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the class will generate the
-frequency array over which the waveform is evaluated. If 1D xp.ndarray,
-this array will be copied for all binaries evaluated. If 2D,
-it must have shape <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">length)</span></code>. (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
-<li><p><strong>out_buffer</strong> (<em>xp.ndarray</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a buffer array will be created.
-If provided, it should be flattened from shape
-<code class="docutils literal notranslate"><span class="pre">(nparams,</span> <span class="pre">length,</span> <span class="pre">num_modes,</span> <span class="pre">num_bin_all)</span></code>. <code class="docutils literal notranslate"><span class="pre">nparams</span></code> can
-be 3 if just evaluating PhenomHM/D. If using the same buffer for
-the response it must be 9. (Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
-<li><p><strong>modes</strong> (<em>list</em><em>, </em><em>optional</em>) – Harmonic modes to use. If not given, they will
-default to those available in the waveform model. For PhenomHM:
-[(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]. For PhenomD: [(2,2)].
-(Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
+<h2>PhenomHM (PhenomD)<a class="headerlink" href="#phenomhm-phenomd" title="Permalink to this heading"></a></h2>
 </section>
 </section>
 

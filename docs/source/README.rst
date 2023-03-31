@@ -52,7 +52,7 @@ Below is a quick set of instructions to get you started with ``bbhx``.
 
 ::
 
-   git clone https://mikekatz04.github.io/BBHx.git
+   git clone https://github.com/mikekatz04/BBHx.git
    cd BBHx
 
 3) Run install.
@@ -191,7 +191,7 @@ We use `SemVer <http://semver.org/>`__ for versioning. For the versions
 available, see the `tags on this
 repository <https://github.com/mikekatz04/BBHx/tags>`__.
 
-Current Version: 1.0.3
+Current Version: 1.0.4
 
 Authors
 -------

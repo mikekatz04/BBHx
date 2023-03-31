@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GPU-Accelerated Black Hole Binary Waveforms (bbhx) &mdash; bbhx  documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -27,11 +28,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search"  style="background: coral" >
-            <a href="#" class="icon icon-home"> bbhx
+
+          
+          
+          <a href="#" class="icon icon-home">
+            bbhx
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -69,8 +74,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>GPU-Accelerated Black Hole Binary Waveforms (<code class="docutils literal notranslate"><span class="pre">bbhx</span></code>)</li>
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">GPU-Accelerated Black Hole Binary Waveforms (<code class="docutils literal notranslate"><span class="pre">bbhx</span></code>)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -82,34 +87,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<section id="gpu-accelerated-black-hole-binary-waveforms-bbhx">
-<h1>GPU-Accelerated Black Hole Binary Waveforms (<code class="docutils literal notranslate"><span class="pre">bbhx</span></code>)<a class="headerlink" href="#gpu-accelerated-black-hole-binary-waveforms-bbhx" title="Permalink to this headline"></a></h1>
+  <section id="gpu-accelerated-black-hole-binary-waveforms-bbhx">
+<h1>GPU-Accelerated Black Hole Binary Waveforms (<code class="docutils literal notranslate"><span class="pre">bbhx</span></code>)<a class="headerlink" href="#gpu-accelerated-black-hole-binary-waveforms-bbhx" title="Permalink to this heading"></a></h1>
 <section id="designed-for-lisa-data-analysis-of-massive-black-hole-binaries">
-<h2>Designed for LISA data analysis of Massive Black Hole Binaries.<a class="headerlink" href="#designed-for-lisa-data-analysis-of-massive-black-hole-binaries" title="Permalink to this headline"></a></h2>
+<h2>Designed for LISA data analysis of Massive Black Hole Binaries.<a class="headerlink" href="#designed-for-lisa-data-analysis-of-massive-black-hole-binaries" title="Permalink to this heading"></a></h2>
 <p>This package implements GPU/CPU agnostic Massive Black Hole Binary
 waveforms and likelihood computations from
 <a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a> and
@@ -130,7 +111,7 @@ cite any consituent parts used like the response function or waveforms.
 See the <code class="docutils literal notranslate"><span class="pre">citation</span></code> attribute for each class or docstring for functions
 for more information.</p>
 <section id="getting-started">
-<h3>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h3>
+<h3>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h3>
 <p>Below is a quick set of instructions to get you started with <code class="docutils literal notranslate"><span class="pre">bbhx</span></code>.</p>
 <ol class="arabic simple" start="0">
 <li><p><a class="reference external" href="https://docs.anaconda.com/anaconda/install/">Install Anaconda</a> if
@@ -140,7 +121,7 @@ you do not have it.</p></li>
 you will probably need to add libraries and include paths to the
 <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> file.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">bbhx_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">1</span> <span class="n">numpy</span> <span class="n">scipy</span> <span class="n">Cython</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">bbhx_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6.1</span> <span class="n">numpy</span> <span class="n">scipy</span> <span class="n">Cython</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span>
 <span class="n">conda</span> <span class="n">activate</span> <span class="n">bbhx_env</span>
 </pre></div>
 </div>
@@ -150,7 +131,7 @@ you will probably need to add libraries and include paths to the
 <ol class="arabic simple" start="2">
 <li><p>Clone the repository.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">mikekatz04</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">BBHx</span><span class="o">.</span><span class="n">git</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mikekatz04</span><span class="o">/</span><span class="n">BBHx</span><span class="o">.</span><span class="n">git</span>
 <span class="n">cd</span> <span class="n">BBHx</span>
 </pre></div>
 </div>
@@ -171,7 +152,7 @@ notebook</a>.</p>
 </section>
 </section>
 <section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline"></a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
 <p>To install this software for CPU usage, you need <a class="reference external" href="https://www.gnu.org/software/gsl/">gsl
 &gt;2.0</a> , <a class="reference external" href="https://www.netlib.org/lapack/lug/node14.html">lapack
 (3.6.1)</a>, Python &gt;3.4,
@@ -193,13 +174,13 @@ CUDA toolkit version. Make sure the nvcc binary is on <code class="docutils lite
 it as the <code class="docutils literal notranslate"><span class="pre">CUDAHOME</span></code> environment variable.</p>
 </section>
 <section id="installing">
-<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline"></a></h2>
+<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this heading"></a></h2>
 <ol class="arabic simple" start="0">
 <li><p><a class="reference external" href="https://docs.anaconda.com/anaconda/install/">Install Anaconda</a> if
 you do not have it.</p></li>
 <li><p>Create a virtual environment.</p></li>
 </ol>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">bbhx_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">1</span> <span class="n">numpy</span> <span class="n">scipy</span> <span class="n">Cython</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">bbhx_env</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">gcc_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gxx_linux</span><span class="o">-</span><span class="mi">64</span> <span class="n">gsl</span> <span class="n">lapack</span><span class="o">=</span><span class="mf">3.6.1</span> <span class="n">numpy</span> <span class="n">scipy</span> <span class="n">Cython</span> <span class="n">jupyter</span> <span class="n">ipython</span> <span class="n">matplotlib</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span>
 <span class="n">conda</span> <span class="n">activate</span> <span class="n">bbhx_env</span>
 </pre></div>
 </div>
@@ -263,44 +244,44 @@ line options when installing. You can also remove usage of OpenMP.</p>
 </pre></div>
 </div>
 <section id="running-the-tests">
-<h3>Running the Tests<a class="headerlink" href="#running-the-tests" title="Permalink to this headline"></a></h3>
+<h3>Running the Tests<a class="headerlink" href="#running-the-tests" title="Permalink to this heading"></a></h3>
 <p>In the main directory of the package run in the terminal:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">unittest</span> <span class="n">discover</span>
 </pre></div>
 </div>
 </section>
 <section id="contributing">
-<h3>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline"></a></h3>
+<h3>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading"></a></h3>
 <p>Please read <a class="reference external" href="CONTRIBUTING.md">CONTRIBUTING.md</a> for details on our
 code of conduct, and the process for submitting pull requests to us.</p>
 </section>
 <section id="versioning">
-<h3>Versioning<a class="headerlink" href="#versioning" title="Permalink to this headline"></a></h3>
+<h3>Versioning<a class="headerlink" href="#versioning" title="Permalink to this heading"></a></h3>
 <p>We use <a class="reference external" href="http://semver.org/">SemVer</a> for versioning. For the versions
 available, see the <a class="reference external" href="https://github.com/mikekatz04/BBHx/tags">tags on this
 repository</a>.</p>
-<p>Current Version: 1.0.3</p>
+<p>Current Version: 1.0.4</p>
 </section>
 <section id="authors">
-<h3>Authors<a class="headerlink" href="#authors" title="Permalink to this headline"></a></h3>
+<h3>Authors<a class="headerlink" href="#authors" title="Permalink to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Michael Katz</strong></p></li>
 </ul>
 </section>
 </section>
 <section id="contibutors">
-<h2>Contibutors<a class="headerlink" href="#contibutors" title="Permalink to this headline"></a></h2>
+<h2>Contibutors<a class="headerlink" href="#contibutors" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>Sylvain Marsat</p></li>
 <li><p>John Baker</p></li>
 </ul>
 <section id="license">
-<h3>License<a class="headerlink" href="#license" title="Permalink to this headline"></a></h3>
+<h3>License<a class="headerlink" href="#license" title="Permalink to this heading"></a></h3>
 <p>This project is licensed under the GNU License - see the
 <a class="reference external" href="LICENSE.md">LICENSE.md</a> file for details.</p>
 </section>
 <section id="acknowledgments">
-<h3>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this headline"></a></h3>
+<h3>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this heading"></a></h3>
 <ul class="simple">
 <li><p>This research was also supported in part through the computational
 resources and staff contributions provided for the Quest/Grail high
@@ -324,10 +305,24 @@ performance computing facility at Northwestern University.</p></li>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="user/utils.html">Utility Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user/utils.html#interpolation-utilities">Interpolation Utilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user/utils.html#useful-transformation-functions">Useful Transformation Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/utils.html#useful-transformation-functions">Useful Transformation Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.mT_q"><code class="docutils literal notranslate"><span class="pre">mT_q()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.modpi"><code class="docutils literal notranslate"><span class="pre">modpi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.mod2pi"><code class="docutils literal notranslate"><span class="pre">mod2pi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.tSSBfromLframe"><code class="docutils literal notranslate"><span class="pre">tSSBfromLframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.tLfromSSBframe"><code class="docutils literal notranslate"><span class="pre">tLfromSSBframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.LISA_to_SSB"><code class="docutils literal notranslate"><span class="pre">LISA_to_SSB()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.SSB_to_LISA"><code class="docutils literal notranslate"><span class="pre">SSB_to_LISA()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.transform.mbh_sky_mode_transform"><code class="docutils literal notranslate"><span class="pre">mbh_sky_mode_transform()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="user/utils.html#constants">Constants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user/utils.html#module-bbhx.utils.citations">Citation Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="user/utils.html#module-bbhx.utils.utility">Cython GPU/CPU Agnostic Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user/utils.html#module-bbhx.utils.utility">Cython GPU/CPU Agnostic Tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.utility.wrapper"><code class="docutils literal notranslate"><span class="pre">wrapper()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="user/utils.html#bbhx.utils.utility.pointer_adjust"><code class="docutils literal notranslate"><span class="pre">pointer_adjust()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

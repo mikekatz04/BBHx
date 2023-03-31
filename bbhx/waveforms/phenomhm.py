@@ -70,6 +70,10 @@ class PhenomHMAmpPhase:
             interpolation. (Default: ``1e-4``)
         mf_max (double, optional): Dimensionless maximum frequency to use when performing
             interpolation. (Default: ``6e-1``)
+        initial_t_val (double, optional): Time at the start of the 
+            time window. This shifts the phase accordingly but does
+            not shift the tf correspondence so that the response
+            is still accurately reflected. (Default: ``0.0``)
 
     Attributes:
         allowable_modes (list): Allowed list of mode tuple pairs ``(l,m)`` for
@@ -100,7 +104,7 @@ class PhenomHMAmpPhase:
 
     """
 
-    def __init__(self, use_gpu=False, run_phenomd=False, mf_min=1e-4, mf_max=0.6):
+    def __init__(self, use_gpu=False, run_phenomd=False, mf_min=1e-4, mf_max=0.6, initial_t_val=0.0):
 
         self.run_phenomd = run_phenomd
         if use_gpu:
@@ -133,6 +137,8 @@ class PhenomHMAmpPhase:
         # freqs are not given, but a length is given
         self.mf_min = mf_min
         self.mf_max = mf_max
+
+        self.initial_t_val = initial_t_val
 
         # prepare the PhenomD spline info for fRD and fDM
         self._init_phenomd_fring_spline()
@@ -473,7 +479,7 @@ class PhenomHMAmpPhase:
         # do this inplace
         temp = (
             self.freqs.reshape(self.num_bin_all, -1)
-            * self.xp.asarray(t_ref[:, self.xp.newaxis])
+            * self.xp.asarray(t_ref[:, self.xp.newaxis] - self.initial_t_val)
             * 2
             * np.pi
         )

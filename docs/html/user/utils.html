@@ -52,7 +52,33 @@
 <li class="toctree-l1"><a class="reference internal" href="response.html">LISA Response Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="like.html">Likelihood Methods</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Utility Functions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#interpolation-utilities">Interpolation Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interpolation-utilities">Interpolation Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.data_length"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.data_length</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.length"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.length</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.num_bin_all"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.num_bin_all</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.num_channels"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.num_channels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.num_modes"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.num_modes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_carrier"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_carrier</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_gen</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.use_gpu</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.xp"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.xp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_channels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.citation"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.citation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.__call__"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.__call__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.x_shaped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.y_shaped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.c1_shaped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.c2_shaped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.c3_shaped</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.container"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.container</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#useful-transformation-functions">Useful Transformation Functions</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.utils.transform.mT_q"><code class="docutils literal notranslate"><span class="pre">mT_q()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.utils.transform.modpi"><code class="docutils literal notranslate"><span class="pre">modpi()</span></code></a></li>
@@ -116,6 +142,244 @@
 <h1>Utility Functions<a class="headerlink" href="#utility-functions" title="Permalink to this heading"></a></h1>
 <section id="interpolation-utilities">
 <h2>Interpolation Utilities<a class="headerlink" href="#interpolation-utilities" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.waveformbuild.</span></span><span class="sig-name descname"><span class="pre">TemplateInterpFD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Interpolate frequency domain template.</p>
+<p>This class wraps <a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="bbhx.utils.interpolate.CubicSplineInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a> so
+that it fits into this specific waveform production method.</p>
+<p>This class has GPU capabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>use_gpu</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, use GPU.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.data_length">
+<span class="sig-name descname"><span class="pre">data_length</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.data_length" title="Permalink to this definition"></a></dt>
+<dd><p>Length of data. This class interpolates to this length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.length">
+<span class="sig-name descname"><span class="pre">length</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.length" title="Permalink to this definition"></a></dt>
+<dd><p>Length of original frequency array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.num_bin_all">
+<span class="sig-name descname"><span class="pre">num_bin_all</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_bin_all" title="Permalink to this definition"></a></dt>
+<dd><p>Number of binaries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.num_channels">
+<span class="sig-name descname"><span class="pre">num_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Number of channels in data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.num_modes">
+<span class="sig-name descname"><span class="pre">num_modes</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_modes" title="Permalink to this definition"></a></dt>
+<dd><p>Number of harmonics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_carrier">
+<span class="sig-name descname"><span class="pre">template_carrier</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_carrier" title="Permalink to this definition"></a></dt>
+<dd><p>Carrier for output templates.
+Templates can be accessed through the <code class="docutils literal notranslate"><span class="pre">template_channels</span></code> property.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>complex128 xp.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_gen">
+<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Permalink to this definition"></a></dt>
+<dd><p>C/CUDA wrapped function for computing interpolated
+waveforms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.use_gpu">
+<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu" title="Permalink to this definition"></a></dt>
+<dd><p>If True, using GPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.xp">
+<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.xp" title="Permalink to this definition"></a></dt>
+<dd><p>Either numpy or cupy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_channels">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">template_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Get template channels from <code class="docutils literal notranslate"><span class="pre">self.template_carrier</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.citation">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.citation" title="Permalink to this definition"></a></dt>
+<dd><p>citations for this class</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Generate frequency domain template via interpolation.</p>
+<p>This class takes all waveform and response information as sparse arrays
+and then interpolates to the proper frequency array.</p>
+<p>This class acts in a unique why by passing arrays of pointers from python
+into C++/CUDA.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_freqs</strong> (<em>double xp.ndarray</em>) – Frequencies to interpolate to.</p></li>
+<li><p><strong>interp_container</strong> (<em>obj</em>) – <code class="docutils literal notranslate"><span class="pre">container</span></code> attribute from the interpolant
+class: <a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="bbhx.utils.interpolate.CubicSplineInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a>.</p></li>
+<li><p><strong>t_start</strong> (<em>double xp.ndarray</em>) – Array of start times (sec) for each binary.</p></li>
+<li><p><strong>t_end</strong> (<em>double xp.ndarray</em>) – Array of end times (sec) for each binary.</p></li>
+<li><p><strong>length</strong> (<em>int</em>) – Length of original frequency array.</p></li>
+<li><p><strong>num_modes</strong> (<em>int</em>) – Number of harmonics.</p></li>
+<li><p><strong>num_channels</strong> (<em>int</em>) – Number of channels in data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>List of template arrays for all binaries.</dt><dd><p>shape of each array: <code class="docutils literal notranslate"><span class="pre">(self.num_channels,</span> <span class="pre">self.data_length)</span></code></p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">CubicSplineInterpolant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_all</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_interp_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bin_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>GPU-accelerated Multiple Cubic Splines</p>
+<p>This class produces multiple cubic splines. The cubic splines are produced
+with “not-a-knot” boundary conditions.</p>
+<p>This class has GPU capability.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>xp.ndarray</em>) – f values as input for the spline. Can be 1D flattend array
+of total length
+<code class="docutils literal notranslate"><span class="pre">(num_bin_all</span> <span class="pre">*</span> <span class="pre">length)</span></code> or 2D array with shape: <code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">length)</span></code>.</p></li>
+<li><p><strong>y_all</strong> (<em>xp.ndarray</em>) – y values for the spline. This can be a 1D flattened
+array with length
+<code class="docutils literal notranslate"><span class="pre">(num_interp_params</span> <span class="pre">*</span> <span class="pre">num_bin_all</span> <span class="pre">*</span> <span class="pre">num_modes</span> <span class="pre">*</span> <span class="pre">length)</span></code>
+or 4D arrays of shape: <code class="docutils literal notranslate"><span class="pre">(num_interp_params,</span> <span class="pre">num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code>.</p></li>
+<li><p><strong>num_interp_params</strong> (<em>int</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y_all</span></code> are flattened,
+the user must provide the number of interpolation parameters.
+(Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>num_bin_all</strong> (<em>int</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y_all</span></code> are flattened,
+the user must provide the number of total binaries.
+(Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>num_modes</strong> (<em>int</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y_all</span></code> are flattened,
+the user must provide the number of modes.
+(Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>length</strong> (<em>int</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y_all</span></code> are flattened,
+the user must provide the length of the frequency array for each binary.
+(Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p><strong>use_gpu</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, prepare arrays for a GPU. Default is
+False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If input arguments are not correct.</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">x_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped" title="Permalink to this definition"></a></dt>
+<dd><p>Get shaped x array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">y_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped" title="Permalink to this definition"></a></dt>
+<dd><p>Get shaped y array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c1_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped" title="Permalink to this definition"></a></dt>
+<dd><p>Get shaped c1 array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c2_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped" title="Permalink to this definition"></a></dt>
+<dd><p>Get shaped c2 array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c3_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped" title="Permalink to this definition"></a></dt>
+<dd><p>Get shaped c3 array.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.container">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">container</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.container" title="Permalink to this definition"></a></dt>
+<dd><p>Container for easy transit of interpolation information.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="useful-transformation-functions">
 <h2>Useful Transformation Functions<a class="headerlink" href="#useful-transformation-functions" title="Permalink to this heading"></a></h2>

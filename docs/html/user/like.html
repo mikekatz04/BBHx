@@ -17,6 +17,8 @@
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -49,7 +51,25 @@
 <li class="toctree-l1"><a class="reference internal" href="waveforms.html">Available Waveform Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="response.html">LISA Response Models</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Likelihood Methods</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#direct-likelihood-computation">Direct Likelihood Computation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#direct-likelihood-computation">Direct Likelihood Computation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bbhx.likelihood.Likelihood"><code class="docutils literal notranslate"><span class="pre">Likelihood</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.use_gpu"><code class="docutils literal notranslate"><span class="pre">Likelihood.use_gpu</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.xp"><code class="docutils literal notranslate"><span class="pre">Likelihood.xp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.d_d"><code class="docutils literal notranslate"><span class="pre">Likelihood.d_d</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.data_channels"><code class="docutils literal notranslate"><span class="pre">Likelihood.data_channels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.data_freqs"><code class="docutils literal notranslate"><span class="pre">Likelihood.data_freqs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.data_stream_length"><code class="docutils literal notranslate"><span class="pre">Likelihood.data_stream_length</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.like_gen"><code class="docutils literal notranslate"><span class="pre">Likelihood.like_gen</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.noise_factors"><code class="docutils literal notranslate"><span class="pre">Likelihood.noise_factors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.psd"><code class="docutils literal notranslate"><span class="pre">Likelihood.psd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.template_gen"><code class="docutils literal notranslate"><span class="pre">Likelihood.template_gen</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.phase_marginalize"><code class="docutils literal notranslate"><span class="pre">Likelihood.phase_marginalize</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.return_extracted_snr"><code class="docutils literal notranslate"><span class="pre">Likelihood.return_extracted_snr</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.likelihood.Likelihood.get_ll"><code class="docutils literal notranslate"><span class="pre">Likelihood.get_ll()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utility Functions</a></li>
@@ -96,6 +116,208 @@
 <h1>Likelihood Methods<a class="headerlink" href="#likelihood-methods" title="Permalink to this heading"></a></h1>
 <section id="direct-likelihood-computation">
 <h2>Direct Likelihood Computation<a class="headerlink" href="#direct-likelihood-computation" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.likelihood.</span></span><span class="sig-name descname"><span class="pre">Likelihood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">template_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.likelihood.Likelihood" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Fast Base Likelihood Class for MBHBs</p>
+<p>This class computes the graitational wave Likelihood as a direct sum over
+frequecy bins. It only sums over the frequencies where the MBHB signal
+exists. Therefore, larger mass waveforms are faster because there are less
+frequencies. This class computes:
+<span class="math notranslate nohighlight">\(\mathcal{L}\propto-1/2\langle d-h|d-h\rangle=-1/2\left(\langle d|d\rangle \langle h|h\rangle - 2\langle d|h\rangle\right)\)</span>.</p>
+<p>This class has GPU capability.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>template_gen</strong> (<em>obj</em>) – Waveform generation class that returns a tuple of
+(list of template arrays, start indices, lengths). See
+<code class="xref py py-class docutils literal notranslate"><span class="pre">bbhx.waveform.BBHWaveformFD</span></code> for more information on this
+return type.</p></li>
+<li><p><strong>data_freqs</strong> (<em>double xp.ndarray</em>) – Frequencies for the data stream. <code class="docutils literal notranslate"><span class="pre">data_freqs</span></code>
+should be a numpy (cupy) array if running on the CPU (GPU).</p></li>
+<li><p><strong>data_channels</strong> (<em>complex128 xp.ndarray</em>) – Data stream. 2D array of shape: <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">len(data_freqs))</span></code>.
+It is assumed there are 3 channels. <code class="docutils literal notranslate"><span class="pre">data_channels</span></code>
+should be a numpy (cupy) array if running on the CPU (GPU).</p></li>
+<li><p><strong>psd</strong> (<em>double xp.ndarray</em>) – Power Spectral Density in the noise:math:<cite>S_n(f)</cite>.
+2D array of shape: <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">len(data_freqs))</span></code>.
+It is assumed there are 3 channels. <code class="docutils literal notranslate"><span class="pre">psd</span></code>
+should be a numpy (cupy) array if running on the CPU (GPU).</p></li>
+<li><p><strong>use_gpu</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, use GPU.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.use_gpu">
+<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.use_gpu" title="Permalink to this definition"></a></dt>
+<dd><p>If True, using GPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.xp">
+<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.xp" title="Permalink to this definition"></a></dt>
+<dd><p>Either numpy or cupy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.d_d">
+<span class="sig-name descname"><span class="pre">d_d</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.d_d" title="Permalink to this definition"></a></dt>
+<dd><p><span class="math notranslate nohighlight">\(\langle d|d\rangle\)</span> inner product value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>double</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.data_channels">
+<span class="sig-name descname"><span class="pre">data_channels</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.data_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Data stream. 1D flattened array
+of shape: <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">len(data_freqs))</span></code>. <strong>Note</strong> <code class="docutils literal notranslate"><span class="pre">data_channels</span></code> should
+be multiplied by <code class="docutils literal notranslate"><span class="pre">psd</span></code> before input into this class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>complex128 np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.data_freqs">
+<span class="sig-name descname"><span class="pre">data_freqs</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.data_freqs" title="Permalink to this definition"></a></dt>
+<dd><p>Frequencies for the data stream (1D).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>double np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.data_stream_length">
+<span class="sig-name descname"><span class="pre">data_stream_length</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.data_stream_length" title="Permalink to this definition"></a></dt>
+<dd><p>Length of data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.like_gen">
+<span class="sig-name descname"><span class="pre">like_gen</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.like_gen" title="Permalink to this definition"></a></dt>
+<dd><p>C/CUDA implementation of likelihood compuation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.noise_factors">
+<span class="sig-name descname"><span class="pre">noise_factors</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.noise_factors" title="Permalink to this definition"></a></dt>
+<dd><p><span class="math notranslate nohighlight">\(\sqrt{\frac{\Delta f}{S_n(f)}}\)</span>.
+1D flattened array of shape: <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">len(data_freqs))</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>double xp.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.psd">
+<span class="sig-name descname"><span class="pre">psd</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.psd" title="Permalink to this definition"></a></dt>
+<dd><p>Power Spectral Density in the noise:math:<cite>S_n(f)</cite>.
+1D flattened array of shape: <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">len(data_freqs))</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>double xp.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.template_gen">
+<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.template_gen" title="Permalink to this definition"></a></dt>
+<dd><p>Waveform generation class that returns a tuple of
+(list of template arrays, start indices, lengths). See
+<code class="xref py py-class docutils literal notranslate"><span class="pre">bbhx.waveform.BBHWaveformFD</span></code> for more information on this
+return type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>obj</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.phase_marginalize">
+<span class="sig-name descname"><span class="pre">phase_marginalize</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.phase_marginalize" title="Permalink to this definition"></a></dt>
+<dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, compute the phase-marginalized
+log-Likelihood (and snr if <code class="docutils literal notranslate"><span class="pre">return_extracted_snr==True</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.return_extracted_snr">
+<span class="sig-name descname"><span class="pre">return_extracted_snr</span></span><a class="headerlink" href="#bbhx.likelihood.Likelihood.return_extracted_snr" title="Permalink to this definition"></a></dt>
+<dd><p>Return the snr in addition to the Likeilihood.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="bbhx.likelihood.Likelihood.get_ll">
+<span class="sig-name descname"><span class="pre">get_ll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_extracted_snr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_marginalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">waveform_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.likelihood.Likelihood.get_ll" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the log-Likelihood</p>
+<dl class="simple">
+<dt>params (double np.ndarray): Parameters for evaluating log-Likelihood.</dt><dd><p><code class="docutils literal notranslate"><span class="pre">params.shape=(num_params,)</span></code> if 1D or
+<code class="docutils literal notranslate"><span class="pre">params.shape=(num_params,</span> <span class="pre">num_bin_all)</span></code> if 2D for more than
+one binary.</p>
+</dd>
+<dt>return_extracted_snr (bool, optional): If <code class="docutils literal notranslate"><span class="pre">True</span></code>, return</dt><dd><p><span class="math notranslate nohighlight">\(\langle d|h\rangle\ / \sqrt{\langle h|h\rangle}\)</span> as a second entry
+of the return array. This produces a return array of
+<code class="docutils literal notranslate"><span class="pre">xp.array([log</span> <span class="pre">likelihood,</span> <span class="pre">snr]).T</span></code>. If <code class="docutils literal notranslate"><span class="pre">False</span></code>, just return
+the log-Likelihood array.</p>
+</dd>
+<dt>phase_marginalize (bool, optional): If <code class="docutils literal notranslate"><span class="pre">True</span></code>, compute the phase-marginalized</dt><dd><p>log-Likelihood (and snr if <code class="docutils literal notranslate"><span class="pre">return_extracted_snr==True</span></code>).</p>
+</dd>
+<dt><a href="#id1"><span class="problematic" id="id2">**</span></a>waveform_kwargs (dict, optional): Keyword arguments for waveform</dt><dd><p>generator.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>log-Likelihoods or <code class="docutils literal notranslate"><span class="pre">np.array([log-Likelihoods,</span> <span class="pre">snr]).T</span></code></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 

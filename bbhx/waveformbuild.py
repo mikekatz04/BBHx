@@ -66,6 +66,7 @@ class TemplateInterpFD:
 
     def __init__(self, use_gpu=False):
 
+        self.use_gpu = use_gpu
         if use_gpu:
             self.template_gen = InterpTDI_wrap_gpu
             self.xp = xp
@@ -138,7 +139,7 @@ class TemplateInterpFD:
 
         start_and_end = self.xp.asarray([freqs_shaped[:, 0], freqs_shaped[:, -1],]).T
 
-        if not isinstance(data_freqs, self.xp.ndarray):
+        if self.use_gpu and not isinstance(data_freqs, self.xp.ndarray):
             raise ValueError("Make sure if using Cupy or Numpy, the input freqs array is of the same type.")
 
         inds_start_and_end = self.xp.asarray(

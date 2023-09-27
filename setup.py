@@ -305,6 +305,12 @@ if run_cuda_install:
         **gpu_extension,
     )
 
+    pyGPULikelihood_ext = Extension(
+        "pyGPULikelihood",
+        sources=["src/Likelihood.cu", "src/gpu_likelihood.pyx"],
+        **gpu_extension,
+    )
+
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
 
 cpu_extension = dict(
@@ -378,6 +384,7 @@ if run_cuda_install:
         pyWaveformBuild_ext,
         pyLikelihood_ext,
         pyGPUOnlyWaveformBuild_ext,
+        pyGPULikelihood_ext,
     ] + extensions
 
 setup(

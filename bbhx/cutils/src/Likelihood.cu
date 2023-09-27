@@ -16,6 +16,228 @@
 
 #ifdef __CUDACC__
 
+#define NUM_THREADS_PREP 256
+
+#ifdef __CUDACC__
+CUDA_KERNEL
+void new_hdyn_prep(cmplx *A0_out, cmplx *A1_out, cmplx *B0_out, cmplx *B1_out,
+    cmplx *h0_arr, cmplx *data, double *psd, double *f_m_arr, double df, double *f_dense, int *data_index_all, int *noise_index_all,
+    int *start_inds_all, int *num_points_seg, int length_f_rel, int num_bin, int data_length, int nchannels)
+{
+
+    __shared__ cmplx A0[NUM_THREADS_PREP];
+    __shared__ cmplx A1[NUM_THREADS_PREP];
+    __shared__ cmplx B0[NUM_THREADS_PREP];
+    __shared__ cmplx B1[NUM_THREADS_PREP];
+
+    int tid = threadIdx.x;
+
+    int start_ind, num_points, seg_index, data_index, noise_index;
+    int data_ind, noise_ind, template_ind, coefficient_index, ind;
+    double Sn, f, f_m;
+    cmplx d, h0, h0_conj;
+    cmplx A0_tmp, A1_tmp, B0_tmp, B1_tmp, A0_flat, B0_flat;
+    for (int bin_i = blockIdx.y; bin_i < num_bin; bin_i += gridDim.y)
+    {
+        data_index = data_index_all[bin_i];
+        noise_index = noise_index_all[bin_i];
+        for (int chan_i = blockIdx.z; chan_i < nchannels; chan_i += gridDim.z)
+        {
+            for (int seg_i = blockIdx.x; seg_i < length_f_rel - 1; seg_i += gridDim.x)
+            {
+                for (int i = threadIdx.x; i < blockDim.x; i += blockDim.x)
+                {
+                    A0[threadIdx.x] = 0.0;
+                    A1[threadIdx.x] = 0.0;
+                    B0[threadIdx.x] = 0.0;
+                    B1[threadIdx.x] = 0.0;
+                }
+                __syncthreads();
+                
+                seg_index = bin_i * length_f_rel + seg_i + 1;
+                coefficient_index = (bin_i * nchannels + chan_i) * length_f_rel + seg_i + 1;
+                num_points = num_points_seg[seg_index];
+                start_ind = start_inds_all[seg_index];
+                f_m = f_m_arr[seg_index];
+
+                A0_tmp = 0.0;
+                A1_tmp = 0.0;
+                B0_tmp = 0.0;
+                B1_tmp = 0.0;
+
+                // printf("%d %d %d %d %d\n", bin_i, chan_i, seg_i, length_f_rel, seg_index);
+                for (int i = threadIdx.x; i < num_points; i += blockDim.x)
+                {
+                    ind = i + start_ind;
+                    data_ind = (data_index * nchannels + chan_i) * data_length + ind;
+                    noise_ind = (noise_index * nchannels + chan_i) * data_length + ind;
+                    template_ind = (bin_i * nchannels + chan_i) * data_length + ind;
+
+                    d = data[data_ind];
+                    h0 = h0_arr[template_ind];
+                    Sn = psd[noise_ind];
+                    f = f_dense[ind];
+
+                    h0_conj = gcmplx::conj(h0);
+
+                    A0_flat = 4. * (h0_conj * d) / Sn * df;
+
+                    B0_flat = 4. * (h0_conj * h0) / Sn * df;
+
+                    A0_tmp += A0_flat;
+                    A1_tmp += A0_flat * (f - f_m);
+                    B0_tmp += B0_flat;
+                    B1_tmp += B0_flat * (f - f_m);
+
+                    // printf("check %e %e %e %e\n", A0_tmp.real(), A1_tmp.real(), B0_tmp.real(), B1_tmp.imag());                       
+                }
+
+                A0[threadIdx.x] = A0_tmp;
+                A1[threadIdx.x] = A1_tmp;
+                B0[threadIdx.x] = B0_tmp;
+                B1[threadIdx.x] = B1_tmp;
+
+                // if ((bin_i == 0) && (chan_i == 0) && (seg_i == 60)) printf("check %e %e %e %e\n", A0[threadIdx.x].real(), A1[threadIdx.x].real(), B0[threadIdx.x].real(), B1[threadIdx.x].real());
+
+                __syncthreads();
+                for (unsigned int s = 1; s < blockDim.x; s *= 2)
+                {
+                    if (tid % (2 * s) == 0)
+                    {
+                        A0[tid] += A0[tid + s];
+                        A1[tid] += A1[tid + s];
+                        B0[tid] += B0[tid + s];
+                        B1[tid] += B1[tid + s];
+                    }
+                    __syncthreads();
+                }
+                __syncthreads();
+
+                if (threadIdx.x == 0)
+                {
+                    A0_out[coefficient_index] = A0[0];
+                    A1_out[coefficient_index] = A1[0];
+                    B0_out[coefficient_index] = B0[0];
+                    B1_out[coefficient_index] = B1[0];
+                }
+                __syncthreads();
+            }
+        }
+    }
+}
+
+void new_hdyn_prep_wrap(cmplx *A0_out, cmplx *A1_out, cmplx *B0_out, cmplx *B1_out,
+    cmplx *h0_arr, cmplx *data, double *psd, double *f_m_arr, double df, double *f_dense, int *data_index, int *noise_index,
+    int *start_inds_all, int *num_points_seg, int length_f_rel, int num_bin, int data_length, int nchannels)
+{
+    dim3 grid(length_f_rel - 1, num_bin, nchannels);
+
+    new_hdyn_prep<<<grid, NUM_THREADS_PREP>>>(A0_out, A1_out, B0_out, B1_out,
+    h0_arr, data, psd, f_m_arr, df, f_dense, data_index, noise_index,
+    start_inds_all, num_points_seg, length_f_rel, num_bin, data_length, nchannels);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+
+}
+
+CUDA_KERNEL
+void new_hdyn_like(cmplx* likeOut1, cmplx* likeOut2,
+                    cmplx* templateChannels, cmplx* dataConstants,
+                    double* dataFreqsIn, int *constants_index,
+                    int numBinAll, int length_f_rel, int nChannels, int num_constants)
+{
+    
+    int tid = threadIdx.x;
+    __shared__ cmplx like1[NUM_THREADS_PREP];
+    __shared__ cmplx like2[NUM_THREADS_PREP];
+    cmplx A0, A1, B0, B1, rb, ra;
+    cmplx r1, r0, r1Conj, tempLike1, tempLike2;
+    double fb, fa, midFreq, mag_r0;
+    int const_i;
+    for (int bin_i = blockIdx.x; bin_i < numBinAll; bin_i += gridDim.x)
+    {
+        like1[tid] = 0.0;
+        like2[tid] = 0.0;
+
+        tempLike1 = 0.0;
+        tempLike2 = 0.0;
+
+        const_i = constants_index[bin_i];
+
+        // sum all channels and i
+        for (int chan_i = 0; chan_i < nChannels; chan_i += 1)
+        {
+            for (int i = threadIdx.x; i < length_f_rel - 1; i += blockDim.x)
+            {
+                A0 = dataConstants[((0 * num_constants + const_i) * nChannels + chan_i) * (length_f_rel) + i + 1];
+                A1 = dataConstants[((1 * num_constants + const_i) * nChannels + chan_i) * (length_f_rel) + i + 1];
+                B0 = dataConstants[((2 * num_constants + const_i) * nChannels + chan_i) * (length_f_rel) + i + 1];
+                B1 = dataConstants[((3 * num_constants + const_i) * nChannels + chan_i) * (length_f_rel) + i + 1];
+
+                fb = dataFreqsIn[const_i * length_f_rel + i + 1];
+                fa = dataFreqsIn[const_i * length_f_rel + i];
+                rb = templateChannels[(bin_i * nChannels + chan_i) * length_f_rel + i + 1];
+                ra = templateChannels[(bin_i * nChannels + chan_i) * length_f_rel + i];
+                // perform the actual computation
+
+                // slope
+                r1 = (rb - ra)/(fb - fa);
+                midFreq = (fb + fa)/2.0;
+
+                // intercept
+                r0 = rb - r1 * (fb - midFreq);
+
+                r1Conj = gcmplx::conj(r1);
+
+                tempLike1 += A0 * gcmplx::conj(r0) + A1 * r1Conj;
+
+                mag_r0 = gcmplx::abs(r0);
+                tempLike2 += B0 * (mag_r0 * mag_r0) + 2. * B1 * gcmplx::real(r0 * r1Conj);
+                
+                // if (bin_i == 0) printf("%d %d %d %e %e %e %e %e %e %e %e\n", bin_i, chan_i, i, tempLike1.real(), tempLike2.real(), r1.real(), r0.real(), fb, fa, A0.real(), B0.real());
+                
+            }  
+        }
+
+        like1[tid] = tempLike1;
+        like2[tid] = tempLike2;
+
+        __syncthreads();
+        for (unsigned int s = 1; s < blockDim.x; s *= 2)
+        {
+            if (tid % (2 * s) == 0)
+            {
+                like1[tid] += like1[tid + s];
+                like2[tid] += like2[tid + s];
+            }
+            __syncthreads();
+        }
+        __syncthreads();
+
+        if (threadIdx.x == 0)
+        {
+            likeOut1[bin_i] = like1[0];
+            likeOut2[bin_i] = like2[0];
+        }
+        __syncthreads();
+    }
+}
+
+
+void new_hdyn_like_wrap(cmplx* likeOut1, cmplx* likeOut2,
+                    cmplx* templateChannels, cmplx* dataConstants,
+                    double* dataFreqsIn, int *constants_index,
+                    int numBinAll, int length_f_rel, int nChannels, int num_constants)
+{
+    new_hdyn_like<<<numBinAll, NUM_THREADS_PREP>>>(likeOut1, likeOut2,
+                    templateChannels, dataConstants,
+                    dataFreqsIn, constants_index,
+                    numBinAll, length_f_rel, nChannels, num_constants);
+    cudaDeviceSynchronize();
+    gpuErrchk(cudaGetLastError());
+}
+
+#endif // __CUDACC__
 // special way to run this. Need to separate CPU and GPU for this one
 CUDA_KERNEL
 void hdynLikelihood(cmplx* likeOut1, cmplx* likeOut2,

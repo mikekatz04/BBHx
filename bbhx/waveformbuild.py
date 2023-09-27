@@ -672,6 +672,7 @@ class BBHWaveformFD:
         *waveform_args,
         data_index=None,
         noise_index=None,
+        phase_marginalize=False,
         **waveform_kwargs,
     ):
 
@@ -768,6 +769,11 @@ class BBHWaveformFD:
         if not hasattr(self, "d_d"):
             raise ValueError("Need to set d_d term for self.")
         
+        if self.use_gpu:
+            gpu = xp.cuda.runtime.getDevice()
+        else:
+            raise NotImplementedErrors
+
         # fill templates
         self.interp_like(
             d_h, 
@@ -793,10 +799,16 @@ class BBHWaveformFD:
             data_index, 
             num_data_sets, 
             noise_index, 
-            num_noise_sets
+            num_noise_sets,
+            gpu
         )
 
+        if phase_marginalize:
+            self.non_marg_d_h = d_h.copy()
+            d_h = xp.abs(d_h)
+
         like = -1/2 * (self.d_d + h_h - 2 * d_h)
+
         self.h_h = h_h
         self.d_h = d_h
         # return templates in the right shape

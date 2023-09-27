@@ -180,14 +180,18 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
 }
 
 
-void InterpTDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, double df, int* data_index_all, int num_data_sets, int* noise_index_all, int num_noise_sets)
+void InterpTDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* dataFreqs, double* freqs, double* propArrays, double* c1, double* c2, double* c3, double* t_start_in, double* t_end_in, int length, int data_length, int numBinAll, int numModes, long* inds_ptrs, int* inds_start, int* ind_lengths, double df, int* data_index_all, int num_data_sets, int* noise_index_all, int num_noise_sets, int gpu)
 {
+
+    gpuErrchk(cudaSetDevice(gpu));
+
     cudaStream_t streams[numBinAll];
 
     // interpolation is done in streams on GPU
     // #pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
+
         // get all information ready included casting pointers properly
         int length_bin_i = ind_lengths[bin_i];
         int ind_start = inds_start[bin_i];
@@ -203,7 +207,7 @@ void InterpTDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, dou
 
         //#ifdef __CUDACC__
         dim3 gridDim(nblocks3, 1);
-        cudaStreamCreate(&streams[bin_i]);
+        gpuErrchk(cudaStreamCreate(&streams[bin_i]));
         TDILike<<<gridDim, NUM_THREADS_BUILD, 0, streams[bin_i]>>>(d_h, h_h, dataChannels, psd, dataFreqs, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, length_bin_i, bin_i, df, data_index, num_data_sets, noise_index, num_noise_sets);
         //#else
         //TDILike(templateChannels, dataFreqs, freqs, propArrays, c1, c2, c3, length, data_length, numBinAll, numModes, t_start, t_end, inds, ind_start, /length_bin_i, bin_i);
@@ -215,11 +219,11 @@ void InterpTDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, dou
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
 
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int bin_i = 0; bin_i < numBinAll; bin_i += 1)
     {
         //destroy the streams
-        cudaStreamDestroy(streams[bin_i]);
+        gpuErrchk(cudaStreamDestroy(streams[bin_i]));
     }
     //#endif
 }

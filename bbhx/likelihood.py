@@ -1003,7 +1003,10 @@ class NewHeterodynedLikelihood:
 
         self.data_constants = self.xp.array([self.A0_out, self.A1_out, self.B0_out, self.B1_out]).flatten()
         # reference quantities
-        self.reference_d_d = self.xp.sum(4 * (self.d.conj() * self.d) / self.psd * df, axis=(1, 2)).real
+
+        self.reference_d_d = self.xp.zeros(self.d.shape[0], dtype=xp.float64)
+        for i in range(self.d.shape[0]):
+            self.reference_d_d[i] = self.xp.sum(4 * (self.d[i].conj() * self.d[i]) / self.psd[i] * df).real
 
         self.reference_h_h = self.xp.sum(self.B0_out, axis=(1, 2)).real
 
@@ -1024,7 +1027,7 @@ class NewHeterodynedLikelihood:
         # prepare kwargs for online evaluation
         template_gen_kwargs["squeeze"] = False
         self.template_gen_kwargs = template_gen_kwargs
-
+        self.xp.get_default_memory_pool().free_all_blocks()
         return
 
     def get_ll(

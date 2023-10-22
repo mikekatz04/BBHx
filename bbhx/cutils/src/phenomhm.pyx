@@ -54,7 +54,8 @@ cdef extern from "PhenomHM.hh":
         double *c1_dm_all,
         double *c2_dm_all,
         double *c3_dm_all,
-        double dspin
+        double dspin,
+        int num_segs
     );
 
 @pointer_adjust
@@ -166,7 +167,8 @@ def get_phenomd_ringdown_frequencies(
     c1_dm_all,
     c2_dm_all,
     c3_dm_all,
-    dspin
+    dspin,
+    num_segs
 ):
 
     cdef size_t fringdown_in = fringdown
@@ -202,6 +204,7 @@ def get_phenomd_ringdown_frequencies(
         <double*> c1_dm_all_in,
         <double*> c2_dm_all_in,
         <double*> c3_dm_all_in,
-        dspin
+        dspin,
+        num_segs
     )
     return

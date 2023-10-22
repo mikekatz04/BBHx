@@ -348,7 +348,8 @@ void get_phenomd_ringdown_frequencies_wrap(
     double *c1_dm_all,
     double *c2_dm_all,
     double *c3_dm_all,
-    double dspin
+    double dspin,
+    int num_segs
 );
 
 void waveform_amp_phase(

@@ -409,7 +409,24 @@ class PhenomHMAmpPhase:
             self.c2_dm,
             self.c3_dm,
             dspin,
+            len(self.y_rd)
         )
+
+        # deal with issues in frequency determination
+        fix_ring_f = self.fringdown < 0.0
+
+        if self.xp.any(fix_ring_f):
+            self.fringdown[fix_ring_f] = 1e-2
+            self.fdamp[fix_ring_f] = 1e-2
+            distance[fix_ring_f] *= 1e20
+
+            print(
+                "FIX FIX FIX FREQ:", 
+                m1[fix_ring_f],
+                m2[fix_ring_f],
+                chi1z[fix_ring_f],
+                chi2z[fix_ring_f]
+            )
 
         if not self.run_phenomd:
             # move phenomD results to the last entry in the array after

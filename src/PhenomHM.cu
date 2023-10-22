@@ -1968,7 +1968,7 @@ void get_phenomhm_ringdown_frequencies(
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     #endif
     for (int i = start; i < numModes; i += increment)
     {
@@ -2082,7 +2082,8 @@ void get_phenomd_ringdown_frequencies(
     double *c1_dm_all,
     double *c2_dm_all,
     double *c3_dm_all,
-    double dspin
+    double dspin,
+    int num_segs
 )
 {
 
@@ -2095,7 +2096,7 @@ void get_phenomd_ringdown_frequencies(
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
@@ -2105,6 +2106,13 @@ void get_phenomd_ringdown_frequencies(
         double lowest_spin = -1.0;
         int ind = int( (finspin - lowest_spin) / dspin ); // -1.0 min spin
         double x_spl = dspin * ind + lowest_spin;
+
+        if ((ind < 0) || (ind >= num_segs))
+        {
+            fringdown[binNum] = -1.0;
+            fdamp[binNum] = -1.0;
+            continue;
+        }
 
         double y_rd = y_rd_all[ind];
         double c1_rd = c1_rd_all[ind];
@@ -2146,7 +2154,8 @@ void get_phenomd_ringdown_frequencies_wrap(
     double *c1_dm_all,
     double *c2_dm_all,
     double *c3_dm_all,
-    double dspin
+    double dspin,
+    int num_segs
 )
 {
     int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM -1)/NUM_THREADS_PHENOMHM);
@@ -2174,7 +2183,8 @@ void get_phenomd_ringdown_frequencies_wrap(
         c1_dm_all,
         c2_dm_all,
         c3_dm_all,
-        dspin
+        dspin,
+        num_segs
     );
 
     cudaDeviceSynchronize();
@@ -2197,7 +2207,8 @@ void get_phenomd_ringdown_frequencies_wrap(
         c1_dm_all,
         c2_dm_all,
         c3_dm_all,
-        dspin
+        dspin,
+        num_segs
     );
     #endif
 
@@ -2744,7 +2755,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     #endif
     for (int i = start; i < length; i += increment)
     {
@@ -2787,7 +2798,7 @@ void calculate_modes_phenomd(int binNum, double* amps, double* phases, double* t
          #else
          start = 0;
          increment = 1;
-         #pragma omp parallel for
+         // #pragma omp parallel for
          #endif
          for (int i = start; i < length; i += increment)
          {
@@ -3116,7 +3127,7 @@ void IMRPhenomHMCore(
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     #endif
     for (int i = start; i < numModes; i += increment)
     {
@@ -3132,7 +3143,7 @@ void IMRPhenomHMCore(
     #else
     start = 0;
     increment = 1;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     #endif
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
@@ -3152,7 +3163,7 @@ void IMRPhenomHMCore(
         #else
         start2 = 0;
         increment2 = 1;
-        #pragma omp parallel for
+        // #pragma omp parallel for
         #endif
         for (int i = start2; i < numModes + add; i += increment2)
         {

@@ -259,6 +259,9 @@ if run_cuda_install:
     pyResponse_ext = Extension(
         "pyResponse", sources=["src/Response.cu", "src/response.pyx"], **gpu_extension
     )
+    pyNewSetup_ext = Extension(
+        "pyNewSetup", sources=["src/tmp_adjust.cu", "src/tmp_adjust_wrap.pyx"], **gpu_extension
+    )
     pyInterpolate_ext = Extension(
         "pyInterpolate",
         sources=["src/Interpolate.cu", "src/interpolate.pyx"],
@@ -419,8 +422,10 @@ if run_cuda_install:
         pyLikelihood_ext,
         pyGPUOnlyWaveformBuild_ext,
         pyGPULikelihood_ext,
+        pyNewSetup_ext
     ] + extensions
 
+extensions = [pyNewSetup_ext]
 setup(
     name="bbhx",
     author="Michael Katz",

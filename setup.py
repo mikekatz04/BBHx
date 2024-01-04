@@ -213,7 +213,7 @@ else:
 if run_cuda_install:
 
     gpu_extension = dict(
-        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp", "lapacke"],
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
         library_dirs=[CUDA["lib64"]] + gsl_lib,
         runtime_library_dirs=[CUDA["lib64"]],
         language="c++",

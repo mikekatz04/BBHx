@@ -213,7 +213,7 @@ else:
 if run_cuda_install:
 
     gpu_extension = dict(
-        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp", "lapacke"],
         library_dirs=[CUDA["lib64"]] + gsl_lib,
         runtime_library_dirs=[CUDA["lib64"]],
         language="c++",
@@ -289,7 +289,7 @@ for fp in fps_pyx:
     shutil.copy("src/" + fp + ".pyx", "src/" + fp + "_cpu.pyx")
 
 cpu_extension = dict(
-    libraries=["gsl", "gslcblas", "gomp", "lapack"],
+    libraries=["gsl", "gslcblas", "gomp", "lapack", "lapacke"],
     language="c++",
     # This syntax is specific to this build system
     # we're only going to use certain compiler args with nvcc

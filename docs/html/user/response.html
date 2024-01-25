@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LISA Response Models &mdash; bbhx  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -114,12 +116,12 @@
            <div itemprop="articleBody">
              
   <section id="lisa-response-models">
-<h1>LISA Response Models<a class="headerlink" href="#lisa-response-models" title="Permalink to this heading"></a></h1>
+<h1>LISA Response Models<a class="headerlink" href="#lisa-response-models" title="Link to this heading"></a></h1>
 <section id="fast-frequency-domain-response">
-<h2>Fast Frequency Domain Response<a class="headerlink" href="#fast-frequency-domain-response" title="Permalink to this heading"></a></h2>
+<h2>Fast Frequency Domain Response<a class="headerlink" href="#fast-frequency-domain-response" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.response.fastfdresponse.</span></span><span class="sig-name descname"><span class="pre">LISATDIResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TDItag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'AET'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_fresnel_stencil</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.response.fastfdresponse.</span></span><span class="sig-name descname"><span class="pre">LISATDIResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TDItag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'AET'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_fresnel_stencil</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Evaluate the fast frequency domain response function</p>
 <p>The response function is the fast frequency domain response function
@@ -143,7 +145,7 @@ in for future compatibility. (Default: <code class="docutils literal notranslate
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.allowable_modes">
-<span class="sig-name descname"><span class="pre">allowable_modes</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.allowable_modes" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">allowable_modes</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.allowable_modes" title="Link to this definition"></a></dt>
 <dd><p>Allowed list of mode tuple pairs <code class="docutils literal notranslate"><span class="pre">(l,m)</span></code> for
 the chosen waveform model.</p>
 <dl class="field-list simple">
@@ -155,7 +157,7 @@ the chosen waveform model.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.ells_default">
-<span class="sig-name descname"><span class="pre">ells_default</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.ells_default" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ells_default</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.ells_default" title="Link to this definition"></a></dt>
 <dd><p>Default values for the <code class="docutils literal notranslate"><span class="pre">l</span></code> index of the harmonic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -166,7 +168,7 @@ the chosen waveform model.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.mms_default">
-<span class="sig-name descname"><span class="pre">mms_default</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.mms_default" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">mms_default</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.mms_default" title="Link to this definition"></a></dt>
 <dd><p>Default values for the <code class="docutils literal notranslate"><span class="pre">m</span></code> index of the harmonic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -177,7 +179,7 @@ the chosen waveform model.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.includes_amps">
-<span class="sig-name descname"><span class="pre">includes_amps</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.includes_amps" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">includes_amps</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.includes_amps" title="Link to this definition"></a></dt>
 <dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the <code class="docutils literal notranslate"><span class="pre">out_buffer</span></code> contains the first
 entry for amplitudes.</p>
 <dl class="field-list simple">
@@ -189,7 +191,7 @@ entry for amplitudes.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.order_fresnel_stencil">
-<span class="sig-name descname"><span class="pre">order_fresnel_stencil</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.order_fresnel_stencil" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">order_fresnel_stencil</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.order_fresnel_stencil" title="Link to this definition"></a></dt>
 <dd><p>Order of the Fresnel stencil in the
 response. Currently, anything above 0 is not implemented. This is left
 in for future compatibility.</p>
@@ -202,7 +204,7 @@ in for future compatibility.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.response_gen">
-<span class="sig-name descname"><span class="pre">response_gen</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.response_gen" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">response_gen</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.response_gen" title="Link to this definition"></a></dt>
 <dd><p>Respones generator in C/C++.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -213,7 +215,7 @@ in for future compatibility.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.TDItag">
-<span class="sig-name descname"><span class="pre">TDItag</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.TDItag" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">TDItag</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.TDItag" title="Link to this definition"></a></dt>
 <dd><p>TDI channels to generate. Either <code class="docutils literal notranslate"><span class="pre">&quot;XYZ&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;AET&quot;</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -224,7 +226,7 @@ in for future compatibility.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.use_gpu">
-<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.use_gpu" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.use_gpu" title="Link to this definition"></a></dt>
 <dd><p>A GPU is being used if <code class="docutils literal notranslate"><span class="pre">use_gpu==True</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -235,7 +237,7 @@ in for future compatibility.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.xp">
-<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.xp" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.xp" title="Link to this definition"></a></dt>
 <dd><p>Either <code class="docutils literal notranslate"><span class="pre">numpy</span></code> or <code class="docutils literal notranslate"><span class="pre">cupy</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -246,13 +248,13 @@ in for future compatibility.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.citation">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.citation" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.citation" title="Link to this definition"></a></dt>
 <dd><p>Return citations for this class</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.transferL1">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">transferL1</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL1" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">transferL1</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL1" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -263,7 +265,7 @@ in for future compatibility.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.transferL2">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">transferL2</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL2" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">transferL2</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL2" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -274,7 +276,7 @@ in for future compatibility.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.transferL3">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">transferL3</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL3" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">transferL3</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL3" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -285,7 +287,7 @@ in for future compatibility.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.phase">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">phase</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.phase" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">phase</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.phase" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -296,7 +298,7 @@ in for future compatibility.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.tf">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tf</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.tf" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tf</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.tf" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -307,7 +309,7 @@ in for future compatibility.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adjust_phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.__call__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adjust_phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.__call__" title="Link to this definition"></a></dt>
 <dd><p>Evaluate respones function</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GPU-Accelerated Black Hole Binary Waveforms (bbhx) &mdash; bbhx  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -85,9 +87,9 @@
            <div itemprop="articleBody">
              
   <section id="gpu-accelerated-black-hole-binary-waveforms-bbhx">
-<h1>GPU-Accelerated Black Hole Binary Waveforms (<code class="docutils literal notranslate"><span class="pre">bbhx</span></code>)<a class="headerlink" href="#gpu-accelerated-black-hole-binary-waveforms-bbhx" title="Permalink to this heading"></a></h1>
+<h1>GPU-Accelerated Black Hole Binary Waveforms (<code class="docutils literal notranslate"><span class="pre">bbhx</span></code>)<a class="headerlink" href="#gpu-accelerated-black-hole-binary-waveforms-bbhx" title="Link to this heading"></a></h1>
 <section id="designed-for-lisa-data-analysis-of-massive-black-hole-binaries">
-<h2>Designed for LISA data analysis of Massive Black Hole Binaries.<a class="headerlink" href="#designed-for-lisa-data-analysis-of-massive-black-hole-binaries" title="Permalink to this heading"></a></h2>
+<h2>Designed for LISA data analysis of Massive Black Hole Binaries.<a class="headerlink" href="#designed-for-lisa-data-analysis-of-massive-black-hole-binaries" title="Link to this heading"></a></h2>
 <p>This package implements GPU/CPU agnostic Massive Black Hole Binary
 waveforms and likelihood computations from
 <a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a> and
@@ -108,7 +110,7 @@ cite any consituent parts used like the response function or waveforms.
 See the <code class="docutils literal notranslate"><span class="pre">citation</span></code> attribute for each class or docstring for functions
 for more information.</p>
 <section id="getting-started">
-<h3>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h3>
+<h3>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h3>
 <p>Below is a quick set of instructions to get you started with <code class="docutils literal notranslate"><span class="pre">bbhx</span></code>.</p>
 <ol class="arabic simple" start="0">
 <li><p><a class="reference external" href="https://docs.anaconda.com/anaconda/install/">Install Anaconda</a> if
@@ -149,7 +151,7 @@ notebook</a>.</p>
 </section>
 </section>
 <section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h2>
 <p>To install this software for CPU usage, you need <a class="reference external" href="https://www.gnu.org/software/gsl/">gsl
 &gt;2.0</a> , <a class="reference external" href="https://www.netlib.org/lapack/lug/node14.html">lapack
 (3.6.1)</a>, Python &gt;3.4,
@@ -171,7 +173,7 @@ CUDA toolkit version. Make sure the nvcc binary is on <code class="docutils lite
 it as the <code class="docutils literal notranslate"><span class="pre">CUDAHOME</span></code> environment variable.</p>
 </section>
 <section id="installing">
-<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this heading"></a></h2>
+<h2>Installing<a class="headerlink" href="#installing" title="Link to this heading"></a></h2>
 <ol class="arabic simple" start="0">
 <li><p><a class="reference external" href="https://docs.anaconda.com/anaconda/install/">Install Anaconda</a> if
 you do not have it.</p></li>
@@ -241,44 +243,44 @@ line options when installing. You can also remove usage of OpenMP.</p>
 </pre></div>
 </div>
 <section id="running-the-tests">
-<h3>Running the Tests<a class="headerlink" href="#running-the-tests" title="Permalink to this heading"></a></h3>
+<h3>Running the Tests<a class="headerlink" href="#running-the-tests" title="Link to this heading"></a></h3>
 <p>In the main directory of the package run in the terminal:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">unittest</span> <span class="n">discover</span>
 </pre></div>
 </div>
 </section>
 <section id="contributing">
-<h3>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading"></a></h3>
+<h3>Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h3>
 <p>Please read <a class="reference external" href="CONTRIBUTING.md">CONTRIBUTING.md</a> for details on our
 code of conduct, and the process for submitting pull requests to us.</p>
 </section>
 <section id="versioning">
-<h3>Versioning<a class="headerlink" href="#versioning" title="Permalink to this heading"></a></h3>
+<h3>Versioning<a class="headerlink" href="#versioning" title="Link to this heading"></a></h3>
 <p>We use <a class="reference external" href="http://semver.org/">SemVer</a> for versioning. For the versions
 available, see the <a class="reference external" href="https://github.com/mikekatz04/BBHx/tags">tags on this
 repository</a>.</p>
-<p>Current Version: 1.0.5</p>
+<p>Current Version: 1.0.6</p>
 </section>
 <section id="authors">
-<h3>Authors<a class="headerlink" href="#authors" title="Permalink to this heading"></a></h3>
+<h3>Authors<a class="headerlink" href="#authors" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Michael Katz</strong></p></li>
 </ul>
 </section>
 </section>
 <section id="contibutors">
-<h2>Contibutors<a class="headerlink" href="#contibutors" title="Permalink to this heading"></a></h2>
+<h2>Contibutors<a class="headerlink" href="#contibutors" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Sylvain Marsat</p></li>
 <li><p>John Baker</p></li>
 </ul>
 <section id="license">
-<h3>License<a class="headerlink" href="#license" title="Permalink to this heading"></a></h3>
+<h3>License<a class="headerlink" href="#license" title="Link to this heading"></a></h3>
 <p>This project is licensed under the GNU License - see the
 <a class="reference external" href="LICENSE.md">LICENSE.md</a> file for details.</p>
 </section>
 <section id="acknowledgments">
-<h3>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Permalink to this heading"></a></h3>
+<h3>Acknowledgments<a class="headerlink" href="#acknowledgments" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>This research was also supported in part through the computational
 resources and staff contributions provided for the Quest/Grail high

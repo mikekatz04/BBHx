@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>bbhx Tutorial &mdash; bbhx  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -114,7 +116,7 @@
            <div itemprop="articleBody">
              
   <section id="bbhx-Tutorial">
-<h1><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial<a class="headerlink" href="#bbhx-Tutorial" title="Permalink to this heading"></a></h1>
+<h1><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial<a class="headerlink" href="#bbhx-Tutorial" title="Link to this heading"></a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> is a software package that produces black hole binary waveforms. It focuses on LISA and provides the proper LISA response function for MBHBs (<a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a>, <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>). <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> also provides fast likelihood functions. The package is GPU-accelerated for fast analysis.</p>
 <p>If you use this software please cite <a class="reference external" href="https://arxiv.org/abs/2005.01827">arXiv:2005.01827</a>, <a class="reference external" href="https://arxiv.org/abs/2111.01064">arXiv:2111.01064</a>, and the associated <a class="reference external" href="https://zenodo.org/record/5730688#.YaFvRkJKhTY">Zenodo page</a> Please also cite any consituent parts used like the response function or waveforms. See the <code class="docutils literal notranslate"><span class="pre">citation</span></code> attribute for each class or docstring for functions for more information.</p>
 <div class="nbinput docutils container">
@@ -152,7 +154,7 @@ No CuPy
 </div>
 </section>
 <section id="GPU-accelerated-MBHB-waveforms-for-LISA">
-<h1>GPU accelerated MBHB waveforms for LISA<a class="headerlink" href="#GPU-accelerated-MBHB-waveforms-for-LISA" title="Permalink to this heading"></a></h1>
+<h1>GPU accelerated MBHB waveforms for LISA<a class="headerlink" href="#GPU-accelerated-MBHB-waveforms-for-LISA" title="Link to this heading"></a></h1>
 <p>First, we will detail how to produce full waveforms for MBHBs to be detected by LISA. We will look at how to generate PhenomHM waveforms (<a class="reference external" href="https://arxiv.org/abs/1708.00404">arXiv:1708.00404</a>, <a class="reference external" href="https://arxiv.org/abs/1508.07253">arXiv:1508.07253</a>, <a class="reference external" href="https://arxiv.org/abs/1508.07250">arXiv:1508.07250</a>) put through the LISA response function ((<a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a>, <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>). More information on generating the
 waveforms and response separately can be found below.</p>
 <div class="nbinput nblast docutils container">
@@ -221,7 +223,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <section id="Adjust-inspiral-timing-with-shift_t_limits=False">
-<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=False" title="Permalink to this heading"></a></h2>
+<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=False" title="Link to this heading"></a></h2>
 <p>You can move the end of the signal further back in time from merger by changing <code class="docutils literal notranslate"><span class="pre">t_obs_end</span></code>. You can also adjust how far back in time the waveform starts with <code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code>. With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
 <p>Chopping the signal can make the signal look like it abrubtly loses power. This is the case because different harmonic modes turn off abruptly at different frequencies.</p>
 <div class="nbinput docutils container">
@@ -266,7 +268,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Adjust-inspiral-timing-with-shift_t_limits=True">
-<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=True" title="Permalink to this heading"></a></h2>
+<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=True" title="Link to this heading"></a></h2>
 <p>With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
 <p>Based on the <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> of the system we are examining, with <code class="docutils literal notranslate"><span class="pre">t_obs_start=0</span></code>, <code class="docutils literal notranslate"><span class="pre">t_obs_end=0.75</span></code> years, <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, only an early low-power portion of the signal is observed.</p>
 <div class="nbinput docutils container">
@@ -311,7 +313,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Controlling-interpolation">
-<h2>Controlling interpolation<a class="headerlink" href="#Controlling-interpolation" title="Permalink to this heading"></a></h2>
+<h2>Controlling interpolation<a class="headerlink" href="#Controlling-interpolation" title="Link to this heading"></a></h2>
 <p>The user has the option to control the interpolation by providing the number of frequencies to interpolate over with the <code class="docutils literal notranslate"><span class="pre">length</span></code> keyword argument.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -364,7 +366,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 </div>
 </div>
 <section id="Check-number-of-points-that-is-good-for-interpolation:">
-<h3>Check number of points that is good for interpolation:<a class="headerlink" href="#Check-number-of-points-that-is-good-for-interpolation:" title="Permalink to this heading"></a></h3>
+<h3>Check number of points that is good for interpolation:<a class="headerlink" href="#Check-number-of-points-that-is-good-for-interpolation:" title="Link to this heading"></a></h3>
 <p>Generally, most reasonable numbers of points are fine for interpolation. We usually put 1024 to be conservative. It can slightly affect the waveform timing.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
@@ -418,7 +420,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 </section>
 </section>
 <section id="Generate-waveforms-without-interpolation">
-<h2>Generate waveforms without interpolation<a class="headerlink" href="#Generate-waveforms-without-interpolation" title="Permalink to this heading"></a></h2>
+<h2>Generate waveforms without interpolation<a class="headerlink" href="#Generate-waveforms-without-interpolation" title="Link to this heading"></a></h2>
 <p>When interpolating, frequencies between <span class="math notranslate nohighlight">\(10^{-4}/M\)</span> and <span class="math notranslate nohighlight">\(0.6/M\)</span> are evaluated. Therefore, when not interpolating, the evaluation of the waveform will stretch outside these limits if frequencies outside those limits are given by the user.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">compress=True</span></code>, all modes will be directly combined.</p>
 <div class="nbinput docutils container">
@@ -495,7 +497,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Adjusting-mode-content">
-<h2>Adjusting mode content<a class="headerlink" href="#Adjusting-mode-content" title="Permalink to this heading"></a></h2>
+<h2>Adjusting mode content<a class="headerlink" href="#Adjusting-mode-content" title="Link to this heading"></a></h2>
 <p>You can adjust the mode content with the <code class="docutils literal notranslate"><span class="pre">modes</span></code> keyword argument. You will receive an error if the requested mode indices <span class="math notranslate nohighlight">\((l,m)\)</span> are not available for the given waveform model chosen.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
@@ -536,7 +538,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="All-of-these-functions-can-take-arrays-for-parameters">
-<h2>All of these functions can take arrays for parameters<a class="headerlink" href="#All-of-these-functions-can-take-arrays-for-parameters" title="Permalink to this heading"></a></h2>
+<h2>All of these functions can take arrays for parameters<a class="headerlink" href="#All-of-these-functions-can-take-arrays-for-parameters" title="Link to this heading"></a></h2>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
@@ -591,7 +593,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="The-fill-keyword-argument">
-<h2>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument<a class="headerlink" href="#The-fill-keyword-argument" title="Permalink to this heading"></a></h2>
+<h2>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument<a class="headerlink" href="#The-fill-keyword-argument" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument allows the user to fill the data stream as in the first example above. However, it can give two other returns. (It is only available when <code class="docutils literal notranslate"><span class="pre">direct=False</span></code>.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">fill=False</span></code>, it will return special information used in the fast likelihood function. This includes templates as shortened arrays (only the values where <span class="math notranslate nohighlight">\(\tilde{h}(f)\)</span> is non-zero), the information on which frequency each array starts at and its length.</p>
 <div class="nbinput docutils container">
@@ -697,7 +699,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </section>
 </section>
 <section id="Generating-PhenomHM-waveforms">
-<h1>Generating PhenomHM waveforms<a class="headerlink" href="#Generating-PhenomHM-waveforms" title="Permalink to this heading"></a></h1>
+<h1>Generating PhenomHM waveforms<a class="headerlink" href="#Generating-PhenomHM-waveforms" title="Link to this heading"></a></h1>
 <p>Now we will create PhenomHM waveforms in the source frame, but scaled for the distance.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
@@ -772,7 +774,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </section>
 <section id="Fast-FD-Response">
-<h1>Fast FD Response<a class="headerlink" href="#Fast-FD-Response" title="Permalink to this heading"></a></h1>
+<h1>Fast FD Response<a class="headerlink" href="#Fast-FD-Response" title="Link to this heading"></a></h1>
 <p>A large amount of the Fast FD Response codes were provided by Sylvain Marsat, so thank you to him! Detailed information on the response can be found in <a class="reference external" href="https://arxiv.org/abs/1806.10734">arXiv:1806.10734</a> and <a class="reference external" href="https://arxiv.org/abs/2003.00357">arXiv:2003.00357</a>. The response works by applying an effective transfer function, <span class="math notranslate nohighlight">\(\mathcal{T}(f, t(f))\)</span>, to the waveform to get the TDI channels:</p>
 <div class="math notranslate nohighlight">
 \[\tilde{h}^{AET}(f) = \mathcal{T}(f, t(f))\tilde{h}^\text{SSB}(f),\]</div>
@@ -982,7 +984,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 </section>
 <section id="Computing-the-Likelihood">
-<h1>Computing the Likelihood<a class="headerlink" href="#Computing-the-Likelihood" title="Permalink to this heading"></a></h1>
+<h1>Computing the Likelihood<a class="headerlink" href="#Computing-the-Likelihood" title="Link to this heading"></a></h1>
 <p>The gravitational-wave likelihood, <span class="math notranslate nohighlight">\(\mathcal{L}\)</span>, is given by</p>
 <div class="math notranslate nohighlight">
 \[\log{\mathcal{L}}\propto -\frac{1}{2}\langle d-h|d-h\rangle = -\frac{1}{2}\left( \langle d|d\rangle + \langle h|h\rangle - 2\langle d|h\rangle \right),\]</div>
@@ -991,7 +993,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 \[\langle a|b\rangle = 4\text{Re}\int_0^\infty\frac{\tilde{a}(f)^*\tilde{b}(f)}{S_n(f)}df,\]</div>
 <p>where <span class="math notranslate nohighlight">\(S_n(f)\)</span> is the one-sided Power Spectral Density in the noise.</p>
 <section id="Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data">
-<h2>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Permalink to this heading"></a></h2>
+<h2>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Link to this heading"></a></h2>
 <p>One option in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> for computing the likelihood is a direct Likeihood computation: <code class="docutils literal notranslate"><span class="pre">bbhx.likelihood.Likelihood</span></code>. You will need <code class="docutils literal notranslate"><span class="pre">lisatools</span></code> if you want to compute the sensitivity curves. Otherwise, put in your own sensitivity functions or np.ones to get it to work.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
@@ -1133,7 +1135,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 </section>
 <section id="Heterodyned-Likelihoods">
-<h2>Heterodyned Likelihoods<a class="headerlink" href="#Heterodyned-Likelihoods" title="Permalink to this heading"></a></h2>
+<h2>Heterodyned Likelihoods<a class="headerlink" href="#Heterodyned-Likelihoods" title="Link to this heading"></a></h2>
 <p>Heterodyned Likelihoods are also available. See <a class="reference external" href="https://arxiv.org/abs/2109.02728">arXiv:2109.02728</a> for details on Heterodyning in general. We specifically implement the method used in <a class="reference external" href="https://arxiv.org/abs/1806.08792">arXiv:1806.08792</a>. The practical reason for using a Heterodyned Likelihood method is the computation can be performed along a sparse array of frequencies, rather than a dense array comming from a Fourier transform.</p>
 <p>It is reasonably accurate with higher modes and produces the same posteriors as the full Likelihood. It uses a direct sum of modes prior to residual computation. It gets more accurate as modes are removed.</p>
 <div class="nbinput docutils container">
@@ -1185,14 +1187,14 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </section>
 </section>
 <section id="Utility-functions">
-<h1>Utility functions<a class="headerlink" href="#Utility-functions" title="Permalink to this heading"></a></h1>
+<h1>Utility functions<a class="headerlink" href="#Utility-functions" title="Link to this heading"></a></h1>
 <p>There are some utility functions in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> than can be very useful.</p>
 <section id="Transformation-functions">
-<h2>Transformation functions<a class="headerlink" href="#Transformation-functions" title="Permalink to this heading"></a></h2>
+<h2>Transformation functions<a class="headerlink" href="#Transformation-functions" title="Link to this heading"></a></h2>
 <p>When sampling on MBHBs, it can be useful to sample in the LISA constellation reference frame where the posterior modes in the sky have a generally predictable structure. In the LISA constellation referenence frame, the sky localization for a source generally has 8 sky modes: 4 longitudinal and 2 latitudinal. Longitudinal modes involve <span class="math notranslate nohighlight">\(\lambda + (0, 1, 2, 3)\times\pi/2\)</span> and <span class="math notranslate nohighlight">\(\psi + (0, 1, 2, 3)\times\pi/2\)</span>, where <span class="math notranslate nohighlight">\(\lambda\)</span> is the ecliptic longitude and <span class="math notranslate nohighlight">\(\psi\)</span> is the
 polarization angle. The latitudinal modes are at <span class="math notranslate nohighlight">\((\pm\beta, \pm\cos{\iota}, \pm\cos{\psi})\)</span> where <span class="math notranslate nohighlight">\(\beta\)</span> and <span class="math notranslate nohighlight">\(\iota\)</span> are the ecliptic latitude and inclination, respectively.</p>
 <section id="Transformations-to-and-from-LISA-and-SSB-reference-frames">
-<h3>Transformations to and from LISA and SSB reference frames<a class="headerlink" href="#Transformations-to-and-from-LISA-and-SSB-reference-frames" title="Permalink to this heading"></a></h3>
+<h3>Transformations to and from LISA and SSB reference frames<a class="headerlink" href="#Transformations-to-and-from-LISA-and-SSB-reference-frames" title="Link to this heading"></a></h3>
 <p>First, we will examine transformations of coordinates to and from the LISA and SSB reference frames. All of these functions can take arrays as input as well.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
@@ -1237,7 +1239,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 </div>
 </section>
 <section id="Posterior-sky-mode-transformation">
-<h3>Posterior sky-mode transformation<a class="headerlink" href="#Posterior-sky-mode-transformation" title="Permalink to this heading"></a></h3>
+<h3>Posterior sky-mode transformation<a class="headerlink" href="#Posterior-sky-mode-transformation" title="Link to this heading"></a></h3>
 <p>You can transform your sky mode parameters to all longitudinal modes. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 4 times as long as the input array.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
@@ -1379,7 +1381,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </section>
 </section>
 <section id="Citations">
-<h1>Citations<a class="headerlink" href="#Citations" title="Permalink to this heading"></a></h1>
+<h1>Citations<a class="headerlink" href="#Citations" title="Link to this heading"></a></h1>
 <p>You can access citations for each class with the <code class="docutils literal notranslate"><span class="pre">citation</span></code> property.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:

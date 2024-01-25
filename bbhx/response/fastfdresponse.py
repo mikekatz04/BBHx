@@ -20,13 +20,13 @@ import numpy as np
 
 try:
     import cupy as xp
-    from pyResponse import LISA_response_wrap as LISA_response_wrap_gpu
+    from pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU response available.")
     import numpy as xp
 
-from pyResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
+from pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
 from bbhx.utils.constants import *
 
 
@@ -69,7 +69,6 @@ class LISATDIResponse:
     """
 
     def __init__(self, TDItag="AET", order_fresnel_stencil=0, use_gpu=False):
-
         # gpu setup
         if use_gpu:
             self.response_gen = LISA_response_wrap_gpu
@@ -106,7 +105,7 @@ class LISATDIResponse:
 
     def _sanity_check_modes(self, ells, mms):
         """Make sure modes are allowed"""
-        for (ell, mm) in zip(ells, mms):
+        for ell, mm in zip(ells, mms):
             if (ell, mm) not in self.allowable_modes:
                 raise ValueError(
                     "Requested mode [(l,m) = ({},{})] is not available. Allowable modes include {}".format(

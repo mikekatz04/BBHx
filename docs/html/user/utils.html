@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Utility Functions &mdash; bbhx  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -139,12 +141,12 @@
            <div itemprop="articleBody">
              
   <section id="utility-functions">
-<h1>Utility Functions<a class="headerlink" href="#utility-functions" title="Permalink to this heading"></a></h1>
+<h1>Utility Functions<a class="headerlink" href="#utility-functions" title="Link to this heading"></a></h1>
 <section id="interpolation-utilities">
-<h2>Interpolation Utilities<a class="headerlink" href="#interpolation-utilities" title="Permalink to this heading"></a></h2>
+<h2>Interpolation Utilities<a class="headerlink" href="#interpolation-utilities" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.waveformbuild.</span></span><span class="sig-name descname"><span class="pre">TemplateInterpFD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.waveformbuild.</span></span><span class="sig-name descname"><span class="pre">TemplateInterpFD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Interpolate frequency domain template.</p>
 <p>This class wraps <a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="bbhx.utils.interpolate.CubicSplineInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a> so
@@ -157,7 +159,7 @@ that it fits into this specific waveform production method.</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.data_length">
-<span class="sig-name descname"><span class="pre">data_length</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.data_length" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">data_length</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.data_length" title="Link to this definition"></a></dt>
 <dd><p>Length of data. This class interpolates to this length.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -168,7 +170,7 @@ that it fits into this specific waveform production method.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.length">
-<span class="sig-name descname"><span class="pre">length</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.length" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">length</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.length" title="Link to this definition"></a></dt>
 <dd><p>Length of original frequency array.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -179,7 +181,7 @@ that it fits into this specific waveform production method.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.num_bin_all">
-<span class="sig-name descname"><span class="pre">num_bin_all</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_bin_all" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">num_bin_all</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_bin_all" title="Link to this definition"></a></dt>
 <dd><p>Number of binaries.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -190,7 +192,7 @@ that it fits into this specific waveform production method.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.num_channels">
-<span class="sig-name descname"><span class="pre">num_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_channels" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">num_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_channels" title="Link to this definition"></a></dt>
 <dd><p>Number of channels in data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -201,7 +203,7 @@ that it fits into this specific waveform production method.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.num_modes">
-<span class="sig-name descname"><span class="pre">num_modes</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_modes" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">num_modes</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.num_modes" title="Link to this definition"></a></dt>
 <dd><p>Number of harmonics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -212,7 +214,7 @@ that it fits into this specific waveform production method.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_carrier">
-<span class="sig-name descname"><span class="pre">template_carrier</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_carrier" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">template_carrier</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_carrier" title="Link to this definition"></a></dt>
 <dd><p>Carrier for output templates.
 Templates can be accessed through the <code class="docutils literal notranslate"><span class="pre">template_channels</span></code> property.</p>
 <dl class="field-list simple">
@@ -224,7 +226,7 @@ Templates can be accessed through the <code class="docutils literal notranslate"
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_gen">
-<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Link to this definition"></a></dt>
 <dd><p>C/CUDA wrapped function for computing interpolated
 waveforms.</p>
 <dl class="field-list simple">
@@ -236,7 +238,7 @@ waveforms.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.use_gpu">
-<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu" title="Link to this definition"></a></dt>
 <dd><p>If True, using GPU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -247,7 +249,7 @@ waveforms.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.xp">
-<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.xp" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.xp" title="Link to this definition"></a></dt>
 <dd><p>Either numpy or cupy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -258,19 +260,19 @@ waveforms.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_channels">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">template_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">template_channels</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels" title="Link to this definition"></a></dt>
 <dd><p>Get template channels from <code class="docutils literal notranslate"><span class="pre">self.template_carrier</span></code>.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.citation">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.citation" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">citation</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.citation" title="Link to this definition"></a></dt>
 <dd><p>citations for this class</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.__call__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_freqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_channels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.__call__" title="Link to this definition"></a></dt>
 <dd><p>Generate frequency domain template via interpolation.</p>
 <p>This class takes all waveform and response information as sparse arrays
 and then interpolates to the proper frequency array.</p>
@@ -306,7 +308,7 @@ class: <a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineIn
 
 <dl class="py class">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">CubicSplineInterpolant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_all</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_interp_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bin_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.utils.interpolate.</span></span><span class="sig-name descname"><span class="pre">CubicSplineInterpolant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_all</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_interp_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bin_all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>GPU-accelerated Multiple Cubic Splines</p>
 <p>This class produces multiple cubic splines. The cubic splines are produced
@@ -344,37 +346,37 @@ False.</p></li>
 </dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">x_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">x_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped" title="Link to this definition"></a></dt>
 <dd><p>Get shaped x array.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">y_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">y_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped" title="Link to this definition"></a></dt>
 <dd><p>Get shaped y array.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c1_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c1_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped" title="Link to this definition"></a></dt>
 <dd><p>Get shaped c1 array.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c2_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c2_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c2_shaped" title="Link to this definition"></a></dt>
 <dd><p>Get shaped c2 array.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c3_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">c3_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c3_shaped" title="Link to this definition"></a></dt>
 <dd><p>Get shaped c3 array.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.container">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">container</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.container" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">container</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.container" title="Link to this definition"></a></dt>
 <dd><p>Container for easy transit of interpolation information.</p>
 </dd></dl>
 
@@ -382,11 +384,11 @@ False.</p></li>
 
 </section>
 <section id="useful-transformation-functions">
-<h2>Useful Transformation Functions<a class="headerlink" href="#useful-transformation-functions" title="Permalink to this heading"></a></h2>
+<h2>Useful Transformation Functions<a class="headerlink" href="#useful-transformation-functions" title="Link to this heading"></a></h2>
 <p>When working with MBHBs, there are some useful transformations. Mainly to and from the LISA and SSB reference frames. Also, transforming to other probable sky locations during sampling.</p>
-<span class="target" id="module-bbhx.utils.transform"></span><dl class="py function">
+<dl class="py function" id="module-bbhx.utils.transform">
 <dt class="sig sig-object py" id="bbhx.utils.transform.mT_q">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">mT_q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.mT_q" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">mT_q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.mT_q" title="Link to this definition"></a></dt>
 <dd><p>Convert total mass and mass ratio to m1,m2</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -406,7 +408,7 @@ False.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.modpi">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">modpi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.modpi" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">modpi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.modpi" title="Link to this definition"></a></dt>
 <dd><p>Modulus with pi as the period</p>
 <p>Originally from Sylvain Marsat.</p>
 <dl class="field-list simple">
@@ -424,7 +426,7 @@ False.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.mod2pi">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">mod2pi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.mod2pi" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">mod2pi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phase</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.mod2pi" title="Link to this definition"></a></dt>
 <dd><p>Modulus with 2pi as the period</p>
 <p>Originally from Sylvain Marsat.</p>
 <dl class="field-list simple">
@@ -442,7 +444,7 @@ False.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.tSSBfromLframe">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">tSSBfromLframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.tSSBfromLframe" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">tSSBfromLframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.tSSBfromLframe" title="Link to this definition"></a></dt>
 <dd><p>Get time in SSB frame from time in LISA-frame.</p>
 <p>Compute Solar System Barycenter time <code class="docutils literal notranslate"><span class="pre">tSSB</span></code> from retarded time at the center
 of the LISA constellation <code class="docutils literal notranslate"><span class="pre">tL</span></code>. <strong>NOTE</strong>: depends on the sky position
@@ -471,7 +473,7 @@ SSB reference frame.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.tLfromSSBframe">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">tLfromSSBframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.tLfromSSBframe" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">tLfromSSBframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.tLfromSSBframe" title="Link to this definition"></a></dt>
 <dd><p>Get time in LISA frame from time in SSB-frame.</p>
 <p>Compute retarded time at the center of the LISA constellation frame <code class="docutils literal notranslate"><span class="pre">tL</span></code> from
 the time in the SSB frame <code class="docutils literal notranslate"><span class="pre">tSSB</span></code>. <strong>NOTE</strong>: depends on the sky position
@@ -500,7 +502,7 @@ SSB reference frame.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.LISA_to_SSB">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">LISA_to_SSB</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psiL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.LISA_to_SSB" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">LISA_to_SSB</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psiL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.LISA_to_SSB" title="Link to this definition"></a></dt>
 <dd><p>Convert sky/orientation from LISA frame to SSB frame.</p>
 <p>Convert the sky and orientation parameters from the center of the LISA
 constellation reference to the SSB reference frame.</p>
@@ -531,7 +533,7 @@ LISA reference frame.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.SSB_to_LISA">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">SSB_to_LISA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psiSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.SSB_to_LISA" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">SSB_to_LISA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betaSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psiSSB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.SSB_to_LISA" title="Link to this definition"></a></dt>
 <dd><p>Convert sky/orientation from SSB frame to LISA frame.</p>
 <p>Convert the sky and orientation parameters from the SSB reference frame to the center of the LISA
 constellation reference frame.</p>
@@ -563,7 +565,7 @@ SSB reference frame.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.transform.mbh_sky_mode_transform">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">mbh_sky_mode_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ind_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cos_i</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.mbh_sky_mode_transform" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.transform.</span></span><span class="sig-name descname"><span class="pre">mbh_sky_mode_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ind_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cos_i</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.transform.mbh_sky_mode_transform" title="Link to this definition"></a></dt>
 <dd><p>Sky-mode transformation in the LISA reference frame</p>
 <p>In the LISA constellation referenence frame, the sky localization for a
 source generally has 8 sky modes: 4 longitudinal and 2 latitudinal.
@@ -625,7 +627,7 @@ if <code class="docutils literal notranslate"><span class="pre">kind==&quot;both
 
 </section>
 <section id="constants">
-<h2>Constants<a class="headerlink" href="#constants" title="Permalink to this heading"></a></h2>
+<h2>Constants<a class="headerlink" href="#constants" title="Link to this heading"></a></h2>
 <p>The module <code class="code docutils literal notranslate"><span class="pre">bbhx.utils.constants</span></code> houses the constants used throughout the package.</p>
 <p>Constants list:</p>
 <blockquote>
@@ -663,19 +665,19 @@ if <code class="docutils literal notranslate"><span class="pre">kind==&quot;both
 </div></blockquote>
 </section>
 <section id="module-bbhx.utils.citations">
-<span id="citation-module"></span><h2>Citation Module<a class="headerlink" href="#module-bbhx.utils.citations" title="Permalink to this heading"></a></h2>
+<span id="citation-module"></span><h2>Citation Module<a class="headerlink" href="#module-bbhx.utils.citations" title="Link to this heading"></a></h2>
 <p><code class="code docutils literal notranslate"><span class="pre">bbhx.utils.citations</span></code>:</p>
 <p>This module is used to collect citations for all modules in the package. This
 module is then imported to add citations to module classes using their <code class="code docutils literal notranslate"><span class="pre">citation</span></code>
 attribute.</p>
 </section>
 <section id="module-bbhx.utils.utility">
-<span id="cython-gpu-cpu-agnostic-tools"></span><h2>Cython GPU/CPU Agnostic Tools<a class="headerlink" href="#module-bbhx.utils.utility" title="Permalink to this heading"></a></h2>
+<span id="cython-gpu-cpu-agnostic-tools"></span><h2>Cython GPU/CPU Agnostic Tools<a class="headerlink" href="#module-bbhx.utils.utility" title="Link to this heading"></a></h2>
 <p><code class="code docutils literal notranslate"><span class="pre">bbhx.utils.utility</span></code>:</p>
 <p>This module contains tools used in the Cython CPU/GPU Agnostic framework.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.utility.wrapper">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.utility.</span></span><span class="sig-name descname"><span class="pre">wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.utility.wrapper" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.utility.</span></span><span class="sig-name descname"><span class="pre">wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.utility.wrapper" title="Link to this definition"></a></dt>
 <dd><p>Function to convert array and C/C++ class arguments to ptrs</p>
 <p>This function checks the object type. If it is a cupy or numpy array,
 it will determine its pointer by calling the proper attributes. If you design
@@ -708,7 +710,7 @@ for examples.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="bbhx.utils.utility.pointer_adjust">
-<span class="sig-prename descclassname"><span class="pre">bbhx.utils.utility.</span></span><span class="sig-name descname"><span class="pre">pointer_adjust</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.utility.pointer_adjust" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">bbhx.utils.utility.</span></span><span class="sig-name descname"><span class="pre">pointer_adjust</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.utils.utility.pointer_adjust" title="Link to this definition"></a></dt>
 <dd><p>Decorator function for cupy/numpy agnostic cython</p>
 <p>This decorator applies <code class="xref py py-func docutils literal notranslate"><span class="pre">few.utils.utility.wrapper()</span></code> to functions
 via the decorator construction.</p>

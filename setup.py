@@ -211,7 +211,6 @@ else:
 
 # if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:
-
     gpu_extension = dict(
         libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
         library_dirs=[CUDA["lib64"]] + gsl_lib,
@@ -253,8 +252,8 @@ if run_cuda_install:
     pyPhenomHM_ext = Extension(
         "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
     )
-    pyResponse_ext = Extension(
-        "pyResponse", sources=["src/Response.cu", "src/response.pyx"], **gpu_extension
+    pyFDResponse_ext = Extension(
+        "pyFDResponse", sources=["src/Response.cu", "src/response.pyx"], **gpu_extension
     )
     pyInterpolate_ext = Extension(
         "pyInterpolate",
@@ -295,7 +294,9 @@ cpu_extension = dict(
     # we're only going to use certain compiler args with nvcc
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
-    extra_compile_args={"gcc": ["-std=c++11", "-fopenmp"],},  # '-g'],
+    extra_compile_args={
+        "gcc": ["-std=c++11", "-fopenmp"],
+    },  # '-g'],
     include_dirs=[numpy_include, "include"],
 )
 
@@ -304,8 +305,8 @@ pyPhenomHM_cpu_ext = Extension(
     sources=["src/PhenomHM.cpp", "src/phenomhm_cpu.pyx"],
     **cpu_extension,
 )
-pyResponse_cpu_ext = Extension(
-    "pyResponse_cpu",
+pyFDResponse_cpu_ext = Extension(
+    "pyFDResponse_cpu",
     sources=["src/Response.cpp", "src/response_cpu.pyx"],
     **cpu_extension,
 )
@@ -382,13 +383,13 @@ with open(fp_out_name, "w") as fp_out:
                             fp_out.write(string_out)
                             fp_out2.write(f"\t* {string_out}")
 
-                        except (ValueError) as e:
+                        except ValueError as e:
                             continue
 
 
 extensions = [
     pyPhenomHM_cpu_ext,
-    pyResponse_cpu_ext,
+    pyFDResponse_cpu_ext,
     pyInterpolate_cpu_ext,
     pyWaveformBuild_cpu_ext,
     pyLikelihood_cpu_ext,
@@ -397,7 +398,7 @@ extensions = [
 if run_cuda_install:
     extensions = [
         pyPhenomHM_ext,
-        pyResponse_ext,
+        pyFDResponse_ext,
         pyInterpolate_ext,
         pyWaveformBuild_ext,
         pyLikelihood_ext,
@@ -406,7 +407,7 @@ if run_cuda_install:
 # setup version file
 with open("README.md", "r") as fh:
     lines = fh.readlines()
-    
+
 for line in lines:
     if line.startswith("Current Version"):
         version_string = line.split("Current Version: ")[1].split("\n")[0]

@@ -215,7 +215,11 @@ class WaveformTest(unittest.TestCase):
 
         # initialize Likelihood
         like = Likelihood(
-            wave_gen, data_freqs, data_channels, psd, use_gpu=gpu_available,
+            wave_gen,
+            data_freqs,
+            data_channels,
+            psd,
+            use_gpu=gpu_available,
         )
 
         # get params
@@ -301,7 +305,11 @@ class WaveformTest(unittest.TestCase):
 
         # initialize Likelihood
         like = Likelihood(
-            wave_gen, data_freqs, data_channels, psd, use_gpu=gpu_available,
+            wave_gen,
+            data_freqs,
+            data_channels,
+            psd,
+            use_gpu=gpu_available,
         )
 
         # get params

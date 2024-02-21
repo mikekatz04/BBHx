@@ -29,6 +29,8 @@ except (ImportError, ModuleNotFoundError) as e:
 from pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
 from bbhx.utils.constants import *
 
+from lisatools.detector import EqualArmlengthOrbits, Orbits
+
 
 class LISATDIResponse:
     """Evaluate the fast frequency domain response function
@@ -68,7 +70,13 @@ class LISATDIResponse:
 
     """
 
-    def __init__(self, TDItag="AET", order_fresnel_stencil=0, use_gpu=False):
+    def __init__(
+        self,
+        TDItag="AET",
+        orbits: Orbits = None,
+        order_fresnel_stencil=0,
+        use_gpu=False,
+    ):
         # gpu setup
         if use_gpu:
             self.response_gen = LISA_response_wrap_gpu
@@ -97,6 +105,24 @@ class LISATDIResponse:
         self.ells_default = self.xp.array([2, 3, 4, 2, 3, 4], dtype=self.xp.int32)
 
         self.mms_default = self.xp.array([2, 3, 4, 1, 2, 3], dtype=self.xp.int32)
+
+        self.orbits = orbits
+
+    @property
+    def orbits(self) -> Orbits:
+        return self._orbits
+
+    @orbits.setter
+    def orbits(self, orbits: Orbits) -> None:
+        if orbits is None:
+            self._orbits = EqualArmlengthOrbits()
+        elif not isinstance(orbits, Orbits):
+            raise ValueError(
+                "Input orbits must be of type Orbits (from LISA Analysis Tools)."
+            )
+        else:
+            self._orbits = orbits
+        self._orbits.configure(linear_interp_setup=True)
 
     @property
     def citation(self):
@@ -416,6 +442,7 @@ class LISATDIResponse:
             length,
             num_bin_all,
             includes_amps,
+            self.orbits,
         )
 
         # adjust input phase arrays in-place

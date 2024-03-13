@@ -190,7 +190,7 @@ waveforms and response separately can be found below.</p>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -207,7 +207,7 @@ waveforms and response separately can be found below.</p>
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -227,7 +227,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>You can move the end of the signal further back in time from merger by changing <code class="docutils literal notranslate"><span class="pre">t_obs_end</span></code>. You can also adjust how far back in time the waveform starts with <code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code>. With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
 <p>Chopping the signal can make the signal look like it abrubtly loses power. This is the case because different harmonic modes turn off abruptly at different frequencies.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># start at one month</span>
@@ -251,7 +251,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -272,7 +272,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
 <p>Based on the <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> of the system we are examining, with <code class="docutils literal notranslate"><span class="pre">t_obs_start=0</span></code>, <code class="docutils literal notranslate"><span class="pre">t_obs_end=0.75</span></code> years, <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, only an early low-power portion of the signal is observed.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># start at the beginning of observation</span>
@@ -296,7 +296,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -316,7 +316,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <h2>Controlling interpolation<a class="headerlink" href="#Controlling-interpolation" title="Link to this heading"></a></h2>
 <p>The user has the option to control the interpolation by providing the number of frequencies to interpolate over with the <code class="docutils literal notranslate"><span class="pre">length</span></code> keyword argument.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># number of points is too small</span>
@@ -350,7 +350,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -369,7 +369,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 <h3>Check number of points that is good for interpolation:<a class="headerlink" href="#Check-number-of-points-that-is-good-for-interpolation:" title="Link to this heading"></a></h3>
 <p>Generally, most reasonable numbers of points are fine for interpolation. We usually put 1024 to be conservative. It can slightly affect the waveform timing.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># compute directly first (see below)</span>
@@ -402,7 +402,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -424,7 +424,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 <p>When interpolating, frequencies between <span class="math notranslate nohighlight">\(10^{-4}/M\)</span> and <span class="math notranslate nohighlight">\(0.6/M\)</span> are evaluated. Therefore, when not interpolating, the evaluation of the waveform will stretch outside these limits if frequencies outside those limits are given by the user.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">compress=True</span></code>, all modes will be directly combined.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -442,7 +442,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -459,7 +459,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <p>With <code class="docutils literal notranslate"><span class="pre">compress=False</span></code>, it will keep the modes separate.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -480,7 +480,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -500,7 +500,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <h2>Adjusting mode content<a class="headerlink" href="#Adjusting-mode-content" title="Link to this heading"></a></h2>
 <p>You can adjust the mode content with the <code class="docutils literal notranslate"><span class="pre">modes</span></code> keyword argument. You will receive an error if the requested mode indices <span class="math notranslate nohighlight">\((l,m)\)</span> are not available for the given waveform model chosen.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -521,7 +521,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -540,7 +540,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <section id="All-of-these-functions-can-take-arrays-for-parameters">
 <h2>All of these functions can take arrays for parameters<a class="headerlink" href="#All-of-these-functions-can-take-arrays-for-parameters" title="Link to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># set parameters</span>
@@ -576,7 +576,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -597,7 +597,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument allows the user to fill the data stream as in the first example above. However, it can give two other returns. (It is only available when <code class="docutils literal notranslate"><span class="pre">direct=False</span></code>.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">fill=False</span></code>, it will return special information used in the fast likelihood function. This includes templates as shortened arrays (only the values where <span class="math notranslate nohighlight">\(\tilde{h}(f)\)</span> is non-zero), the information on which frequency each array starts at and its length.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">templates</span><span class="p">,</span> <span class="n">start_inds</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -647,7 +647,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -664,7 +664,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <p>The binaries can also be combined into one data stream with <code class="docutils literal notranslate"><span class="pre">fill=True</span></code> and <code class="docutils literal notranslate"><span class="pre">combine=True</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">waves</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -681,7 +681,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -702,7 +702,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <h1>Generating PhenomHM waveforms<a class="headerlink" href="#Generating-PhenomHM-waveforms" title="Link to this heading"></a></h1>
 <p>Now we will create PhenomHM waveforms in the source frame, but scaled for the distance.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">phenomhm</span> <span class="o">=</span> <span class="n">PhenomHMAmpPhase</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">run_phenomd</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -710,7 +710,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f_ref</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># let phenom codes set f_ref -&gt; fmax = max(f^2A(f))</span>
@@ -744,7 +744,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <p>Plot Amplitudes</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mode</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">modes</span><span class="p">):</span>
@@ -757,12 +757,12 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7ffe90dcbc90&gt;
+&lt;matplotlib.legend.Legend at 0x14bf02cf0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -782,7 +782,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>The response function operates directly on information coming from the base waveform generation in PhenomHM when you run <code class="docutils literal notranslate"><span class="pre">BBHWaveformFD</span></code>. To run the response separately you need to provide a phase and tf vector. The phase is adjusted inside the response code. If you do not want that to happen, you can add the keyword argument <code class="docutils literal notranslate"><span class="pre">adjust_phase=False</span></code>. If you are just running the response function to use it itself and not using to adjust phase, you can just put in zeros for the phase, it will not
 affect the computation. All parameters for the response are in the SSB frame. This function can take 1D arrays for the parameters as well. In this case, you need <code class="docutils literal notranslate"><span class="pre">freqs.shape=(num_bin_all,</span> <span class="pre">length)</span></code>, <code class="docutils literal notranslate"><span class="pre">phases.shape=tf.shape=(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code> with <code class="docutils literal notranslate"><span class="pre">num_bin_all</span></code> the total number of binaries, <code class="docutils literal notranslate"><span class="pre">num_modes</span></code> the number of harmonics, and <code class="docutils literal notranslate"><span class="pre">length</span></code> number of frequencies to evaluate per binary.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># use phase/tf information from last waveform run</span>
@@ -827,7 +827,7 @@ affect the computation. All parameters for the response are in the SSB frame. Th
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -843,7 +843,7 @@ Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># use phase/tf information from last waveform run</span>
@@ -895,7 +895,7 @@ Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -912,7 +912,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <p>If building a waveform, you can also put a larger buffer object directly into the response code. This larger buffer object would be carrying amplitudes, phases, and tf from the source-frame waveform generator in a flattened 1D array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_bin_all</span> <span class="o">=</span> <span class="mi">10</span>
@@ -996,7 +996,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <h2>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Link to this heading"></a></h2>
 <p>One option in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> for computing the likelihood is a direct Likeihood computation: <code class="docutils literal notranslate"><span class="pre">bbhx.likelihood.Likelihood</span></code>. You will need <code class="docutils literal notranslate"><span class="pre">lisatools</span></code> if you want to compute the sensitivity curves. Otherwise, put in your own sensitivity functions or np.ones to get it to work.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">######## generate data</span>
@@ -1030,9 +1030,9 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
                           <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
 <span class="c1">######## get noise information (need lisatools)</span>
-<span class="n">PSD_A</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_AE&quot;</span><span class="p">)</span>
-<span class="n">PSD_E</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_AE&quot;</span><span class="p">)</span>
-<span class="n">PSD_T</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_T&quot;</span><span class="p">)</span>
+<span class="n">PSD_A</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;A1TDISens&quot;</span><span class="p">)</span>
+<span class="n">PSD_E</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;E1TDISens&quot;</span><span class="p">)</span>
+<span class="n">PSD_T</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;T1TDISens&quot;</span><span class="p">)</span>
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">data_freqs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">data_freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -1076,7 +1076,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <p>You can also phase marginalize. This occurs in the <span class="math notranslate nohighlight">\(\langle d|h \rangle\)</span> term in the Likelihood.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># get_ll and not __call__ to work with lisatools</span>
@@ -1105,7 +1105,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <p>You can also return the signal-to-noise ratio: <span class="math notranslate nohighlight">\(\langle d|h \rangle / \sqrt{\langle h|h \rangle}\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># get_ll and not __call__ to work with lisatools</span>
@@ -1139,7 +1139,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <p>Heterodyned Likelihoods are also available. See <a class="reference external" href="https://arxiv.org/abs/2109.02728">arXiv:2109.02728</a> for details on Heterodyning in general. We specifically implement the method used in <a class="reference external" href="https://arxiv.org/abs/1806.08792">arXiv:1806.08792</a>. The practical reason for using a Heterodyned Likelihood method is the computation can be performed along a sparse array of frequencies, rather than a dense array comming from a Fourier transform.</p>
 <p>It is reasonably accurate with higher modes and produces the same posteriors as the full Likelihood. It uses a direct sum of modes prior to residual computation. It gets more accurate as modes are removed.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reference_index</span> <span class="o">=</span> <span class="n">ll</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
@@ -1197,7 +1197,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 <h3>Transformations to and from LISA and SSB reference frames<a class="headerlink" href="#Transformations-to-and-from-LISA-and-SSB-reference-frames" title="Link to this heading"></a></h3>
 <p>First, we will examine transformations of coordinates to and from the LISA and SSB reference frames. All of these functions can take arrays as input as well.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># start in the LISA frame</span>
@@ -1216,12 +1216,12 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-31557992.305078838 2.327701567520846 1.0933520437673627 2.3134690745168953
+31557992.305078838 2.3277015675208466 1.0933520437673625 2.3134690745168953
 </pre></div></div>
 </div>
 <p>From SSB to LISA:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tL</span><span class="p">,</span> <span class="n">lambdaL</span><span class="p">,</span> <span class="n">betaL</span><span class="p">,</span> <span class="n">psiL</span> <span class="o">=</span> <span class="n">SSB_to_LISA</span><span class="p">(</span><span class="n">tSSB</span><span class="p">,</span> <span class="n">lambdaSSB</span><span class="p">,</span> <span class="n">betaSSB</span><span class="p">,</span> <span class="n">psiSSB</span><span class="p">)</span>
@@ -1234,7 +1234,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-31558149.7635457 0.49999999999998856 0.8000000000000037 0.2999999999999905
+31558149.7635457 0.4999999999999887 0.8000000000000038 0.29999999999999005
 </pre></div></div>
 </div>
 </section>
@@ -1242,7 +1242,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 <h3>Posterior sky-mode transformation<a class="headerlink" href="#Posterior-sky-mode-transformation" title="Link to this heading"></a></h3>
 <p>You can transform your sky mode parameters to all longitudinal modes. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 4 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">inc</span> <span class="o">=</span> <span class="mf">0.4</span>
@@ -1277,7 +1277,7 @@ end params: [[0.4        3.42       0.6        1.        ]
 </div>
 <p>Or latitudinal transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 2 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1299,7 +1299,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </div>
 <p>Or both transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 8 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1327,7 +1327,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </div>
 <p>You can also do these transformations in-place. When you do this, the input binaries will be assigned to new sky modes based on the transformation. Every 2, 4, or 8 binaries will be given the same sky mode transformation if latitudinal, longitudinal, or both transformations are applied, respectively.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">in_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">]),</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
@@ -1384,7 +1384,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 <h1>Citations<a class="headerlink" href="#Citations" title="Link to this heading"></a></h1>
 <p>You can access citations for each class with the <code class="docutils literal notranslate"><span class="pre">citation</span></code> property.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">wave_gen</span><span class="o">.</span><span class="n">citation</span><span class="p">)</span>

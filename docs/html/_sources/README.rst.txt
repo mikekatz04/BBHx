@@ -191,7 +191,7 @@ We use `SemVer <http://semver.org/>`__ for versioning. For the versions
 available, see the `tags on this
 repository <https://github.com/mikekatz04/BBHx/tags>`__.
 
-Current Version: 1.0.7
+Current Version: 1.0.8
 
 Authors
 -------

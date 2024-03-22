@@ -253,7 +253,9 @@ class HeterodynedLikelihood:
     `arXiv:2109.02728 <https://arxiv.org/abs/2109.02728>`_. We implement the method
     as described in `arXiv:1806.08792 <https://arxiv.org/abs/1806.08792>`_.
 
-    This class also works with higher order harmonic modes. TODO: fill in.
+    This class also works with higher order harmonic modes, but it has not been tested extensivally.
+    It only does a direct summation over the modes rather than heterodyning per mode. So, it is less reliable,
+    but in practice it produces a solid posterior distribution.
 
     This class has GPU capabilities.
 

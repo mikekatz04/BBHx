@@ -343,6 +343,6 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.0.8",
+    version="1.0.9",
     python_requires=">=3.12",
 )

@@ -205,9 +205,9 @@ class WaveformTest(unittest.TestCase):
             data_freqs_cpu = data_freqs
 
         ######## get noise information (need lisatools)
-        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
-        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
-        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_T")
+        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="A1TDISens")
+        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="E1TDISens")
+        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="T1TDISens")
 
         df = data_freqs[1] - data_freqs[0]
 
@@ -215,7 +215,11 @@ class WaveformTest(unittest.TestCase):
 
         # initialize Likelihood
         like = Likelihood(
-            wave_gen, data_freqs, data_channels, psd, use_gpu=gpu_available,
+            wave_gen,
+            data_freqs,
+            data_channels,
+            psd,
+            use_gpu=gpu_available,
         )
 
         # get params
@@ -291,9 +295,9 @@ class WaveformTest(unittest.TestCase):
             data_freqs_cpu = data_freqs
 
         ######## get noise information (need lisatools)
-        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
-        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_AE")
-        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="noisepsd_T")
+        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="A1TDISens")
+        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="E1TDISens")
+        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="T1TDISens")
 
         df = data_freqs[1] - data_freqs[0]
 
@@ -301,7 +305,11 @@ class WaveformTest(unittest.TestCase):
 
         # initialize Likelihood
         like = Likelihood(
-            wave_gen, data_freqs, data_channels, psd, use_gpu=gpu_available,
+            wave_gen,
+            data_freqs,
+            data_channels,
+            psd,
+            use_gpu=gpu_available,
         )
 
         # get params

@@ -221,7 +221,7 @@ if run_cuda_install:
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
         extra_compile_args={
-            "gcc": ["-std=c++11", "-fopenmp", "-D__USE_OMP__"],  # '-g'],
+            "gcc": ["-std=c++11", "-D__USE_OMP__"],  # '-g'],
             "nvcc": [
                 "-arch=sm_70",
                 "-gencode=arch=compute_50,code=sm_50",
@@ -237,8 +237,6 @@ if run_cuda_install:
                 "-c",
                 "--compiler-options",
                 "'-fPIC'",
-                "-Xcompiler",
-                "-fopenmp",
                 "-D__USE_OMP__",
                 # "-G",
                 # "-g",
@@ -281,7 +279,7 @@ cpu_extension = dict(
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
     extra_compile_args={
-        "gcc": ["-std=c++11", "-fopenmp"],
+        "gcc": ["-std=c++11"],
     },  # '-g'],
     include_dirs=[numpy_include, "include"],
 )
@@ -343,6 +341,6 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.0.9",
+    version="1.0.10",
     python_requires=">=3.12",
 )

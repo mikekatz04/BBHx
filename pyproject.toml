@@ -5,11 +5,11 @@ build-backend = 'setuptools.build_meta'
 
 [tool.poetry]
 name = "bbhx"
-version = "1.0.9"
-description = "A package for LISA Data Analysis"
+version = "1.0.10"
+description = "A package for BBH waveforms."
 license = "GPL"
 classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
-homepage = "https://github.com/mikekatz04/LISAanalysistools"
+homepage = "https://github.com/mikekatz04/BBHx"
 authors = ["Michael L. Katz"]
 readme = "README.md"
 

@@ -166,11 +166,11 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double *k, int respon
         factorcexp0 = gcmplx::exp(I * 2. * PI * f / C_SI * kp0); // I*2.*PI*f/C_SI * kp0
     else
         factorcexp0 = cmplx(1.0, 0.0);
-    double prefactor = PI * f * L_SI / C_SI;
+    double prefactor = PI * f * orbits->armlength / C_SI;
 
-    cmplx factorcexp12 = gcmplx::exp(I * prefactor * (1. + kp1Lp2L / L_SI)); // prefactor * (1.+kp1Lp2L/L_SI)
-    cmplx factorcexp23 = gcmplx::exp(I * prefactor * (1. + kp2Lp3L / L_SI)); // prefactor * (1.+kp2Lp3L/L_SI)
-    cmplx factorcexp31 = gcmplx::exp(I * prefactor * (1. + kp3Lp1L / L_SI)); // prefactor * (1.+kp3Lp1L/L_SI)
+    cmplx factorcexp12 = gcmplx::exp(I * prefactor * (1. + kp1Lp2L / orbits->armlength)); // prefactor * (1.+kp1Lp2L/orbits->armlength)
+    cmplx factorcexp23 = gcmplx::exp(I * prefactor * (1. + kp2Lp3L / orbits->armlength)); // prefactor * (1.+kp2Lp3L/orbits->armlength)
+    cmplx factorcexp31 = gcmplx::exp(I * prefactor * (1. + kp3Lp1L / orbits->armlength)); // prefactor * (1.+kp3Lp1L/orbits->armlength)
 
     cmplx factorsinc12 = d_sinc(prefactor * (1. - kn3));
     cmplx factorsinc21 = d_sinc(prefactor * (1. + kn3));
@@ -194,14 +194,14 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double *k, int respon
 }
 
 CUDA_CALLABLE_MEMBER
-d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, int rescaled)
+d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, int rescaled, Orbits *orbits)
 {
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
     d_transferL_holder transferL;
     cmplx factor, factorAE, factorT;
     cmplx I(0.0, 1.0);
-    double x = PI * f * L_SI / C_SI;
+    double x = PI * f * orbits->armlength / C_SI;
     cmplx z = gcmplx::exp(I * 2. * x);
     cmplx Xraw, Yraw, Zraw, Araw, Eraw, Traw;
     cmplx factor_convention, point5, c_one, c_two;
@@ -297,7 +297,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
     Tslr.G31 = Gslr.G31 * gcmplx::exp(m_I * phaseRdelay);
     Tslr.G13 = Gslr.G13 * gcmplx::exp(m_I * phaseRdelay);
 
-    d_transferL_holder transferL = d_TDICombinationFD(Tslr, f, TDItag, 0);
+    d_transferL_holder transferL = d_TDICombinationFD(Tslr, f, TDItag, 0, orbits);
     transferL.phaseRdelay = phaseRdelay;
     return transferL;
 }

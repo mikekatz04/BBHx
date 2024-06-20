@@ -29,39 +29,13 @@ for more information.
 Getting Started
 ---------------
 
-Below is a quick set of instructions to get you started with ``bbhx``.
-
-0) `Install Anaconda <https://docs.anaconda.com/anaconda/install/>`__ if
-   you do not have it.
-
-1) Create a virtual environment. **Note**: There is no available
-   ``conda`` compiler for Windows. If you want to install for Windows,
-   you will probably need to add libraries and include paths to the
-   ``setup.py`` file.
+To install with pip (for CPUs only currently):
 
 ::
 
-   conda create -n bbhx_env -c conda-forge gcc_linux-64 gxx_linux-64 gsl lapack=3.6.1 numpy scipy Cython jupyter ipython matplotlib python=3.9
-   conda activate bbhx_env
+   pip install bbhx
 
-::
-
-   If on MACOSX, substitute `gcc_linux-64` and `gxx_linus-64` with `clang_osx-64` and `clangxx_osx-64`.
-
-2) Clone the repository.
-
-::
-
-   git clone https://github.com/mikekatz04/BBHx.git
-   cd BBHx
-
-3) Run install.
-
-::
-
-   python setup.py install
-
-4) To import ``bbhx``:
+2) To import ``bbhx``:
 
 ::
 
@@ -96,6 +70,64 @@ it as the ``CUDAHOME`` environment variable.
 
 Installing
 ~~~~~~~~~~
+
+To install with pip (for CPUs only currently):
+
+::
+
+   pip install bbhx
+
+To install from source:
+
+0) `Install Anaconda <https://docs.anaconda.com/anaconda/install/>`__ if
+   you do not have it.
+
+1) Clone the repository.
+
+::
+
+   git clone https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms.git
+   cd FastEMRIWaveforms
+
+2) Installation is made easy through `install.sh <install.sh>`__. This
+   is a bash script that will create a conda environment, install bbhx,
+   run tests, and install any additional packages needed for sampling or
+   development. It will look for an ``nvcc`` binary, the ``CUDA_HOME``
+   variable, or the ``CUDAHOME`` variable. If it finds that information,
+   it will install for CUDA as well (including installing the proper
+   version of ``cupy``). **Note**: If you already have performed
+   installation and you are updating bbhx after a ``git pull``, then run
+   ``pip install .`` rather than the following command.
+
+::
+
+   bash install.sh
+
+Options for installation can be applied by running
+``bash install.sh key=value``. These can be found with
+``bash install.sh -h``:
+
+::
+
+   keyword argument options (given as key=value):
+     env_name:  Name of generated conda environment. Default is 'bbhx_env'.
+     install_type:  Type of install. 'basic', 'development', or 'sampling'. 
+         'development' adds packages needed for development and documentation.
+         'sampling' adds packages for sampling like eryn, lisatools, corner, chainconsumer.
+         Default is 'basic'. 
+     run_tests: Either true or false. Whether to run tests after install. Default is true.
+
+3) Load the environment (change “bbhx_env” to the correct environment
+   name is specified in previous step):
+
+::
+
+   conda activate bbhx_env
+
+Please contact the developers if the installation does not work.
+
+More Customized Install (legacy)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 0) `Install Anaconda <https://docs.anaconda.com/anaconda/install/>`__ if
    you do not have it.
@@ -191,7 +223,7 @@ We use `SemVer <http://semver.org/>`__ for versioning. For the versions
 available, see the `tags on this
 repository <https://github.com/mikekatz04/BBHx/tags>`__.
 
-Current Version: 1.0.6
+Current Version: 1.0.9
 
 Authors
 -------

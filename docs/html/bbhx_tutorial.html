@@ -762,7 +762,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x7ffe90dcbc90&gt;
+&lt;matplotlib.legend.Legend at 0x1477470e0&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1030,9 +1030,9 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
                           <span class="o">**</span><span class="n">waveform_kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
 <span class="c1">######## get noise information (need lisatools)</span>
-<span class="n">PSD_A</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_AE&quot;</span><span class="p">)</span>
-<span class="n">PSD_E</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_AE&quot;</span><span class="p">)</span>
-<span class="n">PSD_T</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;noisepsd_T&quot;</span><span class="p">)</span>
+<span class="n">PSD_A</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;A1TDISens&quot;</span><span class="p">)</span>
+<span class="n">PSD_E</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;E1TDISens&quot;</span><span class="p">)</span>
+<span class="n">PSD_T</span> <span class="o">=</span> <span class="n">get_sensitivity</span><span class="p">(</span><span class="n">data_freqs</span><span class="p">,</span> <span class="n">sens_fn</span><span class="o">=</span><span class="s2">&quot;T1TDISens&quot;</span><span class="p">)</span>
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">data_freqs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">data_freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -1216,7 +1216,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-31557992.305078838 2.327701567520846 1.0933520437673627 2.3134690745168953
+31557992.305078838 2.3277015675208466 1.0933520437673625 2.3134690745168953
 </pre></div></div>
 </div>
 <p>From SSB to LISA:</p>
@@ -1234,7 +1234,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-31558149.7635457 0.49999999999998856 0.8000000000000037 0.2999999999999905
+31558149.7635457 0.4999999999999887 0.8000000000000038 0.29999999999999005
 </pre></div></div>
 </div>
 </section>

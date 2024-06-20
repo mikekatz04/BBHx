@@ -221,7 +221,7 @@ if run_cuda_install:
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
         extra_compile_args={
-            "gcc": ["-std=c++11", "-fopenmp", "-D__USE_OMP__"],  # '-g'],
+            "gcc": ["-std=c++11", "-D__USE_OMP__"],  # '-g'],
             "nvcc": [
                 "-arch=sm_70",
                 "-gencode=arch=compute_50,code=sm_50",
@@ -237,8 +237,6 @@ if run_cuda_install:
                 "-c",
                 "--compiler-options",
                 "'-fPIC'",
-                "-Xcompiler",
-                "-fopenmp",
                 "-D__USE_OMP__",
                 # "-G",
                 # "-g",
@@ -272,30 +270,16 @@ if run_cuda_install:
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
-fps_cu_to_cpp = [
-    "PhenomHM",
-    "Response",
-    "Interpolate",
-    "WaveformBuild",
-    "Likelihood",
-]
-fps_pyx = ["phenomhm", "response", "interpolate", "waveformbuild", "likelihood"]
-
-for fp in fps_cu_to_cpp:
-    shutil.copy("src/" + fp + ".cu", "src/" + fp + ".cpp")
-
-for fp in fps_pyx:
-    shutil.copy("src/" + fp + ".pyx", "src/" + fp + "_cpu.pyx")
 
 cpu_extension = dict(
-    libraries=["gsl", "gslcblas", "gomp", "lapack"],
+    libraries=["gsl", "gslcblas", "gomp", "lapack", "lapacke"],
     language="c++",
     # This syntax is specific to this build system
     # we're only going to use certain compiler args with nvcc
     # and not with gcc the implementation of this trick is in
     # customize_compiler()
     extra_compile_args={
-        "gcc": ["-std=c++11", "-fopenmp"],
+        "gcc": ["-std=c++11"],
     },  # '-g'],
     include_dirs=[numpy_include, "include", "../LISAanalysistools/include"],
 )
@@ -333,63 +317,6 @@ pyLikelihood_cpu_ext = Extension(
     **cpu_extension,
 )
 
-initial_text_for_constants_file = """
-# Collection of citations for modules in bbhx package
-
-# Copyright (C) 2020 Michael L. Katz
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
-"""
-
-initial_text_for_constants_file2 = """
-
-Constants
-*******************************
-
-The module :code:`bbhx.utils.constants` houses the constants used throughout the package.
-
-Constants list:
-
-"""
-
-fp_out_name = "bbhx/utils/constants.py"
-fp_out_name2 = "docs/source/user/constants.rst"
-fp_in_name = "include/constants.h"
-
-# develop few.utils.constants.py
-with open(fp_out_name, "w") as fp_out:
-    with open(fp_out_name2, "w") as fp_out2:
-        fp_out.write(initial_text_for_constants_file)
-        fp_out2.write(initial_text_for_constants_file2)
-        with open(fp_in_name, "r") as fp_in:
-            lines = fp_in.readlines()
-            for line in lines:
-                if len(line.split()) == 3:
-                    if line.split()[0] == "#define":
-                        try:
-                            _ = float(line.split()[2])
-                            string_out = (
-                                line.split()[1] + " = " + line.split()[2] + "\n"
-                            )
-                            fp_out.write(string_out)
-                            fp_out2.write(f"\t* {string_out}")
-
-                        except ValueError as e:
-                            continue
-
 
 extensions = [
     pyPhenomHM_cpu_ext,
@@ -408,17 +335,6 @@ if run_cuda_install:
         pyLikelihood_ext,
     ] + extensions
 
-# setup version file
-with open("README.md", "r") as fh:
-    lines = fh.readlines()
-
-for line in lines:
-    if line.startswith("Current Version"):
-        version_string = line.split("Current Version: ")[1].split("\n")[0]
-
-with open("bbhx/_version.py", "w") as f:
-    f.write("__version__ = '{}'".format(version_string))
-
 setup(
     name="bbhx",
     author="Michael Katz",
@@ -429,12 +345,6 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version=version_string,
-    python_requires=">=3.6",
+    version="1.0.10",
+    python_requires=">=3.12",
 )
-
-for fp in fps_cu_to_cpp:
-    os.remove("src/" + fp + ".cpp")
-
-for fp in fps_pyx:
-    os.remove("src/" + fp + "_cpu.pyx")

@@ -8,3 +8,11 @@ Direct Likelihood Computation
     :members:
     :show-inheritance:
     :inherited-members:
+
+Heterodyned Likelihood Computation
+*************************************
+
+.. autoclass:: bbhx.likelihood.HeterodynedLikelihood
+    :members:
+    :show-inheritance:
+    :inherited-members:

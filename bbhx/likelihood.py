@@ -18,14 +18,14 @@
 import numpy as np
 
 try:
-    import cupy as xp
+    import cupy as cp
     from pyLikelihood import hdyn_wrap as hdyn_wrap_gpu
     from pyLikelihood import direct_like_wrap as direct_like_wrap_gpu
     from pyLikelihood import prep_hdyn as prep_hdyn_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
-    import numpy as xp
+    import numpy as cp
 
 from pyLikelihood_cpu import prep_hdyn as prep_hdyn_cpu
 from pyLikelihood_cpu import hdyn_wrap as hdyn_wrap_cpu
@@ -33,7 +33,7 @@ from pyLikelihood_cpu import direct_like_wrap as direct_like_wrap_cpu
 
 from bbhx.utils.constants import *
 
-from lisatools.sensitivity import get_sensitivity
+from lisatools.sensitivity import SensitivityMatrix, AET1SensitivityMatrix
 
 
 class Likelihood:
@@ -89,18 +89,15 @@ class Likelihood:
     """
 
     def __init__(
-        self, template_gen, data_freqs, data_channels, psd, use_gpu=False,
+        self,
+        template_gen,
+        data_freqs,
+        data_channels,
+        psd,
+        use_gpu=False,
     ):
 
         self.use_gpu = use_gpu
-
-        if use_gpu:
-            self.like_gen = direct_like_wrap_gpu
-            self.xp = xp
-
-        else:
-            self.like_gen = direct_like_wrap_cpu
-            self.xp = np
 
         # store required information
         self.data_freqs = data_freqs
@@ -137,6 +134,18 @@ class Likelihood:
         self.d_d = (
             4 * self.xp.sum((self.data_channels.conj() * self.data_channels)).real
         ).item()
+
+    @property
+    def like_gen(self):
+        """Likelihood for either GPU or CPU."""
+        like_gen = direct_like_wrap_gpu if self.use_gpu else direct_like_wrap_cpu
+        return like_gen
+
+    @property
+    def xp(self):
+        """Cupy or Numpy"""
+        xp = cp if self.use_gpu else np
+        return xp
 
     @property
     def citation(self):
@@ -244,7 +253,9 @@ class HeterodynedLikelihood:
     `arXiv:2109.02728 <https://arxiv.org/abs/2109.02728>`_. We implement the method
     as described in `arXiv:1806.08792 <https://arxiv.org/abs/1806.08792>`_.
 
-    This class also works with higher order harmonic modes. TODO: fill in.
+    This class also works with higher order harmonic modes, but it has not been tested extensivally.
+    It only does a direct summation over the modes rather than heterodyning per mode. So, it is less reliable,
+    but in practice it produces a solid posterior distribution.
 
     This class has GPU capabilities.
 
@@ -278,12 +289,8 @@ class HeterodynedLikelihood:
             waveform will be interpolated. If ``length`` and ``direct`` are not given,
             it will interpolate the signal with ``length=8096``.
             (Default: ``{}``)
-        noise_kwargs_AE (dict, optional): Keywords arguments for generating the
-            noise with ``noisepsd_AE`` (A & E Channel) option in the ``get_sensitivity`` function
-            from ``lisatools`` TODO: add link. (Default: ``{}``)
-        noise_kwargs_T (dict, optional): Keywords arguments for generating the
-            noise with ``noisepsd_T`` (T Channel) option in the ``get_sensitivity`` function
-            from ``lisatools`` TODO: add link. (Default: ``{}``)
+        sens_mat (SensitivityMatrix, optional): :class:`SensitivityMatrix` object representing the AET channels.
+            If ``None``, defaults to class:`AET1SensitivityMatrix`. (default: ``None``)
         use_gpu (bool, optional): If ``True``, use GPU.
 
     Attributes:
@@ -334,8 +341,7 @@ class HeterodynedLikelihood:
         length_f_het,
         template_gen_kwargs={},
         reference_gen_kwargs={},
-        noise_kwargs_AE={},
-        noise_kwargs_T={},
+        sens_mat=None,
         use_gpu=False,
     ):
 
@@ -347,21 +353,40 @@ class HeterodynedLikelihood:
 
         # direct based on GPU usage
         self.use_gpu = use_gpu
-        if use_gpu:
-            self.like_gen = hdyn_wrap_gpu
-            self.xp = xp
-        else:
-            self.like_gen = hdyn_wrap_cpu
-            self.xp = np
+
+        self.sens_mat = sens_mat
 
         # calculate all quantites related to the reference template
         self.init_heterodyne_info(
             reference_template_params,
             template_gen_kwargs=template_gen_kwargs,
             reference_gen_kwargs=reference_gen_kwargs,
-            noise_kwargs_AE=noise_kwargs_AE,
-            noise_kwargs_T=noise_kwargs_T,
         )
+
+    @property
+    def sens_mat(self):
+        """Sensitivity Matrix"""
+        return self._sens_mat
+
+    @sens_mat.setter
+    def sens_mat(self, sens_mat):
+        if sens_mat is None:
+            _f_not_needed = np.logspace(-5, -1, 1000)
+            sens_mat = AET1SensitivityMatrix(_f_not_needed)
+        assert isinstance(sens_mat, SensitivityMatrix)
+        self._sens_mat = sens_mat
+
+    @property
+    def like_gen(self):
+        """C function on GPU/CPU"""
+        like_gen = hdyn_wrap_gpu if self.use_gpu else hdyn_wrap_cpu
+        return like_gen
+
+    @property
+    def xp(self):
+        """Numpy or Cupy"""
+        xp = cp if self.use_gpu else np
+        return xp
 
     @property
     def citation(self):
@@ -373,8 +398,6 @@ class HeterodynedLikelihood:
         reference_template_params,
         template_gen_kwargs={},
         reference_gen_kwargs={},
-        noise_kwargs_AE={},
-        noise_kwargs_T={},
     ):
         """Prepare all information for Heterdyning
 
@@ -399,12 +422,6 @@ class HeterodynedLikelihood:
                 waveform will be interpolated. If ``length`` and ``direct`` are not given,
                 it will interpolate the signal with ``length=8096``.
                 (Default: ``{}``)
-            noise_kwargs_AE (dict, optional): Keywords arguments for generating the
-                noise with ``noisepsd_AE`` (A & E Channel) option in the ``get_sensitivity`` function
-                from ``lisatools`` TODO: add link. (Default: ``{}``)
-            noise_kwargs_T (dict, optional): Keywords arguments for generating the
-                noise with ``noisepsd_T`` (T Channel) option in the ``get_sensitivity`` function
-                from ``lisatools`` TODO: add link. (Default: ``{}``)
 
         """
 
@@ -419,7 +436,7 @@ class HeterodynedLikelihood:
 
         if minF == 0.0:
             minF = 1e-6
-            
+
         reference_gen_kwargs["squeeze"] = True
         reference_gen_kwargs["compress"] = True
         reference_gen_kwargs["fill"] = True
@@ -483,14 +500,10 @@ class HeterodynedLikelihood:
         except AttributeError:
             f_n_host = self.f_dense
 
+        self.sens_mat.update_frequency_arr(f_n_host)
+
         # compute sensitivity at dense frequencies
-        S_n = self.xp.asarray(
-            [
-                get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
-                get_sensitivity(f_n_host, sens_fn="noisepsd_AE", **noise_kwargs_AE),
-                get_sensitivity(f_n_host, sens_fn="noisepsd_T", **noise_kwargs_T),
-            ]
-        )
+        S_n = self.xp.asarray([self.sens_mat[0], self.sens_mat[1], self.sens_mat[2]])
 
         # compute the individual frequency contributions to A0, A1 (see paper)
         A0_flat = 4 * (h0.conj() * self.d) / S_n * df

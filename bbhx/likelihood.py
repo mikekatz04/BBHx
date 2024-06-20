@@ -465,7 +465,8 @@ class HeterodynedLikelihood:
         )[0]
 
         # get rid of places where freqs are zero and narrow boundaries
-        freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
+        # freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
+        freqs_keep = self.f_dense[~(self.xp.abs(h0[0]) == 0.0)]
 
         freqs = self.xp.logspace(
             self.xp.log10(freqs_keep[0]),
@@ -477,6 +478,26 @@ class HeterodynedLikelihood:
         self.h0_sparse = self.template_gen(
             *reference_template_params, freqs=freqs, **template_gen_kwargs
         )[self.xp.newaxis, :, :]
+
+        # put sensitivity back on full density
+        self.sens_mat.update_frequency_arr(self.f_dense)
+
+        # compute sensitivity at dense frequencies
+        S_n_dense = self.xp.asarray(
+            [self.sens_mat[0], self.sens_mat[1], self.sens_mat[2]]
+        )
+
+        df = self.f_dense[1] - self.f_dense[0]
+
+        self.reference_d_d = self.xp.sum(
+            4 * (self.d.conj() * self.d) / S_n_dense * df
+        ).real
+
+        self.check_d_h = self.xp.sum(4 * (h0.conj() * self.d) / S_n_dense * df).real
+        self.check_h_h = self.xp.sum(4 * (h0.conj() * h0) / S_n_dense * df).real
+        self.check_ll = (
+            -1.0 / 2.0 * (self.reference_d_d + self.check_h_h - 2 * self.check_d_h)
+        )
 
         # find which frequencies in the dense array in contained in the sparse array
         inds = (self.f_dense >= freqs[0]) & (self.f_dense <= freqs[-1])
@@ -491,8 +512,6 @@ class HeterodynedLikelihood:
 
         # get frequency at middle of the bin
         f_m = (freqs[1:] + freqs[:-1]) / 2
-
-        df = self.f_dense[1] - self.f_dense[0]
 
         # should be on CPU for sensitivity computation
         try:
@@ -537,7 +556,6 @@ class HeterodynedLikelihood:
         )
 
         # reference quantities
-        self.reference_d_d = self.xp.sum(4 * (self.d.conj() * self.d) / S_n * df).real
 
         self.reference_h_h = self.xp.sum(B0_flat).real
 

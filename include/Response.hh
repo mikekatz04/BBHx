@@ -32,7 +32,7 @@ void LISA_response(
     double *lam,
     double *beta,
     double *psi,
-    int TDItag, int order_fresnel_stencil,
+    int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
     int numModes,
     int length,
     int numBinAll,

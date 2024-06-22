@@ -74,9 +74,14 @@ class LISATDIResponse:
         self,
         TDItag="AET",
         orbits: Orbits = None,
+        rescaled: bool = False,
+        tdi2: bool = False,
         order_fresnel_stencil=0,
         use_gpu=False,
     ):
+        self.rescaled = rescaled
+        self.tdi2 = tdi2
+
         # gpu setup
         if use_gpu:
             self.response_gen = LISA_response_wrap_gpu
@@ -437,6 +442,8 @@ class LISATDIResponse:
             beta,
             psi,
             self.TDItag_int,
+            self.rescaled,
+            self.tdi2,
             self.order_fresnel_stencil,
             num_modes,
             length,

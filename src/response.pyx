@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np
+from libcpp cimport bool
 
 from bbhx.utils.utility import pointer_adjust
 
@@ -21,7 +22,7 @@ cdef extern from "Response.hh":
         double* lam,
         double* beta,
         double* psi,
-        int TDItag, int order_fresnel_stencil,
+        int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
         int numModes,
         int length,
         int numBinAll,
@@ -40,7 +41,7 @@ def LISA_response_wrap(
      lam,
      beta,
      psi,
-    TDItag, order_fresnel_stencil,
+    TDItag, rescaled, tdi2, order_fresnel_stencil,
     numModes,
     length,
     numBinAll,
@@ -69,7 +70,7 @@ def LISA_response_wrap(
         <double*> lam_in,
         <double*> beta_in,
         <double*> psi_in,
-        TDItag, order_fresnel_stencil,
+        TDItag, rescaled, tdi2, order_fresnel_stencil,
         numModes,
         length,
         numBinAll,

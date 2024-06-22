@@ -194,12 +194,13 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double *k, int respon
 }
 
 CUDA_CALLABLE_MEMBER
-d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, int rescaled, Orbits *orbits)
+d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, bool rescaled, bool tdi2, Orbits *orbits)
 {
     // int TDItag == 1 is XYZ int TDItag == 2 is AET
     // int rescaled == 1 is True int rescaled == 0 is False
     d_transferL_holder transferL;
     cmplx factor, factorAE, factorT;
+    cmplx tdi2_factor;
     cmplx I(0.0, 1.0);
     double x = PI * f * orbits->armlength / C_SI;
     cmplx z = gcmplx::exp(I * 2. * x);
@@ -242,15 +243,25 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
         Araw = 0.5 * ((1. + z) * (Gslr.G31 + Gslr.G13) - Gslr.G23 - z * Gslr.G32 - Gslr.G21 - z * Gslr.G12);
         Eraw = 0.5 * INVSQRT3 * ((1. - z) * (Gslr.G13 - Gslr.G31) + (2. + z) * (Gslr.G12 - Gslr.G32) + (1. + 2. * z) * (Gslr.G21 - Gslr.G23));
         Traw = INVSQRT6 * (Gslr.G21 - Gslr.G12 + Gslr.G32 - Gslr.G23 + Gslr.G13 - Gslr.G31);
-        transferL.transferL1 = factor_convention * factorAE * Araw;
-        transferL.transferL2 = factor_convention * factorAE * Eraw;
-        transferL.transferL3 = factor_convention * factorT * Traw;
+
+        if (tdi2)
+        {
+            tdi2_factor = (-2. * I * sin(4. * x) * gcmplx::exp(I * 4. * x));
+        }
+        else
+        {
+            tdi2_factor = 1.0;
+        }
+
+        transferL.transferL1 = tdi2_factor * factor_convention * factorAE * Araw;
+        transferL.transferL2 = tdi2_factor * factor_convention * factorAE * Eraw;
+        transferL.transferL3 = tdi2_factor * factor_convention * factorT * Traw;
         return transferL;
     }
 }
 
 CUDA_CALLABLE_MEMBER
-d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, int TDItag, int order_fresnel_stencil, Orbits *orbits)
+d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil, Orbits *orbits)
 {
 
     // funck
@@ -297,7 +308,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
     Tslr.G31 = Gslr.G31 * gcmplx::exp(m_I * phaseRdelay);
     Tslr.G13 = Gslr.G13 * gcmplx::exp(m_I * phaseRdelay);
 
-    d_transferL_holder transferL = d_TDICombinationFD(Tslr, f, TDItag, 0, orbits);
+    d_transferL_holder transferL = d_TDICombinationFD(Tslr, f, TDItag, rescaled, tdi2, orbits);
     transferL.phaseRdelay = phaseRdelay;
     return transferL;
 }
@@ -308,7 +319,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
  */
 CUDA_CALLABLE_MEMBER
 void response_modes(double *phases, double *response_out, int binNum, int mode_i, double *tf, double *freqs, double phi_ref, int ell, int mm, int length, int numBinAll, int numModes,
-                    cmplx *H, double lam, double beta, int TDItag, int order_fresnel_stencil, Orbits *orbits)
+                    cmplx *H, double lam, double beta, int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil, Orbits *orbits)
 {
 
     double eps = 1e-9;
@@ -331,7 +342,7 @@ void response_modes(double *phases, double *response_out, int binNum, int mode_i
 
         double t_wave_frame = tf[mode_index];
 
-        d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, TDItag, order_fresnel_stencil, orbits);
+        d_transferL_holder transferL = d_JustLISAFDresponseTDI(H, freq, t_wave_frame, lam, beta, TDItag, rescaled, tdi2, order_fresnel_stencil, orbits);
 
         // transferL1_re
         int start_ind = 0 * numBinAll * numModes * length;
@@ -470,7 +481,7 @@ void responseCore(
     int numModes,
     int binNum,
     int numBinAll,
-    int TDItag, int order_fresnel_stencil, Orbits *orbits)
+    int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil, Orbits *orbits)
 {
 
     int ell, mm;
@@ -592,7 +603,7 @@ void responseCore(
 
         // if (threadIdx.x == 0) printf("CHECK: %.18e %.18e %.18e\n", inc, phi_ref, psi);
         response_modes(phases, response_out, binNum, mode_i, tf, freqs, phi_ref, ell, mm, length, numBinAll, numModes,
-                       H_mat, lam, beta, TDItag, order_fresnel_stencil, orbits);
+                       H_mat, lam, beta, TDItag, rescaled, tdi2, order_fresnel_stencil, orbits);
     }
 }
 
@@ -615,7 +626,7 @@ void response(
     double *lam,
     double *beta,
     double *psi,
-    int TDItag, int order_fresnel_stencil,
+    int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
     int numModes,
     int length,
     int numBinAll,
@@ -653,7 +664,7 @@ void response(
     for (int binNum = start; binNum < numBinAll; binNum += increment)
     {
         responseCore(phases, response_out, ells, mms, tf, freqs, phi_ref[binNum], inc[binNum], lam[binNum], beta[binNum], psi[binNum], length, numModes, binNum, numBinAll,
-                     TDItag, order_fresnel_stencil, orbits);
+                     TDItag, rescaled, tdi2, order_fresnel_stencil, orbits);
     }
 }
 
@@ -667,7 +678,7 @@ void LISA_response(
     double *lam,
     double *beta,
     double *psi,
-    int TDItag, int order_fresnel_stencil,
+    int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
     int numModes,
     int length,
     int numBinAll,
@@ -698,7 +709,7 @@ void LISA_response(
         lam,
         beta,
         psi,
-        TDItag, order_fresnel_stencil,
+        TDItag, rescaled, tdi2, order_fresnel_stencil,
         numModes,
         length,
         numBinAll, orbits);
@@ -717,7 +728,7 @@ void LISA_response(
         lam,
         beta,
         psi,
-        TDItag, order_fresnel_stencil,
+        TDItag, rescaled, tdi2, order_fresnel_stencil,
         numModes,
         length,
         numBinAll,

@@ -1,5 +1,4 @@
 import shutil
-import requests
 
 
 fps_cu_to_cpp = [

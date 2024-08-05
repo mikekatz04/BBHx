@@ -116,13 +116,6 @@ except OSError:
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    "--no_omp",
-    help="If provided, install without OpenMP.",
-    action="store_true",
-    default=False,
-)
-
-parser.add_argument(
     "--lapack_lib",
     help="Directory of the lapack lib.",
     default="/usr/local/opt/lapack/lib",
@@ -175,9 +168,6 @@ for key in [
     except ValueError:
         pass
 
-use_omp = not args.no_omp
-
-
 # Obtain the numpy include directory. This logic works across numpy versions.
 try:
     numpy_include = numpy.get_include()
@@ -201,18 +191,10 @@ else:
     gsl_lib = [args.gsl + "/lib"]
 
 
-if "--no_omp" in sys.argv:
-    use_omp = False
-    sys.argv.remove("--no_omp")
-
-else:
-    use_omp = True
-
-
 # if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:
     gpu_extension = dict(
-        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas", "gomp"],
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas"],
         library_dirs=[CUDA["lib64"]] + gsl_lib,
         runtime_library_dirs=[CUDA["lib64"]],
         language="c++",
@@ -221,7 +203,7 @@ if run_cuda_install:
         # and not with gcc the implementation of this trick is in
         # customize_compiler()
         extra_compile_args={
-            "gcc": ["-std=c++11", "-D__USE_OMP__"],  # '-g'],
+            "gcc": ["-std=c++11"],  # '-g'],
             "nvcc": [
                 "-arch=sm_70",
                 "-gencode=arch=compute_50,code=sm_50",
@@ -237,7 +219,6 @@ if run_cuda_install:
                 "-c",
                 "--compiler-options",
                 "'-fPIC'",
-                "-D__USE_OMP__",
                 # "-G",
                 # "-g",
                 # "-O0",
@@ -272,7 +253,7 @@ if run_cuda_install:
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
 
 cpu_extension = dict(
-    libraries=["gsl", "gslcblas", "gomp", "lapack", "lapacke"],
+    libraries=["gsl", "gslcblas", "lapack", "lapacke"],
     language="c++",
     # This syntax is specific to this build system
     # we're only going to use certain compiler args with nvcc
@@ -341,6 +322,6 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.0.10",
+    version="1.0.11",
     python_requires=">=3.12",
 )

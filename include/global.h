@@ -11,8 +11,8 @@
 #define CUDA_SYNC_THREADS __syncthreads();
 #define THREAD_ZERO (threadIdx.x == 0)
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+#define gpuErrchk(ans) { gpuAssert2((ans), __FILE__, __LINE__); }
+inline void gpuAssert2(cudaError_t code, const char *file, int line, bool abort=true)
 {
    if (code != cudaSuccess)
    {

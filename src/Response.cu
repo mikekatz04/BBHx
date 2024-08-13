@@ -692,11 +692,17 @@ void LISA_response(
     double *tf = &response_out[(start_param + 1) * numBinAll * numModes * length];
     double *response_vals = &response_out[(start_param + 2) * numBinAll * numModes * length];
 
+#ifdef __CUDACC__
+
     int nblocks2 = numBinAll;
+
+    // copy self to GPU
+    Orbits *orbits_gpu;
+    gpuErrchk(cudaMalloc(&orbits_gpu, sizeof(Orbits)));
+    gpuErrchk(cudaMemcpy(orbits_gpu, orbits, sizeof(Orbits), cudaMemcpyHostToDevice));
 
     // put each binary on its own block
 
-#ifdef __CUDACC__
     response<<<nblocks2, NUM_THREADS_RESPONSE>>>(
         phases,
         response_vals,
@@ -712,9 +718,12 @@ void LISA_response(
         TDItag, rescaled, tdi2, order_fresnel_stencil,
         numModes,
         length,
-        numBinAll, orbits);
+        numBinAll, orbits_gpu);
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
+
+    gpuErrchk(cudaFree(orbits_gpu));
+    
 #else
     response(
         phases,

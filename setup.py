@@ -35,6 +35,11 @@ def locate_cuda():
     if "CUDAHOME" in os.environ:
         home = os.environ["CUDAHOME"]
         nvcc = pjoin(home, "bin", "nvcc")
+
+    elif "CUDA_HOME" in os.environ:
+        home = os.environ["CUDA_HOME"]
+        nvcc = pjoin(home, "bin", "nvcc")
+
     else:
         # Otherwise, search the PATH for NVCC
         nvcc = find_in_path("nvcc", os.environ["PATH"])
@@ -59,7 +64,6 @@ def locate_cuda():
             )
 
     return cudaconfig
-
 
 def customize_compiler_for_nvcc(self):
 
@@ -91,7 +95,6 @@ def customize_compiler_for_nvcc(self):
         self.compiler_so = default_compiler_so
 
     self._compile = _compile
-
 
 # Run the customize_compiler
 class custom_build_ext(build_ext):
@@ -183,16 +186,57 @@ else:
     gsl_include = [args.gsl + "/include"]
     gsl_lib = [args.gsl + "/lib"]
 
-# find detector source files from installed distribution.
 import lisatools
 
 path_to_lisatools = lisatools.__file__.split("__init__.py")[0]
 path_to_lisatools_cutils = path_to_lisatools + "cutils/"
 
-
 # if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:
     gpu_extension = dict(
+        libraries=["cudart", "cublas", "cusparse", "gsl", "gslcblas"],
+        library_dirs=[CUDA["lib64"]] + gsl_lib,
+        runtime_library_dirs=[CUDA["lib64"]],
+        language="c++",
+        # This syntax is specific to this build system
+        # we're only going to use certain compiler args with nvcc
+        # and not with gcc the implementation of this trick is in
+        # customize_compiler()
+        extra_compile_args={
+            "gcc": ["-std=c++11"],  # '-g'],
+            "nvcc": [
+                "-arch=sm_80",
+                # "-gencode=arch=compute_50,code=sm_50",
+                # "-gencode=arch=compute_52,code=sm_52",
+                # "-gencode=arch=compute_60,code=sm_60",
+                # "-gencode=arch=compute_61,code=sm_61",
+                # "-gencode=arch=compute_70,code=sm_70",
+                # "-gencode=arch=compute_75,code=sm_75",
+                # "-gencode=arch=compute_80,code=compute_80",
+                "-std=c++11",
+                "-c",
+                "--compiler-options",
+                "'-fPIC'",
+                # "-G",
+                # "-g",
+                # "-O0",
+                # "-lineinfo",
+            ],  # for debugging
+        },
+        include_dirs=[numpy_include, CUDA["include"], "include"],
+    )
+
+    pyPhenomHM_ext = Extension(
+        "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
+    )
+    pyFDResponse_ext = Extension(
+        "pyFDResponse",
+        sources=[
+            path_to_lisatools_cutils + "src/Detector.cu",
+            "src/Response.cu",
+            "src/response.pyx",
+            "zzzzzzzzzzzzzzzz.cu",
+        ],
         libraries=["cudart", "cudadevrt", "cublas", "cusparse"],
         library_dirs=[CUDA["lib64"]],
         runtime_library_dirs=[CUDA["lib64"]],
@@ -217,25 +261,6 @@ if run_cuda_install:
             "include",
             path_to_lisatools_cutils + "include",
         ],
-    )
-
-    pyPhenomHM_ext = Extension(
-        "pyPhenomHM",
-        sources=[
-            "src/PhenomHM.cu",
-            "src/phenomhm.pyx",
-        ],
-        **gpu_extension,
-    )
-    pyFDResponse_ext = Extension(
-        "pyFDResponse",
-        sources=[
-            path_to_lisatools_cutils + "src/Detector.cu",
-            "src/Response.cu",
-            "src/response.pyx",
-            "zzzzzzzzzzzzzzzz.cu",
-        ],
-        **gpu_extension,
     )
     pyInterpolate_ext = Extension(
         "pyInterpolate",
@@ -265,7 +290,7 @@ cpu_extension = dict(
     extra_compile_args={
         "gcc": ["-std=c++11"],
     },  # '-g'],
-    include_dirs=[numpy_include, "include", path_to_lisatools_cutils + "include"],
+    include_dirs=[numpy_include, "include", path_to_lisatools_cutils + "include",],
 )
 
 pyPhenomHM_cpu_ext = Extension(
@@ -275,11 +300,7 @@ pyPhenomHM_cpu_ext = Extension(
 )
 pyFDResponse_cpu_ext = Extension(
     "pyFDResponse_cpu",
-    sources=[
-        path_to_lisatools_cutils + "src/Detector.cpp",
-        "src/Response.cpp",
-        "src/response_cpu.pyx",
-    ],
+    sources=[path_to_lisatools_cutils + "src/Detector.cpp", "src/Response.cpp", "src/response_cpu.pyx"],
     **cpu_extension,
 )
 

@@ -27,6 +27,7 @@ from bbhx.utils.constants import *
 from bbhx.utils.transform import *
 
 from lisatools.sensitivity import get_sensitivity
+from lisatools.detector import EqualArmlengthOrbits
 
 try:
     import cupy as xp
@@ -60,8 +61,13 @@ class WaveformTest(unittest.TestCase):
         freq_new = xp.logspace(-4, 0, 10000)
         modes = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
 
+        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits.configure(linear_interp_setup=True)
+
         wave_gen = BBHWaveformFD(
-            amp_phase_kwargs=dict(run_phenomd=False), use_gpu=gpu_available
+            amp_phase_kwargs=dict(run_phenomd=False), 
+            response_kwargs=dict(orbits=orbits),
+            use_gpu=gpu_available
         )
 
         wave = wave_gen(
@@ -138,7 +144,10 @@ class WaveformTest(unittest.TestCase):
 
         length = freqs.shape[-1]
 
-        response = LISATDIResponse(use_gpu=gpu_available)
+        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits.configure(linear_interp_setup=True)
+
+        response = LISATDIResponse(orbits=orbits, use_gpu=gpu_available)
         response(
             freqs, inc, lam, beta, psi, phi_ref, length, phase=phase, tf=tf, modes=modes
         )
@@ -150,9 +159,13 @@ class WaveformTest(unittest.TestCase):
         self.assertTrue(np.all(~np.isnan(response.tf)))
 
     def test_direct_likelihood(self):
+        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits.configure(linear_interp_setup=True)
 
         wave_gen = BBHWaveformFD(
-            amp_phase_kwargs=dict(run_phenomd=False), use_gpu=gpu_available
+            amp_phase_kwargs=dict(run_phenomd=False),
+            response_kwargs=dict(orbits=orbits), 
+            use_gpu=gpu_available
         )
 
         ######## generate data
@@ -241,8 +254,13 @@ class WaveformTest(unittest.TestCase):
 
     def test_het_likelihood(self):
 
+        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits.configure(linear_interp_setup=True)
+
         wave_gen = BBHWaveformFD(
-            amp_phase_kwargs=dict(run_phenomd=False), use_gpu=gpu_available
+            amp_phase_kwargs=dict(run_phenomd=False), 
+            response_kwargs=dict(orbits=orbits),
+            use_gpu=gpu_available
         )
 
         ######## generate data

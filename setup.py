@@ -265,7 +265,7 @@ cpu_extension = dict(
     extra_compile_args={
         "gcc": ["-std=c++11"],
     },  # '-g'],
-    include_dirs=[numpy_include, "include", "../LISAanalysistools/include"],
+    include_dirs=[numpy_include, "include", path_to_lisatools_cutils + "include"],
 )
 
 pyPhenomHM_cpu_ext = Extension(
@@ -276,7 +276,7 @@ pyPhenomHM_cpu_ext = Extension(
 pyFDResponse_cpu_ext = Extension(
     "pyFDResponse_cpu",
     sources=[
-        "../LISAanalysistools/src/Detector.cpp",
+        path_to_lisatools_cutils + "src/Detector.cpp",
         "src/Response.cpp",
         "src/response_cpu.pyx",
     ],

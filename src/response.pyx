@@ -1,9 +1,13 @@
 import numpy as np
 cimport numpy as np
+from libcpp cimport bool
 
 from bbhx.utils.utility import pointer_adjust
 
 assert sizeof(int) == sizeof(np.int32_t)
+
+cdef extern from "Detector.hpp":
+    ctypedef void* Orbits 'Orbits'
 
 cdef extern from "Response.hh":
     ctypedef void* cmplx 'cmplx'
@@ -18,11 +22,12 @@ cdef extern from "Response.hh":
         double* lam,
         double* beta,
         double* psi,
-        int TDItag, int order_fresnel_stencil,
+        int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
         int numModes,
         int length,
         int numBinAll,
-        int includesAmps
+        int includesAmps,
+        Orbits *orbits
     );
 
 @pointer_adjust
@@ -36,11 +41,12 @@ def LISA_response_wrap(
      lam,
      beta,
      psi,
-    TDItag, order_fresnel_stencil,
+    TDItag, rescaled, tdi2, order_fresnel_stencil,
     numModes,
     length,
     numBinAll,
-    includesAmps
+    includesAmps,
+    orbits
 ):
 
     cdef size_t response_out_in = response_out
@@ -52,6 +58,7 @@ def LISA_response_wrap(
     cdef size_t beta_in = beta
     cdef size_t psi_in = psi
     cdef size_t phi_ref_in = phi_ref
+    cdef size_t orbits_in = orbits
 
     LISA_response(
         <double*> response_out_in,
@@ -63,9 +70,10 @@ def LISA_response_wrap(
         <double*> lam_in,
         <double*> beta_in,
         <double*> psi_in,
-        TDItag, order_fresnel_stencil,
+        TDItag, rescaled, tdi2, order_fresnel_stencil,
         numModes,
         length,
         numBinAll,
-        includesAmps
+        includesAmps,
+        <Orbits*> orbits_in
     )

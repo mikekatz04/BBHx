@@ -19,12 +19,11 @@
 import numpy as np
 
 try:
-    import cupy as xp
+    import cupy as cp
     from pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU response available.")
-    import numpy as xp
 
 from pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
 from bbhx.utils.constants import *

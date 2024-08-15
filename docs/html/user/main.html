@@ -59,10 +59,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.num_interp_params"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.num_interp_params</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.num_modes"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.num_modes</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.out_buffer_final"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.out_buffer_final</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.response_gen"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.response_gen</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.use_gpu"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.use_gpu</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.waveform_gen"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.waveform_gen</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.xp"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.xp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.waveform_gen"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.waveform_gen</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.citation"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.citation</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.waveformbuild.BBHWaveformFD.__call__"><code class="docutils literal notranslate"><span class="pre">BBHWaveformFD.__call__()</span></code></a></li>
 </ul>
@@ -254,48 +253,22 @@ transferL2re, transferL2im, transferL3re, transferL3im.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.response_gen">
-<span class="sig-name descname"><span class="pre">response_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.response_gen" title="Link to this definition"></a></dt>
-<dd><p>Response generation class.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
+<dl class="py property">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.use_gpu">
-<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.use_gpu" title="Link to this definition"></a></dt>
-<dd><p>A GPU is being used if <code class="docutils literal notranslate"><span class="pre">use_gpu==True</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use_gpu</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.use_gpu" title="Link to this definition"></a></dt>
+<dd><p>Whether to use a GPU.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.waveform_gen">
-<span class="sig-name descname"><span class="pre">waveform_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.waveform_gen" title="Link to this definition"></a></dt>
-<dd><p>Direct summation waveform generation class.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
+<dl class="py property">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.xp">
-<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.xp" title="Link to this definition"></a></dt>
-<dd><p>Either <code class="docutils literal notranslate"><span class="pre">numpy</span></code> or <code class="docutils literal notranslate"><span class="pre">cupy</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">xp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></em><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.xp" title="Link to this definition"></a></dt>
+<dd><p>Numpy or Cupy</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.BBHWaveformFD.waveform_gen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">waveform_gen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">callable</span></em><a class="headerlink" href="#bbhx.waveformbuild.BBHWaveformFD.waveform_gen" title="Link to this definition"></a></dt>
+<dd><p>C/CUDA wrapped function for computing waveforms</p>
 </dd></dl>
 
 <dl class="py property">

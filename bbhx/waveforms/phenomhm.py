@@ -32,11 +32,10 @@ try:
     from pyPhenomHM import (
         get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_gpu,
     )
-    import cupy as xp
+    import cupy as cp
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU PhenomHM module.")
-    import numpy as xp
 
 from pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu
 from pyPhenomHM_cpu import (
@@ -70,7 +69,7 @@ class PhenomHMAmpPhase:
             interpolation. (Default: ``1e-4``)
         mf_max (double, optional): Dimensionless maximum frequency to use when performing
             interpolation. (Default: ``6e-1``)
-        initial_t_val (double, optional): Time at the start of the 
+        initial_t_val (double, optional): Time at the start of the
             time window. This shifts the phase accordingly but does
             not shift the tf correspondence so that the response
             is still accurately reflected. (Default: ``0.0``)
@@ -89,9 +88,6 @@ class PhenomHMAmpPhase:
         run_phenomd (bool): If ``True``, run the PhenomD
             waveform rather than PhenomHM. Really this is the same
             as choosing ``modes=[(2,2)]`` in the PhenomHM waveform.
-        use_gpu (bool): If ``True``, run on the GPU.
-        waveform_gen (obj): Amplitude, phase, tf determination.
-        xp (obj): numpy or cupy
         y_rd (xp.ndarray): Y-values for PhenomD ringdown frequncy for Cubic Spline.
         c1_rd (xp.ndarray): Cubic Spline c1 values for PhenomD ringdown frequency.
         c2_rd (xp.ndarray): Cubic Spline c2 values for PhenomD ringdown frequency.
@@ -104,20 +100,17 @@ class PhenomHMAmpPhase:
 
     """
 
-    def __init__(self, use_gpu=False, run_phenomd=False, mf_min=1e-4, mf_max=0.6, initial_t_val=0.0):
+    def __init__(
+        self,
+        use_gpu=False,
+        run_phenomd=False,
+        mf_min=1e-4,
+        mf_max=0.6,
+        initial_t_val=0.0,
+    ):
+        self.use_gpu = use_gpu
 
         self.run_phenomd = run_phenomd
-        if use_gpu:
-            self.xp = xp
-            self.waveform_gen = waveform_amp_phase_wrap_gpu
-            self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_gpu
-            self.phenomd_ringdown_freqs = get_phenomd_ringdown_frequencies_gpu
-
-        else:
-            self.xp = np
-            self.waveform_gen = waveform_amp_phase_wrap_cpu
-            self.phenomhm_ringdown_freqs = get_phenomhm_ringdown_frequencies_cpu
-            self.phenomd_ringdown_freqs = get_phenomd_ringdown_frequencies_cpu
 
         self.allowable_modes = [(2, 2), (3, 3), (4, 4), (2, 1), (3, 2), (4, 3)]
 
@@ -144,6 +137,47 @@ class PhenomHMAmpPhase:
         self._init_phenomd_fring_spline()
 
     @property
+    def use_gpu(self) -> bool:
+        """Whether to use a GPU."""
+        return self._use_gpu
+
+    @use_gpu.setter
+    def use_gpu(self, use_gpu: bool) -> None:
+        """Set ``use_gpu``."""
+        assert isinstance(use_gpu, bool)
+        self._use_gpu = use_gpu
+
+    @property
+    def xp(self) -> object:
+        """Numpy or Cupy"""
+        return cp if self.use_gpu else np
+
+    @property
+    def waveform_gen(self) -> callable:
+        """C/CUDA wrapped function for computing interpolation."""
+        return (
+            waveform_amp_phase_wrap_gpu if self.use_gpu else waveform_amp_phase_wrap_cpu
+        )
+
+    @property
+    def phenomhm_ringdown_freqs(self) -> callable:
+        """C/CUDA wrapped function for computing PhenomHM Ringdown frequencies."""
+        return (
+            get_phenomhm_ringdown_frequencies_gpu
+            if self.use_gpu
+            else get_phenomhm_ringdown_frequencies_cpu
+        )
+
+    @property
+    def phenomd_ringdown_freqs(self) -> callable:
+        """C/CUDA wrapped function for computing PhenomD Ringdown frequencies."""
+        return (
+            get_phenomd_ringdown_frequencies_gpu
+            if self.use_gpu
+            else get_phenomd_ringdown_frequencies_cpu
+        )
+
+    @property
     def citation(self):
         """Return citations for this class"""
         return katz_citations + phenomhm_citation + phenomd_citations
@@ -167,7 +201,7 @@ class PhenomHMAmpPhase:
 
     def _sanity_check_modes(self, ells, mms):
         """Make sure ell and mm combinations are available"""
-        for (ell, mm) in zip(ells, mms):
+        for ell, mm in zip(ells, mms):
             if (ell, mm) not in self.allowable_modes:
                 raise ValueError(
                     "Requested mode [(l,m) = ({},{})] is not available. Allowable modes include {}".format(

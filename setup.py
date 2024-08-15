@@ -65,6 +65,7 @@ def locate_cuda():
 
     return cudaconfig
 
+
 def customize_compiler_for_nvcc(self):
 
     # track all the object files generated with cuda device code
@@ -95,6 +96,7 @@ def customize_compiler_for_nvcc(self):
         self.compiler_so = default_compiler_so
 
     self._compile = _compile
+
 
 # Run the customize_compiler
 class custom_build_ext(build_ext):
@@ -290,7 +292,11 @@ cpu_extension = dict(
     extra_compile_args={
         "gcc": ["-std=c++11"],
     },  # '-g'],
-    include_dirs=[numpy_include, "include", path_to_lisatools_cutils + "include",],
+    include_dirs=[
+        numpy_include,
+        "include",
+        path_to_lisatools_cutils + "include",
+    ],
 )
 
 pyPhenomHM_cpu_ext = Extension(
@@ -300,7 +306,11 @@ pyPhenomHM_cpu_ext = Extension(
 )
 pyFDResponse_cpu_ext = Extension(
     "pyFDResponse_cpu",
-    sources=[path_to_lisatools_cutils + "src/Detector.cpp", "src/Response.cpp", "src/response_cpu.pyx"],
+    sources=[
+        path_to_lisatools_cutils + "src/Detector.cpp",
+        "src/Response.cpp",
+        "src/response_cpu.pyx",
+    ],
     **cpu_extension,
 )
 
@@ -350,6 +360,6 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.0.11",
+    version="1.1.0",
     python_requires=">=3.12",
 )

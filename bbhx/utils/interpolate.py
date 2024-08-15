@@ -19,13 +19,12 @@
 import numpy as np
 
 try:
-    import cupy as xp
+    import cupy as cp
     from pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
 
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU interpolation available.")
-    import numpy as xp
 
 from pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
 
@@ -81,6 +80,8 @@ class CubicSplineInterpolant:
 
         # check all inputs
 
+        self.use_gpu = use_gpu
+
         # first check is for flattened arrays
         if x.ndim == 1 or y_all.ndim == 1:
             if x.ndim != 1 or y_all.ndim != 1:
@@ -127,15 +128,6 @@ class CubicSplineInterpolant:
             x = x.flatten()
             y_all = y_all.flatten()
 
-        # adjust for GPU
-        if use_gpu:
-            self.xp = xp
-            self.interpolate_arrays = interpolate_wrap_gpu
-
-        else:
-            self.xp = np
-            self.interpolate_arrays = interpolate_wrap_cpu
-
         # get/store info
         ninterps = num_modes * num_interp_params * num_bin_all
         self.degree = 3
@@ -169,6 +161,27 @@ class CubicSplineInterpolant:
         )
 
         self.x = x.copy()
+
+    @property
+    def use_gpu(self) -> bool:
+        """Whether to use a GPU."""
+        return self._use_gpu
+
+    @use_gpu.setter
+    def use_gpu(self, use_gpu: bool) -> None:
+        """Set ``use_gpu``."""
+        assert isinstance(use_gpu, bool)
+        self._use_gpu = use_gpu
+
+    @property
+    def xp(self) -> object:
+        """Numpy or Cupy"""
+        return cp if self.use_gpu else np
+
+    @property
+    def interpolate_arrays(self) -> callable:
+        """C/CUDA wrapped function for computing interpolation."""
+        return interpolate_wrap_gpu if self.use_gpu else interpolate_wrap_cpu
 
     @property
     def x_shaped(self):

@@ -19,13 +19,12 @@ import numpy as np
 
 # import gpu stuff
 try:
-    import cupy as xp
+    import cupy as cp
     from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
     from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
-    import numpy as xp
 
 from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
 from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
@@ -57,23 +56,22 @@ class TemplateInterpFD:
         num_modes (int): Number of harmonics.
         template_carrier (complex128 xp.ndarray): Carrier for output templates.
             Templates can be accessed through the ``template_channels`` property.
-        template_gen (obj): C/CUDA wrapped function for computing interpolated
-            waveforms.
         use_gpu (bool): If True, using GPU.
-        xp (obj): Either numpy or cupy.
 
     """
 
     def __init__(self, use_gpu=False):
-
         self.use_gpu = use_gpu
-        if use_gpu:
-            self.template_gen = InterpTDI_wrap_gpu
-            self.xp = xp
 
-        else:
-            self.template_gen = InterpTDI_wrap_cpu
-            self.xp = np
+    @property
+    def xp(self) -> object:
+        """Numpy or Cupy"""
+        return cp if self.use_gpu else np
+
+    @property
+    def template_gen(self) -> callable:
+        """C/CUDA wrapped function for computing interpolated waveforms"""
+        return InterpTDI_wrap_gpu if self.use_gpu else InterpTDI_wrap_cpu
 
     @property
     def template_channels(self):
@@ -137,10 +135,17 @@ class TemplateInterpFD:
 
         # find where each binary's signal starts and ends in the data array
 
-        start_and_end = self.xp.asarray([freqs_shaped[:, 0], freqs_shaped[:, -1],]).T
+        start_and_end = self.xp.asarray(
+            [
+                freqs_shaped[:, 0],
+                freqs_shaped[:, -1],
+            ]
+        ).T
 
         if self.use_gpu and not isinstance(data_freqs, self.xp.ndarray):
-            raise ValueError("Make sure if using Cupy or Numpy, the input freqs array is of the same type.")
+            raise ValueError(
+                "Make sure if using Cupy or Numpy, the input freqs array is of the same type."
+            )
 
         inds_start_and_end = self.xp.asarray(
             [
@@ -183,7 +188,8 @@ class TemplateInterpFD:
         # initialize template information
         self.template_carrier = [
             self.xp.zeros(
-                int(self.num_channels * temp_length), dtype=self.xp.complex128,
+                int(self.num_channels * temp_length),
+                dtype=self.xp.complex128,
             )
             for temp_length in lengths
         ]
@@ -271,33 +277,47 @@ class BBHWaveformFD:
             ``(self.num_interp_params, self.num_bin_all, self.num_modes, self.length)``.
             The order of the parameters is amplitude, phase, t-f, transferL1re, transferL1im,
             transferL2re, transferL2im, transferL3re, transferL3im.
-        response_gen (obj): Response generation class.
-        use_gpu (bool): A GPU is being used if ``use_gpu==True``.
-        waveform_gen (obj): Direct summation waveform generation class.
-        xp (obj): Either ``numpy`` or ``cupy``.
 
     """
 
     def __init__(
-        self, amp_phase_kwargs={}, response_kwargs={}, interp_kwargs={}, use_gpu=False,
+        self,
+        amp_phase_kwargs={},
+        response_kwargs={},
+        interp_kwargs={},
+        use_gpu=False,
     ):
+        self.use_gpu = use_gpu
 
         # initialize waveform and response funtions
         self.amp_phase_gen = PhenomHMAmpPhase(**amp_phase_kwargs, use_gpu=use_gpu)
         self.response_gen = LISATDIResponse(**response_kwargs, use_gpu=use_gpu)
 
-        self.use_gpu = use_gpu
-        if use_gpu:
-            self.xp = xp
-            self.waveform_gen = direct_sum_wrap_gpu
-        else:
-            self.xp = np
-            self.waveform_gen = direct_sum_wrap_cpu
-
         self.num_interp_params = 9
 
         # setup the final interpolant
         self.interp_response = TemplateInterpFD(**interp_kwargs, use_gpu=use_gpu)
+
+    @property
+    def use_gpu(self) -> bool:
+        """Whether to use a GPU."""
+        return self._use_gpu
+
+    @use_gpu.setter
+    def use_gpu(self, use_gpu: bool) -> None:
+        """Set ``use_gpu``."""
+        assert isinstance(use_gpu, bool)
+        self._use_gpu = use_gpu
+
+    @property
+    def xp(self) -> object:
+        """Numpy or Cupy"""
+        return cp if self.use_gpu else np
+
+    @property
+    def waveform_gen(self) -> callable:
+        """C/CUDA wrapped function for computing waveforms"""
+        return direct_sum_wrap_gpu if self.use_gpu else direct_sum_wrap_cpu
 
     @property
     def citation(self):
@@ -614,7 +634,13 @@ class BBHWaveformFD:
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
 
             template_channels = self.interp_response(
-                freqs, spline.container, t_start, t_end, self.length, self.num_modes, 3,
+                freqs,
+                spline.container,
+                t_start,
+                t_end,
+                self.length,
+                self.num_modes,
+                3,
             )
 
             # fill the data stream

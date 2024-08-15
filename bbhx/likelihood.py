@@ -43,7 +43,7 @@ class Likelihood:
     frequecy bins. It only sums over the frequencies where the MBHB signal
     exists. Therefore, larger mass waveforms are faster because there are less
     frequencies. This class computes:
-    :math:`\mathcal{L}\propto-1/2\langle d-h|d-h\\rangle=-1/2\left(\langle d|d\\rangle \langle h|h\\rangle - 2\langle d|h\\rangle\\right)`.
+    :math:`\\mathcal{L}\\propto-1/2\\langle d-h|d-h\\rangle=-1/2\\left(\\langle d|d\\rangle \\langle h|h\\rangle - 2\\langle d|h\\rangle\\right)`.
 
     This class has GPU capability.
 
@@ -64,15 +64,12 @@ class Likelihood:
         use_gpu (bool, optional): If ``True``, use GPU.
 
     Attributes:
-        use_gpu (bool): If True, using GPU.
-        xp (obj): Either numpy or cupy.
-        d_d (double): :math:`\langle d|d\\rangle` inner product value.
+        d_d (double): :math:`\\langle d|d\\rangle` inner product value.
         data_channels (complex128 np.ndarray): Data stream. 1D flattened array
             of shape: ``(3, len(data_freqs))``. **Note** ``data_channels`` should
             be multiplied by ``psd`` before input into this class.
         data_freqs (double np.ndarray): Frequencies for the data stream (1D).
         data_stream_length (int): Length of data.
-        like_gen (obj): C/CUDA implementation of likelihood compuation.
         noise_factors (double xp.ndarray): :math:`\\sqrt{\\frac{\\Delta f}{S_n(f)}}`.
             1D flattened array of shape: ``(3, len(data_freqs))``.
         psd (double xp.ndarray): Power Spectral Density in the noise:math:`S_n(f)`.
@@ -136,6 +133,17 @@ class Likelihood:
         ).item()
 
     @property
+    def use_gpu(self) -> bool:
+        """Whether to use a GPU."""
+        return self._use_gpu
+
+    @use_gpu.setter
+    def use_gpu(self, use_gpu: bool) -> None:
+        """Set ``use_gpu``."""
+        assert isinstance(use_gpu, bool)
+        self._use_gpu = use_gpu
+
+    @property
     def like_gen(self):
         """Likelihood for either GPU or CPU."""
         like_gen = direct_like_wrap_gpu if self.use_gpu else direct_like_wrap_cpu
@@ -165,7 +173,7 @@ class Likelihood:
             ``params.shape=(num_params, num_bin_all)`` if 2D for more than
             one binary.
         return_extracted_snr (bool, optional): If ``True``, return
-            :math:`\langle d|h\\rangle\ / \sqrt{\langle h|h\\rangle}` as a second entry
+            :math:`\\langle d|h\\rangle\\ / \\sqrt{\\langle h|h\\rangle}` as a second entry
             of the return array. This produces a return array of
             ``xp.array([log likelihood, snr]).T``. If ``False``, just return
             the log-Likelihood array.
@@ -294,15 +302,15 @@ class HeterodynedLikelihood:
         use_gpu (bool, optional): If ``True``, use GPU.
 
     Attributes:
-        reference_d_d (double): :math:`\langle d|d\\rangle` inner product value.
-        reference_h_h(double): :math:`\langle h|h\\rangle` inner product value
+        reference_d_d (double): :math:`\\langle d|d\\rangle` inner product value.
+        reference_h_h(double): :math:`\\langle h|h\\rangle` inner product value
             for the reference template.
-        reference_d_h (double): :math:`\langle d|h\\rangle` inner product value
+        reference_d_h (double): :math:`\\langle d|h\\rangle` inner product value
             for the reference template.
         reference_ll (double): log-Likelihood value for the reference template.
-        hdyn_d_h (complex128 xp.ndarray): Heterodyned :math:`\langle d|h\\rangle`
+        hdyn_d_h (complex128 xp.ndarray): Heterodyned :math:`\\langle d|h\\rangle`
             inner product values for the test templates.
-        hdyn_h_h (complex128 xp.ndarray): Heterodyned :math:`\langle d|h\\rangle`
+        hdyn_h_h (complex128 xp.ndarray): Heterodyned :math:`\\langle d|h\\rangle`
             inner product values for the test templates.
         h0_sparse (xp.ndarray): Array with sparse waveform for reference parameters.
         h_sparse (xp.ndarray): Array with sparse waveform for test parameters.
@@ -315,20 +323,11 @@ class HeterodynedLikelihood:
         freqs (xp.ndarray): Frequencies for sparse arrays.
         f_m (xp.ndarray): Frequency of mid-point in each sparse bin.
         length_f_het (int): Length of sparse array.
-        like_gen (obj): C/CUDA implementation of likelihood compuation.
         psd (double xp.ndarray): :math:`\\sqrt{\\frac{\\Delta f}{S_n(f)}}`.
             1D flattened array of shape: ``(3, len(data_freqs))``.
-        template_gen (obj): Waveform generation class that returns a tuple of
-            (list of template arrays, start indices, lengths). See
-            :class:`bbhx.waveform.BBHWaveformFD` for more information on this
-            return type.
         return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
         phase_marginalize (bool): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
-        use_gpu (bool): If True, using GPU.
-        xp (obj): Either numpy or cupy.
-
-
 
     """
 
@@ -362,6 +361,17 @@ class HeterodynedLikelihood:
             template_gen_kwargs=template_gen_kwargs,
             reference_gen_kwargs=reference_gen_kwargs,
         )
+
+    @property
+    def use_gpu(self) -> bool:
+        """Whether to use a GPU."""
+        return self._use_gpu
+
+    @use_gpu.setter
+    def use_gpu(self, use_gpu: bool) -> None:
+        """Set ``use_gpu``."""
+        assert isinstance(use_gpu, bool)
+        self._use_gpu = use_gpu
 
     @property
     def sens_mat(self):
@@ -571,7 +581,7 @@ class HeterodynedLikelihood:
             ``params.shape=(num_params, num_bin_all)`` if 2D for more than
             one binary.
         return_extracted_snr (bool, optional): If ``True``, return
-            :math:`\langle d|h\\rangle\ / \sqrt{\langle h|h\\rangle}` as a second entry
+            :math:`\\langle d|h\\rangle\\ / \\sqrt{\\langle h|h\\rangle}` as a second entry
             of the return array. This produces a return array of
             ``xp.array([log likelihood, snr]).T``. If ``False``, just return
             the log-Likelihood array.

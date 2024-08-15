@@ -62,11 +62,7 @@ class LISATDIResponse:
         order_fresnel_stencil (int): Order of the Fresnel stencil in the
             response. Currently, anything above 0 is not implemented. This is left
             in for future compatibility.
-        response_gen (obj): Respones generator in C/C++.
         TDItag (str): TDI channels to generate. Either ``"XYZ"`` or ``"AET"``.
-        use_gpu (bool): A GPU is being used if ``use_gpu==True``.
-        xp (obj): Either ``numpy`` or ``cupy``.
-
 
     """
 
@@ -83,13 +79,7 @@ class LISATDIResponse:
         self.tdi2 = tdi2
 
         # gpu setup
-        if use_gpu:
-            self.response_gen = LISA_response_wrap_gpu
-            self.xp = xp
-
-        else:
-            self.response_gen = LISA_response_wrap_cpu
-            self.xp = np
+        self.use_gpu = use_gpu
 
         if order_fresnel_stencil > 0:
             raise NotImplementedError
@@ -112,6 +102,31 @@ class LISATDIResponse:
         self.mms_default = self.xp.array([2, 3, 4, 1, 2, 3], dtype=self.xp.int32)
 
         self.orbits = orbits
+
+    @property
+    def use_gpu(self) -> bool:
+        """Whether to use a GPU."""
+        return self._use_gpu
+
+    @use_gpu.setter
+    def use_gpu(self, use_gpu: bool) -> None:
+        """Set ``use_gpu``."""
+        assert isinstance(use_gpu, bool)
+        self._use_gpu = use_gpu
+
+    @property
+    def response_gen(self):
+        """C function on GPU/CPU"""
+        response_gen = (
+            LISA_response_wrap_gpu if self.use_gpu else LISA_response_wrap_cpu
+        )
+        return response_gen
+
+    @property
+    def xp(self):
+        """Numpy or Cupy"""
+        xp = cp if self.use_gpu else np
+        return xp
 
     @property
     def orbits(self) -> Orbits:

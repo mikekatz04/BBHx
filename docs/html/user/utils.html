@@ -62,15 +62,18 @@
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.num_channels"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.num_channels</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.num_modes"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.num_modes</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_carrier"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_carrier</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_gen</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.use_gpu</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.xp"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.xp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_gen</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.template_channels"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.template_channels</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.citation"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.citation</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveformbuild.TemplateInterpFD.__call__"><code class="docutils literal notranslate"><span class="pre">TemplateInterpFD.__call__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.use_gpu"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.use_gpu</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.xp"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.xp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.interpolate_arrays"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.interpolate_arrays</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.x_shaped</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.y_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.y_shaped</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.utils.interpolate.CubicSplineInterpolant.c1_shaped"><code class="docutils literal notranslate"><span class="pre">CubicSplineInterpolant.c1_shaped</span></code></a></li>
@@ -225,18 +228,6 @@ Templates can be accessed through the <code class="docutils literal notranslate"
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_gen">
-<span class="sig-name descname"><span class="pre">template_gen</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Link to this definition"></a></dt>
-<dd><p>C/CUDA wrapped function for computing interpolated
-waveforms.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.use_gpu">
 <span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.use_gpu" title="Link to this definition"></a></dt>
 <dd><p>If True, using GPU.</p>
@@ -247,15 +238,16 @@ waveforms.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
+<dl class="py property">
 <dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.xp">
-<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.xp" title="Link to this definition"></a></dt>
-<dd><p>Either numpy or cupy.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">xp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></em><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.xp" title="Link to this definition"></a></dt>
+<dd><p>Numpy or Cupy</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.waveformbuild.TemplateInterpFD.template_gen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">template_gen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">callable</span></em><a class="headerlink" href="#bbhx.waveformbuild.TemplateInterpFD.template_gen" title="Link to this definition"></a></dt>
+<dd><p>C/CUDA wrapped function for computing interpolated waveforms</p>
 </dd></dl>
 
 <dl class="py property">
@@ -344,6 +336,24 @@ False.</p></li>
 <dd class="field-even"><p><strong>ValueError</strong> – If input arguments are not correct.</p>
 </dd>
 </dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.use_gpu">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use_gpu</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.use_gpu" title="Link to this definition"></a></dt>
+<dd><p>Whether to use a GPU.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.xp">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">xp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></em><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.xp" title="Link to this definition"></a></dt>
+<dd><p>Numpy or Cupy</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.interpolate_arrays">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">interpolate_arrays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">callable</span></em><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.interpolate_arrays" title="Link to this definition"></a></dt>
+<dd><p>C/CUDA wrapped function for computing interpolation.</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">x_shaped</span></span><a class="headerlink" href="#bbhx.utils.interpolate.CubicSplineInterpolant.x_shaped" title="Link to this definition"></a></dt>

@@ -57,9 +57,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.mms_default"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.mms_default</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.includes_amps"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.includes_amps</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.order_fresnel_stencil"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.order_fresnel_stencil</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.response_gen"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.response_gen</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.TDItag"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.TDItag</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.use_gpu"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.use_gpu</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.response_gen"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.response_gen</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.xp"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.xp</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.citation"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.citation</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.response.fastfdresponse.LISATDIResponse.transferL1"><code class="docutils literal notranslate"><span class="pre">LISATDIResponse.transferL1</span></code></a></li>
@@ -121,7 +121,7 @@
 <h2>Fast Frequency Domain Response<a class="headerlink" href="#fast-frequency-domain-response" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.response.fastfdresponse.</span></span><span class="sig-name descname"><span class="pre">LISATDIResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TDItag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'AET'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_fresnel_stencil</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bbhx.response.fastfdresponse.</span></span><span class="sig-name descname"><span class="pre">LISATDIResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TDItag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'AET'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Orbits</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rescaled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdi2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order_fresnel_stencil</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Evaluate the fast frequency domain response function</p>
 <p>The response function is the fast frequency domain response function
@@ -203,17 +203,6 @@ in for future compatibility.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.response_gen">
-<span class="sig-name descname"><span class="pre">response_gen</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.response_gen" title="Link to this definition"></a></dt>
-<dd><p>Respones generator in C/C++.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.TDItag">
 <span class="sig-name descname"><span class="pre">TDItag</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.TDItag" title="Link to this definition"></a></dt>
 <dd><p>TDI channels to generate. Either <code class="docutils literal notranslate"><span class="pre">&quot;XYZ&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;AET&quot;</span></code>.</p>
@@ -224,26 +213,22 @@ in for future compatibility.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
+<dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.use_gpu">
-<span class="sig-name descname"><span class="pre">use_gpu</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.use_gpu" title="Link to this definition"></a></dt>
-<dd><p>A GPU is being used if <code class="docutils literal notranslate"><span class="pre">use_gpu==True</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use_gpu</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.use_gpu" title="Link to this definition"></a></dt>
+<dd><p>Whether to use a GPU.</p>
 </dd></dl>
 
-<dl class="py attribute">
+<dl class="py property">
+<dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.response_gen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">response_gen</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.response_gen" title="Link to this definition"></a></dt>
+<dd><p>C function on GPU/CPU</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="bbhx.response.fastfdresponse.LISATDIResponse.xp">
-<span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.xp" title="Link to this definition"></a></dt>
-<dd><p>Either <code class="docutils literal notranslate"><span class="pre">numpy</span></code> or <code class="docutils literal notranslate"><span class="pre">cupy</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>obj</p>
-</dd>
-</dl>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">xp</span></span><a class="headerlink" href="#bbhx.response.fastfdresponse.LISATDIResponse.xp" title="Link to this definition"></a></dt>
+<dd><p>Numpy or Cupy</p>
 </dd></dl>
 
 <dl class="py property">

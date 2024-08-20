@@ -33,7 +33,7 @@ To install this software for use with NVIDIA GPUs (compute capability >2.0), you
 
 ### Installing
 
-To install with pip (for CPUs only currently):
+To install with pip (for CPUs only currently) (need GSL and lapack on your path. We recommend to do this with conda):
 ```
 pip install bbhx
 ```
@@ -45,11 +45,11 @@ To install from source:
 1) Clone the repository.
 
 ```
-git clone https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms.git
-cd FastEMRIWaveforms
+git clone https://github.com/mikekatz04/BBHx.git
+cd BBHx
 ```
 
-2) Installation is made easy through [install.sh](install.sh). This is a bash script that will create a conda environment, install bbhx, run tests, and install any additional packages needed for sampling or development. It will look for an `nvcc` binary, the `CUDA_HOME` variable, or the `CUDAHOME` variable. If it finds that information, it will install for CUDA as well (including installing the proper version of `cupy`). **Note**: If you already have performed installation and you are updating bbhx after a `git pull`, then run `pip install .` rather than the following command.
+2) Installation is made easy through [install.sh](install.sh). This is a bash script that will create a conda environment, install bbhx, run tests, and install any additional packages needed for sampling or development. It will look for an `nvcc` binary, the `CUDA_HOME` variable, or the `CUDAHOME` variable. If it finds that information, it will install for CUDA as well (including installing the proper version of `cupy`). **Note**: If you already have performed installation and you are updating bbhx after a `git pull`, then run `python scripts/prebuild.py` followed by `pip install .` rather than the following command.
 
   ```
   bash install.sh
@@ -97,16 +97,17 @@ git clone https://mikekatz04.github.io/BBHx.git
 cd BBHx
 ```
 
-3) If using GPUs, use pip to [install cupy](https://docs-cupy.chainer.org/en/stable/install.html). If you have cuda version 9.2, for example:
+3) If using GPUs, use pip to [install cupy](https://docs-cupy.chainer.org/en/stable/install.html). If you have cuda version 12.1, for example:
 
 ```
-pip install cupy-cuda92
+pip install cupy-cuda12x
 ```
 
 4) Run install. Make sure CUDA is on your PATH or `CUDAHOME` variable is set to the path to nvcc and other CUDA files.
 
 ```
-python setup.py install
+python scripts/prebuild.py
+pip install .
 ```
 
 

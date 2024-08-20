@@ -46,6 +46,13 @@ class LISATDIResponse:
         TDItag (str, optional): TDI channels to generate. Options are ``"XYZ"`` and
             ``"AET"``. If ``"XYZ"`` is not given, it will default to ``"AET"``.
             (Default: ``"AET"``)
+        orbits (Orbits, optional): Orbit class. If ``None``, orbits is set to
+            :class:`EqualArmlengthOrbits`. (Default: ``None``)
+        rescaled (bool, optional): If ``True``, rescale TDI functions to avoid
+            infinities at high frequency. (Default: ``False``)
+        tdi2 (bool, optional): If ``True``, apply a factor of :math:`-2i \\sin{(4x)}e^{i4x})`
+            to tdi1 output. This is a conversion from TDI 1 to TDI 2 under the assumption of equal armlengt orbits.
+            (Default: ``False``)
         order_fresnel_stencil (int, optional): Order of the Fresnel stencil in the
             response. Currently, anything above 0 is not implemented. This is left
             in for future compatibility. (Default: ``0``)
@@ -68,7 +75,7 @@ class LISATDIResponse:
     def __init__(
         self,
         TDItag="AET",
-        orbits: Orbits = None,
+        orbits: Orbits | None = None,
         rescaled: bool = False,
         tdi2: bool = False,
         order_fresnel_stencil=0,

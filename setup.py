@@ -6,7 +6,6 @@ from setuptools import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 import numpy
-import shutil
 import argparse
 
 
@@ -192,6 +191,8 @@ import lisatools
 
 path_to_lisatools = lisatools.__file__.split("__init__.py")[0]
 path_to_lisatools_cutils = path_to_lisatools + "cutils/"
+
+exec(open('scripts/prebuild.py', 'r').read())
 
 # if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:

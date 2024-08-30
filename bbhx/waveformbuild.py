@@ -515,6 +515,7 @@ class BBHWaveformFD:
 
         phi_ref_amp_phase = np.zeros_like(m1)
 
+        Tobs = t_end - t_start
         self.amp_phase_gen(
             m1,
             m2,
@@ -528,6 +529,7 @@ class BBHWaveformFD:
             freqs=freqs_temp,
             out_buffer=out_buffer,
             modes=modes,
+            Tobs=Tobs,
         )
 
         # setup buffer to carry around all the quantities of interest

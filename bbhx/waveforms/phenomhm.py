@@ -45,6 +45,7 @@ from pyPhenomHM_cpu import (
     get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_cpu,
 )
 
+from ..utils.interpolate import CubicSplineInterpolant, searchsorted2d_vec
 from ..utils.constants import *
 from ..waveforms.ringdownphenomd import *
 
@@ -242,7 +243,7 @@ class PhenomHMAmpPhase:
             dtype=self.xp.float64,
         )
 
-    def _initialize_freqs(self, m1, m2):
+    def _initialize_freqs(self, m1, m2, mms):
         """Setup frequencies when not given by user"""
         M_tot_sec = (m1 + m2) * MTSUN_SI
 
@@ -254,8 +255,12 @@ class PhenomHMAmpPhase:
         # adjust them for each binary Mass
         # flatten to prepare for C computations
         self.freqs = (
-            base_freqs[:, self.xp.newaxis] / M_tot_sec[self.xp.newaxis, :]
-        ).T.flatten()
+            base_freqs[self.xp.newaxis, self.xp.newaxis, :]
+            / M_tot_sec[:, self.xp.newaxis, self.xp.newaxis]
+            * (mms[self.xp.newaxis, :, self.xp.newaxis])
+            / 2
+        ).flatten()
+        # mms / 2 sets ratio versus 22 mode
 
     @property
     def amp(self):
@@ -284,7 +289,7 @@ class PhenomHMAmpPhase:
     @property
     def freqs_shaped(self):
         """Get the freqs array with shape ``(num_bin_all, length)``"""
-        return self._freqs.reshape(self.num_bin_all, self.length)
+        return self._freqs.reshape(self.num_bin_all, self.num_modes, self.length)
 
     @property
     def freqs(self):
@@ -300,7 +305,7 @@ class PhenomHMAmpPhase:
         else:
             self._freqs = f
 
-    def __call__(
+    def run_wave(
         self,
         m1,
         m2,
@@ -410,12 +415,18 @@ class PhenomHMAmpPhase:
 
         # initialize frequencies if not given
         if freqs is None:
-            self._initialize_freqs(m1, m2)
+            self._initialize_freqs(m1, m2, mms)
 
         elif freqs.ndim == 1:
-            self.freqs = self.xp.tile(freqs, (self.num_bin_all, 1)).flatten()
-        else:
+            self.freqs = self.xp.tile(
+                freqs, (self.num_bin_all, self.num_modes, 1)
+            ).flatten()
+        elif freqs.ndim == 3:
             self.freqs = freqs.flatten().copy()
+        else:
+            raise ValueError(
+                "If providing freqs, must be 1D array (length,) or 3D array (length, num_modes, length)."
+            )
 
         # convert to SI units for the mass
         m1_SI = m1 * MSUN_SI
@@ -512,8 +523,10 @@ class PhenomHMAmpPhase:
         # adjust phases based on shift from t_ref
         # do this inplace
         temp = (
-            self.freqs.reshape(self.num_bin_all, -1)
-            * self.xp.asarray(t_ref[:, self.xp.newaxis] - self.initial_t_val)
+            self.freqs.reshape(self.num_bin_all, self.num_modes, -1)
+            * self.xp.asarray(
+                t_ref[:, self.xp.newaxis, self.xp.newaxis] - self.initial_t_val
+            )
             * 2
             * np.pi
         )
@@ -521,7 +534,7 @@ class PhenomHMAmpPhase:
         # phases = self.waveform_carrier[1]  (waveform carrier is flat)
         self.waveform_carrier[
             1 * self.num_per_param : 2 * self.num_per_param
-        ] += self.xp.tile(temp[:, None, :], (1, self.num_modes, 1)).flatten()
+        ] += temp.flatten()
 
         # adjust t-f for shift of t_ref
         # t_ref array = self.waveform_carrier[2] (waveform carrier is flat)
@@ -530,3 +543,94 @@ class PhenomHMAmpPhase:
         ] += self.xp.tile(
             self.xp.asarray(t_ref)[:, None, None], (1, self.num_modes, self.length)
         ).flatten()
+
+    def __call__(self, *args, Tobs=None, **kwargs):
+
+        self.run_wave(*args, **kwargs)
+
+        # interpolating. Need to adjust frequency bounds
+        if "direct" not in kwargs or not kwargs["direct"]:
+            # TODO: must check if this is accurate enough!!!!!!!
+
+            # get start of available information
+            x_min = self.xp.zeros((self.tf.shape[:2]))
+            x_min = x_min * (x_min > self.tf.min(axis=-1)) + self.tf.min(axis=-1) * (
+                x_min < self.tf.min(axis=-1)
+            )
+
+            # linear interp for minimum frequency
+            segment_inds = (
+                searchsorted2d_vec(
+                    self.tf.reshape(-1, self.length),
+                    x_min.reshape(-1, 1),
+                    xp=self.xp,
+                    side="right",
+                )
+                - 1
+            ).reshape(x_min.shape)
+
+            y1 = self.xp.take_along_axis(
+                self.freqs_shaped, segment_inds[:, :, None], axis=-1
+            )[:, :, 0]
+            y2 = self.xp.take_along_axis(
+                self.freqs_shaped, segment_inds[:, :, None] + 1, axis=-1
+            )[:, :, 0]
+            x1 = self.xp.take_along_axis(self.tf, segment_inds[:, :, None], axis=-1)[
+                :, :, 0
+            ]
+            x2 = self.xp.take_along_axis(
+                self.tf, segment_inds[:, :, None] + 1, axis=-1
+            )[:, :, 0]
+
+            m = (y2 - y1) / (x2 - x1)
+            b = y1
+
+            f_min = m * (x_min - x1) + b
+
+            if Tobs is None:
+                # will default to tf bound
+                Tobs = self.full(self.num_bin_all, 1e300)
+
+            x_max = Tobs[:, None] * (
+                Tobs[:, None] < self.tf.max(axis=-1)
+            ) + self.tf.max(axis=-1) * (Tobs[:, None] > self.tf.max(axis=-1))
+
+            # linear interp for max frequency
+            segment_inds = (
+                searchsorted2d_vec(
+                    self.tf.reshape(-1, self.length),
+                    x_max.reshape(-1, 1),
+                    xp=self.xp,
+                    side="right",
+                )
+                - 1
+            ).reshape(x_max.shape)
+
+            segment_inds[segment_inds == self.length - 1] -= 1
+
+            y1 = self.xp.take_along_axis(
+                self.freqs_shaped, segment_inds[:, :, None], axis=-1
+            )[:, :, 0]
+            y2 = self.xp.take_along_axis(
+                self.freqs_shaped, segment_inds[:, :, None] + 1, axis=-1
+            )[:, :, 0]
+            x1 = self.xp.take_along_axis(self.tf, segment_inds[:, :, None], axis=-1)[
+                :, :, 0
+            ]
+            x2 = self.xp.take_along_axis(
+                self.tf, segment_inds[:, :, None] + 1, axis=-1
+            )[:, :, 0]
+
+            m = (y2 - y1) / (x2 - x1)
+            b = y1
+
+            f_max = m * (x_max - x1) + b
+            fix = Tobs[:, None] >= self.tf.max(axis=-1)
+            f_max[fix] = self.freqs_shaped[fix].max(axis=-1)
+
+            new_freqs = self.xp.logspace(
+                self.xp.log10(f_min), self.xp.log10(f_max), self.length, axis=-1
+            )
+            tmp_kwargs = kwargs.copy()
+            tmp_kwargs["freqs"] = new_freqs
+            self.run_wave(*args, **tmp_kwargs)

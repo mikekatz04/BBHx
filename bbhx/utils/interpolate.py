@@ -31,6 +31,24 @@ from pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
 from bbhx.utils.constants import *
 
 
+def searchsorted2d_vec(a, b, xp=None, **kwargs):
+    if xp is None:
+        xp = np
+
+    m, n = a.shape
+    max_num = xp.maximum(a.max() - a.min(), b.max() - b.min()) + 1
+    r = max_num * xp.arange(a.shape[0])[:, None]
+    p = xp.searchsorted((a + r).ravel(), (b + r).ravel(), **kwargs).reshape(m, -1)
+
+    out = p - n * (xp.arange(m)[:, None])
+    try:
+        xp.cuda.runtime.deviceSynchronize()
+    except AttributeError:
+        pass
+
+    return out
+
+
 class CubicSplineInterpolant:
     """GPU-accelerated Multiple Cubic Splines
 
@@ -109,21 +127,18 @@ class CubicSplineInterpolant:
 
         else:
             # arrays are shaped
-            if x.ndim != 2:
+            if x.ndim != 3:
                 raise ValueError(
-                    "If providing shaped array, needs to be 2D with shape (num_bin_all, length)."
+                    "If providing shaped array, needs to be 3D with shape (num_bin_all, num_modes, length)."
                 )
             if y_all.ndim != 4:
                 raise ValueError(
-                    "If providing shaped array, needs to be 2D with shape (num_interp_params, num_bin_all, num_modes, length)."
+                    "If providing shaped array, needs to be 4D with shape (num_interp_params, num_bin_all, num_modes, length)."
                 )
 
             num_interp_params, num_bin_all, num_modes, length = y_all.shape
 
-            if x.shape != (num_bin_all, length):
-                raise ValueError(
-                    "Provided y_all array has shape {y_all.shape}. Provided x array has shape {x.shape}. The 2nd and 4th dimension of y_all should match the x shape."
-                )
+            assert y_all.shape[1:] == x.shape
 
             x = x.flatten()
             y_all = y_all.flatten()
@@ -136,7 +151,7 @@ class CubicSplineInterpolant:
 
         # get reshape information
         self.reshape_shape = (num_interp_params, num_bin_all, num_modes, length)
-        self.x_reshape_shape = (num_bin_all, length)
+        self.x_reshape_shape = (num_bin_all, num_modes, length)
 
         # setup all arrays for interpolation
         x = self.xp.asarray(x)
@@ -212,3 +227,49 @@ class CubicSplineInterpolant:
     def container(self):
         """Container for easy transit of interpolation information."""
         return [self.x, self.y, self.c1, self.c2, self.c3]
+
+    def __call__(self, x_new):
+        if x_new.ndim == 3 and x_new.shape[:2] != self.x_reshape_shape[:2]:
+            raise ValueError(
+                "x_new must have 3D shape of (num_bin_all, num_modes, # of new points)"
+            )
+
+        assert self.xp.all(
+            x_new <= self.x_shaped.max(axis=-1)[:, :, None]
+        ) and self.xp.all(x_new >= self.x_shaped.min(axis=-1)[:, :, None])
+
+        segment_inds = (
+            searchsorted2d_vec(
+                self.x_shaped.reshape(-1, self.length),
+                x_new.reshape(-1, x_new.shape[-1]),
+                xp=self.xp,
+                side="right",
+            )
+            - 1
+        ).reshape(x_new.shape)
+
+        if self.xp.any(segment_inds == self.length - 1):
+            #  assert self.xp.all(x_new[segment_inds == self.length - 1] == self.x_shaped.max(axis=-1))
+            segment_inds[segment_inds == self.length - 1] = self.length - 2
+
+        x0 = self.xp.take_along_axis(self.x_shaped, segment_inds, axis=-1)
+        y0 = self.xp.take_along_axis(
+            self.y_shaped, segment_inds[None, :, :, :], axis=-1
+        )
+        c1 = self.xp.take_along_axis(
+            self.c1_shaped, segment_inds[None, :, :, :], axis=-1
+        )
+        c2 = self.xp.take_along_axis(
+            self.c2_shaped, segment_inds[None, :, :, :], axis=-1
+        )
+        c3 = self.xp.take_along_axis(
+            self.c3_shaped, segment_inds[None, :, :, :], axis=-1
+        )
+
+        dx = x_new - x0
+
+        y_new = y0 + c1 * dx + c2 * dx**2 + c3 * dx**3
+
+        if hasattr(self.xp, "cuda"):
+            self.xp.get_default_memory_pool().free_all_block()
+        return y_new

@@ -55,7 +55,7 @@ class WaveformTest(unittest.TestCase):
         beta = np.pi / 4.0  # ecliptic latitude
         lam = np.pi / 5.0  # ecliptic longitude
         psi = np.pi / 6.0  # polarization angle
-        t_ref = 1.0 * YRSID_SI  # t_ref  (in the SSB reference frame)
+        t_ref = 0.8 * YRSID_SI  # t_ref  (in the SSB reference frame)
 
         # frequencies to interpolate to
         freq_new = xp.logspace(-4, 0, 10000)
@@ -65,9 +65,9 @@ class WaveformTest(unittest.TestCase):
         orbits.configure(linear_interp_setup=True)
 
         wave_gen = BBHWaveformFD(
-            amp_phase_kwargs=dict(run_phenomd=False), 
+            amp_phase_kwargs=dict(run_phenomd=False),
             response_kwargs=dict(orbits=orbits),
-            use_gpu=gpu_available
+            use_gpu=gpu_available,
         )
 
         wave = wave_gen(
@@ -102,7 +102,7 @@ class WaveformTest(unittest.TestCase):
         a1 = 0.2
         a2 = 0.4
         dist = 18e3 * PC_SI * 1e6  # 3e3 in Mpc
-        t_ref = 0.0
+        t_ref = 0.8 * YRSID_SI
 
         phenomhm(m1, m2, a1, a2, dist, phi_ref, f_ref, t_ref, 1024)
 
@@ -126,7 +126,7 @@ class WaveformTest(unittest.TestCase):
         a1 = 0.2
         a2 = 0.4
         dist = 18e3 * PC_SI * 1e6  # 3e3 in Mpc
-        t_ref = 0.0
+        t_ref = 0.8 * YRSID_SI
 
         phenomhm(m1, m2, a1, a2, dist, phi_ref, f_ref, t_ref, 1024)
 
@@ -142,12 +142,13 @@ class WaveformTest(unittest.TestCase):
         lam = np.pi / 6
         psi = np.pi / 7
 
-        length = freqs.shape[-1]
+        length = phenomhm.freqs_shaped.shape[-1]
 
         orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
         orbits.configure(linear_interp_setup=True)
 
         response = LISATDIResponse(orbits=orbits, use_gpu=gpu_available)
+
         response(
             freqs, inc, lam, beta, psi, phi_ref, length, phase=phase, tf=tf, modes=modes
         )
@@ -164,8 +165,8 @@ class WaveformTest(unittest.TestCase):
 
         wave_gen = BBHWaveformFD(
             amp_phase_kwargs=dict(run_phenomd=False),
-            response_kwargs=dict(orbits=orbits), 
-            use_gpu=gpu_available
+            response_kwargs=dict(orbits=orbits),
+            use_gpu=gpu_available,
         )
 
         ######## generate data
@@ -181,7 +182,7 @@ class WaveformTest(unittest.TestCase):
         beta = np.pi / 4.0  # ecliptic latitude
         lam = np.pi / 5.0  # ecliptic longitude
         psi = np.pi / 6.0  # polarization angle
-        t_ref = 1.0 * YRSID_SI  # t_ref  (in the SSB reference frame)
+        t_ref = 0.8 * YRSID_SI  # t_ref  (in the SSB reference frame)
 
         T_obs = 1.2  # years
         dt = 10.0
@@ -258,9 +259,9 @@ class WaveformTest(unittest.TestCase):
         orbits.configure(linear_interp_setup=True)
 
         wave_gen = BBHWaveformFD(
-            amp_phase_kwargs=dict(run_phenomd=False), 
+            amp_phase_kwargs=dict(run_phenomd=False),
             response_kwargs=dict(orbits=orbits),
-            use_gpu=gpu_available
+            use_gpu=gpu_available,
         )
 
         ######## generate data
@@ -276,7 +277,7 @@ class WaveformTest(unittest.TestCase):
         beta = np.pi / 4.0  # ecliptic latitude
         lam = np.pi / 5.0  # ecliptic longitude
         psi = np.pi / 6.0  # polarization angle
-        t_ref = 1.0 * YRSID_SI  # t_ref  (in the SSB reference frame)
+        t_ref = 0.8 * YRSID_SI  # t_ref  (in the SSB reference frame)
 
         T_obs = 1.2  # years
         dt = 10.0

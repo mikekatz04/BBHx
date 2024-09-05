@@ -338,7 +338,7 @@ void response_modes(double *phases, double *response_out, int binNum, int mode_i
         int mode_index = (binNum * numModes + mode_i) * length + i;
         int freq_index = binNum * length + i;
 
-        double freq = freqs[freq_index];
+        double freq = freqs[mode_index];
 
         double t_wave_frame = tf[mode_index];
 
@@ -723,7 +723,7 @@ void LISA_response(
     gpuErrchk(cudaGetLastError());
 
     gpuErrchk(cudaFree(orbits_gpu));
-    
+
 #else
     response(
         phases,

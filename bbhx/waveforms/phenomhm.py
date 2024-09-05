@@ -25,11 +25,11 @@ from scipy.interpolate import CubicSpline
 
 # import GPU stuff
 try:
-    from pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
-    from pyPhenomHM import (
+    from bbhx.pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
+    from bbhx.pyPhenomHM import (
         get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_gpu,
     )
-    from pyPhenomHM import (
+    from bbhx.pyPhenomHM import (
         get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_gpu,
     )
     import cupy as cp
@@ -37,11 +37,11 @@ try:
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU PhenomHM module.")
 
-from pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu
-from pyPhenomHM_cpu import (
+from bbhx.pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu
+from bbhx.pyPhenomHM_cpu import (
     get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_cpu,
 )
-from pyPhenomHM_cpu import (
+from bbhx.pyPhenomHM_cpu import (
     get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_cpu,
 )
 
@@ -544,93 +544,106 @@ class PhenomHMAmpPhase:
             self.xp.asarray(t_ref)[:, None, None], (1, self.num_modes, self.length)
         ).flatten()
 
-    def __call__(self, *args, Tobs=None, **kwargs):
+    def __call__(self, *args, Tobs=None, direct=False, **kwargs):
 
         self.run_wave(*args, **kwargs)
 
         # interpolating. Need to adjust frequency bounds
-        if "direct" not in kwargs or not kwargs["direct"]:
+        if not direct:
             # TODO: must check if this is accurate enough!!!!!!!
 
+            # PURPOSE: NEED TO REMOVE FREQUENCIES WHERE ORBIT INFO DOES NOT EXIST
             # get start of available information
-            x_min = self.xp.zeros((self.tf.shape[:2]))
-            x_min = x_min * (x_min > self.tf.min(axis=-1)) + self.tf.min(axis=-1) * (
-                x_min < self.tf.min(axis=-1)
-            )
 
-            # linear interp for minimum frequency
-            segment_inds = (
-                searchsorted2d_vec(
-                    self.tf.reshape(-1, self.length),
-                    x_min.reshape(-1, 1),
-                    xp=self.xp,
-                    side="right",
+            fix = self.tf.min(axis=-1) < 0.0
+            f_min = self.freqs_shaped.min(axis=-1)
+
+            if self.xp.any(fix):
+                windows_of_interest = self.xp.argwhere(
+                    (0.0 < self.tf[fix, 1:]) & (0.0 > self.tf[fix, :-1])
                 )
-                - 1
-            ).reshape(x_min.shape)
 
-            y1 = self.xp.take_along_axis(
-                self.freqs_shaped, segment_inds[:, :, None], axis=-1
-            )[:, :, 0]
-            y2 = self.xp.take_along_axis(
-                self.freqs_shaped, segment_inds[:, :, None] + 1, axis=-1
-            )[:, :, 0]
-            x1 = self.xp.take_along_axis(self.tf, segment_inds[:, :, None], axis=-1)[
-                :, :, 0
-            ]
-            x2 = self.xp.take_along_axis(
-                self.tf, segment_inds[:, :, None] + 1, axis=-1
-            )[:, :, 0]
+                if self.xp.unique(windows_of_interest, axis=0).shape[0] != fix.sum():
+                    raise ValueError(
+                        "The search for a window at x_min did not run correctly. If t_ref is close to zero, the time-frequency correspondence may be crossing zero twice."
+                    )
 
-            m = (y2 - y1) / (x2 - x1)
-            b = y1
+                # linear interp for minimum frequency
+                segment_inds = windows_of_interest[:, 1]
 
-            f_min = m * (x_min - x1) + b
+                y1 = self.xp.take_along_axis(
+                    self.freqs_shaped[fix], segment_inds[:, None], axis=-1
+                )[:, 0]
+                y2 = self.xp.take_along_axis(
+                    self.freqs_shaped[fix], segment_inds[:, None] + 1, axis=-1
+                )[:, 0]
+                x1 = self.xp.take_along_axis(
+                    self.tf[fix], segment_inds[:, None], axis=-1
+                )[:, 0]
+                x2 = self.xp.take_along_axis(
+                    self.tf[fix], segment_inds[:, None] + 1, axis=-1
+                )[:, 0]
+
+                m = (y2 - y1) / (x2 - x1)
+                b = y1
+
+                f_min_new = m * (0.0 - x1) + b
+                f_min[fix] = f_min_new
 
             if Tobs is None:
                 # will default to tf bound
-                Tobs = self.full(self.num_bin_all, 1e300)
+                Tobs = self.xp.full((self.num_bin_all, self.num_modes), 1e300)
+            elif isinstance(Tobs, float):
+                Tobs = self.xp.full((self.num_bin_all, self.num_modes), Tobs)
+            elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 1:
+                assert Tobs.shape[0] == self.num_bin_all
+                Tobs = self.xp.repeat(Tobs[:, None], self.num_modes, axis=-1)
+            elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 2:
+                assert Tobs.shape == (self.num_bin_all, self.num_modes)
+            else:
+                raise ValueError("Tobs entered incorrectly.")
 
-            x_max = Tobs[:, None] * (
-                Tobs[:, None] < self.tf.max(axis=-1)
-            ) + self.tf.max(axis=-1) * (Tobs[:, None] > self.tf.max(axis=-1))
+            fix = self.tf.max(axis=-1) > Tobs
+            f_max = self.freqs_shaped.max(axis=-1)
 
-            # linear interp for max frequency
-            segment_inds = (
-                searchsorted2d_vec(
-                    self.tf.reshape(-1, self.length),
-                    x_max.reshape(-1, 1),
-                    xp=self.xp,
-                    side="right",
+            if self.xp.any(fix):
+                windows_of_interest = self.xp.argwhere(
+                    (Tobs[fix][:, None] < self.tf[fix, 1:])
+                    & (Tobs[fix][:, None] > self.tf[fix, :-1])
                 )
-                - 1
-            ).reshape(x_max.shape)
 
-            segment_inds[segment_inds == self.length - 1] -= 1
+                if self.xp.unique(windows_of_interest, axis=0).shape[0] != fix.sum():
+                    raise ValueError(
+                        "The search for a window at x_max did not run correctly. If t_ref is close to the observation time, the time-frequency correspondence may be crossing zero twice."
+                    )
 
-            y1 = self.xp.take_along_axis(
-                self.freqs_shaped, segment_inds[:, :, None], axis=-1
-            )[:, :, 0]
-            y2 = self.xp.take_along_axis(
-                self.freqs_shaped, segment_inds[:, :, None] + 1, axis=-1
-            )[:, :, 0]
-            x1 = self.xp.take_along_axis(self.tf, segment_inds[:, :, None], axis=-1)[
-                :, :, 0
-            ]
-            x2 = self.xp.take_along_axis(
-                self.tf, segment_inds[:, :, None] + 1, axis=-1
-            )[:, :, 0]
+                # linear interp for minimum frequency
+                segment_inds = windows_of_interest[:, 1]
 
-            m = (y2 - y1) / (x2 - x1)
-            b = y1
+                y1 = self.xp.take_along_axis(
+                    self.freqs_shaped[fix], segment_inds[:, None], axis=-1
+                )[:, 0]
+                y2 = self.xp.take_along_axis(
+                    self.freqs_shaped[fix], segment_inds[:, None] + 1, axis=-1
+                )[:, 0]
+                x1 = self.xp.take_along_axis(
+                    self.tf[fix], segment_inds[:, None], axis=-1
+                )[:, 0]
+                x2 = self.xp.take_along_axis(
+                    self.tf[fix], segment_inds[:, None] + 1, axis=-1
+                )[:, 0]
 
-            f_max = m * (x_max - x1) + b
-            fix = Tobs[:, None] >= self.tf.max(axis=-1)
-            f_max[fix] = self.freqs_shaped[fix].max(axis=-1)
+                m = (y2 - y1) / (x2 - x1)
+                b = y1
+
+                f_max_new = m * (Tobs[fix] - x1) + b
+
+                f_max[fix] = f_max_new
 
             new_freqs = self.xp.logspace(
                 self.xp.log10(f_min), self.xp.log10(f_max), self.length, axis=-1
             )
+
             tmp_kwargs = kwargs.copy()
             tmp_kwargs["freqs"] = new_freqs
             self.run_wave(*args, **tmp_kwargs)

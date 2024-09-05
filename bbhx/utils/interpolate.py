@@ -20,13 +20,13 @@ import numpy as np
 
 try:
     import cupy as cp
-    from pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
+    from bbhx.pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
 
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU interpolation available.")
 
-from pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
+from bbhx.pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
 
 from bbhx.utils.constants import *
 
@@ -116,7 +116,7 @@ class CubicSplineInterpolant:
                     "If providing flattened arrays, need to provide dimensional information: length, num_modes, num_bin_all, num_interp_params."
                 )
 
-            if len(x) != length * num_bin_all:
+            if len(x) != length * num_modes * num_bin_all:
                 raise ValueError(
                     f"Length of the x array is not correct. It is supposed to be {length * num_bin_all}. It is currently {len(x)}."
                 )

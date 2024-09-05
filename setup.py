@@ -192,7 +192,7 @@ import lisatools
 path_to_lisatools = lisatools.__file__.split("__init__.py")[0]
 path_to_lisatools_cutils = path_to_lisatools + "cutils/"
 
-exec(open('scripts/prebuild.py', 'r').read())
+exec(open("scripts/prebuild.py", "r").read())
 
 # if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:
@@ -230,10 +230,12 @@ if run_cuda_install:
     )
 
     pyPhenomHM_ext = Extension(
-        "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
+        "bbhx.pyPhenomHM",
+        sources=["src/PhenomHM.cu", "src/phenomhm.pyx"],
+        **gpu_extension,
     )
     pyFDResponse_ext = Extension(
-        "pyFDResponse",
+        "bbhx.pyFDResponse",
         sources=[
             path_to_lisatools_cutils + "src/Detector.cu",
             "src/Response.cu",
@@ -266,17 +268,17 @@ if run_cuda_install:
         ],
     )
     pyInterpolate_ext = Extension(
-        "pyInterpolate",
+        "bbhx.pyInterpolate",
         sources=["src/Interpolate.cu", "src/interpolate.pyx"],
         **gpu_extension,
     )
     pyWaveformBuild_ext = Extension(
-        "pyWaveformBuild",
+        "bbhx.pyWaveformBuild",
         sources=["src/WaveformBuild.cu", "src/waveformbuild.pyx"],
         **gpu_extension,
     )
     pyLikelihood_ext = Extension(
-        "pyLikelihood",
+        "bbhx.pyLikelihood",
         sources=["src/Likelihood.cu", "src/likelihood.pyx"],
         **gpu_extension,
     )
@@ -301,12 +303,12 @@ cpu_extension = dict(
 )
 
 pyPhenomHM_cpu_ext = Extension(
-    "pyPhenomHM_cpu",
+    "bbhx.pyPhenomHM_cpu",
     sources=["src/PhenomHM.cpp", "src/phenomhm_cpu.pyx"],
     **cpu_extension,
 )
 pyFDResponse_cpu_ext = Extension(
-    "pyFDResponse_cpu",
+    "bbhx.pyFDResponse_cpu",
     sources=[
         path_to_lisatools_cutils + "src/Detector.cpp",
         "src/Response.cpp",
@@ -316,19 +318,19 @@ pyFDResponse_cpu_ext = Extension(
 )
 
 pyInterpolate_cpu_ext = Extension(
-    "pyInterpolate_cpu",
+    "bbhx.pyInterpolate_cpu",
     sources=["src/Interpolate.cpp", "src/interpolate_cpu.pyx"],
     **cpu_extension,
 )
 
 pyWaveformBuild_cpu_ext = Extension(
-    "pyWaveformBuild_cpu",
+    "bbhx.pyWaveformBuild_cpu",
     sources=["src/WaveformBuild.cpp", "src/waveformbuild_cpu.pyx"],
     **cpu_extension,
 )
 
 pyLikelihood_cpu_ext = Extension(
-    "pyLikelihood_cpu",
+    "bbhx.pyLikelihood_cpu",
     sources=["src/Likelihood.cpp", "src/likelihood_cpu.pyx"],
     **cpu_extension,
 )
@@ -361,6 +363,6 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.1.1",
+    version="1.1.2",
     python_requires=">=3.6",
 )

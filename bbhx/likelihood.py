@@ -19,17 +19,17 @@ import numpy as np
 
 try:
     import cupy as cp
-    from pyLikelihood import hdyn_wrap as hdyn_wrap_gpu
-    from pyLikelihood import direct_like_wrap as direct_like_wrap_gpu
-    from pyLikelihood import prep_hdyn as prep_hdyn_gpu
+    from bbhx.pyLikelihood import hdyn_wrap as hdyn_wrap_gpu
+    from bbhx.pyLikelihood import direct_like_wrap as direct_like_wrap_gpu
+    from bbhx.pyLikelihood import prep_hdyn as prep_hdyn_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as cp
 
-from pyLikelihood_cpu import prep_hdyn as prep_hdyn_cpu
-from pyLikelihood_cpu import hdyn_wrap as hdyn_wrap_cpu
-from pyLikelihood_cpu import direct_like_wrap as direct_like_wrap_cpu
+from bbhx.pyLikelihood_cpu import prep_hdyn as prep_hdyn_cpu
+from bbhx.pyLikelihood_cpu import hdyn_wrap as hdyn_wrap_cpu
+from bbhx.pyLikelihood_cpu import direct_like_wrap as direct_like_wrap_cpu
 
 from bbhx.utils.constants import *
 

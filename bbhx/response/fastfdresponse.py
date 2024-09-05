@@ -20,12 +20,12 @@ import numpy as np
 
 try:
     import cupy as cp
-    from pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
+    from bbhx.pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU response available.")
 
-from pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
+from bbhx.pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
 from bbhx.utils.constants import *
 
 from lisatools.detector import EqualArmlengthOrbits, Orbits
@@ -265,6 +265,7 @@ class LISATDIResponse:
         tf=None,
         out_buffer=None,
         adjust_phase=True,
+        direct=False,
     ):
         """Evaluate respones function
 
@@ -384,20 +385,28 @@ class LISATDIResponse:
         # setup and check frequency dimensions
         self.freqs = freqs
         if self.freqs.ndim > 1:
-            if self.freqs.shape != (self.num_bin_all, self.length):
+            if self.freqs.shape != (self.num_bin_all, self.num_modes, self.length):
                 raise ValueError(
-                    f"freqs have incorrect shape. Shape should be {(self.num_bin_all, self.length)}. Current shape is {freqs.shape}."
+                    f"freqs have incorrect shape. Shape should be {(self.num_bin_all, self.num_modes, self.length)}. Current shape is {freqs.shape}."
                 )
             self.freqs = self.freqs.flatten()
         else:
-            if len(freqs) != self.num_bin_all * self.length:
+            if len(freqs) != self.num_bin_all * self.num_modes * self.length:
                 raise ValueError(
-                    f"freqs incorrect length. The length should be equivalent to {self.num_bin_all * self.length}. Given length is {len(freqs)}."
+                    f"freqs incorrect length. The length should be equivalent to {self.num_bin_all * self.num_modes * self.length}. Given length is {len(freqs)}."
                 )
 
         # if using phase/tf
         if phase is not None and tf is not None:
             use_phase_tf = True
+
+            if not direct and (
+                tf.min() < self.orbits.t_base.min()
+                or tf.max() > self.orbits.t_base.max()
+            ):
+                raise ValueError(
+                    f"Orbital information does not cover minimum ({tf.min()}) and maximum ({tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}."
+                )
 
             if phase.shape != tf.shape:
                 raise ValueError(
@@ -450,6 +459,14 @@ class LISATDIResponse:
 
         else:
             use_phase_tf = False
+            if not direct and (
+                self.tf.min() < self.orbits.t_base.min()
+                or self.tf.max() > self.orbits.t_base.max()
+            ):
+                breakpoint()
+                raise ValueError(
+                    f"Orbital information does not cover minimum ({self.tf.min()}) and maximum ({self.tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}."
+                )
 
         # run response code in C/CUDA
         self.response_gen(

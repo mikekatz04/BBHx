@@ -59,8 +59,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">bbhx</span></code> Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#GPU-accelerated-MBHB-waveforms-for-LISA">GPU accelerated MBHB waveforms for LISA</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Adjust-inspiral-timing-with-shift_t_limits=False">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Adjust-inspiral-timing-with-shift_t_limits=True">Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Adjust-inspiral-timing">Adjust inspiral timing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#Controlling-interpolation">Controlling interpolation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Check-number-of-points-that-is-good-for-interpolation:">Check number of points that is good for interpolation:</a></li>
 </ul>
@@ -147,8 +146,8 @@
 <div class="highlight"><pre>
 No CuPy
 No CuPy or GPU PhenomHM module.
-No CuPy or GPU response available.
 No CuPy or GPU interpolation available.
+No CuPy or GPU response available.
 No CuPy
 </pre></div></div>
 </div>
@@ -181,7 +180,7 @@ waveforms and response separately can be found below.</p>
 <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span>  <span class="c1"># ecliptic latitude</span>
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">5.</span>  <span class="c1"># ecliptic longitude</span>
 <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">6.</span>  <span class="c1"># polarization angle</span>
-<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># t_ref  (in the SSB reference frame)</span>
+<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># t_ref  (in the SSB reference frame)</span>
 
 <span class="c1"># frequencies to interpolate to</span>
 <span class="n">freq_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
@@ -222,70 +221,21 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <img alt="_images/bbhx_tutorial_7_1.png" src="_images/bbhx_tutorial_7_1.png" />
 </div>
 </div>
-<section id="Adjust-inspiral-timing-with-shift_t_limits=False">
-<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=False" title="Link to this heading"></a></h2>
-<p>You can move the end of the signal further back in time from merger by changing <code class="docutils literal notranslate"><span class="pre">t_obs_end</span></code>. You can also adjust how far back in time the waveform starts with <code class="docutils literal notranslate"><span class="pre">t_obs_start</span></code>. With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=False</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
-<p>Chopping the signal can make the signal look like it abrubtly loses power. This is the case because different harmonic modes turn off abruptly at different frequencies.</p>
+<section id="Adjust-inspiral-timing">
+<h2>Adjust inspiral timing<a class="headerlink" href="#Adjust-inspiral-timing" title="Link to this heading"></a></h2>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># start at one month</span>
-<span class="n">t_obs_start</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="mf">12.</span>
-
-<span class="c1"># end 1 hour before merger</span>
-<span class="n">t_obs_end</span> <span class="o">=</span> <span class="mf">3600.</span> <span class="o">/</span> <span class="n">YRSID_SI</span>
-
-<span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
-                          <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span>
-                          <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">freq_new</span><span class="p">,</span>
-                          <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span> <span class="n">direct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
-                <span class="n">t_obs_start</span><span class="o">=</span><span class="n">t_obs_start</span><span class="p">,</span> <span class="n">t_obs_end</span><span class="o">=</span><span class="n">t_obs_end</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">let</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">]):</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">freq_new</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">label</span><span class="o">=</span><span class="n">let</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency (Hz)&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\tilde</span><span class="si">{h}</span><span class="s2">(f)$ (Hz$^{-1/2}$)&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_10_1.png" src="_images/bbhx_tutorial_10_1.png" />
-</div>
-</div>
-</section>
-<section id="Adjust-inspiral-timing-with-shift_t_limits=True">
-<h2>Adjust inspiral timing with <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code><a class="headerlink" href="#Adjust-inspiral-timing-with-shift_t_limits=True" title="Link to this heading"></a></h2>
-<p>With <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, these values are relative to <code class="docutils literal notranslate"><span class="pre">t_ref</span></code>. So <code class="docutils literal notranslate"><span class="pre">t_obs_start</span> <span class="pre">=</span> <span class="pre">1.0</span></code> means 1 year before coalescence.</p>
-<p>Based on the <code class="docutils literal notranslate"><span class="pre">t_ref</span></code> of the system we are examining, with <code class="docutils literal notranslate"><span class="pre">t_obs_start=0</span></code>, <code class="docutils literal notranslate"><span class="pre">t_obs_end=0.75</span></code> years, <code class="docutils literal notranslate"><span class="pre">shift_t_limits=True</span></code>, only an early low-power portion of the signal is observed.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># start at the beginning of observation</span>
 <span class="n">t_obs_start</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-<span class="c1"># end after 0.75 years</span>
-<span class="n">t_obs_end</span> <span class="o">=</span> <span class="mf">0.75</span>
+<span class="n">t_obs_end</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_ref</span> <span class="o">-</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span> <span class="o">/</span> <span class="n">YRSID_SI</span>  <span class="c1"># 1 day before merger</span>
 
 <span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
                           <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span>
                           <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">freq_new</span><span class="p">,</span>
-                          <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span> <span class="n">direct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
-                <span class="n">shift_t_limits</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">t_obs_start</span><span class="o">=</span><span class="n">t_obs_start</span><span class="p">,</span> <span class="n">t_obs_end</span><span class="o">=</span><span class="n">t_obs_end</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                          <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span> <span class="n">direct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">t_obs_start</span><span class="o">=</span><span class="n">t_obs_start</span><span class="p">,</span> <span class="n">t_obs_end</span><span class="o">=</span><span class="n">t_obs_end</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">let</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">]):</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">freq_new</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">label</span><span class="o">=</span><span class="n">let</span><span class="p">)</span>
@@ -296,7 +246,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -308,7 +258,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_13_1.png" src="_images/bbhx_tutorial_13_1.png" />
+<img alt="_images/bbhx_tutorial_9_1.png" src="_images/bbhx_tutorial_9_1.png" />
 </div>
 </div>
 </section>
@@ -316,7 +266,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <h2>Controlling interpolation<a class="headerlink" href="#Controlling-interpolation" title="Link to this heading"></a></h2>
 <p>The user has the option to control the interpolation by providing the number of frequencies to interpolate over with the <code class="docutils literal notranslate"><span class="pre">length</span></code> keyword argument.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># number of points is too small</span>
@@ -350,7 +300,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -362,22 +312,22 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_16_1.png" src="_images/bbhx_tutorial_16_1.png" />
+<img alt="_images/bbhx_tutorial_12_1.png" src="_images/bbhx_tutorial_12_1.png" />
 </div>
 </div>
 <section id="Check-number-of-points-that-is-good-for-interpolation:">
 <h3>Check number of points that is good for interpolation:<a class="headerlink" href="#Check-number-of-points-that-is-good-for-interpolation:" title="Link to this heading"></a></h3>
 <p>Generally, most reasonable numbers of points are fine for interpolation. We usually put 1024 to be conservative. It can slightly affect the waveform timing.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># compute directly first (see below)</span>
 <span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
                           <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span>
                           <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">freq_new</span><span class="p">,</span>
-                          <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span> <span class="n">direct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="p">)</span>
+                          <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span> <span class="n">direct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
 <span class="n">lengths_in</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 <span class="n">mismatch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">lengths_in</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -386,7 +336,8 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
     <span class="n">wave_temp</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
                               <span class="n">dist</span><span class="p">,</span> <span class="n">phi_ref</span><span class="p">,</span> <span class="n">f_ref</span><span class="p">,</span> <span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span>
                               <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">freqs</span><span class="o">=</span><span class="n">freq_new</span><span class="p">,</span>
-                              <span class="n">direct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">length</span>
+                              <span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">,</span>
+                              <span class="n">direct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">length</span>
                     <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">num</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">wave_temp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">wave</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)])</span>
@@ -402,7 +353,7 @@ Text(0.5, 0, &#39;Frequency (Hz)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -414,7 +365,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_19_1.png" src="_images/bbhx_tutorial_19_1.png" />
+<img alt="_images/bbhx_tutorial_15_1.png" src="_images/bbhx_tutorial_15_1.png" />
 </div>
 </div>
 </section>
@@ -424,7 +375,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 <p>When interpolating, frequencies between <span class="math notranslate nohighlight">\(10^{-4}/M\)</span> and <span class="math notranslate nohighlight">\(0.6/M\)</span> are evaluated. Therefore, when not interpolating, the evaluation of the waveform will stretch outside these limits if frequencies outside those limits are given by the user.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">compress=True</span></code>, all modes will be directly combined.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -442,7 +393,7 @@ Text(0, 0.5, &#39;Mismatch&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -454,12 +405,12 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_22_1.png" src="_images/bbhx_tutorial_22_1.png" />
+<img alt="_images/bbhx_tutorial_18_1.png" src="_images/bbhx_tutorial_18_1.png" />
 </div>
 </div>
 <p>With <code class="docutils literal notranslate"><span class="pre">compress=False</span></code>, it will keep the modes separate.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -480,7 +431,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -492,7 +443,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_24_1.png" src="_images/bbhx_tutorial_24_1.png" />
+<img alt="_images/bbhx_tutorial_20_1.png" src="_images/bbhx_tutorial_20_1.png" />
 </div>
 </div>
 </section>
@@ -500,7 +451,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <h2>Adjusting mode content<a class="headerlink" href="#Adjusting-mode-content" title="Link to this heading"></a></h2>
 <p>You can adjust the mode content with the <code class="docutils literal notranslate"><span class="pre">modes</span></code> keyword argument. You will receive an error if the requested mode indices <span class="math notranslate nohighlight">\((l,m)\)</span> are not available for the given waveform model chosen.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wave</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -521,7 +472,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -533,14 +484,14 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_27_1.png" src="_images/bbhx_tutorial_27_1.png" />
+<img alt="_images/bbhx_tutorial_23_1.png" src="_images/bbhx_tutorial_23_1.png" />
 </div>
 </div>
 </section>
 <section id="All-of-these-functions-can-take-arrays-for-parameters">
 <h2>All of these functions can take arrays for parameters<a class="headerlink" href="#All-of-these-functions-can-take-arrays-for-parameters" title="Link to this heading"></a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># set parameters</span>
@@ -550,12 +501,12 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <span class="n">m2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">5e5</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">])</span>
 <span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">])</span>
 <span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">])</span>
-<span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3e3</span><span class="p">,</span> <span class="mf">2.1e3</span><span class="p">])</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
+<span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">10e3</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">])</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
 <span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">])</span>
 <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">5</span><span class="p">])</span>
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">5.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">])</span>
 <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">6.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">7</span><span class="p">])</span>
-<span class="n">t_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">])</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># in the SSB reference frame</span>
+<span class="n">t_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">])</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># in the SSB reference frame</span>
 
 <span class="c1"># frequencies to interpolate to</span>
 <span class="n">freq_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
@@ -576,7 +527,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -588,7 +539,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_29_1.png" src="_images/bbhx_tutorial_29_1.png" />
+<img alt="_images/bbhx_tutorial_25_1.png" src="_images/bbhx_tutorial_25_1.png" />
 </div>
 </div>
 </section>
@@ -597,7 +548,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>The <code class="docutils literal notranslate"><span class="pre">fill</span></code> keyword argument allows the user to fill the data stream as in the first example above. However, it can give two other returns. (It is only available when <code class="docutils literal notranslate"><span class="pre">direct=False</span></code>.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">fill=False</span></code>, it will return special information used in the fast likelihood function. This includes templates as shortened arrays (only the values where <span class="math notranslate nohighlight">\(\tilde{h}(f)\)</span> is non-zero), the information on which frequency each array starts at and its length.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">templates</span><span class="p">,</span> <span class="n">start_inds</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -621,39 +572,33 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[array([[-5.17689020e-019+3.10716143e-018j,
-         3.09513055e-018+2.22650263e-019j,
-        -8.91078695e-020-3.29350134e-018j, ...,
-        -4.58978912e-313+2.10347829e-312j,
-        -1.43224624e-312-8.85778293e-314j,
-        -3.51814680e-313-1.48532253e-313j],
-       [ 3.45314862e-018+1.37751740e-019j,
-        -1.51344982e-019-3.58801144e-018j,
-        -3.63632794e-018+3.19022787e-019j, ...,
-        -4.53209462e-313-2.39957146e-312j,
-         1.53458988e-312-5.42388822e-313j,
-         4.33149031e-313-8.73912553e-316j],
-       [-6.17870919e-027+1.16246055e-026j,
-         1.15484747e-026+5.54204573e-027j,
-         3.91668155e-027-1.17353039e-026j, ...,
-         2.48588438e-317-1.80190682e-318j,
-         3.71317506e-318+1.61919047e-317j,
-        -4.95404564e-319+4.39307362e-318j]]), array([[-1.46307937e-20+2.98547626e-21j,  1.03837288e-20-1.07606328e-20j,
-        -2.04441355e-21+1.48353878e-20j, ...,
-         0.00000000e+00+0.00000000e+00j,  0.00000000e+00+0.00000000e+00j,
-         0.00000000e+00+0.00000000e+00j],
-       [ 6.21053657e-21+2.19538800e-22j, -5.20529795e-21+3.46087593e-21j,
-         2.05916800e-21-5.94272708e-21j, ...,
-         0.00000000e+00+0.00000000e+00j,  0.00000000e+00+0.00000000e+00j,
-         0.00000000e+00+0.00000000e+00j],
-       [ 1.55702320e-30+4.26836288e-29j, -2.62630156e-29-3.43400870e-29j,
-         4.21387291e-29+1.18023535e-29j, ...,
-         0.00000000e+00+0.00000000e+00j,  0.00000000e+00+0.00000000e+00j,
-         0.00000000e+00+0.00000000e+00j]])] [0 0] [7274 8466]
+[array([[-3.14154099e-19+2.93930145e-19j, -4.11910745e-19-2.31073392e-19j,
+         7.18639789e-20-4.30372868e-19j, ...,
+        -1.21330575e-43-4.29769485e-44j,  6.36570618e-46-1.07049893e-43j,
+        -1.51012483e-45-8.87380319e-44j],
+       [-3.77142996e-19+6.09479474e-19j, -7.23835376e-19-1.45368093e-19j,
+        -9.26662932e-20-7.14586769e-19j, ...,
+         2.57629108e-43-8.19014428e-44j,  1.33780103e-43+1.81800785e-43j,
+         1.11242618e-43+1.49366094e-43j],
+       [-2.82108635e-28+4.25544336e-28j, -5.89161226e-28+6.21183363e-30j,
+        -9.93313342e-29-5.74008671e-28j, ...,
+        -3.89107774e-44-4.92386953e-44j,  2.82041850e-44-4.37426151e-44j,
+         2.24209609e-44-3.62845654e-44j]]), array([[-3.07245461e-20+6.26998385e-21j,  2.18054463e-20-2.25976697e-20j,
+        -4.29271950e-21+3.11543715e-20j, ...,
+        -2.78259785e-20-8.22146447e-20j,  7.77498602e-20+3.89050092e-20j,
+        -7.88818912e-20+3.68982312e-20j],
+       [ 1.30420115e-20+4.61283100e-22j, -1.09311648e-20+7.26757282e-21j,
+         4.32441893e-21-1.24795359e-20j, ...,
+         9.23185723e-20+2.51389976e-20j, -8.34510053e-20+4.74818772e-20j,
+         1.43365804e-20-9.52734595e-20j],
+       [ 3.26882976e-30+8.96343560e-29j, -5.51509029e-29-7.21135974e-29j,
+         8.84898291e-29+2.47851396e-29j, ...,
+        -2.76775148e-26+4.58288676e-26j, -1.27450933e-26-5.22741814e-26j,
+         4.91910732e-26+2.24536166e-26j]])] [0 0] [8026 1681]
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -665,12 +610,12 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_32_2.png" src="_images/bbhx_tutorial_32_2.png" />
+<img alt="_images/bbhx_tutorial_28_2.png" src="_images/bbhx_tutorial_28_2.png" />
 </div>
 </div>
 <p>The binaries can also be combined into one data stream with <code class="docutils literal notranslate"><span class="pre">fill=True</span></code> and <code class="docutils literal notranslate"><span class="pre">combine=True</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">waves</span> <span class="o">=</span> <span class="n">wave_gen</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span>
@@ -687,7 +632,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -699,7 +644,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_34_1.png" src="_images/bbhx_tutorial_34_1.png" />
+<img alt="_images/bbhx_tutorial_30_1.png" src="_images/bbhx_tutorial_30_1.png" />
 </div>
 </div>
 </section>
@@ -708,7 +653,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <h1>Generating PhenomHM waveforms<a class="headerlink" href="#Generating-PhenomHM-waveforms" title="Link to this heading"></a></h1>
 <p>Now we will create PhenomHM waveforms in the source frame, but scaled for the distance.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">phenomhm</span> <span class="o">=</span> <span class="n">PhenomHMAmpPhase</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">run_phenomd</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -716,7 +661,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f_ref</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># let phenom codes set f_ref -&gt; fmax = max(f^2A(f))</span>
@@ -726,7 +671,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <span class="n">a1</span> <span class="o">=</span> <span class="mf">0.2</span>
 <span class="n">a2</span> <span class="o">=</span> <span class="mf">0.4</span>
 <span class="n">dist</span> <span class="o">=</span> <span class="mf">18e3</span>  <span class="o">*</span> <span class="n">PC_SI</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="c1"># 3e3 in Mpc</span>
-<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">0.95</span> <span class="o">*</span> <span class="n">YRSID_SI</span>
 
 <span class="n">modes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
 
@@ -744,7 +689,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <span class="p">)</span>
 
 <span class="c1"># get important quantities</span>
-<span class="n">freqs</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs_shaped</span>  <span class="c1"># shape (num_bin_all, length)</span>
+<span class="n">freqs</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs_shaped</span>  <span class="c1"># shape (num_bin_all, num_modes, length)</span>
 <span class="n">amps</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">amp</span>  <span class="c1"># shape (num_bin_all, num_modes, length)</span>
 <span class="n">phase</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span>  <span class="c1"># shape (num_bin_all, num_modes, length)</span>
 <span class="n">tf</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">tf</span>  <span class="c1"># shape (num_bin_all, num_modes, length)</span>
@@ -753,11 +698,11 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 <p>Plot Amplitudes</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mode</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">modes</span><span class="p">):</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">amps</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">amps</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Characteristic Strain&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency (Hz)&quot;</span><span class="p">)</span>
@@ -766,19 +711,19 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;matplotlib.legend.Legend at 0x133c67590&gt;
+&lt;matplotlib.legend.Legend at 0x13660aa20&gt;
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_40_1.png" src="_images/bbhx_tutorial_40_1.png" />
+<img alt="_images/bbhx_tutorial_36_1.png" src="_images/bbhx_tutorial_36_1.png" />
 </div>
 </div>
 </section>
@@ -791,7 +736,7 @@ Text(0, 0.5, &#39;$\\tilde{h}(f)$ (Hz$^{-1/2}$)&#39;)
 <p>The response function operates directly on information coming from the base waveform generation in PhenomHM when you run <code class="docutils literal notranslate"><span class="pre">BBHWaveformFD</span></code>. To run the response separately you need to provide a phase and tf vector. The phase is adjusted inside the response code. If you do not want that to happen, you can add the keyword argument <code class="docutils literal notranslate"><span class="pre">adjust_phase=False</span></code>. If you are just running the response function to use it itself and not using to adjust phase, you can just put in zeros for the phase, it will not
 affect the computation. All parameters for the response are in the SSB frame. This function can take 1D arrays for the parameters as well. In this case, you need <code class="docutils literal notranslate"><span class="pre">freqs.shape=(num_bin_all,</span> <span class="pre">length)</span></code>, <code class="docutils literal notranslate"><span class="pre">phases.shape=tf.shape=(num_bin_all,</span> <span class="pre">num_modes,</span> <span class="pre">length)</span></code> with <code class="docutils literal notranslate"><span class="pre">num_bin_all</span></code> the total number of binaries, <code class="docutils literal notranslate"><span class="pre">num_modes</span></code> the number of harmonics, and <code class="docutils literal notranslate"><span class="pre">length</span></code> number of frequencies to evaluate per binary.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># use phase/tf information from last waveform run</span>
@@ -806,8 +751,8 @@ affect the computation. All parameters for the response are in the SSB frame. Th
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span>
 <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">7</span>
 
-<span class="n">length</span> <span class="o">=</span> <span class="n">freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-
+<span class="n">length</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs_shaped</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">freqs_shaped</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs_shaped</span>
 <span class="n">response</span> <span class="o">=</span> <span class="n">LISATDIResponse</span><span class="p">()</span>
 <span class="n">response</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span>
         <span class="n">inc</span><span class="p">,</span>
@@ -827,8 +772,8 @@ affect the computation. All parameters for the response are in the SSB frame. Th
     <span class="n">index</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">modes</span><span class="o">.</span><span class="n">index</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
     <span class="c1"># response.transferL1</span>
     <span class="n">transfer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;transferL</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span> <span class="n">transfer</span><span class="o">.</span><span class="n">real</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Real&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;solid&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span> <span class="n">transfer</span><span class="o">.</span><span class="n">imag</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Imag&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">freqs_shaped</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">transfer</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">]),</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;L</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Real&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;solid&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;C</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1">#plt.loglog(freqs, transfer.imag[0, index], label=f&quot;L{i} Imag&quot;, ls=&quot;dashed&quot;, color=f&quot;C{i-1}&quot;)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency (Hz)&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\mathcal</span><span class="si">{T}</span><span class="s2">(f, t(f))$&quot;</span><span class="p">)</span>
@@ -836,7 +781,7 @@ affect the computation. All parameters for the response are in the SSB frame. Th
 </div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -848,18 +793,18 @@ Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_43_1.png" src="_images/bbhx_tutorial_43_1.png" />
+<img alt="_images/bbhx_tutorial_39_1.png" src="_images/bbhx_tutorial_39_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># use phase/tf information from last waveform run</span>
 
 <span class="n">num_bin_all</span> <span class="o">=</span> <span class="mi">10</span>
 
-<span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs_shaped</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 <span class="n">phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 <span class="n">tf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">phenomhm</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
@@ -869,7 +814,7 @@ Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">6</span><span class="p">)</span>
 <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">7</span><span class="p">)</span>
 
-<span class="n">length</span> <span class="o">=</span> <span class="n">freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">length</span> <span class="o">=</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">freqs_shaped</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
 <span class="n">response</span><span class="p">(</span>
     <span class="n">freqs</span><span class="p">,</span>
@@ -889,7 +834,7 @@ Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 <span class="c1"># get phase adjustment by response function</span>
 <span class="n">phase_diff</span> <span class="o">=</span> <span class="n">phase</span> <span class="o">-</span> <span class="n">phenomhm</span><span class="o">.</span><span class="n">phase</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">freqs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">phase_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency (Hz)&quot;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Phase Difference from Response Function&quot;</span><span class="p">)</span>
 </pre></div>
@@ -900,11 +845,11 @@ Text(0, 0.5, &#39;$\\mathcal{T}(f, t(f))$&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(10, 1024) (10, 6, 1024) (10, 6, 1024) (10, 6, 1024)
+(10, 6, 1024) (10, 6, 1024) (10, 6, 1024) (10, 6, 1024)
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -916,10 +861,27 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/bbhx_tutorial_44_2.png" src="_images/bbhx_tutorial_44_2.png" />
+<img alt="_images/bbhx_tutorial_40_2.png" src="_images/bbhx_tutorial_40_2.png" />
 </div>
 </div>
 <p>If building a waveform, you can also put a larger buffer object directly into the response code. This larger buffer object would be carrying amplitudes, phases, and tf from the source-frame waveform generator in a flattened 1D array.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">phenomhm</span><span class="o">.</span><span class="n">tf</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2074.3644391335547
+</pre></div></div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
@@ -933,7 +895,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 
 <span class="n">f_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># let phenom codes set f_ref -&gt; fmax = max(f^2A(f))</span>
 <span class="n">phi_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="c1"># phase at f_ref</span>
-<span class="n">t_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="c1"># time at f_ref</span>
+<span class="n">t_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">3e6</span><span class="p">)</span> <span class="c1"># time at f_ref</span>
 <span class="n">m1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">)</span>
 <span class="n">m2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">5e5</span><span class="p">)</span>
 <span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_bin_all</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
@@ -983,12 +945,12 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[ 2.59987559e-12  7.38281574e+04 -1.44109019e+09  0.00000000e+00
-  0.00000000e+00  0.00000000e+00  0.00000000e+00  0.00000000e+00
-  0.00000000e+00]
-[ 2.59987559e-12  7.38281579e+04 -1.44109019e+09 -0.00000000e+00
-  0.00000000e+00 -0.00000000e+00  0.00000000e+00  0.00000000e+00
-  0.00000000e+00]
+[1.70824294e-13 4.14100197e+03 1.65814682e+01 0.00000000e+00
+ 0.00000000e+00 0.00000000e+00 0.00000000e+00 0.00000000e+00
+ 0.00000000e+00]
+[ 1.70824294e-13  4.14087439e+03  1.65814682e+01 -3.09383403e-06
+  2.34941055e-06  4.04192751e-06  1.44557752e-06  2.79724168e-16
+ -4.52904052e-15]
 </pre></div></div>
 </div>
 </section>
@@ -1005,7 +967,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <h2>Computing the log-Likelihood for MBHBs directly against the Fourier transform of data<a class="headerlink" href="#Computing-the-log-Likelihood-for-MBHBs-directly-against-the-Fourier-transform-of-data" title="Link to this heading"></a></h2>
 <p>One option in <code class="docutils literal notranslate"><span class="pre">bbhx</span></code> for computing the likelihood is a direct Likeihood computation: <code class="docutils literal notranslate"><span class="pre">bbhx.likelihood.Likelihood</span></code>. You will need <code class="docutils literal notranslate"><span class="pre">lisatools</span></code> if you want to compute the sensitivity curves. Otherwise, put in your own sensitivity functions or np.ones to get it to work.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">######## generate data</span>
@@ -1021,7 +983,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span>  <span class="c1"># ecliptic latitude</span>
 <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">5.</span>  <span class="c1"># ecliptic longitude</span>
 <span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">6.</span>  <span class="c1"># polarization angle</span>
-<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># t_ref  (in the SSB reference frame)</span>
+<span class="n">t_ref</span> <span class="o">=</span> <span class="mf">0.9</span> <span class="o">*</span> <span class="n">YRSID_SI</span>  <span class="c1"># t_ref  (in the SSB reference frame)</span>
 
 <span class="n">T_obs</span> <span class="o">=</span> <span class="mf">1.2</span> <span class="c1"># years</span>
 <span class="n">dt</span> <span class="o">=</span> <span class="mf">10.0</span>
@@ -1075,17 +1037,17 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[-0.56231853 -5.04761453 -0.43127672 -3.31971965 -5.35832732 -0.09739732
- -0.18954596 -1.36331031 -0.60341271 -2.97678974] [2985.9975537  -43.59816508j 2980.25281946-130.79576009j
- 2987.35839562 +38.14301663j 2982.33350447-106.01475564j
- 2979.8858162 -134.77467888j 2986.84026896 -18.14336574j
- 2987.40200313 +25.23793256j 2984.84036964 -67.89881176j
- 2987.29428656 +45.1395584j  2982.75720639-100.37933708j]
+[ -1.07304677  -9.67441448  -0.82049942  -6.35227414 -10.27292833
+  -0.18575894  -0.35926129  -2.60369419  -1.14904283  -5.69420711] [764982.31202969 -591.06049369j 764946.22578225-1778.38208222j
+ 765008.20318771 +516.83052761j 764957.38520581-1439.90214805j
+ 764944.36630292-1832.8289125j  764991.18762188 -245.87126849j
+ 765004.61719784 +341.9503657j  764973.14459642 -921.03288148j
+ 765010.06945941 +611.6637902j  764959.82211007-1363.06563164j]
 </pre></div></div>
 </div>
 <p>You can also phase marginalize. This occurs in the <span class="math notranslate nohighlight">\(\langle d|h \rangle\)</span> term in the Likelihood.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># get_ll and not __call__ to work with lisatools</span>
@@ -1100,21 +1062,21 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[-0.56231853 -0.2440499 ]
- [-5.04761453 -2.17884767]
- [-0.43127672 -0.18777891]
- [-3.31971965 -1.43603024]
- [-5.35832732 -2.31208066]
- [-0.09739732 -0.04229248]
- [-0.18954596 -0.08294131]
- [-1.36331031 -0.59113294]
- [-0.60341271 -0.26239116]
- [-2.97678974 -1.28822454]]
+[[ -1.07304677  -0.84470656]
+ [ -9.67441448  -7.60718515]
+ [ -0.82049942  -0.64591713]
+ [ -6.35227414  -4.99708991]
+ [-10.27292833  -8.07717584]
+ [ -0.18575894  -0.14624693]
+ [ -0.35926129  -0.28283688]
+ [ -2.60369419  -2.04922946]
+ [ -1.14904283  -0.90451498]
+ [ -5.69420711  -4.47979925]]
 </pre></div></div>
 </div>
 <p>You can also return the signal-to-noise ratio: <span class="math notranslate nohighlight">\(\langle d|h \rangle / \sqrt{\langle h|h \rangle}\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># get_ll and not __call__ to work with lisatools</span>
@@ -1130,16 +1092,16 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[-0.56231853 54.64508567]
- [-5.04761453 54.56297366]
- [-0.43127672 54.64748678]
- [-3.31971965 54.59461168]
- [-5.35832732 54.55728389]
- [-0.09739732 54.6535931 ]
- [-0.18954596 54.65190792]
- [-1.36331031 54.630426  ]
- [-0.60341271 54.64433873]
- [-2.97678974 54.60089008]]
+[[-1.07304677e+00  8.74639879e+02]
+ [-9.67441448e+00  8.74630045e+02]
+ [-8.20499422e-01  8.74640167e+02]
+ [-6.35227414e+00  8.74633843e+02]
+ [-1.02729283e+01  8.74629361e+02]
+ [-1.85758940e-01  8.74640893e+02]
+ [-3.59261290e-01  8.74640695e+02]
+ [-2.60369419e+00  8.74638129e+02]
+ [-1.14904283e+00  8.74639792e+02]
+ [-5.69420711e+00  8.74634595e+02]]
 </pre></div></div>
 </div>
 </section>
@@ -1148,7 +1110,7 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 <p>Heterodyned Likelihoods are also available. See <a class="reference external" href="https://arxiv.org/abs/2109.02728">arXiv:2109.02728</a> for details on Heterodyning in general. We specifically implement the method used in <a class="reference external" href="https://arxiv.org/abs/1806.08792">arXiv:1806.08792</a>. The practical reason for using a Heterodyned Likelihood method is the computation can be performed along a sparse array of frequencies, rather than a dense array comming from a Fourier transform.</p>
 <p>It is reasonably accurate with higher modes and produces the same posteriors as the full Likelihood. It uses a direct sum of modes prior to residual computation. It gets more accurate as modes are removed.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reference_index</span> <span class="o">=</span> <span class="n">ll</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
@@ -1181,16 +1143,16 @@ Text(0, 0.5, &#39;Phase Difference from Response Function&#39;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[[ -0.56231853  -7.54937845]
- [ -5.04761453 -11.93909684]
- [ -0.43127672  -7.43406949]
- [ -3.31971965 -10.24724956]
- [ -5.35832732 -12.2433316 ]
- [ -0.09739732  -7.09670385]
- [ -0.18954596  -7.19381899]
- [ -1.36331031  -8.33231868]
- [ -0.60341271  -7.60479998]
- [ -2.97678974  -9.91150227]]
+[[ -1.07304677  -1.00832284]
+ [ -9.67441448  -8.90280807]
+ [ -0.82049942  -0.74911253]
+ [ -6.35227414  -5.85909352]
+ [-10.27292833  -9.45085245]
+ [ -0.18575894  -0.18590962]
+ [ -0.35926129  -0.32960139]
+ [ -2.60369419  -2.41820795]
+ [ -1.14904283  -1.04894937]
+ [ -5.69420711  -5.25570331]]
 </pre></div></div>
 </div>
 </section>
@@ -1206,7 +1168,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 <h3>Transformations to and from LISA and SSB reference frames<a class="headerlink" href="#Transformations-to-and-from-LISA-and-SSB-reference-frames" title="Link to this heading"></a></h3>
 <p>First, we will examine transformations of coordinates to and from the LISA and SSB reference frames. All of these functions can take arrays as input as well.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># start in the LISA frame</span>
@@ -1230,7 +1192,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 </div>
 <p>From SSB to LISA:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tL</span><span class="p">,</span> <span class="n">lambdaL</span><span class="p">,</span> <span class="n">betaL</span><span class="p">,</span> <span class="n">psiL</span> <span class="o">=</span> <span class="n">SSB_to_LISA</span><span class="p">(</span><span class="n">tSSB</span><span class="p">,</span> <span class="n">lambdaSSB</span><span class="p">,</span> <span class="n">betaSSB</span><span class="p">,</span> <span class="n">psiSSB</span><span class="p">)</span>
@@ -1251,7 +1213,7 @@ polarization angle. The latitudinal modes are at <span class="math notranslate n
 <h3>Posterior sky-mode transformation<a class="headerlink" href="#Posterior-sky-mode-transformation" title="Link to this heading"></a></h3>
 <p>You can transform your sky mode parameters to all longitudinal modes. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 4 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">inc</span> <span class="o">=</span> <span class="mf">0.4</span>
@@ -1286,7 +1248,7 @@ end params: [[0.4        3.42       0.6        1.        ]
 </div>
 <p>Or latitudinal transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 2 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1308,7 +1270,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </div>
 <p>Or both transforms. If <code class="docutils literal notranslate"><span class="pre">inplace==False</span></code>, the first dimension will be 8 times as long as the input array.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start params: </span><span class="si">{</span><span class="n">coords</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1336,7 +1298,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 </div>
 <p>You can also do these transformations in-place. When you do this, the input binaries will be assigned to new sky modes based on the transformation. Every 2, 4, or 8 binaries will be given the same sky mode transformation if latitudinal, longitudinal, or both transformations are applied, respectively.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">in_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inc</span><span class="p">,</span> <span class="n">lam</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">psi</span><span class="p">]),</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
@@ -1393,7 +1355,7 @@ end params: [[ 0.4         3.42        0.6         1.        ]
 <h1>Citations<a class="headerlink" href="#Citations" title="Link to this heading"></a></h1>
 <p>You can access citations for each class with the <code class="docutils literal notranslate"><span class="pre">citation</span></code> property.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">wave_gen</span><span class="o">.</span><span class="n">citation</span><span class="p">)</span>

@@ -16,18 +16,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+import warnings
 
 # import gpu stuff
 try:
     import cupy as cp
-    from pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
-    from pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
+    from bbhx.pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
+    from bbhx.pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
 
-from pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
-from pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
+from bbhx.pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
+from bbhx.pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 
 from .waveforms.phenomhm import PhenomHMAmpPhase
 from .response.fastfdresponse import LISATDIResponse
@@ -131,14 +132,15 @@ class TemplateInterpFD:
         # unpack interp_container
         (freqs, y, c1, c2, c3) = interp_container
 
-        freqs_shaped = freqs.reshape(self.num_bin_all, -1)
+        freqs_shaped = freqs.reshape(self.num_bin_all, self.num_modes, -1)
 
         # find where each binary's signal starts and ends in the data array
 
+        # lowest frequencies in all the modes. Highest frequencies in all the modes.
         start_and_end = self.xp.asarray(
             [
-                freqs_shaped[:, 0],
-                freqs_shaped[:, -1],
+                freqs_shaped.min(axis=(1, 2)),
+                freqs_shaped.max(axis=(1, 2)),
             ]
         ).T
 
@@ -156,16 +158,23 @@ class TemplateInterpFD:
 
         # find proper interpolation window for each point in data stream
         inds = [
-            self.xp.searchsorted(
-                freqs_shaped[i], data_freqs[st:et], side="right"
-            ).astype(self.xp.int32)
-            - 1
+            np.concatenate(
+                [
+                    self.xp.searchsorted(
+                        freqs_shaped[i, j], data_freqs[st:et], side="right"
+                    )
+                    - 1
+                    for j in range(self.num_modes)
+                ]
+            )
+            .astype(self.xp.int32)
+            .copy()
             for i, (st, et) in enumerate(inds_start_and_end)
         ]
 
         # lengths of the signals in frequency domain
         self.lengths = lengths = np.asarray(
-            [len(inds_i) for inds_i in inds], dtype=self.xp.int32
+            [int(len(inds_i) / self.num_modes) for inds_i in inds], dtype=self.xp.int32
         )
 
         # make sure have this quantity available on CPU
@@ -340,12 +349,12 @@ class BBHWaveformFD:
         beta,
         psi,
         t_ref,
-        t_obs_start=1.0,
-        t_obs_end=0.0,
+        t_obs_start=0.0,
+        t_obs_end=1.0,
         freqs=None,
         length=None,
         modes=None,
-        shift_t_limits=False,
+        shift_t_limits=True,
         direct=False,
         compress=True,
         squeeze=False,
@@ -371,18 +380,11 @@ class BBHWaveformFD:
             psi (double or np.ndarray): Polarization angle in radians :math:`(\psi\in[0.0, \pi])`.
             t_ref (double or np.ndarray): Reference time in seconds. It is set at ``f_ref``.
             t_obs_start (double, optional): Start time of observation in years
-                in the LISA constellation reference frame. If ``shift_t_limits==True``,
-                this is with reference to :math:`t=0`. If ``shift_t_limits==False`` this is
-                with reference to ``t_ref`` and works backwards. So, in this case,
-                ``t_obs_start`` gives how much time back from merger to start the waveform.
-                (Default: 1.0)
+                in the LISA constellation reference frame. This is with reference to :math:`t=0`.
+                (Default: 0.0)
             t_obs_end (double, optional): End time of observation in years in the
-                LISA constellation reference frame. If
-                ``shift_t_limits==True``, this is with reference to :math:`t=0`.
-                If ``shift_t_limits==False`` this is with reference to ``t_ref``
-                and works backwards. So, in this case, ``t_obs_end`` gives how much time
-                back from merger to start the waveform. If the value is zero, it takes
-                everything after the merger as well. (Default: 0.0)
+                LISA constellation reference frame. This is with reference to :math:`t=0`.
+                (Default: 1.0)
             freqs (np.ndarray, optional): Frequencies at which to evaluate the final waveform.
                 If ``length`` is also given, the interpolants interpolate to these
                 frequencies. If ``length`` is not given, the waveform amplitude, phase,
@@ -450,32 +452,35 @@ class BBHWaveformFD:
         # TODO: add sanity checks for t_start, t_end
         # how to set up time limits
         if shift_t_limits is False:
-            t_ref_L = tLfromSSBframe(t_ref, lam, beta)
-
-            # start and end times are defined in the LISA reference frame
-            t_obs_start_L = t_ref_L - t_obs_start * YRSID_SI
-            t_obs_end_L = t_ref_L - t_obs_end * YRSID_SI
-
-            # convert to SSB frame
-            t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)
-            t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
-
-            # fix zeros and less than zero
-            t_start = (
-                t_obs_start_SSB if t_obs_start > 0.0 else np.zeros(self.num_bin_all)
+            warnings.warn(
+                "Deprecated: shift_t_limits. Previously shift_t_limits defaulted to False. This option is now removed and permanently set to shift_t_limits=True."
             )
-            t_end = t_obs_end_SSB if t_obs_end > 0.0 else np.zeros_like(t_start)
+            # t_ref_L = tLfromSSBframe(t_ref, lam, beta)
 
-        else:
-            # start and end times are defined in the LISA reference frame
-            t_obs_start_L = t_obs_start * YRSID_SI
-            t_obs_end_L = t_obs_end * YRSID_SI
+            # # start and end times are defined in the LISA reference frame
+            # t_obs_start_L = t_ref_L - t_obs_start * YRSID_SI
+            # t_obs_end_L = t_ref_L - t_obs_end * YRSID_SI
 
-            # convert to SSB frame
-            t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)
-            t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
-            t_start = np.atleast_1d(t_obs_start_SSB)
-            t_end = np.atleast_1d(t_obs_end_SSB)
+            # # convert to SSB frame
+            # t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)
+            # t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
+
+            # # fix zeros and less than zero
+            # t_start = (
+            #     t_obs_start_SSB if t_obs_start > 0.0 else np.zeros(self.num_bin_all)
+            # )
+            # t_end = t_obs_end_SSB if t_obs_end > 0.0 else np.zeros_like(t_start)
+
+        # else:
+        # start and end times are defined in the LISA reference frame
+        t_obs_start_L = t_obs_start * YRSID_SI
+        t_obs_end_L = t_obs_end * YRSID_SI
+
+        # convert to SSB frame
+        t_obs_start_SSB = tSSBfromLframe(t_obs_start_L, lam, beta, 0.0)
+        t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
+        t_start = np.atleast_1d(t_obs_start_SSB)
+        t_end = np.atleast_1d(t_obs_end_SSB)
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")
@@ -530,6 +535,7 @@ class BBHWaveformFD:
             out_buffer=out_buffer,
             modes=modes,
             Tobs=Tobs,
+            direct=direct,
         )
 
         # setup buffer to carry around all the quantities of interest
@@ -551,6 +557,7 @@ class BBHWaveformFD:
             length,
             out_buffer=out_buffer,  # fill into this buffer
             modes=self.amp_phase_gen.modes,
+            direct=direct,
         )
 
         # for checking
@@ -559,7 +566,7 @@ class BBHWaveformFD:
         ).copy()
 
         # direct computation from buffer
-        # + compressing all harmonics into a single data stream by diret combination
+        # + compressing all harmonics into a single data stream by direct combination
         if direct and compress:
             # setup template
             templateChannels = self.xp.zeros(
@@ -634,7 +641,6 @@ class BBHWaveformFD:
             )
 
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
-
             template_channels = self.interp_response(
                 freqs,
                 spline.container,
@@ -655,7 +661,7 @@ class BBHWaveformFD:
                         self.interp_response.start_inds,
                         self.interp_response.lengths,
                     ):
-                        data_out[:, start_i : start_i + length_i] = temp
+                        data_out[:, start_i : start_i + length_i] += temp
 
                     if squeeze:
                         return data_out.squeeze()

@@ -81,6 +81,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.tf"><code class="docutils literal notranslate"><span class="pre">PhenomHMAmpPhase.tf</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs_shaped"><code class="docutils literal notranslate"><span class="pre">PhenomHMAmpPhase.freqs_shaped</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.freqs"><code class="docutils literal notranslate"><span class="pre">PhenomHMAmpPhase.freqs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.run_wave"><code class="docutils literal notranslate"><span class="pre">PhenomHMAmpPhase.run_wave()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__"><code class="docutils literal notranslate"><span class="pre">PhenomHMAmpPhase.__call__()</span></code></a></li>
 </ul>
 </li>
@@ -423,8 +424,8 @@ as choosing <code class="docutils literal notranslate"><span class="pre">modes=[
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi1z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi2z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.run_wave">
+<span class="sig-name descname"><span class="pre">run_wave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi1z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi2z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freqs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.run_wave" title="Link to this definition"></a></dt>
 <dd><p>Generate PhenomHM/D waveforms</p>
 <p>Generate PhenomHM/PhenomD waveforms based on user given quantitites
 in the Amplitude-Phase representation.</p>
@@ -458,6 +459,12 @@ default to those available in the waveform model. For PhenomHM:
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bbhx.waveforms.phenomhm.PhenomHMAmpPhase.__call__" title="Link to this definition"></a></dt>
+<dd><p>Call self as a function.</p>
 </dd></dl>
 
 </dd></dl>

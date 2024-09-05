@@ -597,8 +597,9 @@ class PhenomHMAmpPhase:
                 Tobs = self.xp.full((self.num_bin_all, self.num_modes), Tobs)
             elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 1:
                 assert Tobs.shape[0] == self.num_bin_all
-                Tobs = self.xp.repeat(Tobs[:, None], self.num_modes, axis=-1)
+                Tobs = self.xp.repeat(self.xp.asarray(Tobs)[:, None], self.num_modes, axis=-1)
             elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 2:
+                Tobs = self.xp.asarray(Tobs)
                 assert Tobs.shape == (self.num_bin_all, self.num_modes)
             else:
                 raise ValueError("Tobs entered incorrectly.")

@@ -1,6 +1,7 @@
 #ifndef __PHENOMHM__
 #define __PHENOMHM__
 
+#include "global.h"
 
 /**
  * Dimensionless frequency (Mf) at which define the end of the waveform
@@ -369,5 +370,54 @@ void waveform_amp_phase(
     double* Mf_DM_lm_all,
     int run_phenomd
 );
+
+CUDA_CALLABLE_MEMBER
+void IMRPhenomHMCore(
+    int *ells,
+    int *mms,
+    double* amps,
+    double* phases,
+    double* tf,
+    double* freqs,                      /**< GW frequecny list [Hz] */
+    double m1_SI,                               /**< primary mass [kg] */
+    double m2_SI,                               /**< secondary mass [kg] */
+    double chi1z,                               /**< aligned spin of primary */
+    double chi2z,                               /**< aligned spin of secondary */
+    const double distance,                      /**< distance [m] */
+    double f_ref,
+    int length,                              /**< reference GW frequency */
+    int numModes,
+    int binNum,
+    int numBinAll,
+    double cshift[],
+    double* Mf_RD_lm,
+    double* Mf_DM_lm,
+    int run_phenomd
+);
+
+CUDA_CALLABLE_MEMBER
+double IMRPhenomDFinalMass(
+    double m1,    /**< mass of primary in solar masses */
+    double m2,    /**< mass of secondary in solar masses */
+    double chi1z, /**< aligned-spin component on primary */
+    double chi2z  /**< aligned-spin component on secondary */
+);
+
+CUDA_CALLABLE_MEMBER
+double IMRPhenomDFinalSpin(
+    const double m1_in,                 /**< mass of companion 1 [Msun] */
+    const double m2_in,                 /**< mass of companion 2 [Msun] */
+    const double chi1_in,               /**< aligned-spin of companion 1 */
+    const double chi2_in               /**< aligned-spin of companion 2 */
+);
+
+CUDA_CALLABLE_MEMBER
+int IMRPhenomHMGetRingdownFrequency(
+    double *fringdown,
+    double *fdamp,
+    unsigned int ell,
+    int mm,
+    double finalmass,
+    double finalspin);
 
 #endif // __PHENOMHM__

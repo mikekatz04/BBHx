@@ -84,8 +84,10 @@ def customize_compiler_for_nvcc(self):
         if src == "zzzzzzzzzzzzzzzz.cu":
             self.set_executable("compiler_so", CUDA["nvcc"])
             postargs = extra_postargs["nvcclink"]
-            cc_args = self.cuda_object_files[1:]
+            cc_args = [tmp for tmp in self.cuda_object_files[1:]]
             src = self.cuda_object_files[0]
+            # reset for next round CRUCIAL
+            self.cuda_object_files.clear()
         elif os.path.splitext(src)[1] == ".cu":
             self.set_executable("compiler_so", CUDA["nvcc"])
             postargs = extra_postargs["nvcc"]
@@ -227,7 +229,41 @@ if run_cuda_install:
         },
         include_dirs=[numpy_include, CUDA["include"], "include"],
     )
-
+    pyNewSetup_ext = Extension(
+        "pyNewSetup", 
+        sources=[
+            path_to_lisatools_cutils + "src/Detector.cu",
+            "src/Response.cu", 
+            "src/PhenomHM.cu", 
+            "src/tmp_adjust.cu", 
+            "src/tmp_adjust_wrap.pyx", 
+            "zzzzzzzzzzzzzzzz.cu"
+        ],
+        libraries=["cudart", "cudadevrt", "cublas", "cusparse"],
+        library_dirs=[CUDA["lib64"]],
+        runtime_library_dirs=[CUDA["lib64"]],
+        language="c++",
+        # This syntax is specific to this build system
+        # we're only going to use certain compiler args with nvcc
+        # and not with gcc the implementation of this trick is in
+        # customize_compiler()
+        extra_compile_args={
+            "gcc": ["-std=c++11"],
+            "nvcc": ["-arch=sm_80", "-rdc=true", "--compiler-options", "'-fPIC'"],
+            "nvcclink": [
+                "-arch=sm_80",
+                "--device-link",
+                "--compiler-options",
+                "'-fPIC'",
+            ],
+        },
+        include_dirs=[
+            path_to_lisatools_cutils + "include",
+            numpy_include,
+            CUDA["include"],
+            "include",
+        ],
+    )
     pyPhenomHM_ext = Extension(
         "pyPhenomHM", sources=["src/PhenomHM.cu", "src/phenomhm.pyx"], **gpu_extension
     )
@@ -339,6 +375,7 @@ extensions = [
     pyInterpolate_cpu_ext,
     pyWaveformBuild_cpu_ext,
     pyLikelihood_cpu_ext,
+    pyNewSetup_ext
 ]
 
 if run_cuda_install:

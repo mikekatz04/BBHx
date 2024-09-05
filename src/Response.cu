@@ -83,6 +83,7 @@ d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double *k, int respon
     double *n = &n_all[0];
 
 #endif
+    if (t < 0.0) t = 10.0;
     Vec tmp = orbits->get_pos(t, 1);
     p1L[0] = tmp.x;
     p1L[1] = tmp.y;

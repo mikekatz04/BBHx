@@ -39,4 +39,23 @@ void LISA_response(
     int includesAmps,
     Orbits *orbits);
 
+CUDA_CALLABLE_MEMBER
+void responseCore(
+    double *phases,
+    double *response_out,
+    int *ells,
+    int *mms,
+    double *tf,
+    double *freqs,        /**< GW frequecny list [Hz] */
+    const double phi_ref, /**< orbital phase at f_ref */
+    double inc,
+    double lam,
+    double beta,
+    double psi,
+    int length, /**< reference GW frequency */
+    int numModes,
+    int binNum,
+    int numBinAll,
+    int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil, Orbits *orbits
+);
 #endif // __RESPONSE_HH__

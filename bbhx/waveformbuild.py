@@ -21,14 +21,14 @@ import warnings
 # import gpu stuff
 try:
     import cupy as cp
-    from bbhx.pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
-    from bbhx.pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
+    from .cutils.pyWaveformBuild import direct_sum_wrap as direct_sum_wrap_gpu
+    from .cutils.pyWaveformBuild import InterpTDI_wrap as InterpTDI_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
 
-from bbhx.pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
-from bbhx.pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
+from .cutils.pyWaveformBuild_cpu import direct_sum_wrap as direct_sum_wrap_cpu
+from .cutils.pyWaveformBuild_cpu import InterpTDI_wrap as InterpTDI_wrap_cpu
 
 from .waveforms.phenomhm import PhenomHMAmpPhase
 from .response.fastfdresponse import LISATDIResponse

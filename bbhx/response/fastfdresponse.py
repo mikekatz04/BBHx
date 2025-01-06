@@ -20,13 +20,13 @@ import numpy as np
 
 try:
     import cupy as cp
-    from bbhx.pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
+    from .cutils.pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU response available.")
 
-from bbhx.pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
-from bbhx.utils.constants import *
+from ..cutils.pyFDResponse_cpu import LISA_response_wrap as LISA_response_wrap_cpu
+from ..utils.constants import *
 
 from lisatools.detector import EqualArmlengthOrbits, Orbits
 

@@ -20,15 +20,15 @@ import numpy as np
 
 try:
     import cupy as cp
-    from bbhx.pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
+    from ..cutils.pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
 
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU interpolation available.")
 
-from bbhx.pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
+from ..cutils.pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
 
-from bbhx.utils.constants import *
+from ..utils.constants import *
 
 
 def searchsorted2d_vec(a, b, xp=None, **kwargs):

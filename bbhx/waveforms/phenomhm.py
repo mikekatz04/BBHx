@@ -25,11 +25,13 @@ from scipy.interpolate import CubicSpline
 
 # import GPU stuff
 try:
-    from bbhx.pyPhenomHM import waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu
-    from bbhx.pyPhenomHM import (
+    from ..cutils.pyPhenomHM import (
+        waveform_amp_phase_wrap as waveform_amp_phase_wrap_gpu,
+    )
+    from ..cutils.pyPhenomHM import (
         get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_gpu,
     )
-    from bbhx.pyPhenomHM import (
+    from ..cutils.pyPhenomHM import (
         get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_gpu,
     )
     import cupy as cp
@@ -37,11 +39,13 @@ try:
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU PhenomHM module.")
 
-from bbhx.pyPhenomHM_cpu import waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu
-from bbhx.pyPhenomHM_cpu import (
+from ..cutils.pyPhenomHM_cpu import (
+    waveform_amp_phase_wrap as waveform_amp_phase_wrap_cpu,
+)
+from ..cutils.pyPhenomHM_cpu import (
     get_phenomhm_ringdown_frequencies as get_phenomhm_ringdown_frequencies_cpu,
 )
-from bbhx.pyPhenomHM_cpu import (
+from ..cutils.pyPhenomHM_cpu import (
     get_phenomd_ringdown_frequencies as get_phenomd_ringdown_frequencies_cpu,
 )
 
@@ -597,7 +601,9 @@ class PhenomHMAmpPhase:
                 Tobs = self.xp.full((self.num_bin_all, self.num_modes), Tobs)
             elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 1:
                 assert Tobs.shape[0] == self.num_bin_all
-                Tobs = self.xp.repeat(self.xp.asarray(Tobs)[:, None], self.num_modes, axis=-1)
+                Tobs = self.xp.repeat(
+                    self.xp.asarray(Tobs)[:, None], self.num_modes, axis=-1
+                )
             elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 2:
                 Tobs = self.xp.asarray(Tobs)
                 assert Tobs.shape == (self.num_bin_all, self.num_modes)

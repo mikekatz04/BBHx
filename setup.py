@@ -192,8 +192,14 @@ import lisatools
 path_to_lisatools = lisatools.__file__.split("__init__.py")[0]
 path_to_lisatools_cutils = path_to_lisatools + "cutils/"
 
-exec(open("scripts/prebuild.py", "r").read())
+# try:
+#     exec(open("scripts/prebuild.py", "r").read())
+# except FileNotFoundError:
+#     import warnings
 
+#     warnings.warn(
+#         "Trying to executre prebuild.py inside setup script, but getting FileNotFoundError. Assuming user will run scripts/prebuild.py manually."
+#     )
 # if installing for CUDA, build Cython extensions for gpu modules
 if run_cuda_install:
     gpu_extension = dict(
@@ -211,11 +217,11 @@ if run_cuda_install:
                 "-arch=sm_80",
                 # "-gencode=arch=compute_50,code=sm_50",
                 # "-gencode=arch=compute_52,code=sm_52",
-                # "-gencode=arch=compute_60,code=sm_60",
-                # "-gencode=arch=compute_61,code=sm_61",
-                # "-gencode=arch=compute_70,code=sm_70",
-                # "-gencode=arch=compute_75,code=sm_75",
-                # "-gencode=arch=compute_80,code=compute_80",
+                "-gencode=arch=compute_60,code=sm_60",
+                "-gencode=arch=compute_61,code=sm_61",
+                "-gencode=arch=compute_70,code=sm_70",
+                "-gencode=arch=compute_75,code=sm_75",
+                "-gencode=arch=compute_80,code=compute_80",
                 "-std=c++11",
                 "-c",
                 "--compiler-options",
@@ -226,20 +232,25 @@ if run_cuda_install:
                 # "-lineinfo",
             ],  # for debugging
         },
-        include_dirs=[numpy_include, CUDA["include"], "include"],
+        include_dirs=[
+            numpy_include,
+            CUDA["include"],
+            "bbhx/cutils/include",
+            "/usr/include",
+        ],
     )
 
     pyPhenomHM_ext = Extension(
-        "bbhx.pyPhenomHM",
-        sources=["src/PhenomHM.cu", "src/phenomhm.pyx"],
+        "bbhx.cutils.pyPhenomHM",
+        sources=["bbhx/cutils/src/PhenomHM.cu", "bbhx/cutils/src/phenomhm.pyx"],
         **gpu_extension,
     )
     pyFDResponse_ext = Extension(
-        "bbhx.pyFDResponse",
+        "bbhx.cutils.pyFDResponse",
         sources=[
             path_to_lisatools_cutils + "src/Detector.cu",
-            "src/Response.cu",
-            "src/response.pyx",
+            "bbhx/cutils/src/Response.cu",
+            "bbhx/cutils/src/response.pyx",
             "zzzzzzzzzzzzzzzz.cu",
         ],
         libraries=["cudart", "cudadevrt", "cublas", "cusparse"],
@@ -263,30 +274,34 @@ if run_cuda_install:
         include_dirs=[
             numpy_include,
             CUDA["include"],
-            "include",
+            "bbhx/cutils/include",
             path_to_lisatools_cutils + "include",
+            "/usr/include",
         ],
     )
     pyInterpolate_ext = Extension(
-        "bbhx.pyInterpolate",
-        sources=["src/Interpolate.cu", "src/interpolate.pyx"],
+        "bbhx.cutils.pyInterpolate",
+        sources=["bbhx/cutils/src/Interpolate.cu", "bbhx/cutils/src/interpolate.pyx"],
         **gpu_extension,
     )
     pyWaveformBuild_ext = Extension(
-        "bbhx.pyWaveformBuild",
-        sources=["src/WaveformBuild.cu", "src/waveformbuild.pyx"],
+        "bbhx.cutils.pyWaveformBuild",
+        sources=[
+            "bbhx/cutils/src/WaveformBuild.cu",
+            "bbhx/cutils/src/waveformbuild.pyx",
+        ],
         **gpu_extension,
     )
     pyLikelihood_ext = Extension(
-        "bbhx.pyLikelihood",
-        sources=["src/Likelihood.cu", "src/likelihood.pyx"],
+        "bbhx.cutils.pyLikelihood",
+        sources=["bbhx/cutils/src/Likelihood.cu", "bbhx/cutils/src/likelihood.pyx"],
         **gpu_extension,
     )
 
     # gpu_extensions.append(Extension(extension_name, **temp_dict))
 
 cpu_extension = dict(
-    libraries=["gsl", "gslcblas", "lapack", "lapacke"],
+    libraries=["lapacke", "lapack", "gsl", "gslcblas"],
     language="c++",
     # This syntax is specific to this build system
     # we're only going to use certain compiler args with nvcc
@@ -297,41 +312,45 @@ cpu_extension = dict(
     },  # '-g'],
     include_dirs=[
         numpy_include,
-        "include",
+        "bbhx/cutils/include",
         path_to_lisatools_cutils + "include",
+        "/usr/include",
     ],
 )
 
 pyPhenomHM_cpu_ext = Extension(
-    "bbhx.pyPhenomHM_cpu",
-    sources=["src/PhenomHM.cpp", "src/phenomhm_cpu.pyx"],
+    "bbhx.cutils.pyPhenomHM_cpu",
+    sources=["bbhx/cutils/src/PhenomHM.cpp", "bbhx/cutils/src/phenomhm_cpu.pyx"],
     **cpu_extension,
 )
 pyFDResponse_cpu_ext = Extension(
-    "bbhx.pyFDResponse_cpu",
+    "bbhx.cutils.pyFDResponse_cpu",
     sources=[
         path_to_lisatools_cutils + "src/Detector.cpp",
-        "src/Response.cpp",
-        "src/response_cpu.pyx",
+        "bbhx/cutils/src/Response.cpp",
+        "bbhx/cutils/src/response_cpu.pyx",
     ],
     **cpu_extension,
 )
 
 pyInterpolate_cpu_ext = Extension(
-    "bbhx.pyInterpolate_cpu",
-    sources=["src/Interpolate.cpp", "src/interpolate_cpu.pyx"],
+    "bbhx.cutils.pyInterpolate_cpu",
+    sources=["bbhx/cutils/src/Interpolate.cpp", "bbhx/cutils/src/interpolate_cpu.pyx"],
     **cpu_extension,
 )
 
 pyWaveformBuild_cpu_ext = Extension(
-    "bbhx.pyWaveformBuild_cpu",
-    sources=["src/WaveformBuild.cpp", "src/waveformbuild_cpu.pyx"],
+    "bbhx.cutils.pyWaveformBuild_cpu",
+    sources=[
+        "bbhx/cutils/src/WaveformBuild.cpp",
+        "bbhx/cutils/src/waveformbuild_cpu.pyx",
+    ],
     **cpu_extension,
 )
 
 pyLikelihood_cpu_ext = Extension(
-    "bbhx.pyLikelihood_cpu",
-    sources=["src/Likelihood.cpp", "src/likelihood_cpu.pyx"],
+    "bbhx.cutils.pyLikelihood_cpu",
+    sources=["bbhx/cutils/src/Likelihood.cpp", "bbhx/cutils/src/likelihood_cpu.pyx"],
     **cpu_extension,
 )
 
@@ -358,11 +377,49 @@ setup(
     author="Michael Katz",
     author_email="mikekatz04@gmail.com",
     ext_modules=extensions,
-    packages=["bbhx", "bbhx.utils", "bbhx.waveforms", "bbhx.response"],
+    packages=[
+        "bbhx",
+        "bbhx.utils",
+        "bbhx.waveforms",
+        "bbhx.response",
+        "bbhx.cutils",
+        "bbhx.cutils.src",
+        "bbhx.cutils.include",
+    ],
     # Inject our custom trigger
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.1.2",
+    version="1.1.11",
     python_requires=">=3.6",
+    package_data={
+        "bbhx.cutils.src": [
+            "Interpolate.cu",
+            "Interpolate.cpp",
+            "Likelihood.cu",
+            "Likelihood.cpp",
+            "PhenomHM.cu",
+            "PhenomHM.cpp",
+            "pycppdetector.pyx",
+            "Response.cu",
+            "Response.cpp",
+            "WaveformBuild.cu",
+            "WaveformBuild.cpp",
+            "interpolate.pyx",
+            "likelihood.pyx",
+            "phenomhm.pyx",
+            "response.pyx",
+            "waveformbuild.pyx",
+        ],
+        "bbhx.cutils.include": [
+            "Interpolate.hh",
+            "Likelihood.hh",
+            "PhenomHM.hh",
+            "Response.hh",
+            "WaveformBuild.hh",
+            "constants.h",
+            "cuda_complex.hpp",
+            "global.h",
+        ],
+    },
 )

@@ -11,10 +11,10 @@ fps_cu_to_cpp = [
 fps_pyx = ["phenomhm", "response", "interpolate", "waveformbuild", "likelihood"]
 
 for fp in fps_cu_to_cpp:
-    shutil.copy("src/" + fp + ".cu", "src/" + fp + ".cpp")
+    shutil.copy("bbhx/cutils/src/" + fp + ".cu", "bbhx/cutils/src/" + fp + ".cpp")
 
 for fp in fps_pyx:
-    shutil.copy("src/" + fp + ".pyx", "src/" + fp + "_cpu.pyx")
+    shutil.copy("bbhx/cutils/src/" + fp + ".pyx", "bbhx/cutils/src/" + fp + "_cpu.pyx")
 
 
 # setup version file
@@ -63,7 +63,7 @@ Constants list:
 
 fp_out_name = "bbhx/utils/constants.py"
 fp_out_name2 = "docs/source/user/constants.rst"
-fp_in_name = "include/constants.h"
+fp_in_name = "bbhx/cutils/include/constants.h"
 
 # develop few.utils.constants.py
 with open(fp_out_name, "w") as fp_out:

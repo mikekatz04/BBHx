@@ -19,19 +19,19 @@ import numpy as np
 
 try:
     import cupy as cp
-    from bbhx.pyLikelihood import hdyn_wrap as hdyn_wrap_gpu
-    from bbhx.pyLikelihood import direct_like_wrap as direct_like_wrap_gpu
-    from bbhx.pyLikelihood import prep_hdyn as prep_hdyn_gpu
+    from .cutils.pyLikelihood import hdyn_wrap as hdyn_wrap_gpu
+    from .cutils.pyLikelihood import direct_like_wrap as direct_like_wrap_gpu
+    from .cutils.pyLikelihood import prep_hdyn as prep_hdyn_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy")
     import numpy as cp
 
-from bbhx.pyLikelihood_cpu import prep_hdyn as prep_hdyn_cpu
-from bbhx.pyLikelihood_cpu import hdyn_wrap as hdyn_wrap_cpu
-from bbhx.pyLikelihood_cpu import direct_like_wrap as direct_like_wrap_cpu
+from .cutils.pyLikelihood_cpu import prep_hdyn as prep_hdyn_cpu
+from .cutils.pyLikelihood_cpu import hdyn_wrap as hdyn_wrap_cpu
+from .cutils.pyLikelihood_cpu import direct_like_wrap as direct_like_wrap_cpu
 
-from bbhx.utils.constants import *
+from .utils.constants import *
 
 from lisatools.sensitivity import SensitivityMatrix, AET1SensitivityMatrix
 

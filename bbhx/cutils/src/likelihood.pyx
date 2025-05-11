@@ -14,7 +14,7 @@ cdef extern from "Likelihood.hh":
                         double* dataFreqs,
                         int numBinAll, int data_length, int nChannels);
 
-    void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int device);
+    void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int nChannels, int device);
 
     void prep_hdyn_wrap(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_arr, cmplx* h0_arr, double* S_n_arr, double df, int* bins, double* f_dense, double* f_m_arr, int data_length, int nchannels, int length_f_rel);
 
@@ -36,7 +36,7 @@ def hdyn_wrap(likeOut1, likeOut2,
             numBinAll, data_length, nChannels);
 
 @pointer_adjust
-def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll, device):
+def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll, nChannels, device):
 
     cdef size_t d_h_in = d_h
     cdef size_t h_h_in = h_h
@@ -46,7 +46,7 @@ def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChan
     cdef size_t inds_start_in = inds_start
     cdef size_t ind_lengths_in = ind_lengths
 
-    direct_like(<cmplx*> d_h_in, <cmplx*> h_h_in, <cmplx*> dataChannels_in, <double*> noise_weight_times_df_in, <long*> templateChannels_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in, data_stream_length, numBinAll, device)
+    direct_like(<cmplx*> d_h_in, <cmplx*> h_h_in, <cmplx*> dataChannels_in, <double*> noise_weight_times_df_in, <long*> templateChannels_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in, data_stream_length, numBinAll, nChannels, device)
 
 
 @pointer_adjust

@@ -233,6 +233,7 @@ class Likelihood:
             ind_lengths,
             self.data_stream_length,
             self.waveform_gen.num_bin_all,
+            self.nchannels,
             device
         )
 
@@ -792,7 +793,7 @@ class NewHeterodynedLikelihood:
         reference_gen_kwargs={},
         noise_kwargs_AE={},
         noise_kwargs_T={},
-        use_gpu=False,
+        gpu=None,
     ):
 
         # store all input information
@@ -803,13 +804,17 @@ class NewHeterodynedLikelihood:
         self.length_f_het = length_f_het
 
         # direct based on GPU usage
-        self.use_gpu = use_gpu
-        if use_gpu:
+        self.gpu = gpu
+        if gpu is not None:
+            assert isinstance(gpu, int)
+            self.use_gpu = True
             self.like_gen = new_hdyn_like_gpu
             self.prep_gen = new_hdyn_prep_gpu
             self.xp = xp
+
         else:
             raise NotImplementedError
+            self.use_gpu = False
             self.like_gen = hdyn_wrap_cpu
             self.xp = np
 
@@ -867,6 +872,9 @@ class NewHeterodynedLikelihood:
 
         """
 
+        if self.use_gpu:
+            self.xp.cuda.runtime.setDevice(self.gpu)
+            
         reference_template_params = np.atleast_2d(reference_template_params)
         # add the necessary kwargs for the initial template generation process.
         template_gen_kwargs["squeeze"] = False
@@ -874,8 +882,8 @@ class NewHeterodynedLikelihood:
         template_gen_kwargs["direct"] = True
 
         num_bin = len(reference_template_params)
-        data_length = self.d.shape[-1]
-        nchannels = self.d.shape[1]
+        self.data_length = data_length = self.d.shape[-1]
+        self.nchannels = nchannels = self.d.shape[1]
 
         # need to be just outside the values of the waveform
         minF = self.f_dense.min() * 0.999999999999
@@ -904,12 +912,12 @@ class NewHeterodynedLikelihood:
         # generate dense reference template
         h0 = self.template_gen(
             *reference_template_params.T, freqs=self.f_dense, **reference_gen_kwargs
-        )
+        )[:, :nchannels].flatten().copy().reshape(reference_template_params.shape[0], nchannels, data_length)
 
         # generate sparse reference template
         h0_temp = self.template_gen(
             *reference_template_params.T, freqs=freqs, **template_gen_kwargs
-        )
+        )[:, :nchannels]
 
         # get rid of places where freqs are zero and narrow boundaries
         freqs_tmp = np.tile(freqs, (len(reference_template_params), 1)).copy()
@@ -930,7 +938,7 @@ class NewHeterodynedLikelihood:
         # regenerate at only non-zero values of the waveform
         self.h0_sparse = self.template_gen(
             *reference_template_params.T, freqs=freqs, **template_gen_kwargs
-        )
+        )[:, :nchannels]
 
         # find which sparse array bins the dense frequencies fit into
         bins = searchsorted2d_vec(freqs, self.f_dense, xp=self.xp, side="right") - 1
@@ -1088,7 +1096,7 @@ class NewHeterodynedLikelihood:
         waveform_kwargs["freqs"] = self.freqs[constants_index]
 
         # compute the new sparse template
-        self.h_sparse = self.template_gen(*params.T, **waveform_kwargs)
+        self.h_sparse = self.template_gen(*params.T, **waveform_kwargs)[:, :self.nchannels]
 
         # compute complex residual
         r = (self.h_sparse / self.h0_sparse[constants_index])  # .flatten()
@@ -1114,7 +1122,7 @@ class NewHeterodynedLikelihood:
             constants_index,
             self.template_gen.num_bin_all,
             self.length_f_het,
-            3,
+            self.nchannels,
             self.num_constants_sets,  # num constants sets
         )
 

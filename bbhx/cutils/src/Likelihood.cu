@@ -75,14 +75,17 @@ void new_hdyn_prep(cmplx *A0_out, cmplx *A1_out, cmplx *B0_out, cmplx *B1_out,
 
                     d = data[data_ind];
                     h0 = h0_arr[template_ind];
-                    Sn = psd[noise_ind];
+                    Sn = psd[noise_ind]; // inverse actually
                     f = f_dense[ind];
+
+                    if ((ind > 400990) & (ind < 401000) & (data_index == 10))
+                        printf("HUH: %d %d %d %d %e %e %e %e %e\n", ind, data_index, chan_i, nchannels, d.real(), d.imag(), h0.real(), h0.imag(), Sn);
 
                     h0_conj = gcmplx::conj(h0);
 
-                    A0_flat = 4. * (h0_conj * d) / Sn * df;
+                    A0_flat = 4. * (h0_conj * d) * Sn * df;
 
-                    B0_flat = 4. * (h0_conj * h0) / Sn * df;
+                    B0_flat = 4. * (h0_conj * h0) * Sn * df;
 
                     A0_tmp += A0_flat;
                     A1_tmp += A0_flat * (f - f_m);
@@ -576,7 +579,7 @@ void prep_hdyn_wrap(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmpl
 
 // add noise weighting efficiently to template
 CUDA_KERNEL
-void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df, int ind_start, int length, int data_stream_length)
+void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df, int ind_start, int length, int data_stream_length, int nChannels)
 {
     int start, increment;
     #ifdef __CUDACC__
@@ -589,7 +592,7 @@ void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df
     #endif
     for (int i = start; i < length; i += increment)
     {
-        for (int j = 0; j < 3; j+= 1)
+        for (int j = 0; j < nChannels; j+= 1)
         {
             templateChannels[j * length + i] = templateChannels[j * length + i] * noise_weight_times_df[j * data_stream_length + ind_start + i];
         }
@@ -601,7 +604,7 @@ void noiseweight_template(cmplx* templateChannels, double* noise_weight_times_df
 // compute the likelihood directly
 // different for CPU and GPU cause of streams
 #ifdef __CUDACC__
-void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int device)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int nChannels, int device)
 {
     // initialize everything
     cudaStream_t streams[numBinAll];
@@ -633,10 +636,10 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
         cudaStreamCreate(&streams[bin_i]);
 
         noiseweight_template
-        <<<nblocks, NUM_THREADS_LIKE, 0, streams[bin_i]>>>(templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length);
+        <<<nblocks, NUM_THREADS_LIKE, 0, streams[bin_i]>>>(templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length, nChannels);
         cudaStreamSynchronize(streams[bin_i]);
 
-        for (int j = 0; j < 3; j += 1)
+        for (int j = 0; j < nChannels; j += 1)
         {
             // setup cublas stream and run compuation in the desired frequency bounds
             double temp_real = 0.0;
@@ -693,7 +696,7 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
 }
 
 #else
-void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int device)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int nChannels, int device)
 {
 
     cmplx result_d_h[numBinAll];
@@ -708,9 +711,9 @@ void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weig
         cmplx* templateChannels = (cmplx*) templateChannels_ptrs[bin_i];
 
         noiseweight_template
-        (templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length);
+        (templateChannels, noise_weight_times_df, ind_start, length_bin_i, data_stream_length, nChannels);
 
-        for (int j = 0; j < 3; j += 1)
+        for (int j = 0; j < nChannels; j += 1)
         {
 
             cblas_zdotc_sub(length_bin_i,

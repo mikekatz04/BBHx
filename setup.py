@@ -294,8 +294,8 @@ if run_cuda_install:
     )
 
     pyGPUOnlyWaveformBuild_ext = Extension(
-        "pyGPUOnlyWaveformBuild",
-        sources=["src/SpecialLikelihood.cu", "src/gpuonlywaveformbuild.pyx"],
+        "bbhx.cutils.pyGPUOnlyWaveformBuild",
+        sources=["bbhx/cutils/src/SpecialLikelihood.cu", "bbhx/cutils/src/gpuonlywaveformbuild.pyx"],
         **gpu_extension,
     )
 
@@ -306,8 +306,8 @@ if run_cuda_install:
     )
 
     pyGPULikelihood_ext = Extension(
-        "pyGPULikelihood",
-        sources=["src/Likelihood.cu", "src/gpu_likelihood.pyx"],
+        "bbhx.cutils.pyGPULikelihood",
+        sources=["bbhx/cutils/src/Likelihood.cu", "bbhx/cutils/src/gpu_likelihood.pyx"],
         **gpu_extension,
     )
 

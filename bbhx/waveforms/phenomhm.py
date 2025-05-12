@@ -581,7 +581,7 @@ class PhenomHMAmpPhase:
 
             if self.xp.any(fix):
                 windows_of_interest = self.xp.argwhere(
-                    (0.0 < self.tf[fix, 1:]) & (0.0 > self.tf[fix, :-1])
+                    (0.0 < self.tf[fix][:, 1:]) & (0.0 > self.tf[fix][:, :-1])
                 )
 
                 if self.xp.unique(windows_of_interest, axis=0).shape[0] != fix.sum():

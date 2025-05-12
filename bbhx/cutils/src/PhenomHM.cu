@@ -1946,7 +1946,8 @@ void get_phenomd_ringdown_frequencies(
     double *c1_dm_all,
     double *c2_dm_all,
     double *c3_dm_all,
-    double dspin)
+    double dspin,
+    int num_segs)
 {
 
     // TODO: constant memory?
@@ -1967,6 +1968,13 @@ void get_phenomd_ringdown_frequencies(
 
         double lowest_spin = -1.0;
         int ind = int((finspin - lowest_spin) / dspin); // -1.0 min spin
+        
+        if (ind >= num_segs)
+        {
+            // TODO: this right with num_segs
+            printf("Asking for spin over grid (bin num: %d), %e\n", binNum, finspin);
+            continue;
+        }
         double x_spl = dspin * ind + lowest_spin;
 
         double y_rd = y_rd_all[ind];
@@ -2008,7 +2016,8 @@ void get_phenomd_ringdown_frequencies_wrap(
     double *c1_dm_all,
     double *c2_dm_all,
     double *c3_dm_all,
-    double dspin)
+    double dspin,
+    int num_segs)
 {
     int nblocks = std::ceil((numBinAll + NUM_THREADS_PHENOMHM - 1) / NUM_THREADS_PHENOMHM);
     /*
@@ -2035,7 +2044,8 @@ void get_phenomd_ringdown_frequencies_wrap(
         c1_dm_all,
         c2_dm_all,
         c3_dm_all,
-        dspin);
+        dspin,
+        num_segs);
 
     cudaDeviceSynchronize();
     gpuErrchk(cudaGetLastError());
@@ -2057,7 +2067,8 @@ void get_phenomd_ringdown_frequencies_wrap(
         c1_dm_all,
         c2_dm_all,
         c3_dm_all,
-        dspin);
+        dspin,
+        num_segs);
 #endif
 }
 

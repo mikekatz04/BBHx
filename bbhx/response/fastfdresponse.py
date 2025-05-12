@@ -1,3 +1,4 @@
+from __future__ import annotations
 # LISA Response Functions
 
 # Copyright (C) 2021 Michael L. Katz, Sylvain Marsat
@@ -20,7 +21,7 @@ import numpy as np
 
 try:
     import cupy as cp
-    from .cutils.pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
+    from ..cutils.pyFDResponse import LISA_response_wrap as LISA_response_wrap_gpu
 
 except (ImportError, ModuleNotFoundError) as e:
     print("No CuPy or GPU response available.")

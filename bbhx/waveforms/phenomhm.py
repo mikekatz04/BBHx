@@ -567,7 +567,7 @@ class PhenomHMAmpPhase:
                     (0.0 < self.tf[fix, 1:]) & (0.0 > self.tf[fix, :-1])
                 )
 
-                if self.xp.unique(windows_of_interest, axis=0).shape[0] != fix.sum():
+                if windows_of_interest.shape[0] != fix.sum():
                     raise ValueError(
                         "The search for a window at x_min did not run correctly. If t_ref is close to zero, the time-frequency correspondence may be crossing zero twice."
                     )
@@ -619,7 +619,7 @@ class PhenomHMAmpPhase:
                     & (Tobs[fix][:, None] > self.tf[fix, :-1])
                 )
 
-                if self.xp.unique(windows_of_interest, axis=0).shape[0] != fix.sum():
+                if windows_of_interest.shape[0] != fix.sum():
                     raise ValueError(
                         "The search for a window at x_max did not run correctly. If t_ref is close to the observation time, the time-frequency correspondence may be crossing zero twice."
                     )

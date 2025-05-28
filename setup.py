@@ -390,7 +390,7 @@ setup(
     cmdclass={"build_ext": custom_build_ext},
     # Since the package has c code, the egg cannot be zipped
     zip_safe=False,
-    version="1.1.11",
+    version="1.1.12",
     python_requires=">=3.6",
     package_data={
         "bbhx.cutils.src": [

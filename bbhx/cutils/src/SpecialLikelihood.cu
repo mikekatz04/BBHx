@@ -83,7 +83,7 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
 
     int start, increment;
     start = blockIdx.x * blockDim.x + threadIdx.x;
-    increment = blockDim.x *gridDim.x;
+    increment = blockDim.x * gridDim.x;
     for (int i = start; i < ind_length; i += increment)
     {
         // get x information for this spline evaluation
@@ -141,14 +141,18 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
             trans_complex2 += channel2;
             trans_complex3 += channel3;
         }
-
+        
         cmplx data_val1 = dataChannels[(0 * num_data_sets + data_index) * data_length + (ind_start + i)];
         cmplx data_val2 = dataChannels[(1 * num_data_sets + data_index) * data_length + (ind_start + i)];
         cmplx data_val3 = dataChannels[(2 * num_data_sets + data_index) * data_length + (ind_start + i)];
 
-        cmplx psd_val1 = psd[(0 * num_data_sets + noise_index) * data_length + (ind_start + i)];
-        cmplx psd_val2 = psd[(1 * num_data_sets + noise_index) * data_length + (ind_start + i)];
-        cmplx psd_val3 = psd[(2 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+        double psd_val1 = psd[(0 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+        double psd_val2 = psd[(1 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+        double psd_val3 = psd[(2 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+
+        // cmplx _tmp1 = 4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1);
+        // if ((bin_i == 0) && (i < 100010) && (i > 100000))
+        //     printf("Check %d %d %d %d %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n", i, numModes, ind_start, (0 * num_data_sets + noise_index) * data_length + (ind_start + i), f, trans_complex1.real(), trans_complex1.imag(), data_val1.real(), data_val1.imag(), psd_val1, _tmp1.real(), _tmp1.imag());
 
         d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val1) * trans_complex1 / psd_val1);
         d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val2) * trans_complex2 / psd_val2);
@@ -158,6 +162,7 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
         h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex2) * trans_complex2 / psd_val2);
         h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex3) * trans_complex3 / psd_val3);
 
+        // dataChannels[(ind_start + i)] = 4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1);
     }
     __syncthreads();
     for (unsigned int s = 1; s < blockDim.x; s *= 2)

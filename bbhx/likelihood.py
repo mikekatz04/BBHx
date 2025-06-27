@@ -346,13 +346,16 @@ class HeterodynedLikelihood:
         reference_gen_kwargs={},
         sens_mat=None,
         use_gpu=False,
+        outer_buffer=1024
     ):
 
+        self.buffer = outer_buffer
         # store all input information
         self.template_gen = template_gen
         self.f_dense = data_freqs
         self.d = data_channels
-        self.length_f_het = length_f_het
+        self.length_f_het = length_f_het  #  + self.buffer
+        self.half_buffer = int(self.buffer / 2)
 
         # direct based on GPU usage
         self.use_gpu = use_gpu
@@ -468,24 +471,46 @@ class HeterodynedLikelihood:
             self.xp.log10(minF), self.xp.log10(maxF), self.length_f_het
         )
 
+        self.reference_template_params = reference_template_params.copy()
+        self.reference_gen_kwargs = reference_gen_kwargs
+        
         # generate dense reference template
-        h0 = self.template_gen(
-            *reference_template_params, freqs=self.f_dense, **reference_gen_kwargs
-        )[0]
+        h0 = self.template_gen(*reference_template_params, freqs=self.f_dense, **reference_gen_kwargs)  # [0]
 
         # generate sparse reference template
-        h0_temp = self.template_gen(
-            *reference_template_params, freqs=freqs, **template_gen_kwargs
-        )[0]
+        # h0_temp = self.template_gen(
+        #     *reference_template_params, freqs=freqs, **template_gen_kwargs
+        # )[0]
 
-        # get rid of places where freqs are zero and narrow boundaries
-        freqs_keep = freqs[~(self.xp.abs(h0_temp) == 0.0)]
+        
+        # # get rid of places where freqs are zero and narrow boundaries
+        inds_freq_keep = self.xp.where(~(self.xp.abs(h0[0]) == 0.0))[0]
 
-        freqs = self.xp.logspace(
-            self.xp.log10(freqs_keep[0]),
-            self.xp.log10(freqs_keep[-1]),
+        self.freqs_keep = self.f_dense[inds_freq_keep]
+        min_freq_ind_lower = inds_freq_keep[0] - (self.half_buffer + 1)
+        if min_freq_ind_lower < 0:
+            min_freq_ind_lower = 0
+        max_freq_ind_lower = inds_freq_keep[0] - 1
+        assert min_freq_ind_lower != max_freq_ind_lower
+
+        min_freq_ind_upper = inds_freq_keep[-1] + 1
+        max_freq_ind_upper = inds_freq_keep[-1] + (self.half_buffer + 1)
+        if max_freq_ind_upper > self.f_dense.shape[0] - 1:
+            max_freq_ind_upper = self.f_dense.shape[0] - 1
+        assert min_freq_ind_upper != max_freq_ind_upper
+
+        self.outer_inds = self.xp.concatenate([self.xp.arange(self.f_dense.shape[0])[min_freq_ind_lower:max_freq_ind_lower + 1], self.xp.arange(self.f_dense.shape[0])[min_freq_ind_upper:max_freq_ind_upper + 1]]) 
+        self.outer_freqs = self.xp.concatenate([self.f_dense[min_freq_ind_lower:max_freq_ind_lower + 1], self.f_dense[min_freq_ind_upper:max_freq_ind_upper + 1]]) 
+        
+        assert len(self.freqs_keep) > self.length_f_het
+        freqs_middle = self.xp.logspace(
+            self.xp.log10(self.freqs_keep[0]),
+            self.xp.log10(self.freqs_keep[-1]),
             self.length_f_het,
         )
+
+        # freqs = self.xp.concatenate([self.freqs_keep[:self.half_buffer], freqs_middle, self.freqs_keep[-self.half_buffer:]])
+        freqs = freqs_middle
 
         # regenerate at only non-zero values of the waveform
         self.h0_sparse = self.template_gen(
@@ -495,9 +520,14 @@ class HeterodynedLikelihood:
         # find which frequencies in the dense array in contained in the sparse array
         # inds = (self.f_dense >= freqs[0]) & (self.f_dense <= freqs[-1])
 
+        self.h0_outer = self.template_gen(
+            *reference_template_params, freqs=self.outer_freqs, **reference_gen_kwargs
+        )[0]
+
         # narrow the dense arrays to these indices
         self.f_dense = self.f_dense  # [inds]
         self.d = self.d  # [:, inds]
+        self.d_outer = self.d[:, self.outer_inds]
         h0 = h0  # [:, inds]
 
         # find which sparse array bins the dense frequencies fit into
@@ -507,7 +537,7 @@ class HeterodynedLikelihood:
         f_m = (freqs[1:] + freqs[:-1]) / 2
 
         df = self.f_dense[1] - self.f_dense[0]
-
+        self.df = df
         # should be on CPU for sensitivity computation
         try:
             f_n_host = self.f_dense.get()
@@ -518,6 +548,7 @@ class HeterodynedLikelihood:
 
         # compute sensitivity at dense frequencies
         S_n = self.xp.asarray([self.sens_mat[0], self.sens_mat[1], self.sens_mat[2]])
+        self.S_n_outer = S_n[:, self.outer_inds].copy()
 
         # compute the individual frequency contributions to A0, A1 (see paper)
         A0_flat = 4 * (h0.conj() * self.d) / S_n * df
@@ -563,7 +594,7 @@ class HeterodynedLikelihood:
 
         # sparse frequencies
         self.freqs = freqs
-
+        
         # middle bin frequencies
         self.f_m = f_m
 
@@ -648,18 +679,51 @@ class HeterodynedLikelihood:
             3,
         )
 
+                # need to add any contributions to d_h and h_h outside of the heterodyne in the buffer area
+        outer_freqs = self.outer_freqs
+        waveform_kwargs["freqs"] = outer_freqs
+        waveform_kwargs_tmp = waveform_kwargs.copy()
+        # waveform_kwargs_tmp["direct"] = False
+
+        # TODO: maybe don't do this direct?
+        self.h_outer = self.template_gen(*params, **waveform_kwargs_tmp)
+
+        # TODO: trapz?
+        # if self.xp.any(self.h_outer):
+        #     breakpoint()
+
+        self.outer_h_h = 4 * self.df * self.xp.sum((self.h_outer.conj() * self.h_outer) / self.S_n_outer, axis=(-1, -2))
+        self.outer_d_h = 4 * self.df * self.xp.sum((self.h_outer.conj() * self.d_outer) / self.S_n_outer, axis=(-1, -2))
+        
+        tmp_outer_lower_edge_h_h = 4 * self.df * self.xp.sum((self.h_outer[:, :, 0].conj() * self.h_outer[:, :, 0]) / self.S_n_outer[None, :, 0], axis=-1)
+        tmp_outer_lower_edge_d_h = 4 * self.df * self.xp.sum((self.h_outer[:, :, 0].conj() * self.d_outer[None, :, 0]) / self.S_n_outer[None, :, 0], axis=-1)
+        
+        tmp_outer_upper_edge_h_h = 4 * self.df * self.xp.sum((self.h_outer[:, :, -1].conj() * self.h_outer[:, :, -1]) / self.S_n_outer[None, :, -1], axis=-1)
+        tmp_outer_upper_edge_d_h = 4 * self.df * self.xp.sum((self.h_outer[:, :, -1].conj() * self.d_outer[None, :, -1]) / self.S_n_outer[None, :, -1], axis=-1)
+        
+        fix = (tmp_outer_lower_edge_h_h.real > 0.001) | (tmp_outer_upper_edge_h_h.real > 0.001) | (tmp_outer_lower_edge_d_h.real > 0.001) | (tmp_outer_upper_edge_d_h.real > 0.001)
+        if self.xp.any(fix):
+            # TODO: need to look at this further and relate to the buffer
+            self.outer_h_h[fix] = -1e300
+            self.outer_d_h[fix] = -1e300
+            
+        self.total_h_h = self.hdyn_h_h + self.outer_h_h
+        self.total_d_h = self.hdyn_d_h + self.outer_d_h
+
         # if phase marginalize
         d_h_temp = (
-            self.hdyn_d_h if not self.phase_marginalize else self.xp.abs(self.hdyn_d_h)
+            self.total_d_h if not self.phase_marginalize else self.xp.abs(self.total_d_h)
         )
 
         # log-Likelihood
-        out = -1 / 2.0 * (self.reference_d_d + self.hdyn_h_h - 2 * d_h_temp).real
+        out = -1 / 2.0 * (self.reference_d_d + self.total_h_h - 2 * d_h_temp).real
 
         # move to CPU if needed
         try:
             self.hdyn_h_h = self.hdyn_h_h.get()
             self.hdyn_d_h = self.hdyn_d_h.get()
+            self.total_h_h = self.total_h_h.get()
+            self.total_d_h = self.total_d_h.get()
             d_h_temp = d_h_temp.get()
             out = out.get()
 
@@ -667,7 +731,7 @@ class HeterodynedLikelihood:
             pass
 
         if self.return_extracted_snr:
-            return np.array([out, d_h_temp.real / np.sqrt(self.hdyn_h_h.real)]).T
+            return np.array([out, d_h_temp.real / np.sqrt(self.total_h_h.real)]).T
         else:
             return out
 
@@ -808,7 +872,7 @@ class NewHeterodynedLikelihood:
             self.use_gpu = True
             self.like_gen = new_hdyn_like_gpu
             self.prep_gen = new_hdyn_prep_gpu
-            self.xp = xp
+            self.xp = cp
 
         else:
             raise NotImplementedError
@@ -935,7 +999,7 @@ class NewHeterodynedLikelihood:
 
         # regenerate at only non-zero values of the waveform
         self.h0_sparse = self.template_gen(
-            *reference_template_params.T, freqs=freqs, **template_gen_kwargs
+            *reference_template_params.T, freqs=freqs[:, None, :], **template_gen_kwargs
         )[:, :nchannels]
 
         # find which sparse array bins the dense frequencies fit into
@@ -944,7 +1008,7 @@ class NewHeterodynedLikelihood:
         special_bins = self.xp.arange(num_bin)[:, None] * int(1e6) + bins
 
         # make sure sorted
-        assert not xp.any(xp.diff(special_bins, axis=-1) < 0)
+        assert not self.xp.any(self.xp.diff(special_bins, axis=-1) < 0)
         uni_special_bins, uni_start_index_special_bins, uni_count_special_bins = np.unique(special_bins.flatten(), return_counts=True, return_index=True)
 
         binary_ind = np.floor(uni_special_bins / 1e6).astype(int)
@@ -958,23 +1022,23 @@ class NewHeterodynedLikelihood:
 
         assert het_bin_ind.min() == -1 and het_bin_ind.max() < self.length_f_het
 
-        inds_all = -self.xp.ones((num_bin, self.length_f_het), dtype=xp.int32)
+        inds_all = -self.xp.ones((num_bin, self.length_f_het), dtype=self.xp.int32)
         inds_all[(binary_ind[binary_ind != -1], het_bin_ind[het_bin_ind != -1])] = uni_start_index_special_bins[het_bin_ind >= 0]
-        inds_all[inds_all >= 0] = (inds_all - xp.arange(num_bin)[:, None] * special_bins.shape[-1])[inds_all >= 0]
+        inds_all[inds_all >= 0] = (inds_all - self.xp.arange(num_bin)[:, None] * special_bins.shape[-1])[inds_all >= 0]
         
-        assert xp.all(inds_all < special_bins.shape[1])
+        assert self.xp.all(inds_all < special_bins.shape[1])
 
         inds_all[:, -1] = special_bins.shape[1]
 
-        start_inds_all = xp.zeros_like(inds_all)
-        end_inds_all = xp.zeros_like(inds_all)
+        start_inds_all = self.xp.zeros_like(inds_all)
+        end_inds_all = self.xp.zeros_like(inds_all)
 
         start_inds_all[:, 1:] = inds_all[:, :-1].copy()
         end_inds_all[:, 1:] = inds_all[:, 1:].copy()
 
         lengths = (end_inds_all - start_inds_all).copy()
 
-        f_m = xp.zeros_like(freqs)
+        f_m = self.xp.zeros_like(freqs)
         # get frequency at middle of the bin
         f_m[:, 1:] = (freqs[:, 1:] + freqs[:, :-1]) / 2
 
@@ -1010,7 +1074,7 @@ class NewHeterodynedLikelihood:
         self.data_constants = self.xp.array([self.A0_out, self.A1_out, self.B0_out, self.B1_out]).flatten()
         # reference quantities
 
-        self.reference_d_d = self.xp.zeros(self.d.shape[0], dtype=xp.float64)
+        self.reference_d_d = self.xp.zeros(self.d.shape[0], dtype=self.xp.float64)
         for i in range(self.d.shape[0]):
             self.reference_d_d[i] = self.xp.sum(4 * (self.d[i].conj() * self.d[i]) / self.psd[i] * df).real
 
@@ -1091,8 +1155,8 @@ class NewHeterodynedLikelihood:
             assert np.all(constants_index < self.num_constants_sets)
 
         # set the frequencies at which the waveform is evaluated
-        waveform_kwargs["freqs"] = self.freqs[constants_index]
-
+        waveform_kwargs["freqs"] = self.freqs[constants_index][:, None, :]
+        breakpoint()
         # compute the new sparse template
         self.h_sparse = self.template_gen(*params.T, **waveform_kwargs)[:, :self.nchannels]
 

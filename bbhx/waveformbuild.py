@@ -498,7 +498,7 @@ class BBHWaveformFD:
                 # set the length of the input
                 length = len(freqs)
             else:
-                length = freqs.shape[1]
+                length = freqs.shape[-1]
 
         # this means the frequencies are what needs to be interpolated to
         elif direct is False and return_splines is False:
@@ -808,7 +808,7 @@ class BBHWaveformFD:
             raise ValueError("Need to set d_d term for self.")
         
         if self.use_gpu:
-            gpu = xp.cuda.runtime.getDevice()
+            gpu = self.xp.cuda.runtime.getDevice()
         else:
             raise NotImplementedErrors
 
@@ -843,7 +843,7 @@ class BBHWaveformFD:
 
         if phase_marginalize:
             self.non_marg_d_h = d_h.copy()
-            d_h = xp.abs(d_h)
+            d_h = self.xp.abs(d_h)
 
         like = -1/2 * (self.d_d + h_h - 2 * d_h)
 

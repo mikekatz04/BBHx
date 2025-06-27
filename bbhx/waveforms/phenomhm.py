@@ -541,17 +541,23 @@ class PhenomHMAmpPhase:
             self.run_phenomd,
         )
 
+        if isinstance(self.initial_t_val, float):
+            _initial_t_val = np.array([self.initial_t_val])[:, None, None]
+        elif self.initial_t_val.ndim == 1:
+            _initial_t_val = self.initial_t_val[:, None, None]
+        elif self.initial_t_val.ndim == 2:
+            _initial_t_val = self.initial_t_val[:, :, None]
         # adjust phases based on shift from t_ref
         # do this inplace
         temp = (
             self.freqs.reshape(self.num_bin_all, self.num_modes, -1)
             * self.xp.asarray(
-                t_ref[:, self.xp.newaxis, self.xp.newaxis] - self.initial_t_val
+                t_ref[:, self.xp.newaxis, self.xp.newaxis] - _initial_t_val
             )
             * 2
             * np.pi
         )
-
+        
         # phases = self.waveform_carrier[1]  (waveform carrier is flat)
         self.waveform_carrier[
             1 * self.num_per_param : 2 * self.num_per_param

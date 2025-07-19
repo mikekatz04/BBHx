@@ -528,6 +528,7 @@ class BBHWaveformFD:
         phi_ref_amp_phase = np.zeros_like(m1)
 
         Tobs = t_end - t_start
+        t_orbit_end = self.response_gen.orbits.t.max().item()
         self.amp_phase_gen(
             m1,
             m2,
@@ -541,7 +542,7 @@ class BBHWaveformFD:
             freqs=freqs_temp,
             out_buffer=out_buffer,
             modes=modes,
-            Tobs=Tobs,
+            t_orbit_end=t_orbit_end,
             direct=direct,
         )
 
@@ -811,8 +812,7 @@ class BBHWaveformFD:
             gpu = self.xp.cuda.runtime.getDevice()
         else:
             raise NotImplementedErrors
-
-        # fill templates
+        
         self.interp_like(
             d_h, 
             h_h, 

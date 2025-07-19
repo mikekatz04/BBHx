@@ -571,7 +571,7 @@ class PhenomHMAmpPhase:
             self.xp.asarray(t_ref)[:, None, None], (1, self.num_modes, self.length)
         ).flatten()
 
-    def __call__(self, *args, Tobs=None, direct=False, **kwargs):
+    def __call__(self, *args, t_orbit_end=None, direct=False, **kwargs):
 
         self.run_wave(*args, **kwargs)
 
@@ -581,13 +581,13 @@ class PhenomHMAmpPhase:
 
             # PURPOSE: NEED TO REMOVE FREQUENCIES WHERE ORBIT INFO DOES NOT EXIST
             # get start of available information
-
-            fix = self.tf.min(axis=-1) < 0.0
+            buffer = 500.0
+            fix = self.tf.min(axis=-1) < buffer
             f_min = self.freqs_shaped.min(axis=-1)
 
             if self.xp.any(fix):
                 windows_of_interest = self.xp.argwhere(
-                    (0.0 < self.tf[fix][:, 1:]) & (0.0 > self.tf[fix][:, :-1])
+                    (buffer < self.tf[fix][:, 1:]) & (buffer > self.tf[fix][:, :-1])
                 )
 
                 if windows_of_interest.shape[0] != fix.sum():
@@ -614,32 +614,32 @@ class PhenomHMAmpPhase:
                 m = (y2 - y1) / (x2 - x1)
                 b = y1
 
-                f_min_new = m * (0.0 - x1) + b
+                f_min_new = m * (buffer - x1) + b
                 f_min[fix] = f_min_new
 
-            if Tobs is None:
+            if t_orbit_end is None:
                 # will default to tf bound
-                Tobs = self.xp.full((self.num_bin_all, self.num_modes), 1e300)
-            elif isinstance(Tobs, float):
-                Tobs = self.xp.full((self.num_bin_all, self.num_modes), Tobs)
-            elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 1:
-                assert Tobs.shape[0] == self.num_bin_all
-                Tobs = self.xp.repeat(
-                    self.xp.asarray(Tobs)[:, None], self.num_modes, axis=-1
+                t_orbit_end = self.xp.full((self.num_bin_all, self.num_modes), 1e300)
+            elif isinstance(t_orbit_end, float):
+                t_orbit_end = self.xp.full((self.num_bin_all, self.num_modes), t_orbit_end)
+            elif isinstance(t_orbit_end, np.ndarray) and t_orbit_end.ndim == 1:
+                assert t_orbit_end.shape[0] == self.num_bin_all
+                t_orbit_end = self.xp.repeat(
+                    self.xp.asarray(t_orbit_end)[:, None], self.num_modes, axis=-1
                 )
-            elif isinstance(Tobs, np.ndarray) and Tobs.ndim == 2:
-                Tobs = self.xp.asarray(Tobs)
-                assert Tobs.shape == (self.num_bin_all, self.num_modes)
+            elif isinstance(t_orbit_end, np.ndarray) and t_orbit_end.ndim == 2:
+                t_orbit_end = self.xp.asarray(t_orbit_end)
+                assert t_orbit_end.shape == (self.num_bin_all, self.num_modes)
             else:
-                raise ValueError("Tobs entered incorrectly.")
+                raise ValueError("t_orbit_end entered incorrectly.")
 
-            fix = self.tf.max(axis=-1) > Tobs
+            fix = self.tf.max(axis=-1) > t_orbit_end - buffer
             f_max = self.freqs_shaped.max(axis=-1)
 
             if self.xp.any(fix):
                 windows_of_interest = self.xp.argwhere(
-                    (Tobs[fix][:, None] < self.tf[fix, 1:])
-                    & (Tobs[fix][:, None] > self.tf[fix, :-1])
+                    (t_orbit_end[fix][:, None] - buffer < self.tf[fix, 1:])
+                    & (t_orbit_end[fix][:, None] - buffer > self.tf[fix, :-1])
                 )
 
                 if windows_of_interest.shape[0] != fix.sum():
@@ -666,7 +666,7 @@ class PhenomHMAmpPhase:
                 m = (y2 - y1) / (x2 - x1)
                 b = y1
 
-                f_max_new = m * (Tobs[fix] - x1) + b
+                f_max_new = m * ((t_orbit_end[fix] - buffer) - x1) + b
 
                 f_max[fix] = f_max_new
 

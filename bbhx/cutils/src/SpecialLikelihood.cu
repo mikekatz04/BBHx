@@ -142,22 +142,25 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
             trans_complex3 += channel3;
         }
         
-        cmplx data_val1 = dataChannels[(0 * num_data_sets + data_index) * data_length + (ind_start + i)];
-        cmplx data_val2 = dataChannels[(1 * num_data_sets + data_index) * data_length + (ind_start + i)];
-        cmplx data_val3 = dataChannels[(2 * num_data_sets + data_index) * data_length + (ind_start + i)];
+        cmplx data_val1 = dataChannels[(data_index * 3 + 0) * data_length + (ind_start + i)];
+        cmplx data_val2 = dataChannels[(data_index * 3 + 1) * data_length + (ind_start + i)];
+        cmplx data_val3 = dataChannels[(data_index * 3 + 2) * data_length + (ind_start + i)];
 
-        double psd_val1 = psd[(0 * num_data_sets + noise_index) * data_length + (ind_start + i)];
-        double psd_val2 = psd[(1 * num_data_sets + noise_index) * data_length + (ind_start + i)];
-        double psd_val3 = psd[(2 * num_data_sets + noise_index) * data_length + (ind_start + i)];
+        double psd_val1 = psd[(noise_index * 3 + 0) * data_length + (ind_start + i)];
+        double psd_val2 = psd[(noise_index * 3 + 1) * data_length + (ind_start + i)];
+        double psd_val3 = psd[(noise_index * 3 + 2) * data_length + (ind_start + i)];
 
         // cmplx _tmp1 = 4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1);
-        // if ((bin_i == 0) && (i < 100010) && (i > 100000))
+        // if ((bin_i == 0) && (f > 0.03) && (f < 0.0301))
         //     printf("Check %d %d %d %d %.10e %.10e %.10e %.10e %.10e %.10e %.10e %.10e\n", i, numModes, ind_start, (0 * num_data_sets + noise_index) * data_length + (ind_start + i), f, trans_complex1.real(), trans_complex1.imag(), data_val1.real(), data_val1.imag(), psd_val1, _tmp1.real(), _tmp1.imag());
 
         d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val1) * trans_complex1 / psd_val1);
         d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val2) * trans_complex2 / psd_val2);
         d_h_contrib[tid] += 4.0 * df * (gcmplx::conj(data_val3) * trans_complex3 / psd_val3);
 
+        // if ((blockIdx.x >= 3) && (blockIdx.x <= 5))
+        //     printf("%d %d %e %e %e %e %e\n", blockIdx.x, tid, (4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1)).real(), df, trans_complex1.real(), trans_complex1.imag(), psd_val1);
+        
         h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1);
         h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex2) * trans_complex2 / psd_val2);
         h_h_contrib[tid] += 4.0 * df * (gcmplx::conj(trans_complex3) * trans_complex3 / psd_val3);
@@ -165,6 +168,7 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
         // dataChannels[(ind_start + i)] = 4.0 * df * (gcmplx::conj(trans_complex1) * trans_complex1 / psd_val1);
     }
     __syncthreads();
+    
     for (unsigned int s = 1; s < blockDim.x; s *= 2)
     {
         if (tid % (2 * s) == 0)
@@ -180,6 +184,7 @@ void TDILike(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* psd, double* d
     {
         atomicAddComplex(&d_h[bin_i], d_h_contrib[0]);
         atomicAddComplex(&h_h[bin_i], h_h_contrib[0]);
+        // printf("hh contrib: %d %e\n", blockIdx.x, h_h_contrib[0].real());
     }
     __syncthreads();
 }

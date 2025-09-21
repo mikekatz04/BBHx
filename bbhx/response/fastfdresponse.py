@@ -73,6 +73,7 @@ class LISATDIResponse:
 
     """
 
+    buffer = 1e3  # seconds
     def __init__(
         self,
         TDItag="AET",
@@ -401,13 +402,22 @@ class LISATDIResponse:
         if phase is not None and tf is not None:
             use_phase_tf = True
 
-            if not direct and (
-                tf.min() < self.orbits.t_base.min()
-                or tf.max() > self.orbits.t_base.max()
-            ):
-                raise ValueError(
-                    f"Orbital information does not cover minimum ({tf.min()}) and maximum ({tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}."
-                )
+            if not direct:
+                if (
+                    self.xp.any((tf - self.orbits.t_base.min()) < -self.buffer)
+                    or self.xp.any((tf - self.orbits.t_base.max()) > self.buffer)
+                ):
+                    raise ValueError(
+                        f"Orbital information does not cover minimum ({tf.min()}) and maximum ({tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}. It is also greater than the buffer {self.buffer}."
+                    )
+                
+                # if we make it here, it is close enough under the buffer to just rewrite the value.
+                if self.xp.any(tf > self.orbits.t_base.max()):
+                    # if we make it here, it is close enough under the buffer to just rewrite the value.
+                    tf[tf > self.orbits.t_base.max()] = self.orbits.t_base.max() 
+                if self.xp.any(tf < self.orbits.t_base.min()):
+                    # if we make it here, it is close enough under the buffer to just rewrite the value.
+                    tf[tf < self.orbits.t_base.min()] = self.orbits.t_base.min() 
 
             if phase.shape != tf.shape:
                 raise ValueError(
@@ -460,14 +470,23 @@ class LISATDIResponse:
 
         else:
             use_phase_tf = False
-            if not direct and (
-                self.tf.min() < self.orbits.t_base.min()
-                or self.tf.max() > self.orbits.t_base.max()
-            ):
-                breakpoint()
-                raise ValueError(
-                    f"Orbital information does not cover minimum ({self.tf.min()}) and maximum ({self.tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}."
-                )
+            
+            if not direct:
+                if (
+                    self.xp.any((self.tf - self.orbits.t_base.min()) < -self.buffer)
+                    or self.xp.any((self.tf - self.orbits.t_base.max()) > self.buffer)
+                ):
+                    raise ValueError(
+                        f"Orbital information does not cover minimum ({tf.min()}) and maximum ({tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}. It is also greater than the buffer {self.buffer}."
+                    )
+                
+                # if we make it here, it is close enough under the buffer to just rewrite the value.
+                if self.xp.any(self.tf > self.orbits.t_base.max()):
+                    # if we make it here, it is close enough under the buffer to just rewrite the value.
+                    self.tf[self.tf > self.orbits.t_base.max()] = self.orbits.t_base.max() 
+                if self.xp.any(self.tf < self.orbits.t_base.min()):
+                    # if we make it here, it is close enough under the buffer to just rewrite the value.
+                    self.tf[self.tf < self.orbits.t_base.min()] = self.orbits.t_base.min() 
 
         # run response code in C/CUDA
         self.response_gen(

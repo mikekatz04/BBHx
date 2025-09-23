@@ -427,20 +427,20 @@ add_custom_command(
 # II. Declare the CPU backend
 if(BBHX_WITH_CPU)
   add_custom_command(
-    OUTPUT "interpolate.cxx"
-    COMMENT "Copy interpolate.cu to interpolate.cxx"
+    OUTPUT "Interpolate.cxx"
+    COMMENT "Copy Interpolate.cu to Interpolate.cxx"
     COMMAND
-      ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/interpolate.cu"
-      "${CMAKE_CURRENT_BINARY_DIR}/interpolate.cxx"
-    DEPENDS "interpolate.cu"
+      ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Interpolate.cu"
+      "${CMAKE_CURRENT_BINARY_DIR}/Interpolate.cxx"
+    DEPENDS "Interpolate.cu"
     VERBATIM)
 
   python_add_library(bbhx_cpu_interp MODULE WITH_SOABI interp.cxx
-                     interpolate.cxx)
+                     Interpolate.cxx)
   apply_cpu_backend_common_options(interp)
   target_sources(
     bbhx_cpu_interp PUBLIC FILE_SET HEADERS FILES constants.h global.h
-                            interpolate.hh)
+                  Interpolate.hh)
 
   # interp needs to link against LAPACKE. USe the following method to detect
   # it and obtain ${BBHX_LAPACKE_LIBS}. In case of failure, it will stop the
@@ -456,11 +456,11 @@ endif()
 # III. Declare the GPU backend
 if(BBHX_WITH_GPU)
   python_add_library(bbhx_gpu_interp MODULE WITH_SOABI interp.cxx
-                     interpolate.cu)
+                     Interpolate.cu)
   apply_gpu_backend_common_options(interp)
   target_sources(
     bbhx_gpu_interp PUBLIC FILE_SET HEADERS FILES cuda_complex.hpp global.h
-                            interpolate.hh)
+                            Interpolate.hh)
 endif()
 
 
@@ -577,10 +577,10 @@ endif()
 
 # III. Declare the GPU backend
 if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_response MODULE WITH_SOABI Detector.cu lisaresponse.cxx Likelihood.cu)
+  python_add_library(bbhx_gpu_response MODULE WITH_SOABI Detector.cu lisaresponse.cxx Response.cu)
   apply_gpu_backend_common_options(response)
   target_sources(bbhx_gpu_response PUBLIC FILE_SET HEADERS FILES
-                                       global.hpp Detector.hpp constants.h global.h Likelihood.hh)
+                                       global.hpp Detector.hpp constants.h global.h Response.hh)
 
   set_property(TARGET bbhx_gpu_response PROPERTY CUDA_ARCHITECTURES ${BBHX_CUDA_ARCH})
   set_property(TARGET bbhx_gpu_response PROPERTY CUDA_SEPARABLE_COMPILATION ON)

@@ -18,18 +18,8 @@
 
 import numpy as np
 
-try:
-    import cupy as cp
-    from ..cutils.pyInterpolate import interpolate_wrap as interpolate_wrap_gpu
-
-
-except (ImportError, ModuleNotFoundError) as e:
-    print("No CuPy or GPU interpolation available.")
-
-from ..cutils.pyInterpolate_cpu import interpolate_wrap as interpolate_wrap_cpu
-
 from ..utils.constants import *
-
+from ..utils.parallelbase import BBHxParallelModule
 
 def searchsorted2d_vec(a, b, xp=None, **kwargs):
     if xp is None:
@@ -49,7 +39,7 @@ def searchsorted2d_vec(a, b, xp=None, **kwargs):
     return out
 
 
-class CubicSplineInterpolant:
+class CubicSplineInterpolant(BBHxParallelModule):
     """GPU-accelerated Multiple Cubic Splines
 
     This class produces multiple cubic splines. The cubic splines are produced
@@ -77,8 +67,7 @@ class CubicSplineInterpolant:
         length (int, optional): If ``x`` and ``y_all`` are flattened,
             the user must provide the length of the frequency array for each binary.
             (Default: ``None``)
-        use_gpu (bool, optional): If True, prepare arrays for a GPU. Default is
-            False.
+        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
 
     Raises:
         ValueError: If input arguments are not correct.
@@ -93,12 +82,12 @@ class CubicSplineInterpolant:
         num_bin_all=None,
         num_modes=None,
         length=None,
-        use_gpu=False,
+        force_backend=None,
     ):
 
         # check all inputs
 
-        self.use_gpu = use_gpu
+        super().__init__(force_backend=force_backend)
 
         # first check is for flattened arrays
         if x.ndim == 1 or y_all.ndim == 1:
@@ -178,25 +167,14 @@ class CubicSplineInterpolant:
         self.x = x.copy()
 
     @property
-    def use_gpu(self) -> bool:
-        """Whether to use a GPU."""
-        return self._use_gpu
-
-    @use_gpu.setter
-    def use_gpu(self, use_gpu: bool) -> None:
-        """Set ``use_gpu``."""
-        assert isinstance(use_gpu, bool)
-        self._use_gpu = use_gpu
-
-    @property
     def xp(self) -> object:
         """Numpy or Cupy"""
-        return cp if self.use_gpu else np
+        return self.backend.xp
 
     @property
     def interpolate_arrays(self) -> callable:
         """C/CUDA wrapped function for computing interpolation."""
-        return interpolate_wrap_gpu if self.use_gpu else interpolate_wrap_cpu
+        return self.backend.interpolate_wrap
 
     @property
     def x_shaped(self):

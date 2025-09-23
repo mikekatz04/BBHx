@@ -41,6 +41,8 @@ except (ImportError, ModuleNotFoundError) as e:
 np.random.seed(111222)
 
 
+force_backend = "gpu" if gpu_available else "cpu"
+
 class WaveformTest(unittest.TestCase):
     def test_full_waveform(self):
         # set parameters
@@ -60,14 +62,13 @@ class WaveformTest(unittest.TestCase):
         # frequencies to interpolate to
         freq_new = xp.logspace(-4, 0, 10000)
         modes = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
-
-        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits = EqualArmlengthOrbits(force_backend=force_backend)
         orbits.configure(linear_interp_setup=True)
 
         wave_gen = BBHWaveformFD(
             amp_phase_kwargs=dict(run_phenomd=False),
             response_kwargs=dict(orbits=orbits),
-            use_gpu=gpu_available,
+            force_backend=force_backend,
         )
 
         wave = wave_gen(
@@ -94,7 +95,8 @@ class WaveformTest(unittest.TestCase):
         self.assertTrue(np.all(~np.isnan(wave)))
 
     def test_phenom_hm(self):
-        phenomhm = PhenomHMAmpPhase(use_gpu=gpu_available, run_phenomd=False)
+        
+        phenomhm = PhenomHMAmpPhase(force_backend=force_backend, run_phenomd=False)
         f_ref = 0.0  # let phenom codes set f_ref -> fmax = max(f^2A(f))
         phi_ref = 0.0  # phase at f_ref
         m1 = 1e6
@@ -118,7 +120,7 @@ class WaveformTest(unittest.TestCase):
 
     def test_fast_fd_response(self):
 
-        phenomhm = PhenomHMAmpPhase(use_gpu=gpu_available, run_phenomd=False)
+        phenomhm = PhenomHMAmpPhase(force_backend=force_backend, run_phenomd=False)
         f_ref = 0.0  # let phenom codes set f_ref -> fmax = max(f^2A(f))
         phi_ref = 0.0  # phase at f_ref
         m1 = 1e6
@@ -144,10 +146,10 @@ class WaveformTest(unittest.TestCase):
 
         length = phenomhm.freqs_shaped.shape[-1]
 
-        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits = EqualArmlengthOrbits(force_backend=force_backend)
         orbits.configure(linear_interp_setup=True)
 
-        response = LISATDIResponse(orbits=orbits, use_gpu=gpu_available)
+        response = LISATDIResponse(orbits=orbits, force_backend=force_backend)
 
         response(
             freqs, inc, lam, beta, psi, phi_ref, length, phase=phase, tf=tf, modes=modes
@@ -160,13 +162,13 @@ class WaveformTest(unittest.TestCase):
         self.assertTrue(np.all(~np.isnan(response.tf)))
 
     def test_direct_likelihood(self):
-        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits = EqualArmlengthOrbits(force_backend=force_backend)
         orbits.configure(linear_interp_setup=True)
 
         wave_gen = BBHWaveformFD(
             amp_phase_kwargs=dict(run_phenomd=False),
             response_kwargs=dict(orbits=orbits),
-            use_gpu=gpu_available,
+            force_backend=force_backend,
         )
 
         ######## generate data
@@ -233,7 +235,7 @@ class WaveformTest(unittest.TestCase):
             data_freqs,
             data_channels,
             psd,
-            use_gpu=gpu_available,
+            force_backend=force_backend,
         )
 
         # get params
@@ -255,13 +257,13 @@ class WaveformTest(unittest.TestCase):
 
     def test_het_likelihood(self):
 
-        orbits = EqualArmlengthOrbits(use_gpu=gpu_available)
+        orbits = EqualArmlengthOrbits(force_backend=force_backend)
         orbits.configure(linear_interp_setup=True)
 
         wave_gen = BBHWaveformFD(
             amp_phase_kwargs=dict(run_phenomd=False),
             response_kwargs=dict(orbits=orbits),
-            use_gpu=gpu_available,
+            force_backend=force_backend,
         )
 
         ######## generate data
@@ -328,7 +330,7 @@ class WaveformTest(unittest.TestCase):
             data_freqs,
             data_channels,
             psd,
-            use_gpu=gpu_available,
+            force_backend=force_backend,
         )
 
         # get params
@@ -362,7 +364,7 @@ class WaveformTest(unittest.TestCase):
             data_channels,
             reference_params,
             length_f_het,
-            use_gpu=gpu_available,
+            force_backend=force_backend,
         )
 
         # get_ll and not __call__ to work with lisatools

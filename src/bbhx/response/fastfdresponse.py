@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+from __future__ import annotations
 
 import numpy as np
 
@@ -126,7 +126,6 @@ class LISATDIResponse(BBHxParallelModule):
         else:
             self._orbits = orbits
         self._orbits.configure(linear_interp_setup=True)
-        breakpoint()
         assert self._orbits.backend.name.split("_")[-1] == self.backend.name.split("_")[-1]
 
     @property

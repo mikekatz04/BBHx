@@ -139,7 +139,6 @@ class TemplateInterpFD(BBHxParallelModule):
             ]
         ).T
 
-        breakpoint()
         if self.backend.name != "bbhx_cpu" and not isinstance(data_freqs, self.xp.ndarray):
             raise ValueError(
                 "Make sure if using Cupy or Numpy, the input freqs array is of the same type."

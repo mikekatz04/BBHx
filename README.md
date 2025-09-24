@@ -7,7 +7,7 @@ This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and
 
 This package is a part of the LISA Analysis Tools environment.
 
-If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/record/5730688#.YaFvRkJKhTY) Please also cite any consituent parts used like the response function or waveforms. See the `citation` attribute for each class or docstring for functions for more information.
+If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/records/17195311) Please also cite any consituent parts used like the response function or waveforms. See the `citation` attribute for each class or docstring for functions for more information.
 
 ## Getting Started
 

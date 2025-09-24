@@ -483,7 +483,7 @@ add_custom_command(
 if(BBHX_WITH_CPU)
   add_custom_command(
     OUTPUT "Likelihood.cxx"
-    COMMENT "Copy PhenomHM.cu to Likelihood.cxx"
+    COMMENT "Copy Likelihood.cu to Likelihood.cxx"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Likelihood.cu"
             "${CMAKE_CURRENT_BINARY_DIR}/Likelihood.cxx"
     DEPENDS "Likelihood.cu"
@@ -617,14 +617,14 @@ add_custom_command(
 # II. Declare the CPU backend
 if(BBHX_WITH_CPU)
   add_custom_command(
-    OUTPUT "Likelihood.cxx"
-    COMMENT "Copy PhenomHM.cu to Likelihood.cxx"
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Likelihood.cu"
-            "${CMAKE_CURRENT_BINARY_DIR}/Likelihood.cxx"
-    DEPENDS "Likelihood.cu"
+    OUTPUT "WaveformBuild.cxx"
+    COMMENT "Copy WaveformBuild.cu to WaveformBuild.cxx"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/WaveformBuild.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/WaveformBuild.cxx"
+    DEPENDS "WaveformBuild.cu"
     VERBATIM)
 
-  python_add_library(bbhx_cpu_waveformbuild MODULE WITH_SOABI bbhwaveformbuild.cxx Likelihood.cxx)
+  python_add_library(bbhx_cpu_waveformbuild MODULE WITH_SOABI bbhwaveformbuild.cxx WaveformBuild.cxx)
   apply_cpu_backend_common_options(waveformbuild)
 
   target_sources(bbhx_cpu_waveformbuild PUBLIC FILE_SET HEADERS FILES

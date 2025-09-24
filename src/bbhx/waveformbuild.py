@@ -30,7 +30,7 @@ from .response.fastfdresponse import LISATDIResponse
 from .utils.transform import tSSBfromLframe, tLfromSSBframe
 from .utils.interpolate import CubicSplineInterpolant
 from .utils.constants import *
-from .utils.citations import *
+# from .utils.citations import *
 from .utils.parallelbase import BBHxParallelModule
 
 class TemplateInterpFD(BBHxParallelModule):

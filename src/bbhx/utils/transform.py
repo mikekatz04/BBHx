@@ -20,7 +20,7 @@ import numpy as np
 from scipy import constants as ct
 
 from .constants import *
-from .citations import *
+# from .citations import *
 
 OrbitR = AU_SI
 

@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from libcpp cimport bool
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 
@@ -18,11 +18,14 @@ cdef extern from "Likelihood.hh":
 
     void prep_hdyn_wrap(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_arr, cmplx* h0_arr, double* S_n_arr, double df, int* bins, double* f_dense, double* f_m_arr, int data_length, int nchannels, int length_f_rel);
 
-@pointer_adjust
-def hdyn_wrap(likeOut1, likeOut2,
-                    templateChannels, dataConstants,
-                    dataFreqs,
-                    numBinAll, data_length, nChannels):
+def hdyn_wrap(*args, **kwargs):
+
+    (
+        likeOut1, likeOut2,
+        templateChannels, dataConstants,
+        dataFreqs,
+        numBinAll, data_length, nChannels
+    ), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t likeOut1_in = likeOut1
     cdef size_t likeOut2_in = likeOut2
@@ -35,8 +38,9 @@ def hdyn_wrap(likeOut1, likeOut2,
             <double*> dataFreqs_in,
             numBinAll, data_length, nChannels);
 
-@pointer_adjust
-def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll):
+
+def direct_like_wrap(*args, **kwargs):
+    (d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t d_h_in = d_h
     cdef size_t h_h_in = h_h
@@ -49,8 +53,8 @@ def direct_like_wrap(d_h, h_h, dataChannels, noise_weight_times_df, templateChan
     direct_like(<cmplx*> d_h_in, <cmplx*> h_h_in, <cmplx*> dataChannels_in, <double*> noise_weight_times_df_in, <long*> templateChannels_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in, data_stream_length, numBinAll)
 
 
-@pointer_adjust
-def prep_hdyn(A0_in, A1_in, B0_in, B1_in, d_arr, h0_arr, S_n_arr, df, bins, f_dense, f_m_arr, data_length, nchannels, length_f_rel):
+def prep_hdyn(*args, **kwargs):
+    (A0_in, A1_in, B0_in, B1_in, d_arr, h0_arr, S_n_arr, df, bins, f_dense, f_m_arr, data_length, nchannels, length_f_rel), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t A0_in_in = A0_in
     cdef size_t A1_in_in = A1_in

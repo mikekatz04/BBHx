@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from libcpp cimport bool
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 
@@ -30,24 +30,25 @@ cdef extern from "Response.hh":
         Orbits *orbits
     );
 
-@pointer_adjust
-def LISA_response_wrap(
-     response_out,
-     ells,
-     mms,
-     freqs,
-     phi_ref,
-     inc,
-     lam,
-     beta,
-     psi,
-    TDItag, rescaled, tdi2, order_fresnel_stencil,
-    numModes,
-    length,
-    numBinAll,
-    includesAmps,
-    orbits
-):
+
+def LISA_response_wrap(*args, **kwargs):
+    (
+        response_out,
+        ells,
+        mms,
+        freqs,
+        phi_ref,
+        inc,
+        lam,
+        beta,
+        psi,
+        TDItag, rescaled, tdi2, order_fresnel_stencil,
+        numModes,
+        length,
+        numBinAll,
+        includesAmps,
+        orbits
+    ), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t response_out_in = response_out
     cdef size_t ells_in = ells

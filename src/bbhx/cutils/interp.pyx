@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 
@@ -11,10 +11,13 @@ cdef extern from "Interpolate.hh":
                      int length, int numInterpParams, int numModes, int numBinAll);
 
 
-@pointer_adjust
-def interpolate_wrap(freqs, propArrays,
-                     B, upper_diag, diag, lower_diag,
-                     length, numInterpParams, numModes, numBinAll):
+def interpolate_wrap(*args, **kwargs):
+
+    (
+        freqs, propArrays,
+        B, upper_diag, diag, lower_diag,
+        length, numInterpParams, numModes, numBinAll
+    ), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t freqs_in = freqs
     cdef size_t propArrays_in = propArrays

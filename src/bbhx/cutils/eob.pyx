@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 

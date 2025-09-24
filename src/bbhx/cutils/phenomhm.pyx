@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 
@@ -57,25 +57,26 @@ cdef extern from "PhenomHMWaveform.hh":
         double dspin
     );
 
-@pointer_adjust
-def waveform_amp_phase_wrap(
-    waveformOut,
-    ells,
-    mms,
-    freqs,
-    m1_SI,
-    m2_SI,
-    chi1z,
-    chi2z,
-    distance,
-    f_ref,
-    numModes,
-    length,
-    numBinAll,
-    Mf_RD_lm_all,
-    Mf_DM_lm_all,
-    run_phenomd
-):
+
+def waveform_amp_phase_wrap(*args, **kwargs):
+    (
+        waveformOut,
+        ells,
+        mms,
+        freqs,
+        m1_SI,
+        m2_SI,
+        chi1z,
+        chi2z,
+        distance,
+        f_ref,
+        numModes,
+        length,
+        numBinAll,
+        Mf_RD_lm_all,
+        Mf_DM_lm_all,
+        run_phenomd
+    ), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t waveformOut_in = waveformOut
     cdef size_t ells_in = ells
@@ -112,19 +113,20 @@ def waveform_amp_phase_wrap(
 
     return
 
-@pointer_adjust
-def get_phenomhm_ringdown_frequencies(
-    fringdown,
-    fdamp,
-    m1,
-    m2,
-    chi1z,
-    chi2z,
-    ells,
-    mms,
-    numModes,
-    numBinAll,
-):
+
+def get_phenomhm_ringdown_frequencies(*args, **kwargs):
+    (
+        fringdown,
+        fdamp,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        ells,
+        mms,
+        numModes,
+        numBinAll
+    ), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t fringdown_in = fringdown
     cdef size_t fdamp_in = fdamp
@@ -149,26 +151,28 @@ def get_phenomhm_ringdown_frequencies(
     )
     return
 
-@pointer_adjust
-def get_phenomd_ringdown_frequencies(
-    fringdown,
-    fdamp,
-    m1,
-    m2,
-    chi1z,
-    chi2z,
-    numBinAll,
-    y_rd_all,
-    c1_rd_all,
-    c2_rd_all,
-    c3_rd_all,
-    y_dm_all,
-    c1_dm_all,
-    c2_dm_all,
-    c3_dm_all,
-    dspin
-):
 
+def get_phenomd_ringdown_frequencies(*args, **kwargs):
+
+    (
+        fringdown,
+        fdamp,
+        m1,
+        m2,
+        chi1z,
+        chi2z,
+        numBinAll,
+        y_rd_all,
+        c1_rd_all,
+        c2_rd_all,
+        c3_rd_all,
+        y_dm_all,
+        c1_dm_all,
+        c2_dm_all,
+        c3_dm_all,
+        dspin
+    ), tkwargs = wrapper(*args, **kwargs)
+    
     cdef size_t fringdown_in = fringdown
     cdef size_t fdamp_in = fdamp
     cdef size_t m1_in = m1
@@ -183,8 +187,6 @@ def get_phenomd_ringdown_frequencies(
     cdef size_t c1_dm_all_in = c1_dm_all
     cdef size_t c2_dm_all_in = c2_dm_all
     cdef size_t c3_dm_all_in = c3_dm_all
-
-
 
     get_phenomd_ringdown_frequencies_wrap(
         <double*> fringdown_in,

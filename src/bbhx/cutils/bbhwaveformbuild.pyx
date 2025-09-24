@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 
@@ -15,8 +15,8 @@ cdef extern from "WaveformBuild.hh":
                     int numBinAll, int data_length, int nChannels, int numModes, double* t_start, double* t_end)
 
 
-@pointer_adjust
-def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, freqs, propArrays, c1, c2, c3, t_start, t_end, length, data_length, numBinAll, numModes, inds_ptrs, inds_start, ind_lengths):
+def InterpTDI_wrap(*args, **kwargs):
+    (templateChannels_ptrs, dataFreqs, freqs, propArrays, c1, c2, c3, t_start, t_end, length, data_length, numBinAll, numModes, inds_ptrs, inds_start, ind_lengths), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t freqs_in = freqs
     cdef size_t propArrays_in = propArrays
@@ -33,10 +33,11 @@ def InterpTDI_wrap(templateChannels_ptrs, dataFreqs, freqs, propArrays, c1, c2, 
 
     InterpTDI(<long*> templateChannels_ptrs_in, <double*> dataFreqs_in, <double*> freqs_in, <double*> propArrays_in, <double*> c1_in, <double*> c2_in, <double*> c3_in, <double*> t_start_in, <double*> t_end_in, length, data_length, numBinAll, numModes, <long*> inds_ptrs_in, <int*> inds_start_in, <int*> ind_lengths_in);
 
-@pointer_adjust
-def direct_sum_wrap(templateChannels,
+
+def direct_sum_wrap(*args, **kwargs):
+    (templateChannels,
                 bbh_buffer,
-                numBinAll, data_length, nChannels, numModes, t_start, t_end):
+                numBinAll, data_length, nChannels, numModes, t_start, t_end), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t templateChannels_in = templateChannels
     cdef size_t bbh_buffer_in = bbh_buffer

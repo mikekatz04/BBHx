@@ -63,6 +63,10 @@ class TemplateInterpFD(BBHxParallelModule):
     def xp(self) -> object:
         """Numpy or Cupy"""
         return self.backend.xp
+    
+    @classmethod
+    def supported_backends(cls) -> list:
+        return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def template_gen(self) -> callable:
@@ -306,6 +310,10 @@ class BBHWaveformFD(BBHxParallelModule):
     def xp(self) -> object:
         """Numpy or Cupy"""
         return self.backend.xp
+
+    @classmethod
+    def supported_backends(cls) -> list:
+        return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def waveform_gen(self) -> callable:

@@ -1,7 +1,7 @@
 [build-system]
 build-backend = "scikit_build_core.build"
 
-requires = [ "cython", "numpy", "scikit-build-core" ]
+requires = [ "cython", "numpy", "scikit-build-core", "gpubackendtools", "lisaanalysistools"]
 
 [project]
 name = "bbhx" #@NAMESUFFIX@
@@ -59,6 +59,8 @@ dependencies = [
   "scipy",
   "tqdm",
   "wrapt",
+  "gpubackendtools", 
+  "lisaanalysistools",
   #@DEPS_CUPYCUDA@,
   #@DEPS_BBHXCORE@,
 ]

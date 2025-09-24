@@ -171,7 +171,8 @@ def get_phenomd_ringdown_frequencies(*args, **kwargs):
         c1_dm_all,
         c2_dm_all,
         c3_dm_all,
-        dspin
+        dspin,
+        num_segs
     ), tkwargs = wrapper(*args, **kwargs)
     
     cdef size_t fringdown_in = fringdown

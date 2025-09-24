@@ -714,7 +714,7 @@ CUDA_CALLABLE_MEMBER void our_cblas_zdotc(
     *c = _out;
 }
 
-void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll)
+void direct_like(cmplx* d_h, cmplx* h_h, cmplx* dataChannels, double* noise_weight_times_df, long* templateChannels_ptrs, int* inds_start, int* ind_lengths, int data_stream_length, int numBinAll, int nChannels, int device)
 {
 
     cmplx result_d_h[numBinAll];

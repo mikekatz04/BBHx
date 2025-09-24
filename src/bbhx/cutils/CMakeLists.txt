@@ -641,3 +641,42 @@ if(BBHX_WITH_GPU)
 
 endif()
 
+# I. Process bbhwaveformbuild.pyx into a C++ file
+add_custom_command(
+  OUTPUT "gpuonlywaveformbuild.cxx"
+  COMMENT "Cythonize gpuonlywaveformbuild.pyx into gpuonlywaveformbuild.cxx"
+  COMMAND
+    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/gpuonlywaveformbuild.pyx"
+    --output-file "${CMAKE_CURRENT_BINARY_DIR}/gpuonlywaveformbuild.cxx" -3 -+ --module-name
+    "speciallike" -I "${CMAKE_CURRENT_SOURCE_DIR}"
+  DEPENDS "gpuonlywaveformbuild.pyx"
+  VERBATIM)
+
+
+# II. Declare the CPU backend
+# if(BBHX_WITH_CPU)
+#   add_custom_command(
+#     OUTPUT "SpecialLikelihood.cxx"
+#     COMMENT "Copy SpecialLikelihood.cu to SpecialLikelihood.cxx"
+#     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/SpecialLikelihood.cu"
+#             "${CMAKE_CURRENT_BINARY_DIR}/SpecialLikelihood.cxx"
+#     DEPENDS "SpecialLikelihood.cu"
+#     VERBATIM)
+
+#   python_add_library(bbhx_cpu_speciallike MODULE WITH_SOABI gpuonlywaveformbuild.cxx SpecialLikelihood.cxx)
+#   apply_cpu_backend_common_options(speciallike)
+
+#   target_sources(bbhx_cpu_speciallike PUBLIC FILE_SET HEADERS FILES
+#                                         constants.h global.h SpecialLikelihood.hh)
+
+# endif()
+
+# III. Declare the GPU backend
+if(BBHX_WITH_GPU)
+  python_add_library(bbhx_gpu_speciallike MODULE WITH_SOABI gpuonlywaveformbuild.cxx SpecialLikelihood.cu)
+  apply_gpu_backend_common_options(speciallike)
+  target_sources(bbhx_gpu_speciallike PUBLIC FILE_SET HEADERS FILES
+                                       constants.h global.h SpecialLikelihood.hh)
+
+endif()
+

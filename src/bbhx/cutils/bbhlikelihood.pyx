@@ -40,7 +40,7 @@ def hdyn_wrap(*args, **kwargs):
 
 
 def direct_like_wrap(*args, **kwargs):
-    (d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll), tkwargs = wrapper(*args, **kwargs)
+    (d_h, h_h, dataChannels, noise_weight_times_df, templateChannels_ptrs, inds_start, ind_lengths, data_stream_length, numBinAll, nChannels, device), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t d_h_in = d_h
     cdef size_t h_h_in = h_h

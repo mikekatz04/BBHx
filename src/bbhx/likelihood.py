@@ -318,12 +318,8 @@ class HeterodynedLikelihood(BBHxParallelModule):
         template_gen_kwargs={},
         reference_gen_kwargs={},
         sens_mat=None,
-<<<<<<< HEAD:bbhx/likelihood.py
-        use_gpu=False,
-        outer_buffer=1024
-=======
+        outer_buffer=1024,
         force_backend=None,
->>>>>>> master:src/bbhx/likelihood.py
     ):
 
         self.buffer = outer_buffer

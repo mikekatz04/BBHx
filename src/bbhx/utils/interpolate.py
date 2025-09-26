@@ -215,7 +215,6 @@ class CubicSplineInterpolant(BBHxParallelModule):
             raise ValueError(
                 "x_new must have 3D shape of (num_bin_all, num_modes, # of new points)"
             )
-
         assert self.xp.all(
             x_new <= self.x_shaped.max(axis=-1)[:, :, None]
         ) and self.xp.all(x_new >= self.x_shaped.min(axis=-1)[:, :, None])
@@ -251,6 +250,45 @@ class CubicSplineInterpolant(BBHxParallelModule):
         dx = x_new - x0
 
         y_new = y0 + c1 * dx + c2 * dx**2 + c3 * dx**3
+
+        if hasattr(self.xp, "cuda"):
+            self.xp.get_default_memory_pool().free_all_block()
+        return y_new
+    
+    def interp_special(self, x_new, inds):
+        assert x_new.ndim == 1
+        assert x_new.shape[0] == inds.shape[0]
+
+        assert self.xp.all(
+            x_new <= self.x_shaped.reshape(-1, self.length)[inds].max(axis=-1)
+        ) and self.xp.all(x_new >= self.x_shaped.reshape(-1, self.length)[inds].min(axis=-1))
+
+        max_x = self.x_shaped.reshape(-1, self.length)[inds].max().item()
+        scaled_x = ((self.x_shaped.reshape(-1, self.length)[np.unique(inds)] / max_x) + 100 * np.unique(inds)[:, None]).flatten()
+        scaled_x_new = x_new / max_x + 100 * inds
+
+        segment_inds = self.xp.searchsorted(scaled_x, scaled_x_new, side="right") - 1
+
+        if self.xp.any(segment_inds == -1):
+            #  assert self.xp.all(x_new[segment_inds == self.length - 1] == self.x_shaped.max(axis=-1))
+            segment_inds[segment_inds == -1] = 0
+
+        if self.xp.any(segment_inds == self.length - 1):
+            #  assert self.xp.all(x_new[segment_inds == self.length - 1] == self.x_shaped.max(axis=-1))
+            segment_inds[segment_inds == self.length - 1] = self.length - 2
+
+        x0 = self.x_shaped.reshape(-1, self.length)[(inds, segment_inds)]
+        
+        _inds_y0 = self.xp.repeat(inds, self.y_shaped.shape[0])
+        _segment_inds_y0 = self.xp.repeat(segment_inds, self.y_shaped.shape[0])
+        _interp_params_inds = self.xp.tile(self.xp.arange(self.y_shaped.shape[0]), (len(inds),))
+        y0 = self.y_shaped.reshape(self.y_shaped.shape[0], -1, self.length)[_interp_params_inds, _inds_y0, _segment_inds_y0].reshape(self.y_shaped.shape[0], -1)
+        c1 = self.c1_shaped.reshape(self.y_shaped.shape[0], -1, self.length)[_interp_params_inds, _inds_y0, _segment_inds_y0].reshape(self.y_shaped.shape[0], -1)
+        c2 = self.c2_shaped.reshape(self.y_shaped.shape[0], -1, self.length)[_interp_params_inds, _inds_y0, _segment_inds_y0].reshape(self.y_shaped.shape[0], -1)
+        c3 = self.c3_shaped.reshape(self.y_shaped.shape[0], -1, self.length)[_interp_params_inds, _inds_y0, _segment_inds_y0].reshape(self.y_shaped.shape[0], -1)
+
+        dx = x_new - x0
+        y_new = y0 + c1 * dx[None, :] + c2 * dx[None, :] **2 + c3 * dx[None, :]**3
 
         if hasattr(self.xp, "cuda"):
             self.xp.get_default_memory_pool().free_all_block()

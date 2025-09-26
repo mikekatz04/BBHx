@@ -352,6 +352,8 @@ class BBHWaveformFD(BBHxParallelModule):
         squeeze=False,
         fill=False,
         combine=False,
+        output_splines=False,
+        tdi_in_amp_phase=False,
     ):
         """Generate the binary black hole frequency-domain TDI waveforms
 
@@ -401,7 +403,8 @@ class BBHWaveformFD(BBHxParallelModule):
                 keyword argument. If ``False, returns information for the fast likelihood functions.
             combine (bool, optional): If ``True``, combine all waveforms into the same output
                 data stream. (Default: ``False``)
-
+            output_splines (bool, optional): If ``True``, output the waveforms as fitted cubic splines. 
+            tdi_in_amp_phase (bool, optional): If ``True``, tdi splines are computed in amp and phase rather than Re and Im. 
 
         Returns:
             xp.ndarray: Shape ``(3, self.length, self.num_bin_all)``.
@@ -620,6 +623,20 @@ class BBHWaveformFD(BBHxParallelModule):
             return out
 
         else:
+            if tdi_in_amp_phase:
+                # TODO: remove when new tdi on the fly is put in. 
+                _tmp = out_buffer.reshape(self.out_buffer_final.shape).copy()
+
+                for i in [3, 5, 7]:
+                    re_part = _tmp[i].copy()
+                    im_part = _tmp[i + 1].copy()
+                    _amp = self.xp.sqrt(re_part ** 2 + im_part ** 2)
+                    _phase = self.xp.unwrap(self.xp.arctan2(im_part, re_part))
+                    _tmp[i] = _amp
+                    _tmp[i + 1] = _phase
+                
+                del out_buffer
+                out_buffer = _tmp.flatten().copy()
 
             # setup interpolant
             spline = CubicSplineInterpolant(
@@ -631,6 +648,9 @@ class BBHWaveformFD(BBHxParallelModule):
                 num_bin_all=self.num_bin_all,
                 force_backend=self.force_backend,
             )
+
+            if output_splines:
+                return spline
 
             # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
             template_channels = self.interp_response(

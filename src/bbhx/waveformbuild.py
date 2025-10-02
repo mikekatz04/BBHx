@@ -294,12 +294,16 @@ class BBHWaveformFD(BBHxParallelModule):
         response_kwargs={},
         interp_kwargs={},
         force_backend=None,
+        amp_phase_gen_class=PhenomHMAmpPhase,
+        response_class=LISATDIResponse,
     ):
         super().__init__(force_backend=force_backend)
         self.force_backend = force_backend
         # initialize waveform and response funtions
-        self.amp_phase_gen = PhenomHMAmpPhase(**amp_phase_kwargs, force_backend=force_backend)
-        self.response_gen = LISATDIResponse(**response_kwargs, force_backend=force_backend)
+        self.response_class = response_class
+        self.amp_phase_gen_class = amp_phase_gen_class
+        self.amp_phase_gen = self.amp_phase_gen_class(**amp_phase_kwargs, force_backend=force_backend)
+        self.response_gen = self.response_class(**response_kwargs, force_backend=force_backend)
 
         self.num_interp_params = 9
 

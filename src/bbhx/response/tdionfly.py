@@ -238,6 +238,7 @@ class BBHTDIonTheFly(BBHxParallelModule):
         out_buffer=None,
         adjust_phase=True,
         direct=False,
+        return_spline=False,  # TODO: docs!
     ):
         """Evaluate respones function
 
@@ -440,24 +441,31 @@ class BBHTDIonTheFly(BBHxParallelModule):
                     f"Orbital information does not cover minimum ({self.tf.min()}) and maximum ({self.tf.max()}) tf. Orbital information begins at {self.orbits.t_base.min()} and ends at {self.orbits.t_base.max()}."
                 )
 
+        # TODO: maybe get rid of this since this will be the "newer structure"
         response_carrier_shaped = self.response_carrier.reshape(self.nparams, self.num_bin_all, self.num_modes, self.length)
         freqs_shaped = self.freqs.reshape(self.num_bin_all, self.num_modes, self.length)
-        t_arr = response_carrier_shaped[2, 0, 0]
+        t_shaped = response_carrier_shaped[2]
 
-        _ind_keep = np.where(np.diff(t_arr) < 0.0)[0]
-        if len(_ind_keep) > 0:
-            ind_keep = _ind_keep[0] + 1
-        else:
-            ind_keep = t_arr.shape[0]
+        # TODO: check this
+        print("CHANGE THIS!!!!")
+        inds_keep = self.xp.arange(self.length)[1:-500]
+        t_tdi = t_shaped[:, :, inds_keep]
+        # SOME CHOICES:
+        #   * RESAMPLE ON NEW T KEEPING SAME OVERALL LENGTH
+        #   * ONCE (OR WE CAN NOW) THE SPLINES ARE UPDATED TO HAVE VARIABLE NUMBER OF COMPONENTS,
+        #    WE COULD USE THAT. 
+        amp_shaped = response_carrier_shaped[0]
 
-        t_arr = t_arr[:ind_keep]
-        freqs = freqs_shaped[0, 0, :ind_keep]
-        amps = response_carrier_shaped[0, 0, 0, :ind_keep]
-        
-        from scipy.interpolate import CubicSpline
+        # TODO: !!!! What do with turnover in time? !!!!!
 
-        amp_spl = CubicSpline(t_arr, amps)
-        freq_spl = CubicSpline(t_arr, freqs)
+        # _ind_keep = np.where(np.diff(t_arr) < 0.0)[0]
+        # if len(_ind_keep) > 0:
+        #     ind_keep = _ind_keep[0] + 1
+        # else:
+        #     ind_keep = t_arr.shape[0]
+        from gpubackendtools.interpolate import CubicSplineInterpolant
+        amp_spl = CubicSplineInterpolant(t_shaped, amp_shaped, force_backend=self.backend.name.split("_")[-1])
+        freq_spl = CubicSplineInterpolant(t_shaped, freqs_shaped, force_backend=self.backend.name.split("_")[-1])
 
         from fastlisaresponse.tdionfly import FDTDIonTheFly
 
@@ -467,82 +475,52 @@ class BBHTDIonTheFly(BBHxParallelModule):
         CUBIC_SPLINE_LINEAR_SPACING = 1
         CUBIC_SPLINE_LOG10_SPACING = 2
         CUBIC_SPLINE_GENERAL_SPACING = 3
-        fd_wave_gen = self.fd_gen(t_arr, amp_spl, freq_spl, fs, spline_type=CUBIC_SPLINE_GENERAL_SPACING)
+        # 11 is nparams / will not affect spline
+        fd_wave_gen = self.fd_gen(t_tdi, amp_spl, freq_spl, fs, self.num_bin_all * self.num_modes, 11, spline_type=CUBIC_SPLINE_GENERAL_SPACING)
+        _inc = self.xp.repeat(inc, self.num_modes)
+        _psi = self.xp.repeat(psi, self.num_modes)
+        _lam = self.xp.repeat(lam, self.num_modes)
+        _beta = self.xp.repeat(beta, self.num_modes)
 
-        wave_output = fd_wave_gen(inc, psi, lam, beta, return_spline=False)
-        import matplotlib.pyplot as plt
-
-        plt.plot(wave_output.Xamp)
-        plt.plot(wave_output.Yamp)
-        plt.plot(wave_output.Zamp)
-        plt.show()
-        plt.plot(wave_output.Xphase)
-        plt.plot(wave_output.Yphase)
-        plt.plot(wave_output.Zphase)
-        plt.show()
+        wave_output = fd_wave_gen(_inc, _psi, _lam, _beta, return_spline=return_spline)
         
+        # import matplotlib.pyplot as plt
+        # plt.plot(wave_output.Xamp)
+        # plt.plot(wave_output.Yamp)
+        # plt.plot(wave_output.Zamp)
+        # plt.show()
+        # plt.plot(wave_output.Xphase)
+        # plt.plot(wave_output.Yphase)
+        # plt.plot(wave_output.Zphase)
+        # plt.show()
+
+        inds_tmp = (self.xp.tile(inds_keep, (self.num_bin_all * self.num_modes, 1)) + self.length * self.xp.repeat(self.xp.arange(self.num_bin_all * self.num_modes)[:, None], len(inds_keep), axis=-1)).flatten()
         # need to vectorize response setup
-        breakpoint()
+
         self.response_carrier[
-            (includes_amps + 3)
-            * length
-            * num_modes
-            * num_bin_all : (includes_amps + 4)
-            * length
-            * num_modes
-            * num_bin_all
+            (includes_amps + 2) * length * num_modes * num_bin_all + inds_tmp
         ] = wave_output.Xamp
 
         self.response_carrier[
-            (includes_amps + 4)
-            * length
-            * num_modes
-            * num_bin_all : (includes_amps + 5)
-            * length
-            * num_modes
-            * num_bin_all
+            (includes_amps + 3) * length * num_modes * num_bin_all + inds_tmp
         ] = wave_output.Xphase
 
         self.response_carrier[
-            (includes_amps + 5)
-            * length
-            * num_modes
-            * num_bin_all : (includes_amps + 6)
-            * length
-            * num_modes
-            * num_bin_all
+            (includes_amps + 4) * length * num_modes * num_bin_all + inds_tmp
         ] = wave_output.Yamp
 
         self.response_carrier[
-            (includes_amps + 6)
-            * length
-            * num_modes
-            * num_bin_all : (includes_amps + 7)
-            * length
-            * num_modes
-            * num_bin_all
+            (includes_amps + 5) * length * num_modes * num_bin_all + inds_tmp
         ] = wave_output.Yphase
 
         self.response_carrier[
-            (includes_amps + 7)
-            * length
-            * num_modes
-            * num_bin_all : (includes_amps + 8)
-            * length
-            * num_modes
-            * num_bin_all
+            (includes_amps + 6) * length * num_modes * num_bin_all + inds_tmp
         ] = wave_output.Zamp
 
         self.response_carrier[
-            (includes_amps + 8)
-            * length
-            * num_modes
-            * num_bin_all : (includes_amps + 9)
-            * length
-            * num_modes
-            * num_bin_all
+            (includes_amps + 7) * length * num_modes * num_bin_all + inds_tmp
         ] = wave_output.Zphase
-        breakpoint()
+
         return wave_output
 
         # adjust input phase arrays in-place

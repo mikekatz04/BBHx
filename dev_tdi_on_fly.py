@@ -3,7 +3,6 @@ from bbhx.waveformbuild import BBHWaveformFD
 from lisatools.utils.constants import *
 from lisatools.detector import EqualArmlengthOrbits
 import matplotlib.pyplot as plt
-from bbhx.utils.interpolate import CubicSplineInterpolant
 
 
 if __name__ == "__main__":
@@ -54,7 +53,7 @@ if __name__ == "__main__":
         modes=modes,
         direct=False,
         output_splines=True,
-        tdi_in_amp_phase=True,
+        tdi_convert_amp_phase=False,
         length=1024,
     )# [0]
 

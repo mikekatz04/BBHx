@@ -20,7 +20,7 @@ class BBHxBackendMethods(BackendMethods):
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
-    interpolate_wrap: typing.Callable[(...), None]
+    # interpolate_wrap: typing.Callable[(...), None]
 
 class BBHxBackend:
     hdyn_wrap: typing.Callable[(...), None]
@@ -30,7 +30,7 @@ class BBHxBackend:
     LISA_response_wrap: typing.Callable[(...), None]
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
-    interpolate_wrap: typing.Callable[(...), None]
+    # interpolate_wrap: typing.Callable[(...), None]
 
     def __init__(self, bbhx_backend_methods):
 
@@ -46,7 +46,7 @@ class BBHxBackend:
         self.waveform_amp_phase_wrap = bbhx_backend_methods.waveform_amp_phase_wrap
         self.get_phenomhm_ringdown_frequencies = bbhx_backend_methods.get_phenomhm_ringdown_frequencies
         self.get_phenomd_ringdown_frequencies = bbhx_backend_methods.get_phenomd_ringdown_frequencies
-        self.interpolate_wrap = bbhx_backend_methods.interpolate_wrap
+        # self.interpolate_wrap = bbhx_backend_methods.interpolate_wrap
 
 
 class BBHxCpuBackend(CpuBackend, BBHxBackend):
@@ -65,7 +65,7 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             import bbhx_backend_cpu.waveformbuild
             import bbhx_backend_cpu.response
             import bbhx_backend_cpu.phenomhm
-            import bbhx_backend_cpu.interp
+            # import bbhx_backend_cpu.interp
             
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -83,7 +83,7 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             waveform_amp_phase_wrap=bbhx_backend_cpu.phenomhm.waveform_amp_phase_wrap,
             get_phenomhm_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
-            interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
+            # interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
             xp=numpy,
         )
 
@@ -105,7 +105,7 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             import bbhx_backend_cuda11x.waveformbuild
             import bbhx_backend_cuda11x.response
             import bbhx_backend_cuda11x.phenomhm
-            import bbhx_backend_cuda11x.interp
+            # import bbhx_backend_cuda11x.interp
 
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -128,7 +128,7 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             waveform_amp_phase_wrap=bbhx_backend_cuda11x.phenomhm.waveform_amp_phase_wrap,
             get_phenomhm_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomd_ringdown_frequencies,
-            interpolate_wrap=bbhx_backend_cuda11x.interp.interpolate_wrap,
+            # interpolate_wrap=bbhx_backend_cuda11x.interp.interpolate_wrap,
             xp=cupy,
         )
 
@@ -148,7 +148,7 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             import bbhx_backend_cuda12x.waveformbuild
             import bbhx_backend_cuda12x.response
             import bbhx_backend_cuda12x.phenomhm
-            import bbhx_backend_cuda12x.interp
+            # import bbhx_backend_cuda12x.interp
 
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -171,7 +171,7 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             waveform_amp_phase_wrap=bbhx_backend_cuda12x.phenomhm.waveform_amp_phase_wrap,
             get_phenomhm_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomd_ringdown_frequencies,
-            interpolate_wrap=bbhx_backend_cuda12x.interp.interpolate_wrap,
+            # interpolate_wrap=bbhx_backend_cuda12x.interp.interpolate_wrap,
             xp=cupy,
         )
 

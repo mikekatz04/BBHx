@@ -410,61 +410,6 @@ endif()
 
 
 # ----------------
-# --- interp ---
-# ----------------
-
-# I. Process interp.pyx into a C++ file
-add_custom_command(
-  OUTPUT "interp.cxx"
-  COMMENT "Cythonize interp.pyx into interp.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/interp.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/interp.cxx" -3 -+ --module-name
-    "interp" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "interp.pyx"
-  VERBATIM)
-
-# II. Declare the CPU backend
-if(BBHX_WITH_CPU)
-  add_custom_command(
-    OUTPUT "Interpolate.cxx"
-    COMMENT "Copy Interpolate.cu to Interpolate.cxx"
-    COMMAND
-      ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Interpolate.cu"
-      "${CMAKE_CURRENT_BINARY_DIR}/Interpolate.cxx"
-    DEPENDS "Interpolate.cu"
-    VERBATIM)
-
-  python_add_library(bbhx_cpu_interp MODULE WITH_SOABI interp.cxx
-                     Interpolate.cxx)
-  apply_cpu_backend_common_options(interp)
-  target_sources(
-    bbhx_cpu_interp PUBLIC FILE_SET HEADERS FILES constants.h global.h
-                  Interpolate.hh)
-
-  # interp needs to link against LAPACKE. USe the following method to detect
-  # it and obtain ${BBHX_LAPACKE_LIBS}. In case of failure, it will stop the
-  # processing execution.
-  bbhx_get_lapacke()
-  # Now, link against ${BBHX_LAPACKE_LIBS} to link against liblapacke.so and
-  # include lapacke.h
-  target_link_libraries(bbhx_cpu_interp LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
-                        ${BBHX_LAPACKE_EXTRA_LIBS})
-
-endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_interp MODULE WITH_SOABI interp.cxx
-                     Interpolate.cu)
-  apply_gpu_backend_common_options(interp)
-  target_sources(
-    bbhx_gpu_interp PUBLIC FILE_SET HEADERS FILES cuda_complex.hpp global.h
-                            Interpolate.hh)
-endif()
-
-
-# ----------------
 # --- likelihood ---
 # ----------------
 

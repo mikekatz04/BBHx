@@ -28,10 +28,12 @@ except (ImportError, ModuleNotFoundError) as e:
 from .waveforms.phenomhm import PhenomHMAmpPhase
 from .response.fastfdresponse import LISATDIResponse
 from .utils.transform import tSSBfromLframe, tLfromSSBframe
-from .utils.interpolate import CubicSplineInterpolant
 from .utils.constants import *
 # from .utils.citations import *
 from .utils.parallelbase import BBHxParallelModule
+
+from gpubackendtools.interpolate import CubicSplineInterpolant
+
 
 class TemplateInterpFD(BBHxParallelModule):
     """Interpolate frequency domain template.
@@ -357,7 +359,7 @@ class BBHWaveformFD(BBHxParallelModule):
         fill=False,
         combine=False,
         output_splines=False,
-        tdi_in_amp_phase=False,
+        tdi_convert_amp_phase=False,
     ):
         """Generate the binary black hole frequency-domain TDI waveforms
 
@@ -408,7 +410,7 @@ class BBHWaveformFD(BBHxParallelModule):
             combine (bool, optional): If ``True``, combine all waveforms into the same output
                 data stream. (Default: ``False``)
             output_splines (bool, optional): If ``True``, output the waveforms as fitted cubic splines. 
-            tdi_in_amp_phase (bool, optional): If ``True``, tdi splines are computed in amp and phase rather than Re and Im. 
+            tdi_convert_amp_phase (bool, optional): If ``True``, tdi splines are computed in amp and phase rather than Re and Im. 
 
         Returns:
             xp.ndarray: Shape ``(3, self.length, self.num_bin_all)``.
@@ -627,7 +629,7 @@ class BBHWaveformFD(BBHxParallelModule):
             return out
 
         else:
-            if tdi_in_amp_phase:
+            if tdi_convert_amp_phase:
                 # TODO: remove when new tdi on the fly is put in. 
                 _tmp = out_buffer.reshape(self.out_buffer_final.shape).copy()
 
@@ -642,15 +644,21 @@ class BBHWaveformFD(BBHxParallelModule):
                 del out_buffer
                 out_buffer = _tmp.flatten().copy()
 
+            # the evaluation works without putting this into the final kernel
+            # just needed to spline correctly
+            _freqs_in_spl = self.xp.repeat(self.amp_phase_gen.freqs_shaped[None, :, :, :], self.num_interp_params, axis=0).flatten()
+
+            # TODO: need to clean this up
+            CUBIC_SPLINE_LOG10_SPACING = 2
+
             # setup interpolant
             spline = CubicSplineInterpolant(
-                self.amp_phase_gen.freqs,
+                _freqs_in_spl,
                 out_buffer,
                 length=self.length,
-                num_interp_params=self.num_interp_params,
-                num_modes=self.num_modes,
-                num_bin_all=self.num_bin_all,
+                ninterps=self.num_interp_params * self.num_modes * self.num_bin_all,
                 force_backend=self.force_backend,
+                spline_type=CUBIC_SPLINE_LOG10_SPACING,
             )
 
             if output_splines:

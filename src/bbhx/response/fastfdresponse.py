@@ -102,6 +102,10 @@ class LISATDIResponse(BBHxParallelModule):
         self.mms_default = self.xp.array([2, 3, 4, 1, 2, 3], dtype=self.xp.int32)
 
         self.orbits = orbits
+    
+    @classmethod
+    def supported_backends(cls) -> list:
+        return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def response_gen(self):

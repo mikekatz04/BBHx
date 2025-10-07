@@ -119,6 +119,10 @@ class Likelihood(BBHxParallelModule):
             4 * self.xp.sum((self.data_channels.conj() * self.data_channels)).real
         ).item()
 
+    @classmethod
+    def supported_backends(cls) -> list:
+        return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
+
     @property
     def like_gen(self):
         """Likelihood for either GPU or CPU."""
@@ -341,6 +345,10 @@ class HeterodynedLikelihood(BBHxParallelModule):
             template_gen_kwargs=template_gen_kwargs,
             reference_gen_kwargs=reference_gen_kwargs,
         )
+
+    @classmethod
+    def supported_backends(cls) -> list:
+        return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def sens_mat(self):

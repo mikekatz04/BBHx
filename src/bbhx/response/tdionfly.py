@@ -449,7 +449,7 @@ class BBHTDIonTheFly(BBHxParallelModule):
         # TODO: check this
         print("CHANGE THIS!!!!")
         inds_keep = self.xp.arange(self.length)[1:-500]
-        t_tdi = t_shaped[:, :, inds_keep]
+        t_tdi = t_shaped[:, :, inds_keep].reshape(-1, len(inds_keep))
         # SOME CHOICES:
         #   * RESAMPLE ON NEW T KEEPING SAME OVERALL LENGTH
         #   * ONCE (OR WE CAN NOW) THE SPLINES ARE UPDATED TO HAVE VARIABLE NUMBER OF COMPONENTS,
@@ -499,27 +499,27 @@ class BBHTDIonTheFly(BBHxParallelModule):
 
         self.response_carrier[
             (includes_amps + 2) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Xamp
+        ] = wave_output.Xamp.flatten()
 
         self.response_carrier[
             (includes_amps + 3) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Xphase
+        ] = wave_output.Xphase.flatten()
 
         self.response_carrier[
             (includes_amps + 4) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Yamp
+        ] = wave_output.Yamp.flatten()
 
         self.response_carrier[
             (includes_amps + 5) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Yphase
+        ] = wave_output.Yphase.flatten()
 
         self.response_carrier[
             (includes_amps + 6) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Zamp
+        ] = wave_output.Zamp.flatten()
 
         self.response_carrier[
             (includes_amps + 7) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Zphase
+        ] = wave_output.Zphase.flatten()
 
         return wave_output
 

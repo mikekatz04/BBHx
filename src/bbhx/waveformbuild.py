@@ -646,7 +646,7 @@ class BBHWaveformFD(BBHxParallelModule):
 
             # the evaluation works without putting this into the final kernel
             # just needed to spline correctly
-            _freqs_in_spl = self.xp.repeat(self.amp_phase_gen.freqs_shaped[None, :, :, :], self.num_interp_params, axis=0).flatten()
+            _freqs_in_spl = self.xp.repeat(self.amp_phase_gen.freqs_shaped[None, :, :, :], self.num_interp_params, axis=0)  # .flatten()
 
             # TODO: need to clean this up
             CUBIC_SPLINE_LOG10_SPACING = 2
@@ -654,9 +654,9 @@ class BBHWaveformFD(BBHxParallelModule):
             # setup interpolant
             spline = CubicSplineInterpolant(
                 _freqs_in_spl,
-                out_buffer,
-                length=self.length,
-                ninterps=self.num_interp_params * self.num_modes * self.num_bin_all,
+                self.out_buffer_final,  # out_buffer,
+                # length=self.length,
+                # ninterps=self.num_interp_params * self.num_modes * self.num_bin_all,
                 force_backend=self.force_backend,
                 spline_type=CUBIC_SPLINE_LOG10_SPACING,
             )

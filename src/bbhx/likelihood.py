@@ -714,7 +714,7 @@ def searchsorted2d_vec(a, b, xp=None, **kwargs):
     return p - n * (xp.arange(m)[:, None])
 
 
-class NewHeterodynedLikelihood:
+class NewHeterodynedLikelihood(BBHxParallelModule):
     """Compute the Heterodyned log-Likelihood
 
     Heterdyning involves separating the fast and slow evolutions when comparing
@@ -823,8 +823,11 @@ class NewHeterodynedLikelihood:
         reference_gen_kwargs={},
         noise_kwargs_AE={},
         noise_kwargs_T={},
-        gpu=None,
+        force_backend=None,
     ):
+
+        # direct based on GPU usage
+        super().__init__(force_backend=force_backend)
 
         # store all input information
         self.template_gen = template_gen
@@ -832,21 +835,6 @@ class NewHeterodynedLikelihood:
         self.d = data_channels
         self.psd = psd
         self.length_f_het = length_f_het
-
-        # direct based on GPU usage
-        self.gpu = gpu
-        if gpu is not None:
-            assert isinstance(gpu, int)
-            self.use_gpu = True
-            self.like_gen = new_hdyn_like_gpu
-            self.prep_gen = new_hdyn_prep_gpu
-            self.xp = cp
-
-        else:
-            raise NotImplementedError
-            self.use_gpu = False
-            self.like_gen = hdyn_wrap_cpu
-            self.xp = np
 
         # calculate all quantites related to the reference template
         self.init_heterodyne_info(
@@ -861,6 +849,18 @@ class NewHeterodynedLikelihood:
     def citation(self):
         """Citations for this class"""
         return katz_citations + Cornish_Heterodyning + Rel_Bin_citation
+
+    @property
+    def xp(self) -> object:
+        return self.backend.xp
+
+    @property
+    def like_gen(self) -> callable:
+        return self.backend.new_hdyn_like
+    
+    @property
+    def prep_gen(self) -> callable:
+        return self.backend.new_hdyn_prep
 
     def init_heterodyne_info(
         self,

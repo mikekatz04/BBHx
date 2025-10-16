@@ -304,7 +304,7 @@ class BBHWaveformFD(BBHxParallelModule):
         self.num_interp_params = 9
 
         # setup the final interpolant
-        self.interp_like = InterpTDILike_wrap
+        self.interp_like = self.backend.speciallike
         self.interp_response = TemplateInterpFD(**interp_kwargs, force_backend=force_backend)
 
     @property
@@ -798,8 +798,9 @@ class BBHWaveformFD(BBHxParallelModule):
         if not hasattr(self, "d_d"):
             raise ValueError("Need to set d_d term for self.")
         
-        if self.use_gpu:
-            gpu = self.xp.cuda.runtime.getDevice()
+        if self.backend.uses_gpu:
+            # TODO: add get_cuda_device to gpubackendtools
+            gpu = self.backend.xp.cuda.runtime.getDevice()
         else:
             raise NotImplementedErrors
         

@@ -21,6 +21,9 @@ class BBHxBackendMethods(BackendMethods):
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
     interpolate_wrap: typing.Callable[(...), None]
+    speciallike: typing.Callable[(...), None]
+    new_hdyn_prep: typing.Callable[(...), None]
+    new_hdyn_wrap: typing.Callable[(...), None]
 
 class BBHxBackend:
     hdyn_wrap: typing.Callable[(...), None]
@@ -31,6 +34,9 @@ class BBHxBackend:
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     interpolate_wrap: typing.Callable[(...), None]
+    speciallike: typing.Callable[(...), None]
+    new_hdyn_prep: typing.Callable[(...), None]
+    new_hdyn_wrap: typing.Callable[(...), None]
 
     def __init__(self, bbhx_backend_methods):
 
@@ -47,7 +53,10 @@ class BBHxBackend:
         self.get_phenomhm_ringdown_frequencies = bbhx_backend_methods.get_phenomhm_ringdown_frequencies
         self.get_phenomd_ringdown_frequencies = bbhx_backend_methods.get_phenomd_ringdown_frequencies
         self.interpolate_wrap = bbhx_backend_methods.interpolate_wrap
-
+        self.speciallike = bbhx_backend_methods.speciallike
+        self.new_hdyn_prep = bbhx_backend_methods.new_hdyn_prep
+        self.new_hdyn_like = bbhx_backend_methods.new_hdyn_like
+    
 
 class BBHxCpuBackend(CpuBackend, BBHxBackend):
     """Implementation of the CPU backend"""
@@ -66,6 +75,7 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             import bbhx_backend_cpu.response
             import bbhx_backend_cpu.phenomhm
             import bbhx_backend_cpu.interp
+            import bbhx_backend_cpu.speciallike
             
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -84,6 +94,9 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             get_phenomhm_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
+            speciallike=bbhx_backend_cpu.speciallike.InterpTDILike_wrap,
+            new_hdyn_prep=bbhx_backend_cpu.likelihood.new_hdyn_prep,
+            new_hdyn_like=bbhx_backend_cpu.likelihood.new_hdyn_like,
             xp=numpy,
         )
 
@@ -106,6 +119,7 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             import bbhx_backend_cuda11x.response
             import bbhx_backend_cuda11x.phenomhm
             import bbhx_backend_cuda11x.interp
+            import bbhx_backend_cuda11x.speciallike
 
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -129,6 +143,9 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             get_phenomhm_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cuda11x.interp.interpolate_wrap,
+            speciallike=bbhx_backend_cuda11x.speciallike.InterpTDILike_wrap,
+            new_hdyn_prep=bbhx_backend_cuda11x.likelihood.new_hdyn_prep,
+            new_hdyn_like=bbhx_backend_cuda11x.likelihood.new_hdyn_like,
             xp=cupy,
         )
 
@@ -149,6 +166,7 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             import bbhx_backend_cuda12x.response
             import bbhx_backend_cuda12x.phenomhm
             import bbhx_backend_cuda12x.interp
+            import bbhx_backend_cuda12x.speciallike
 
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -172,6 +190,9 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             get_phenomhm_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cuda12x.interp.interpolate_wrap,
+            speciallike=bbhx_backend_cuda12x.speciallike.InterpTDILike_wrap,
+            new_hdyn_prep=bbhx_backend_cuda12x.likelihood.new_hdyn_prep,
+            new_hdyn_like=bbhx_backend_cuda12x.likelihood.new_hdyn_like,
             xp=cupy,
         )
 

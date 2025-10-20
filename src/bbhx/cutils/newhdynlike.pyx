@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from libcpp cimport bool
 
-from bbhx.utils.utility import pointer_adjust
+from gpubackendtools import wrapper
 
 assert sizeof(int) == sizeof(np.int32_t)
 
@@ -19,11 +19,14 @@ cdef extern from "Likelihood.hh":
         int numBinAll, int length_f_rel, int nChannels, int num_constants) except+
 
 
-@pointer_adjust
-def new_hdyn_like(likeOut1, likeOut2,
+def new_hdyn_like(*args, **kwargs):
+    (
+        likeOut1, likeOut2,
         templateChannels, dataConstants,
          dataFreqsIn, constants_index,
-        numBinAll, length_f_rel, nChannels, num_constants):
+        numBinAll, length_f_rel, nChannels, num_constants
+    ), tkwargs = wrapper(*args, **kwargs)
+
 
     cdef size_t likeOut1_in = likeOut1
     cdef size_t likeOut2_in = likeOut2
@@ -38,10 +41,12 @@ def new_hdyn_like(likeOut1, likeOut2,
         numBinAll, length_f_rel, nChannels, num_constants)
 
 
-@pointer_adjust
-def new_hdyn_prep(A0_out, A1_out, B0_out, B1_out,
+def new_hdyn_prep(*args, **kwargs):
+    (
+        A0_out, A1_out, B0_out, B1_out,
         h0_arr, data, psd, f_m_arr, df, f_dense, data_index, noise_index,
-        start_inds_all, num_points_seg, length_f_rel, num_bin, data_length, nchannels):
+        start_inds_all, num_points_seg, length_f_rel, num_bin, data_length, nchannels
+    ), tkwargs = wrapper(*args, **kwargs)
 
     cdef size_t A0_out_in = A0_out
     cdef size_t A1_out_in = A1_out

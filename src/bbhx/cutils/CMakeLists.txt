@@ -680,3 +680,54 @@ if(BBHX_WITH_GPU)
 
 endif()
 
+
+
+# ----------------
+# --- new hdyn likelihood (only for GPU right now) ---
+# ----------------
+
+# I. Process newhdynlike.pyx into a C++ file
+add_custom_command(
+  OUTPUT "newhdynlike.cxx"
+  COMMENT "Cythonize newhdynlike.pyx into newhdynlike.cxx"
+  COMMAND
+    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/newhdynlike.pyx"
+    --output-file "${CMAKE_CURRENT_BINARY_DIR}/newhdynlike.cxx" -3 -+ --module-name
+    "newhdyn" -I "${CMAKE_CURRENT_SOURCE_DIR}"
+  DEPENDS "newhdynlike.pyx"
+  VERBATIM)
+
+# II. Declare the CPU backend
+# if(BBHX_WITH_CPU)
+  # # add_custom_command(
+  #   OUTPUT "Likelihood.cxx"
+  #   COMMENT "Copy Likelihood.cu to Likelihood.cxx"
+  #   COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Likelihood.cu"
+  #           "${CMAKE_CURRENT_BINARY_DIR}/Likelihood.cxx"
+  #   DEPENDS "Likelihood.cu"
+  #   VERBATIM)
+
+  # python_add_library(bbhx_cpu_likelihood MODULE WITH_SOABI bbhlikelihood.cxx Likelihood.cxx)
+  # apply_cpu_backend_common_options(likelihood)
+
+  # target_sources(bbhx_cpu_likelihood PUBLIC FILE_SET HEADERS FILES
+  #                                       constants.h global.h Likelihood.hh)
+
+  # # likelihood needs to link against LAPACKE. USe the following method to detect
+  # # it and obtain ${BBHX_LAPACKE_LIBS}. In case of failure, it will stop the
+  # # processing execution.
+  # bbhx_get_lapacke()
+  # # Now, link against ${BBHX_LAPACKE_LIBS} to link against liblapacke.so and
+  # # include lapacke.h
+  # target_link_libraries(bbhx_cpu_likelihood LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
+  #                       ${BBHX_LAPACKE_EXTRA_LIBS})
+# endif()
+
+# III. Declare the GPU backend
+if(BBHX_WITH_GPU)
+  python_add_library(bbhx_gpu_newhdyn MODULE WITH_SOABI newhdynlike.cxx Likelihood.cu)
+  apply_gpu_backend_common_options(newhdyn)
+  target_sources(bbhx_gpu_newhdyn PUBLIC FILE_SET HEADERS FILES
+                                       constants.h global.h Likelihood.hh)
+
+endif()

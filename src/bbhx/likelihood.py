@@ -902,8 +902,9 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
 
         """
 
-        if self.use_gpu:
-            self.xp.cuda.runtime.setDevice(self.gpu)
+        # TODO: need this?
+        # if self.backend.uses_cupy:
+        #     self.xp.cuda.runtime.setDevice(self.gpu)
             
         reference_template_params = np.atleast_2d(reference_template_params)
         # add the necessary kwargs for the initial template generation process.
@@ -1124,7 +1125,7 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
 
         # set the frequencies at which the waveform is evaluated
         waveform_kwargs["freqs"] = self.freqs[constants_index][:, None, :]
-        breakpoint()
+
         # compute the new sparse template
         self.h_sparse = self.template_gen(*params.T, **waveform_kwargs)[:, :self.nchannels]
 

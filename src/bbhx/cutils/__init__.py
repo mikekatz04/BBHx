@@ -94,8 +94,8 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
             speciallike=None,  # bbhx_backend_cpu.speciallike.InterpTDILike_wrap,
-            new_hdyn_prep=bbhx_backend_cuda11x.newhdyn.new_hdyn_prep,
-            new_hdyn_like=bbhx_backend_cuda11x.newhdyn.new_hdyn_like,
+            new_hdyn_prep=None,  # bbhx_backend_cuda11x.newhdyn.new_hdyn_prep,
+            new_hdyn_like=None,  # bbhx_backend_cuda11x.newhdyn.new_hdyn_like,
             xp=numpy,
         )
 

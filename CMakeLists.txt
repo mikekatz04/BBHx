@@ -41,7 +41,7 @@ set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_WITH_GPU)
 # BBHX_CUDA_ARCH will be passed as the CUDA_ARCHITECTURES property for the CUDA
 # backend if it is compiled. See the documentation of CUDA_ARCHITECTURES:
 # https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
-set(BBHX_CUDA_ARCH "native"
+set(BBHX_CUDA_ARCH "70;75;80;86;90"
     CACHE STRING "CUDA Architecture targetted for BBHX compilation (see doc of \
           CMAKE_CUDA_ARCHITECTURES).")
 set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_CUDA_ARCH)

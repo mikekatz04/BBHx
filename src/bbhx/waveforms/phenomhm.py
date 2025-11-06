@@ -605,6 +605,16 @@ class PhenomHMAmpPhase(BBHxParallelModule):
 
                 f_max[fix] = f_max_new
 
+            fix = self.xp.any(diff_bool := (self.xp.diff(self.tf, axis=-1) < 0.0), axis=-1)
+            if self.xp.any(fix):
+                # get index right before time decreases
+                _tmp = diff_bool.argmax(axis=-1)[fix] - 1
+                if self.xp.any((_tmp < 1) | (_tmp >= self.tf.shape[-1])):
+                    raise ValueError("Cut based on time turnover did not work properly.")
+                
+                _f_max = self.freqs_shaped[fix][np.arange(fix.sum()), _tmp]
+                f_max[fix] = _f_max
+
             new_freqs = self.xp.logspace(
                 self.xp.log10(f_min), self.xp.log10(f_max), self.length, axis=-1
             )

@@ -447,9 +447,16 @@ class BBHTDIonTheFly(BBHxParallelModule):
         t_shaped = response_carrier_shaped[2]
 
         # TODO: check this
-        print("CHANGE THIS!!!!")
-        inds_keep = self.xp.arange(self.length)[1:-500]
-        t_tdi = t_shaped[:, :, inds_keep].reshape(-1, len(inds_keep))
+        print("CHANGE THIS!!!! Right now requires same number of points. May need to adjust.")
+        _tmp1 = self.xp.argwhere(t_shaped < 1000.0)
+        start_index = _tmp1[:, 2].max().item() + 1
+        _tmp2 = self.xp.argwhere(t_shaped > t_shaped.max(axis=-1)[:, :, None] - 1000.0)
+        end_index = _tmp2[:, 2].min().item() - 1
+        inds_keep = self.xp.arange(start_index, end_index + 1)
+        if start_index + 1 > end_index:
+            breakpoint()
+
+        t_tdi = t_shaped[:, :, inds_keep].reshape(-1, end_index - start_index + 1)
         # SOME CHOICES:
         #   * RESAMPLE ON NEW T KEEPING SAME OVERALL LENGTH
         #   * ONCE (OR WE CAN NOW) THE SPLINES ARE UPDATED TO HAVE VARIABLE NUMBER OF COMPONENTS,
@@ -481,45 +488,46 @@ class BBHTDIonTheFly(BBHxParallelModule):
         _psi = self.xp.repeat(psi, self.num_modes)
         _lam = self.xp.repeat(lam, self.num_modes)
         _beta = self.xp.repeat(beta, self.num_modes)
-
         wave_output = fd_wave_gen(_inc, _psi, _lam, _beta, return_spline=return_spline)
         
-        # import matplotlib.pyplot as plt
-        # plt.plot(wave_output.Xamp)
-        # plt.plot(wave_output.Yamp)
-        # plt.plot(wave_output.Zamp)
-        # plt.show()
-        # plt.plot(wave_output.Xphase)
-        # plt.plot(wave_output.Yphase)
-        # plt.plot(wave_output.Zphase)
-        # plt.show()
-
+        
+        import matplotlib.pyplot as plt
+        plt.plot(wave_output.t.T, wave_output.X.real.T)
+        plt.plot(wave_output.t.T, wave_output.X.real.T)
+        plt.show()
+        plt.plot(wave_output.t.T, wave_output.Y.real.T)
+        plt.plot(wave_output.t.T, wave_output.Y.real.T)
+        plt.show()
+        plt.plot(wave_output.t.T, wave_output.Z.real.T)
+        plt.plot(wave_output.t.T, wave_output.Z.real.T)
+        plt.show()
+        breakpoint()
         inds_tmp = (self.xp.tile(inds_keep, (self.num_bin_all * self.num_modes, 1)) + self.length * self.xp.repeat(self.xp.arange(self.num_bin_all * self.num_modes)[:, None], len(inds_keep), axis=-1)).flatten()
         # need to vectorize response setup
 
         self.response_carrier[
             (includes_amps + 2) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Xamp.flatten()
+        ] = wave_output.X.real.flatten()
 
         self.response_carrier[
             (includes_amps + 3) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Xphase.flatten()
+        ] = wave_output.X.imag.flatten()
 
         self.response_carrier[
             (includes_amps + 4) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Yamp.flatten()
+        ] = wave_output.Y.real.flatten()
 
         self.response_carrier[
             (includes_amps + 5) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Yphase.flatten()
+        ] = wave_output.Y.imag.flatten()
 
         self.response_carrier[
             (includes_amps + 6) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Zamp.flatten()
+        ] = wave_output.Z.real.flatten()
 
         self.response_carrier[
             (includes_amps + 7) * length * num_modes * num_bin_all + inds_tmp
-        ] = wave_output.Zphase.flatten()
+        ] = wave_output.Z.imag.flatten()
 
         return wave_output
 

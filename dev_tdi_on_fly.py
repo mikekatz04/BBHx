@@ -54,7 +54,7 @@ if __name__ == "__main__":
         direct=False,
         output_splines=True,
         tdi_convert_amp_phase=False,
-        length=1024,
+        length=16384,
     )# [0]
 
     breakpoint()

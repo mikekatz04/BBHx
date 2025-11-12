@@ -2465,10 +2465,11 @@ void get_amp(double *amp, double freq_geom, int ell, int mm, PhenomHMStorage *pH
 
     freq_amp = IMRPhenomHMFreqDomainMap(freq_geom, ell, mm, pHM, AmpFlagTrue);
     Mf = freq_amp; // geometric frequency
-
+    
     int status_in_for = init_useful_powers(&powers_of_f, Mf);
 
     double amp_i = IMRPhenDAmplitude(Mf, pAmp, &powers_of_f, &amp_prefactors);
+    printf("INSIDE: %e %e %e\n", Mf, amp_i, amp0);
 
     beta_term1 = IMRPhenomHMOnePointFiveSpinPN(
         freq_geom,

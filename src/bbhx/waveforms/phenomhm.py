@@ -505,6 +505,24 @@ class PhenomHMAmpPhase(BBHxParallelModule):
         ] += self.xp.tile(
             self.xp.asarray(t_ref)[:, None, None], (1, self.num_modes, self.length)
         ).flatten()
+        
+        # adjust tf issue in phenom to make sure time goes forward
+        # Originally from Neil Cornish
+        m_tot_sec = (m1 + m2) * MTSUN_SI
+        diff_check = self.xp.ones_like(self.tf, dtype=bool)
+        diff_check[:, :, 1:] = self.xp.diff(self.tf, axis=-1) > 0
+        first_decrease = diff_check.argmin(axis=-1)  # will give first negative change
+        ind_start = first_decrease - 1
+        base_time = self.xp.take_along_axis(self.tf, ind_start[:, :, None], axis=-1)
+
+        map_inds = self.xp.tile(self.xp.arange(self.tf.shape[-1]), self.tf.shape[:-1] + (1,))
+        ind_diffs = (map_inds - ind_start[:, :, None])
+        tf_after_bad = base_time + ind_diffs * m_tot_sec[:, None, None]
+        
+        tf_new = self.tf * (ind_diffs < 0) + tf_after_bad * (ind_diffs >= 0)
+        self.waveform_carrier[
+            2 * self.num_per_param : 3 * self.num_per_param
+        ] = tf_new
 
     def __call__(self, *args, Tobs=None, direct=False, **kwargs):
 

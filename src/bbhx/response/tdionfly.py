@@ -448,7 +448,7 @@ class BBHTDIonTheFly(BBHxParallelModule):
 
         # TODO: check this
         print("CHANGE THIS!!!! Right now requires same number of points. May need to adjust.")
-        _tmp1 = self.xp.argwhere(t_shaped < 1000.0)
+        _tmp1 = self.xp.argwhere(t_shaped < 100.0)
         if len(_tmp1) > 0:
             start_index = _tmp1[:, 2].max().item() + 1
         else:
@@ -479,11 +479,12 @@ class BBHTDIonTheFly(BBHxParallelModule):
         # else:
         #     ind_keep = t_arr.shape[0]
         from gpubackendtools.interpolate import CubicSplineInterpolant
-        input_info = np.genfromtxt("../neils/PhenomD2.dat")
+        # input_info = np.genfromtxt("../neils/PhenomD2.dat")
         
-        freqs_shaped[:] = input_info[:, 1][None, None, :]
-        t_shaped[:] = input_info[:, 0][None, None, :]
-        amp_shaped[:] = input_info[:, -2][None, None, :]
+        # freqs_shaped[:] = input_info[:, 1][None, None, :]
+        # t_shaped[:] = input_info[:, 0][None, None, :]
+        # amp_shaped[:] = input_info[:, -2][None, None, :]
+        
         t_tdi = t_shaped[:, :, inds_keep].reshape(-1, end_index - start_index + 1)
         
         amp_spl = CubicSplineInterpolant(t_shaped, amp_shaped, force_backend=self.backend.name.split("_")[-1])
@@ -507,15 +508,14 @@ class BBHTDIonTheFly(BBHxParallelModule):
         _psi = self.xp.repeat(psi, self.num_modes)
         _lam = self.xp.repeat(lam, self.num_modes)
         _beta = self.xp.repeat(beta, self.num_modes)
-        breakpoint()
         wave_output = fd_wave_gen(_inc, _psi, _lam, _beta, return_spline=return_spline)
         
         
-        import matplotlib.pyplot as plt
-        plt.loglog(freq_spl(wave_output.t, ind_interps=np.array([0])).T, np.abs(wave_output.X).T)
+        # import matplotlib.pyplot as plt
         # plt.plot(wave_output.t.T, wave_output.X.real.T)
-        plt.show()
-        breakpoint()
+        # # plt.plot(wave_output.t.T, wave_output.X.real.T)
+        # plt.show()
+        # breakpoint()
         inds_tmp = (self.xp.tile(inds_keep, (self.num_bin_all * self.num_modes, 1)) + self.length * self.xp.repeat(self.xp.arange(self.num_bin_all * self.num_modes)[:, None], len(inds_keep), axis=-1)).flatten()
         # need to vectorize response setup
 

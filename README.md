@@ -123,7 +123,6 @@ If you want to enable GPU support in FEW, you will also need the NVIDIA CUDA Com
 the [CUDA toolkit](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) (with, in particular, the
 libraries `CUDA Runtime Library`, `cuBLAS` and `cuSPARSE`).
 
-There are a set of files required for total use of this package. They will download automatically the first time they are needed. Files are generally under 10MB. However, there is a 100MB file needed for the slow waveform and the bicubic amplitude interpolation. This larger file will only download if you run either of those two modules. The files are hosted on the [Black Hole Perturbation Toolkit Download Server](https://download.bhptoolkit.org/bbhx/data).
 
 ### Installation instructions using conda
 
@@ -137,7 +136,7 @@ cd BBHx
 
 Now create an environment (these instructions work for all platforms but some
 adjustements can be needed, refer to the
-[detailed installation documentation](https://bbhx.readthedocs.io/en/stable/user/install.html) for more information):
+[detailed installation documentation from FEW](https://fastemriwaveforms.readthedocs.io/en/stable/user/install.html) for more information):
 
 ```
 conda create -n bbhx_env -y -c conda-forge --override-channels |

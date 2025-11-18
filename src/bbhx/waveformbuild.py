@@ -484,8 +484,8 @@ class BBHWaveformFD(BBHxParallelModule):
         
         # check if t_obs_start/end are cupy arrays.
         if (
-            (isinstance(t_obs_start, cp.ndarray) and not isinstance(t_obs_start, np.ndarray))
-            or (isinstance(t_obs_end, cp.ndarray) and not isinstance(t_obs_end, np.ndarray))
+            (isinstance(t_obs_start, self.xp.ndarray) and self.backend.uses_gpu)
+            or (isinstance(t_obs_end, self.xp.ndarray) and self.backend.uses_gpu)
         ):
             raise ValueError("t_ob_start and t_obs_end must be floats or numpy arrays even when running on GPUs.")
 

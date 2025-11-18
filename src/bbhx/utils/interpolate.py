@@ -107,7 +107,7 @@ class CubicSplineInterpolant(BBHxParallelModule):
 
             if len(x) != length * num_modes * num_bin_all:
                 raise ValueError(
-                    f"Length of the x array is not correct. It is supposed to be {length * num_bin_all}. It is currently {len(x)}."
+                    f"Length of the x array is not correct. It is supposed to be {length * num_modes * num_bin_all}. It is currently {len(x)}."
                 )
             if len(y_all) != length * num_modes * num_bin_all * num_interp_params:
                 raise ValueError(

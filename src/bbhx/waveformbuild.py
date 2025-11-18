@@ -302,7 +302,7 @@ class BBHWaveformFD(BBHxParallelModule):
             response_kwargs = {}
         if interp_kwargs is None:
             interp_kwargs = {}
-            
+
         super().__init__(force_backend=force_backend)
         self.force_backend = force_backend
         # initialize waveform and response funtions
@@ -481,6 +481,13 @@ class BBHWaveformFD(BBHxParallelModule):
         t_obs_end_SSB = tSSBfromLframe(t_obs_end_L, lam, beta, 0.0)
         t_start = np.atleast_1d(t_obs_start_SSB)
         t_end = np.atleast_1d(t_obs_end_SSB)
+        
+        # check if t_obs_start/end are cupy arrays.
+        if (
+            (isinstance(t_obs_start, cp.ndarray) and not isinstance(t_obs_start, np.ndarray))
+            or (isinstance(t_obs_end, cp.ndarray) and not isinstance(t_obs_end, np.ndarray))
+        ):
+            raise ValueError("t_ob_start and t_obs_end must be floats or numpy arrays even when running on GPUs.")
 
         if freqs is None and length is None:
             raise ValueError("Must input freqs or length.")

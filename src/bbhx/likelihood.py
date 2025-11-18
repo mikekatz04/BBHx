@@ -316,12 +316,17 @@ class HeterodynedLikelihood(BBHxParallelModule):
         data_channels,
         reference_template_params,
         length_f_het,
-        template_gen_kwargs={},
-        reference_gen_kwargs={},
+        template_gen_kwargs: dict = None,
+        reference_gen_kwargs: dict = None,
         sens_mat=None,
         force_backend=None,
     ):
 
+        if template_gen_kwargs is None:
+            template_gen_kwargs = {}
+        if reference_gen_kwargs is None:
+            reference_gen_kwargs = {}
+            
         # store all input information
         self.template_gen = template_gen
         self.f_dense = data_freqs
@@ -375,9 +380,15 @@ class HeterodynedLikelihood(BBHxParallelModule):
     def init_heterodyne_info(
         self,
         reference_template_params,
-        template_gen_kwargs={},
-        reference_gen_kwargs={},
+        template_gen_kwargs: dict = None,
+        reference_gen_kwargs: dict = None,
     ):
+        
+        if template_gen_kwargs is None:
+            template_gen_kwargs = {}
+        if reference_gen_kwargs is None:
+            reference_gen_kwargs = {}
+
         """Prepare all information for Heterdyning
 
         Args:

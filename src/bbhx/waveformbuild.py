@@ -290,11 +290,19 @@ class BBHWaveformFD(BBHxParallelModule):
 
     def __init__(
         self,
-        amp_phase_kwargs={},
-        response_kwargs={},
-        interp_kwargs={},
+        amp_phase_kwargs: dict = None,
+        response_kwargs: dict = None,
+        interp_kwargs: dict = None,
         force_backend=None,
     ):
+        
+        if amp_phase_kwargs is None:
+            amp_phase_kwargs = {}
+        if response_kwargs is None:
+            response_kwargs = {}
+        if interp_kwargs is None:
+            interp_kwargs = {}
+            
         super().__init__(force_backend=force_backend)
         self.force_backend = force_backend
         # initialize waveform and response funtions

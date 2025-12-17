@@ -16,7 +16,7 @@ class BBHxBackendMethods(BackendMethods):
     direct_like_wrap: typing.Callable[(...), None]
     direct_sum_wrap: typing.Callable[(...), None]
     InterpTDI_wrap: typing.Callable[(...), None]
-    LISA_response_wrap: typing.Callable[(...), None]
+    pyFastLISAResponse: object
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
@@ -27,7 +27,7 @@ class BBHxBackend:
     direct_like_wrap: typing.Callable[(...), None]
     direct_sum_wrap: typing.Callable[(...), None]
     InterpTDI_wrap: typing.Callable[(...), None]
-    LISA_response_wrap: typing.Callable[(...), None]
+    pyFastLISAResponse: object
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     interpolate_wrap: typing.Callable[(...), None]
@@ -42,7 +42,7 @@ class BBHxBackend:
         self.direct_like_wrap = bbhx_backend_methods.direct_like_wrap
         self.direct_sum_wrap = bbhx_backend_methods.direct_sum_wrap
         self.InterpTDI_wrap = bbhx_backend_methods.InterpTDI_wrap
-        self.LISA_response_wrap = bbhx_backend_methods.LISA_response_wrap
+        self.pyFastLISAResponse = bbhx_backend_methods.pyFastLISAResponse
         self.waveform_amp_phase_wrap = bbhx_backend_methods.waveform_amp_phase_wrap
         self.get_phenomhm_ringdown_frequencies = bbhx_backend_methods.get_phenomhm_ringdown_frequencies
         self.get_phenomd_ringdown_frequencies = bbhx_backend_methods.get_phenomd_ringdown_frequencies
@@ -79,7 +79,7 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             direct_like_wrap=bbhx_backend_cpu.likelihood.direct_like_wrap,
             direct_sum_wrap=bbhx_backend_cpu.waveformbuild.direct_sum_wrap,
             InterpTDI_wrap=bbhx_backend_cpu.waveformbuild.InterpTDI_wrap,
-            LISA_response_wrap=bbhx_backend_cpu.response.LISA_response_wrap,
+            pyFastLISAResponse=bbhx_backend_cpu.response.pyFastLISAResponse,
             waveform_amp_phase_wrap=bbhx_backend_cpu.phenomhm.waveform_amp_phase_wrap,
             get_phenomhm_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
@@ -124,7 +124,7 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             direct_like_wrap=bbhx_backend_cuda11x.likelihood.direct_like_wrap,
             direct_sum_wrap=bbhx_backend_cuda11x.waveformbuild.direct_sum_wrap,
             InterpTDI_wrap=bbhx_backend_cuda11x.waveformbuild.InterpTDI_wrap,
-            LISA_response_wrap=bbhx_backend_cuda11x.response.LISA_response_wrap,
+            pyFastLISAResponse=bbhx_backend_cuda11x.response.pyFastLISAResponse,
             waveform_amp_phase_wrap=bbhx_backend_cuda11x.phenomhm.waveform_amp_phase_wrap,
             get_phenomhm_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomd_ringdown_frequencies,
@@ -167,7 +167,7 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             direct_like_wrap=bbhx_backend_cuda12x.likelihood.direct_like_wrap,
             direct_sum_wrap=bbhx_backend_cuda12x.waveformbuild.direct_sum_wrap,
             InterpTDI_wrap=bbhx_backend_cuda12x.waveformbuild.InterpTDI_wrap,
-            LISA_response_wrap=bbhx_backend_cuda12x.response.LISA_response_wrap,
+            pyFastLISAResponse=bbhx_backend_cuda12x.response.pyFastLISAResponse,
             waveform_amp_phase_wrap=bbhx_backend_cuda12x.phenomhm.waveform_amp_phase_wrap,
             get_phenomhm_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomhm_ringdown_frequencies,
             get_phenomd_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomd_ringdown_frequencies,

@@ -517,21 +517,43 @@ endif()
 
 
 # 0. Download lisa analysis tools c files.
-file(
-  DOWNLOAD 
-  https://raw.githubusercontent.com/mikekatz04/LISAanalysistools/refs/heads/main/src/lisatools/cutils/Detector.cu 
-  "./src/bbhx/cutils/Detector.cu"
+
+
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "if True:
+    import lisatools
+    _tmp = lisatools.__file__
+    print(_tmp.split('/__init__.py')[0])"
+  OUTPUT_VARIABLE LISATOOLS_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "if True:
+    import lisatools
+    print(lisatools._version.version)"
+  OUTPUT_VARIABLE LISATOOLS_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+message(STATUS "LISATOOLS location is ${LISATOOLS_DIR}.")
+file(GLOB MY_FILES "${LISATOOLS_DIR}/cutils/*")
+message(STATUS "LISATOOLS Source files: ${MY_FILES}")
+message(STATUS "LISATOOLS version: ${LISATOOLS_VERSION}")
+
+
+set(FILES_TO_COPY 
+  "${LISATOOLS_DIR}/cutils/global.hpp"
+  "${LISATOOLS_DIR}/cutils/Detector.hpp"
+  "${LISATOOLS_DIR}/cutils/Detector.cu"
 )
-file(
-  DOWNLOAD 
-  https://raw.githubusercontent.com/mikekatz04/LISAanalysistools/refs/heads/main/src/lisatools/cutils/Detector.hpp 
-  "./src/bbhx/cutils/Detector.hpp"
-)
-file(
-  DOWNLOAD 
-  https://raw.githubusercontent.com/mikekatz04/LISAanalysistools/refs/heads/main/src/lisatools/cutils/global.hpp 
-  "./src/bbhx/cutils/global.hpp"
-)
+
+foreach(FILE_TO_COPY IN LISTS FILES_TO_COPY)
+  get_filename_component(NEW_FILE "${FILE_TO_COPY}" NAME)
+  file(COPY_FILE "${FILE_TO_COPY}" "${CMAKE_CURRENT_SOURCE_DIR}/${NEW_FILE}"
+     RESULT copy_result)
+  if(NOT copy_result EQUAL 0)
+      message(FATAL_ERROR "Failed to copy file: ${copy_result} (${FILE_TO_COPY})")
+  endif()
+endforeach()
 
 
 # ----------------

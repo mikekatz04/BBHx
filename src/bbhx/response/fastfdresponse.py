@@ -100,7 +100,49 @@ class LISATDIResponse(BBHxParallelModule):
         self.mms_default = self.xp.array([2, 3, 4, 1, 2, 3], dtype=self.xp.int32)
 
         self.orbits = orbits
+
+        self.cpp_response = self.backend.pyFastLISAResponse()
+        self.cpp_response.add_orbit_information(*self.check_add_orbit_args(*self.orbits.pycppdetector_args))
+
+    def check_add_orbit_args(self, *args):
+        """Check orbit arguments for adherence to cpp Orbits class.
+        
+        # TODO: make this an automatic version based check?
+        
+        Args are supposed to be [dt, N,  n_arr, L_arr,  x_arr, links, sc_r,  sc_e, armlength].
+
+        Args:
+            *args (tuple): Arguments for cpp Orbits class.
+            
+        """
+        try:
+            assert len(args) == 9
+            assert isinstance(args[0], float)
+            assert isinstance(args[1], int)
+            assert isinstance(args[2], self.xp.ndarray)
+            assert isinstance(args[3], self.xp.ndarray)
+            assert isinstance(args[4], self.xp.ndarray)
+            assert args[2].dtype == args[3].dtype == args[4].dtype == float
+            # assert len(args[2]) == 9 * len(args[3]) == len(args[4])
+            assert len(args[5]) == len(self.orbits.LINKS)
+            assert len(args[6]) == len(self.orbits.LINKS)
+            assert len(args[7]) == len(self.orbits.LINKS)
+            assert isinstance(args[8], float)
+        except AssertionError:
+            raise ValueError("Arguments for cpp class are not correct.")
+        
+        return args
     
+    @property
+    def cpp_response(self):
+        if self._cpp_response is None:
+            raise ValueError("Must add cpp_response and add orbit information.")
+        return self._cpp_response
+
+    @cpp_response.setter
+    def cpp_response(self, cpp_response):
+        self._cpp_response = cpp_response
+
     @classmethod
     def supported_backends(cls) -> list:
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
@@ -108,7 +150,7 @@ class LISATDIResponse(BBHxParallelModule):
     @property
     def response_gen(self):
         """C function on GPU/CPU"""
-        return self.backend.LISA_response_wrap
+        return self.cpp_response.LISA_response_wrap
 
     @property
     def xp(self):
@@ -468,8 +510,7 @@ class LISATDIResponse(BBHxParallelModule):
             num_modes,
             length,
             num_bin_all,
-            includes_amps,
-            self.orbits,
+            includes_amps
         )
 
         # adjust input phase arrays in-place

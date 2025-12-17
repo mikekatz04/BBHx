@@ -472,6 +472,7 @@ class BBHWaveformFD(BBHxParallelModule):
             # t_end = t_obs_end_SSB if t_obs_end > 0.0 else np.zeros_like(t_start)
 
         # else:
+        
         # start and end times are defined in the LISA reference frame
         t_obs_start_L = t_obs_start * YRSID_SI
         t_obs_end_L = t_obs_end * YRSID_SI

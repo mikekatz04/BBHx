@@ -668,7 +668,7 @@ void response(
     }
 }
 
-void LISA_response(
+void FastLISAResponse::LISA_response(
     double *response_out,
     int *ells_in,
     int *mms_in,
@@ -682,7 +682,7 @@ void LISA_response(
     int numModes,
     int length,
     int numBinAll,
-    int includesAmps, Orbits *orbits)
+    int includesAmps)
 {
 
     int start_param = includesAmps; // if it has amps, start_param is 1, else 0

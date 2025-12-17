@@ -491,10 +491,11 @@ class BBHTDIonTheFly(BBHxParallelModule):
         freq_spl = CubicSplineInterpolant(t_shaped, freqs_shaped, force_backend=self.backend.name.split("_")[-1])
         phase_ref = (2 * np.pi * freqs_shaped * t_shaped).flatten().copy()
 
-        from fastlisaresponse.tdionfly import FDTDIonTheFly
+        # from fastlisaresponse.tdionfly import FDTDIonTheFly
 
         dt = 10000.0
     
+        print("update this")
         fs = 0.1
         CUBIC_SPLINE_LINEAR_SPACING = 1
         CUBIC_SPLINE_LOG10_SPACING = 2

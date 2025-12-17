@@ -22,7 +22,9 @@ typedef struct tagd_transferL_holder
     double phaseRdelay;
 } d_transferL_holder;
 
-void LISA_response(
+class FastLISAResponse : public AddOrbits{
+  public:
+    void LISA_response(
     double *response_out,
     int *ells_in,
     int *mms_in,
@@ -36,7 +38,8 @@ void LISA_response(
     int numModes,
     int length,
     int numBinAll,
-    int includesAmps,
-    Orbits *orbits);
+    int includesAmps);
+
+};
 
 #endif // __RESPONSE_HH__

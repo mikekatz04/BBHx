@@ -518,11 +518,10 @@ class PhenomHMAmpPhase(BBHxParallelModule):
         map_inds = self.xp.tile(self.xp.arange(self.tf.shape[-1]), self.tf.shape[:-1] + (1,))
         ind_diffs = (map_inds - ind_start[:, :, None])
         tf_after_bad = base_time + ind_diffs * m_tot_sec[:, None, None]
-        
         tf_new = self.tf * (ind_diffs < 0) + tf_after_bad * (ind_diffs >= 0)
         self.waveform_carrier[
             2 * self.num_per_param : 3 * self.num_per_param
-        ] = tf_new
+        ] = tf_new.flatten()
 
     def __call__(self, *args, Tobs=None, direct=False, **kwargs):
 

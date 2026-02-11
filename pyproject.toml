@@ -1,51 +1,33 @@
-
 [build-system]
+requires = [
+  "Cython",
+  "numpy",
+  "astropy",  # TODO: remove astropy?
+  "eryn",
+  "gpubackendtools>=0.1.1", # @ file:///home/mlkatz/GPUBackendTools", 
+  "scikit_build_core",
+  "pybind11",
+  "lisaanalysistools>=1.2.8",  #  @ file:///home/mlkatz/LISAanalysistools",  # /Users/mlkatz/Research/LISAanalysistools
+  #@LISATOOLS_CUDA@,
+]
 build-backend = "scikit_build_core.build"
-
-requires = [ "cython", "numpy", "scikit-build-core", "gpubackendtools>=0.1.1", "lisaanalysistools>=1.2.8", "eryn"]
 
 [project]
 name = "bbhx" #@NAMESUFFIX@
 
-description = "GPU/CPU Binary Black Hole Waveforms for LISA."
-
-readme = "README.md"
-
-maintainers = [
-  { name = "Michael Katz", email = "mikekatz04@gmail.com" },
-  { name = "Christian Chapman-Bird", email = "c.chapmanbird@gmail.com" },
-]
+description = "GPU-accelerated LISA Response Function"
 
 authors = [
-  { name = "Michael Katz" },
-  { name = "Lorenzo Speri" },
-  { name = "Christian Chapman-Bird" },
-  { name = "Alvin J. K. Chua" },
-  { name = "Niels Warburton" },
-  { name = "Scott Hughes" },
+  { name = "Michael Katz", email = "mikekatz04@gmail.com" },
 ]
-requires-python = ">=3.9"
+readme = "README.md"
 
-classifiers = [
-  "Environment :: GPU :: NVIDIA CUDA",
-  "License :: OSI Approved :: MIT License",
-  "Natural Language :: English",
-  "Programming Language :: C++",
-  "Programming Language :: Cython",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-]
-# version is deduced from the lattest git tag
-# description is the docstring at the top of src/bbhx/__init__.py
-dynamic = [ "version" ]
+requires-python = ">= 3.10"
 
 dependencies = [
   "exceptiongroup; python_version<'3.11'", # To access ExceptionGroup with Python 3.9 and 3.10
   "h5py",
+  "matplotlib",
   "jsonschema",                            # To validate content of file registry
   "lisaconstants",
   "multispline",
@@ -60,11 +42,25 @@ dependencies = [
   "scipy",
   "tqdm",
   "wrapt",
-  "gpubackendtools", 
-  "lisaanalysistools",
   #@DEPS_CUPYCUDA@,
   #@DEPS_BBHXCORE@,
 ]
+
+
+classifiers = [
+  "Environment :: GPU :: NVIDIA CUDA",
+  "License :: OSI Approved :: Apache Software License",
+  "Natural Language :: English",
+  "Programming Language :: C++",
+  "Programming Language :: Cython",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+dynamic = [ "version" ]
 
 optional-dependencies.doc = [
   "ipykernel",
@@ -76,27 +72,20 @@ optional-dependencies.doc = [
   "sphinx",
   "sphinx-rtd-theme",
   "sphinx-tippy",
+  "astropy",
 ]
 
 optional-dependencies.sampling = [
   "eryn",
-  "fastlisaresponse",
-  "lisaanalysistools",
-  "lisatools",
+  "astropy",
 ]
 
 optional-dependencies.testing = [
   "matplotlib",
+  "astropy",
+  "lisaanalysistools",
+  "gpubackendtools",
 ]
-
-urls.Documentation = "https://bbhx.readthedocs.io/en/stable"
-urls.Download = "https://pypi.org/project/bbhx/#files"
-#urls.Homepage = "https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms"
-#urls.Source = "https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms"
-#urls.Tracker = "https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/issues"
-
-# scripts.bbhx_citations = "bbhx.cmd.citations:main" #@SKIP_PLUGIN@
-# scripts.bbhx_files = "bbhx.cmd.files:main"         #@SKIP_PLUGIN@
 
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"
@@ -105,13 +94,14 @@ version_file = "src/bbhx/_version.py"
 #@FALLBACK_VERSION@
 
 [tool.scikit-build]
+wheel.packages = ["src/bbhx"]
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 sdist.include = [
   "src/bbhx/_version.py",
   "src/bbhx/git_version.py",                 #@SKIP_PLUGIN@
   "src/bbhx_backend_cuda11x/git_version.py",
   "src/bbhx_backend_cuda12x/git_version.py",
-  "tests/",
+  "tests/"
 ]
 sdist.exclude = [
   ".devcontainer/",
@@ -123,8 +113,7 @@ sdist.exclude = [
   ".gitignore",
   ".pre-commit-config.yaml",
   "src/bbhx/_editable.py",
-  "src/bbhx/tests/base.py",
-  "src/bbhx/git_version.py.in",
+  "tests/base.py",
 ]
 
 wheel.exclude = [
@@ -140,31 +129,6 @@ wheel.exclude = [
   "lib/*.so",
   "lib/*.a",
 ]
-
-[tool.scikit-build.wheel.packages]
-bbhx = "src/bbhx"       #@SKIP_PLUGIN@
-"bbhx/tests" = "tests" #@SKIP_PLUGIN@
-
-[tool.ruff]
-
-extend-include = [
-  "!*.py",
-  # Enable Ruff on a white-list approach for now
-  "!src/bbhx/files/manager.py",
-  "!src/bbhx/files/registry.py",
-  "!src/bbhx/utils/config.py",
-  "!src/bbhx/utils/exceptions.py",
-  "!src/bbhx/utils/globals.py",
-]
-
-lint.extend-select = [
-  "I",
-  "T201", # Fail when "print" is used, to be replaced with logger calls
-]
-
-lint.ignore = [ "E741" ]
-
-lint.extend-per-file-ignores."*.ipynb" = [ "T201" ] # Allow "print" statements in notebooks
 
 [tool.pyproject-fmt]
 max_supported_python = "3.13"

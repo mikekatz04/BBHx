@@ -71,7 +71,7 @@ class TemplateInterpFD(BBHxParallelModule):
     @property
     def template_gen(self) -> callable:
         """C/CUDA wrapped function for computing interpolated waveforms"""
-        return self.backend.InterpTDI_wrap
+        return self.backend.BBHxComputationWrap().InterpTDI_wrap
 
     @property
     def template_channels(self):
@@ -326,7 +326,7 @@ class BBHWaveformFD(BBHxParallelModule):
     @property
     def waveform_gen(self) -> callable:
         """C/CUDA wrapped function for computing waveforms"""
-        return self.backend.direct_sum_wrap
+        return self.backend.BBHxComputationWrap().direct_sum_wrap
 
     @property
     def citation(self):

@@ -128,17 +128,17 @@ class PhenomHMAmpPhase(BBHxParallelModule):
     @property
     def waveform_gen(self) -> callable:
         """C/CUDA wrapped function for computing interpolation."""
-        return self.backend.waveform_amp_phase_wrap
+        return self.backend.BBHxComputationWrap().waveform_amp_phase_wrap
 
     @property
     def phenomhm_ringdown_freqs(self) -> callable:
         """C/CUDA wrapped function for computing PhenomHM Ringdown frequencies."""
-        return self.backend.get_phenomhm_ringdown_frequencies
+        return self.backend.BBHxComputationWrap().get_phenomhm_ringdown_frequencies
 
     @property
     def phenomd_ringdown_freqs(self) -> callable:
         """C/CUDA wrapped function for computing PhenomD Ringdown frequencies."""
-        return self.backend.get_phenomd_ringdown_frequencies
+        return self.backend.BBHxComputationWrap().get_phenomd_ringdown_frequencies
 
     @property
     def citation(self):

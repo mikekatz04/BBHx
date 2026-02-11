@@ -101,9 +101,8 @@ class LISATDIResponse(BBHxParallelModule):
 
         self.orbits = orbits
 
-        self.cpp_response = self.backend.pyFastLISAResponse()
-        self.cpp_response.add_orbit_information(*self.check_add_orbit_args(*self.orbits.pycppdetector_args))
-
+        self.cpp_orbits = self.backend.OrbitsWrap(*self.check_add_orbit_args(*self.orbits.pycppdetector_args))
+       
     def check_add_orbit_args(self, *args):
         """Check orbit arguments for adherence to cpp Orbits class.
         
@@ -134,23 +133,13 @@ class LISATDIResponse(BBHxParallelModule):
         return args
     
     @property
-    def cpp_response(self):
-        if self._cpp_response is None:
-            raise ValueError("Must add cpp_response and add orbit information.")
-        return self._cpp_response
-
-    @cpp_response.setter
-    def cpp_response(self, cpp_response):
-        self._cpp_response = cpp_response
+    def response_gen(self):
+        """C function on GPU/CPU"""
+        return self.backend.BBHxComputationWrap().LISA_response
 
     @classmethod
     def supported_backends(cls) -> list:
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
-
-    @property
-    def response_gen(self):
-        """C function on GPU/CPU"""
-        return self.cpp_response.LISA_response_wrap
 
     @property
     def xp(self):
@@ -510,7 +499,8 @@ class LISATDIResponse(BBHxParallelModule):
             num_modes,
             length,
             num_bin_all,
-            includes_amps
+            includes_amps,
+            self.cpp_orbits
         )
 
         # adjust input phase arrays in-place

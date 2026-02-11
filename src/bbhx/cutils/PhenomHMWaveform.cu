@@ -1,6 +1,7 @@
 #include "PhenomHMWaveform.hh"
-#include "global.h"
+// #include "global.h"
 #include "constants.h"
+#include "gbt_global.h"
 
 #define NUM_THREADS_PHENOMHM 256
 #define MAX_MODES 6

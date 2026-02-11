@@ -1,6 +1,7 @@
 #include "global.h"
 #include "constants.h"
 #include "Likelihood.hh"
+#include "gbt_global.h"
 
 #ifdef __CUDACC__
 #include "cuComplex.h"
@@ -246,7 +247,10 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
     int start, increment;
     for (int channel = 0; channel < nchannels; channel += 1)
     {
+#ifdef __CUDACC__
         CUDA_SYNC_THREADS;
+// # TODO: fix this
+#endif
 
         #ifdef __CUDACC__
         start = threadIdx.x;
@@ -263,8 +267,10 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
             B0_temp[i + 1] = 0.0;
             B1_temp[i + 1] = 0.0;
         }
+#ifdef __CUDACC__
         CUDA_SYNC_THREADS;
-
+// # TODO: fix this
+#endif
         #ifdef __CUDACC__
         start = threadIdx.x + blockDim.x * blockIdx.x;
         increment = blockDim.x * gridDim.x;
@@ -306,9 +312,10 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
             #endif
 
         }
-
+#ifdef __CUDACC__
         CUDA_SYNC_THREADS;
-
+// # TODO: fix this
+#endif
         #ifdef __CUDACC__
         start = threadIdx.x;
         increment = blockDim.x;
@@ -335,7 +342,10 @@ void prep_hdyn(cmplx* A0_in, cmplx* A1_in, cmplx* B0_in, cmplx* B1_in, cmplx* d_
                 B1_in[channel * length_f_rel + i + 1] += B1_temp[i + 1];
             #endif
         }
+#ifdef __CUDACC__
         CUDA_SYNC_THREADS;
+// # TODO: fix this
+#endif
     }
 }
 

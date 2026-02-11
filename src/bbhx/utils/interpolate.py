@@ -178,7 +178,7 @@ class CubicSplineInterpolant(BBHxParallelModule):
     @property
     def interpolate_arrays(self) -> callable:
         """C/CUDA wrapped function for computing interpolation."""
-        return self.backend.interpolate_wrap
+        return self.backend.BBHxComputationWrap().interpolate_wrap
 
     @property
     def x_shaped(self):

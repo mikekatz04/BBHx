@@ -1,7 +1,7 @@
 #ifndef __RESPONSE_HH__
 #define __RESPONSE_HH__
 
-#include "global.h"
+#include "gbt_global.h"
 #include "Detector.hpp"
 
 typedef struct tagd_Gslr_holder
@@ -22,23 +22,31 @@ typedef struct tagd_transferL_holder
     double phaseRdelay;
 } d_transferL_holder;
 
-class FastLISAResponse : public AddOrbits{
+class FastLISAResponse{
   public:
+    Orbits *orbits;
+    FastLISAResponse(Orbits *orbits_)
+    {
+        orbits = orbits_;
+    };
+    ~FastLISAResponse(){};
+
     void LISA_response(
-    double *response_out,
-    int *ells_in,
-    int *mms_in,
-    double *freqs,   /**< Frequency points at which to evaluate the waveform (Hz) */
-    double *phi_ref, /**< reference orbital phase (rad) */
-    double *inc,
-    double *lam,
-    double *beta,
-    double *psi,
-    int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
-    int numModes,
-    int length,
-    int numBinAll,
-    int includesAmps);
+        double *response_out,
+        int *ells_in,
+        int *mms_in,
+        double *freqs,   /**< Frequency points at which to evaluate the waveform (Hz) */
+        double *phi_ref, /**< reference orbital phase (rad) */
+        double *inc,
+        double *lam,
+        double *beta,
+        double *psi,
+        int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
+        int numModes,
+        int length,
+        int numBinAll,
+        int includesAmps
+    );
 
 };
 

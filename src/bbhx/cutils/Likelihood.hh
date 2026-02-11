@@ -2,6 +2,7 @@
 #define __LIKELIHOOD_HH__
 
 #include "global.h"
+#include "gbt_global.h"
 
 void hdyn(cmplx* likeOut1, cmplx* likeOut2,
                     cmplx* templateChannels, cmplx* dataConstants,

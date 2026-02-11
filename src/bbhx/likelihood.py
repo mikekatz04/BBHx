@@ -126,7 +126,7 @@ class Likelihood(BBHxParallelModule):
     @property
     def like_gen(self):
         """Likelihood for either GPU or CPU."""
-        return self.backend.direct_like_wrap
+        return self.backend.BBHxComputationWrap().direct_like_wrap
 
     @property
     def xp(self):
@@ -365,7 +365,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
     @property
     def like_gen(self):
         """C function on GPU/CPU"""
-        return self.backend.hdyn_wrap
+        return self.backend.BBHxComputationWrap().hdyn_wrap
 
     @property
     def xp(self):

@@ -12,25 +12,29 @@ from gpubackendtools.exceptions import *
 
 @dataclasses.dataclass
 class BBHxBackendMethods(BackendMethods):
-    hdyn_wrap: typing.Callable[(...), None]
-    direct_like_wrap: typing.Callable[(...), None]
-    direct_sum_wrap: typing.Callable[(...), None]
-    InterpTDI_wrap: typing.Callable[(...), None]
-    pyFastLISAResponse: object
-    waveform_amp_phase_wrap: typing.Callable[(...), None]
-    get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
-    get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
-    interpolate_wrap: typing.Callable[(...), None]
+    # hdyn_wrap: typing.Callable[(...), None]
+    # direct_like_wrap: typing.Callable[(...), None]
+    # direct_sum_wrap: typing.Callable[(...), None]
+    # InterpTDI_wrap: typing.Callable[(...), None]
+    # pyFastLISAResponse: object
+    # waveform_amp_phase_wrap: typing.Callable[(...), None]
+    # get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
+    # get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
+    # interpolate_wrap: typing.Callable[(...), None]
+    BBHxComputationWrap: object
+    OrbitsWrap: object
 
 class BBHxBackend:
-    hdyn_wrap: typing.Callable[(...), None]
-    direct_like_wrap: typing.Callable[(...), None]
-    direct_sum_wrap: typing.Callable[(...), None]
-    InterpTDI_wrap: typing.Callable[(...), None]
-    pyFastLISAResponse: object
-    waveform_amp_phase_wrap: typing.Callable[(...), None]
-    get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
-    interpolate_wrap: typing.Callable[(...), None]
+    # hdyn_wrap: typing.Callable[(...), None]
+    # direct_like_wrap: typing.Callable[(...), None]
+    # direct_sum_wrap: typing.Callable[(...), None]
+    # InterpTDI_wrap: typing.Callable[(...), None]
+    # pyFastLISAResponse: object
+    # waveform_amp_phase_wrap: typing.Callable[(...), None]
+    # get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
+    # interpolate_wrap: typing.Callable[(...), None]
+    BBHxComputationWrap: object
+    OrbitsWrap: object
 
     def __init__(self, bbhx_backend_methods):
 
@@ -38,15 +42,17 @@ class BBHxBackend:
         # pass rest to general backend
         assert isinstance(bbhx_backend_methods, BBHxBackendMethods)
 
-        self.hdyn_wrap = bbhx_backend_methods.hdyn_wrap
-        self.direct_like_wrap = bbhx_backend_methods.direct_like_wrap
-        self.direct_sum_wrap = bbhx_backend_methods.direct_sum_wrap
-        self.InterpTDI_wrap = bbhx_backend_methods.InterpTDI_wrap
-        self.pyFastLISAResponse = bbhx_backend_methods.pyFastLISAResponse
-        self.waveform_amp_phase_wrap = bbhx_backend_methods.waveform_amp_phase_wrap
-        self.get_phenomhm_ringdown_frequencies = bbhx_backend_methods.get_phenomhm_ringdown_frequencies
-        self.get_phenomd_ringdown_frequencies = bbhx_backend_methods.get_phenomd_ringdown_frequencies
-        self.interpolate_wrap = bbhx_backend_methods.interpolate_wrap
+        # self.hdyn_wrap = bbhx_backend_methods.hdyn_wrap
+        # self.direct_like_wrap = bbhx_backend_methods.direct_like_wrap
+        # self.direct_sum_wrap = bbhx_backend_methods.direct_sum_wrap
+        # self.InterpTDI_wrap = bbhx_backend_methods.InterpTDI_wrap
+        # self.pyFastLISAResponse = bbhx_backend_methods.pyFastLISAResponse
+        # self.waveform_amp_phase_wrap = bbhx_backend_methods.waveform_amp_phase_wrap
+        # self.get_phenomhm_ringdown_frequencies = bbhx_backend_methods.get_phenomhm_ringdown_frequencies
+        # self.get_phenomd_ringdown_frequencies = bbhx_backend_methods.get_phenomd_ringdown_frequencies
+        # self.interpolate_wrap = bbhx_backend_methods.interpolate_wrap
+        self.BBHxComputationWrap = bbhx_backend_methods.BBHxComputationWrap
+        self.OrbitsWrap = bbhx_backend_methods.OrbitsWrap
 
 
 class BBHxCpuBackend(CpuBackend, BBHxBackend):
@@ -61,11 +67,12 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
     @staticmethod
     def cpu_methods_loader() -> BBHxBackendMethods:
         try:
-            import bbhx_backend_cpu.likelihood
-            import bbhx_backend_cpu.waveformbuild
-            import bbhx_backend_cpu.response
-            import bbhx_backend_cpu.phenomhm
-            import bbhx_backend_cpu.interp
+            # import bbhx_backend_cpu.likelihood
+            # import bbhx_backend_cpu.waveformbuild
+            # import bbhx_backend_cpu.response
+            # import bbhx_backend_cpu.phenomhm
+            # import bbhx_backend_cpu.interp
+            import bbhx_backend_cpu.cbbhx
             
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -75,15 +82,17 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
         numpy = BBHxCpuBackend.check_numpy()
 
         return BBHxBackendMethods(
-            hdyn_wrap=bbhx_backend_cpu.likelihood.hdyn_wrap,
-            direct_like_wrap=bbhx_backend_cpu.likelihood.direct_like_wrap,
-            direct_sum_wrap=bbhx_backend_cpu.waveformbuild.direct_sum_wrap,
-            InterpTDI_wrap=bbhx_backend_cpu.waveformbuild.InterpTDI_wrap,
-            pyFastLISAResponse=bbhx_backend_cpu.response.pyFastLISAResponse,
-            waveform_amp_phase_wrap=bbhx_backend_cpu.phenomhm.waveform_amp_phase_wrap,
-            get_phenomhm_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomhm_ringdown_frequencies,
-            get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
-            interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
+            # hdyn_wrap=bbhx_backend_cpu.likelihood.hdyn_wrap,
+            # direct_like_wrap=bbhx_backend_cpu.likelihood.direct_like_wrap,
+            # direct_sum_wrap=bbhx_backend_cpu.waveformbuild.direct_sum_wrap,
+            # InterpTDI_wrap=bbhx_backend_cpu.waveformbuild.InterpTDI_wrap,
+            # pyFastLISAResponse=bbhx_backend_cpu.response.pyFastLISAResponse,
+            # waveform_amp_phase_wrap=bbhx_backend_cpu.phenomhm.waveform_amp_phase_wrap,
+            # get_phenomhm_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomhm_ringdown_frequencies,
+            # get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
+            # interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
+            BBHxComputationWrap=bbhx_backend_cpu.cbbhx.BBHxComputationWrapCPU,
+            OrbitsWrap=bbhx_backend_cpu.cbbhx.OrbitsWrapCPU_bbhx,
             xp=numpy,
         )
 
@@ -101,11 +110,12 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
     @staticmethod
     def cuda11x_module_loader():
         try:
-            import bbhx_backend_cuda11x.likelihood
-            import bbhx_backend_cuda11x.waveformbuild
-            import bbhx_backend_cuda11x.response
-            import bbhx_backend_cuda11x.phenomhm
-            import bbhx_backend_cuda11x.interp
+            # import bbhx_backend_cuda11x.likelihood
+            # import bbhx_backend_cuda11x.waveformbuild
+            # import bbhx_backend_cuda11x.response
+            # import bbhx_backend_cuda11x.phenomhm
+            # import bbhx_backend_cuda11x.interp
+            import bbhx_backend_cuda11x.cbbhx
 
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -120,15 +130,17 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             ) from e
 
         return BBHxBackendMethods(
-            hdyn_wrap=bbhx_backend_cuda11x.likelihood.hdyn_wrap,
-            direct_like_wrap=bbhx_backend_cuda11x.likelihood.direct_like_wrap,
-            direct_sum_wrap=bbhx_backend_cuda11x.waveformbuild.direct_sum_wrap,
-            InterpTDI_wrap=bbhx_backend_cuda11x.waveformbuild.InterpTDI_wrap,
-            pyFastLISAResponse=bbhx_backend_cuda11x.response.pyFastLISAResponse,
-            waveform_amp_phase_wrap=bbhx_backend_cuda11x.phenomhm.waveform_amp_phase_wrap,
-            get_phenomhm_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomhm_ringdown_frequencies,
-            get_phenomd_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomd_ringdown_frequencies,
-            interpolate_wrap=bbhx_backend_cuda11x.interp.interpolate_wrap,
+            # hdyn_wrap=bbhx_backend_cuda11x.likelihood.hdyn_wrap,
+            # direct_like_wrap=bbhx_backend_cuda11x.likelihood.direct_like_wrap,
+            # direct_sum_wrap=bbhx_backend_cuda11x.waveformbuild.direct_sum_wrap,
+            # InterpTDI_wrap=bbhx_backend_cuda11x.waveformbuild.InterpTDI_wrap,
+            # pyFastLISAResponse=bbhx_backend_cuda11x.response.pyFastLISAResponse,
+            # waveform_amp_phase_wrap=bbhx_backend_cuda11x.phenomhm.waveform_amp_phase_wrap,
+            # get_phenomhm_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomhm_ringdown_frequencies,
+            # get_phenomd_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomd_ringdown_frequencies,
+            # interpolate_wrap=bbhx_backend_cuda11x.interp.interpolate_wrap,
+            BBHxComputationWrap=bbhx_backend_cuda11x.cbbhx.BBHxComputationWrapGPU,
+            OrbitsWrap=bbhx_backend_cuda11x.cbbhx.OrbitsWrapGPU_bbhx,
             xp=cupy,
         )
 
@@ -144,11 +156,12 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
     @staticmethod
     def cuda12x_module_loader():
         try:
-            import bbhx_backend_cuda12x.likelihood
-            import bbhx_backend_cuda12x.waveformbuild
-            import bbhx_backend_cuda12x.response
-            import bbhx_backend_cuda12x.phenomhm
-            import bbhx_backend_cuda12x.interp
+            # import bbhx_backend_cuda12x.likelihood
+            # import bbhx_backend_cuda12x.waveformbuild
+            # import bbhx_backend_cuda12x.response
+            # import bbhx_backend_cuda12x.phenomhm
+            # import bbhx_backend_cuda12x.interp
+            import bbhx_backend_cuda12x.cbbhx
 
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -163,15 +176,17 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             ) from e
 
         return BBHxBackendMethods(
-            hdyn_wrap=bbhx_backend_cuda12x.likelihood.hdyn_wrap,
-            direct_like_wrap=bbhx_backend_cuda12x.likelihood.direct_like_wrap,
-            direct_sum_wrap=bbhx_backend_cuda12x.waveformbuild.direct_sum_wrap,
-            InterpTDI_wrap=bbhx_backend_cuda12x.waveformbuild.InterpTDI_wrap,
-            pyFastLISAResponse=bbhx_backend_cuda12x.response.pyFastLISAResponse,
-            waveform_amp_phase_wrap=bbhx_backend_cuda12x.phenomhm.waveform_amp_phase_wrap,
-            get_phenomhm_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomhm_ringdown_frequencies,
-            get_phenomd_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomd_ringdown_frequencies,
-            interpolate_wrap=bbhx_backend_cuda12x.interp.interpolate_wrap,
+            # hdyn_wrap=bbhx_backend_cuda12x.likelihood.hdyn_wrap,
+            # direct_like_wrap=bbhx_backend_cuda12x.likelihood.direct_like_wrap,
+            # direct_sum_wrap=bbhx_backend_cuda12x.waveformbuild.direct_sum_wrap,
+            # InterpTDI_wrap=bbhx_backend_cuda12x.waveformbuild.InterpTDI_wrap,
+            # pyFastLISAResponse=bbhx_backend_cuda12x.response.pyFastLISAResponse,
+            # waveform_amp_phase_wrap=bbhx_backend_cuda12x.phenomhm.waveform_amp_phase_wrap,
+            # get_phenomhm_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomhm_ringdown_frequencies,
+            # get_phenomd_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomd_ringdown_frequencies,
+            # interpolate_wrap=bbhx_backend_cuda12x.interp.interpolate_wrap,
+            BBHxComputationWrap=bbhx_backend_cuda12x.cbbhx.BBHxComputationWrapGPU,
+            OrbitsWrap=bbhx_backend_cuda12x.cbbhx.OrbitsWrapGPU_bbhx,
             xp=cupy,
         )
 

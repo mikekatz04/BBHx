@@ -2,7 +2,7 @@
 [build-system]
 build-backend = "scikit_build_core.build"
 
-requires = [ "cython", "numpy", "scikit-build-core", "gpubackendtools", "lisaanalysistools>=1.2.0"]
+requires = [ "cython", "numpy", "scikit-build-core", "gpubackendtools>=0.1.1", "lisaanalysistools>=1.2.8", "eryn"]
 
 [project]
 name = "bbhx" #@NAMESUFFIX@

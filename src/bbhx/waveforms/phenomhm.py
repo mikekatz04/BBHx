@@ -505,6 +505,7 @@ class PhenomHMAmpPhase(BBHxParallelModule):
             _initial_t_val = self.initial_t_val[:, None, None]
         elif self.initial_t_val.ndim == 2:
             _initial_t_val = self.initial_t_val[:, :, None]
+
         # adjust phases based on shift from t_ref
         # do this inplace
         temp = (

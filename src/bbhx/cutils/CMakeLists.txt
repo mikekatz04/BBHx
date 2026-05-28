@@ -285,6 +285,26 @@ endfunction()
 get_target_property(BBHX_WITH_CPU bbhx WITH_CPU)
 get_target_property(BBHX_WITH_GPU bbhx WITH_GPU)
 
+# Locate the gpubackendtools cutils directory so we can find gbt_global.h /
+# common helpers that the LISAanalysistools Detector.cu pulls in.
+# Mirrors how GBGPU/src/gbgpu/cutils/CMakeLists.txt does it.
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -c "if True:
+    import gpubackendtools
+    print(gpubackendtools.__file__.split('__init__.py')[0] + 'cutils')"
+  OUTPUT_VARIABLE GBT_CUTILS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+# Locate the LISAanalysistools cutils directory so we can copy Detector.cu /
+# Detector.hpp / global.hpp from the installed package (modern version) rather
+# than downloading them from GitHub main.
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -c "if True:
+    import lisatools
+    print(lisatools.__file__.split('__init__.py')[0] + 'cutils')"
+  OUTPUT_VARIABLE LISATOOLS_CUTILS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 # Adapter to let inplace editable install work: the compiled backend will be
 # placed into the source-tree in the 'src' directory:
 if(SKBUILD_STATE STREQUAL "editable")
@@ -516,22 +536,13 @@ endif()
 
 
 
-# 0. Download lisa analysis tools c files.
-file(
-  DOWNLOAD 
-  https://raw.githubusercontent.com/mikekatz04/LISAanalysistools/refs/heads/main/src/lisatools/cutils/Detector.cu 
-  "./src/bbhx/cutils/Detector.cu"
-)
-file(
-  DOWNLOAD 
-  https://raw.githubusercontent.com/mikekatz04/LISAanalysistools/refs/heads/main/src/lisatools/cutils/Detector.hpp 
-  "./src/bbhx/cutils/Detector.hpp"
-)
-file(
-  DOWNLOAD 
-  https://raw.githubusercontent.com/mikekatz04/LISAanalysistools/refs/heads/main/src/lisatools/cutils/global.hpp 
-  "./src/bbhx/cutils/global.hpp"
-)
+# 0. Copy lisa analysis tools c files from the installed lisatools package.
+file(COPY "${LISATOOLS_CUTILS}/Detector.cu"
+     DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+file(COPY "${LISATOOLS_CUTILS}/Detector.hpp"
+     DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+file(COPY "${LISATOOLS_CUTILS}/global.hpp"
+     DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
 # ----------------
@@ -569,6 +580,9 @@ if(BBHX_WITH_CPU)
 
   python_add_library(bbhx_cpu_response MODULE WITH_SOABI Detector.cxx lisaresponse.cxx Response.cxx)
   apply_cpu_backend_common_options(response)
+  # Detector.cu (downloaded from LISAanalysistools) includes gbt_global.h from
+  # gpubackendtools; make that path visible to the CPU build.
+  target_include_directories(bbhx_cpu_response PUBLIC ${GBT_CUTILS})
 
   target_sources(bbhx_cpu_response PUBLIC FILE_SET HEADERS FILES
                                         global.hpp Detector.hpp constants.h global.h Response.hh)
@@ -579,6 +593,7 @@ endif()
 if(BBHX_WITH_GPU)
   python_add_library(bbhx_gpu_response MODULE WITH_SOABI Detector.cu lisaresponse.cxx Response.cu)
   apply_gpu_backend_common_options(response)
+  target_include_directories(bbhx_gpu_response PUBLIC ${GBT_CUTILS})
   target_sources(bbhx_gpu_response PUBLIC FILE_SET HEADERS FILES
                                        global.hpp Detector.hpp constants.h global.h Response.hh)
 

@@ -1,5 +1,5 @@
-#ifndef __GLOBAL_H__
-#define __GLOBAL_H__
+#ifndef __BBHX_GLOBAL_H__
+#define __BBHX_GLOBAL_H__
 
 #include "cuda_complex.hpp"
 #include "stdio.h"
@@ -30,4 +30,4 @@ inline void gpuAssert2(cudaError_t code, const char *file, int line, bool abort=
 
 typedef gcmplx::complex<double> cmplx;
 
-#endif // __GLOBAL_H__
+#endif // __BBHX_GLOBAL_H__

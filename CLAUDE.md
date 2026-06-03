@@ -20,6 +20,27 @@ BBHx owns MBH (PhenomHM, PhenomTAX) and SOBBH-specific physics.
   (currently in lisa-on-gpu's `fastlisaresponse.jax.wdm.computation_group`,
   mixed with GB; split during C++ carve-out).
 
+**Pending arrival (V2 signal-heterodyne port, independent work item):**
+- C++: `cutils/SOBBHSignalHet.{hh,cu}` (source-class entry) +
+  `cutils/SOBBHAbsoluteFD.{hh,cu}` (PN inspiral FD formula, bin-by-bin) +
+  `cutils/binding_sobbhsignalhet.cxx`.
+- Python: `bbhx/sobbhsignalhetcomputations.py` —
+  `SOBBHSignalHetComputations` parallels the GB version that lands in
+  GBGPU. Same kernel-suite shape: `sobbh_signal_het_{fill_global,get_ll,
+  swap_ll,get_ll_grad,hessian,get_fstat_ll}` (templated on
+  `<SOBBHTDIonTheFly>` — same shape as GB version templated on
+  `<GBTDIonTheFly>`).
+- JAX: `bbhx/jax/wdm/sobbh_signal_het_*`.
+- The generic polyphase + bin-fold + reconstruct primitives live in LAT
+  (`lisatools/cutils/SignalHet*.hh,cu`); BBHx only owns the
+  SOBBH-specific FD-bin producer.
+- Full plan: `~/.claude/plans/yes-find-and-read-sprightly-garden.md`.
+- Python prototype lives at
+  `LISAanalysistools/scripts/gb_chunked_het/gb_signal_het_wdm_v2.py`
+  (named for GB but the architecture is source-agnostic; the SOBBH
+  variant follows the same pattern with `SOBBHAbsoluteFD` swapping in
+  for `GBAbsoluteFD`).
+
 **Phentax + sobbhx waveform expansion** (plan section, not yet started):
 the existing `waveforms/phentax/` subpackage will house the PhenomTAX
 waveform implementation; a new `waveforms/sobbhx/` will house the

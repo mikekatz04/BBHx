@@ -11,6 +11,12 @@ project(bbhx VERSION ${SKBUILD_PROJECT_VERSION} LANGUAGES CXX)
 # ---- Find required dependencies ----
 find_package(Python COMPONENTS Interpreter Development.Module NumPy REQUIRED)
 
+# pybind11 is needed for the cbbhx module added at Phase BBHx.pybind. It is
+# declared in pyproject.toml's build-system.requires so it's installed in the
+# build env; find_package(pybind11 CONFIG) locates the CMake package it ships.
+# Mirrors LAT (LISAanalysistools/CMakeLists.txt) + lisa-on-gpu setup.
+find_package(pybind11 CONFIG)
+
 # This line defines the install directory variables
 include(GNUInstallDirs)
 

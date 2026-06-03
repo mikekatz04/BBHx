@@ -9,6 +9,26 @@ BBHx is the **MBH + SOBBH-physics owner** in the sprint's layered
 architecture. LISAanalysistools (LAT) owns generic LISA infrastructure;
 BBHx owns MBH (PhenomHM, PhenomTAX) and SOBBH-specific physics.
 
+**Build infrastructure (post-Phase-BBHx.pybind, 2026-06-03):**
+- `src/bbhx/cutils/binding_bbhx.{hpp,cxx}` -- pybind11 module skeleton
+  adapted from the original `origin/pybind` branch (commits 7c383e3,
+  0543508, bd9e127) against the post-Phase-3L LAT setup. The
+  branch-original `ReturnPointerBase` + `OrbitsWrap_bbhx` redeclarations
+  were dropped; this TU now consumes LAT's canonical versions via
+  `#include "binding_flr.hpp"` and asserts
+  `static_assert(!LISATOOLS_IS_WRAPPER_OWNER, ...)` to enforce the
+  single-registrant rule.
+- Produces a new backend module `bbhx_backend_{cpu,cudaXXx}.cbbhx`
+  alongside the existing Cython modules (phenomhm, interp, likelihood,
+  response, waveformbuild, newhdyn). The skeleton ships an empty
+  `BBHxComputationWrap`; subsequent commits populate it as each Cython
+  module migrates to pybind11.
+- `find_package(pybind11 CONFIG)` added to project-root `CMakeLists.txt`;
+  `pybind11` added to `pyproject.toml`'s build-system requires.
+- Same `LISATOOLS_CUTILS` / `GBT_CUTILS` local consumption pattern that
+  `Detector.cu` etc. already use -- no URL downloads, version-pinned
+  via lisaanalysistools build dep.
+
 **Already received from lisa-on-gpu (Phase 3G):**
 - `bbhx.jax.sources.sobbh` — `JaxSOBBHSource`. Imports
   `JaxAmpPhaseSource` absolutely from `lisatools.jax.response.base`.

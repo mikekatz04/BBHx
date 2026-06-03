@@ -746,3 +746,44 @@ if(BBHX_WITH_GPU)
                                        constants.h global.h Likelihood.hh)
 
 endif()
+
+
+# ----------------
+# --- cbbhx (pybind11 module skeleton) ---
+# ----------------
+#
+# Phase BBHx.pybind (2026-06-03): adapted from origin/pybind branch
+# (commits 7c383e3, 0543508, bd9e127), modernized against the
+# post-Phase-3L LAT setup. The pybind11 module is reserved for
+# BBH-specific wrappers (PhenomHM/Response/WaveformBuild/Likelihood/
+# Interpolate as they migrate from the .pyx modules above) and the
+# SOBBHTDIonTheFly + SOBBHComputationGroup carve-out scheduled for
+# Phase 3L.8. The skeleton commit ships an empty BBHxComputationWrap;
+# subsequent commits populate it. The single-registrant rule is
+# enforced via static_assert(!LISATOOLS_IS_WRAPPER_OWNER) in
+# binding_bbhx.cxx -- BBHx must NOT register OrbitsWrap_responselisa,
+# TDIConfigWrap, LISAResponseWrap, WDM*/FD*/Spline* (those are LAT's).
+
+if(BBHX_WITH_CPU)
+  # binding_bbhx.cxx is consumed directly by pybind11_add_module; no copy
+  # needed because the file is host C++ (pybind11 ABI; no nvcc).
+  pybind11_add_module(bbhx_cpu_cbbhx binding_bbhx.cxx)
+  apply_cpu_backend_common_options(cbbhx)
+  target_include_directories(bbhx_cpu_cbbhx PRIVATE
+    "${LISATOOLS_CUTILS}"  # ReturnPointerBase + lisatools_header_abi.hpp from LAT
+    "${GBT_CUTILS}"        # gbt_global.h, pybind11_cuda_array_interface.hpp
+  )
+  target_sources(bbhx_cpu_cbbhx PUBLIC FILE_SET HEADERS FILES
+                                       binding_bbhx.hpp)
+endif()
+
+if(BBHX_WITH_GPU)
+  pybind11_add_module(bbhx_gpu_cbbhx binding_bbhx.cxx)
+  apply_gpu_backend_common_options(cbbhx)
+  target_include_directories(bbhx_gpu_cbbhx PRIVATE
+    "${LISATOOLS_CUTILS}"
+    "${GBT_CUTILS}"
+  )
+  target_sources(bbhx_gpu_cbbhx PUBLIC FILE_SET HEADERS FILES
+                                       binding_bbhx.hpp)
+endif()

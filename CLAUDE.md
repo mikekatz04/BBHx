@@ -3,6 +3,46 @@
 This file provides guidance to Claude Code (claude.ai/code) when working
 with code in this repository.
 
+## Sprint reorg state (post-Phase-3G, 2026-06-02)
+
+BBHx is the **MBH + SOBBH-physics owner** in the sprint's layered
+architecture. LISAanalysistools (LAT) owns generic LISA infrastructure;
+BBHx owns MBH (PhenomHM, PhenomTAX) and SOBBH-specific physics.
+
+**Already received from lisa-on-gpu (Phase 3G):**
+- `bbhx.jax.sources.sobbh` — `JaxSOBBHSource`. Imports
+  `JaxAmpPhaseSource` absolutely from `lisatools.jax.response.base`.
+
+**Pending arrival (future C++ TDIonTheFly carve-out session):**
+- C++: `SOBBHTDIonTheFly` class + `SOBBHComputationGroup` class.
+  Will land in `BBHx/src/bbhx/cutils/` with its own pybind11 module.
+- JAX: `computation_group.py`'s `SOBBHComputationGroupWrapJAX`
+  (currently in lisa-on-gpu's `fastlisaresponse.jax.wdm.computation_group`,
+  mixed with GB; split during C++ carve-out).
+
+**Phentax + sobbhx waveform expansion** (plan section, not yet started):
+the existing `waveforms/phentax/` subpackage will house the PhenomTAX
+waveform implementation; a new `waveforms/sobbhx/` will house the
+sobbhx waveform currently in sprint-tree scripts. Each gets a
+`waveforms/<name>/` Python frontend + a `cutils/<Name>Waveform.cu`
+kernel.
+
+**Single-registrant rule (sprint-wide)**: BBHx's binding TUs MUST NOT
+register `OrbitsWrap`, `LISAResponseWrap`, `TDIConfigWrap`,
+`OrbitsWrap_responselisa`, or `CubicSplineWrap_responselisa`. Those are
+owned by LAT's `pycppdetector`. When BBHx receives its tdionthefly
+module, add `#include "lisatools_header_abi.hpp"` +
+`static_assert(!LISATOOLS_IS_WRAPPER_OWNER, ...)` to its binding source
+(see `lisa-on-gpu/src/fastlisaresponse/cutils/binding_tof.cxx` for the
+pattern). Sprint-root `tools/check_single_registrant.sh` is the CI
+grep complement.
+
+**Editable-install requirement**: BBHx was installed to site-packages
+before Phase 3G. The `bbhx.jax` subpackage that landed at Phase 3G is
+ONLY visible if the package is installed editably (`pip install -e .`
+from `BBHx/`). When developing Phase 3+, ensure the editable install
+is current.
+
 ## Backend implementation hierarchy (sprint-wide rule)
 
 When implementing or modifying an algorithm that exists across multiple

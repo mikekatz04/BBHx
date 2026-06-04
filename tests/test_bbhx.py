@@ -28,6 +28,7 @@ from bbhx.utils.transform import *
 
 from lisatools.sensitivity import get_sensitivity
 from lisatools.detector import EqualArmlengthOrbits
+from lisatools.domains import FDSettings
 
 try:
     import cupy as xp
@@ -221,9 +222,18 @@ class WaveformTest(unittest.TestCase):
             data_freqs_cpu = data_freqs
 
         ######## get noise information (need lisatools)
-        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="A1TDISens")
-        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="E1TDISens")
-        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="T1TDISens")
+        # Post-Phase-3 LAT refactor: get_sensitivity takes a DomainSettings,
+        # not a raw frequency array. Wrap data_freqs in FDSettings here.
+        _df_local = float(data_freqs_cpu[1] - data_freqs_cpu[0])
+        _fd_settings = FDSettings(
+            N=len(data_freqs_cpu) + 1,  # +1 to account for the DC bin we sliced off above
+            df=_df_local,
+            min_freq=float(data_freqs_cpu[0]),
+            max_freq=float(data_freqs_cpu[-1]),
+        )
+        PSD_A = get_sensitivity(_fd_settings, sens_fn="A1TDISens")
+        PSD_E = get_sensitivity(_fd_settings, sens_fn="E1TDISens")
+        PSD_T = get_sensitivity(_fd_settings, sens_fn="T1TDISens")
 
         df = data_freqs[1] - data_freqs[0]
 
@@ -316,9 +326,18 @@ class WaveformTest(unittest.TestCase):
             data_freqs_cpu = data_freqs
 
         ######## get noise information (need lisatools)
-        PSD_A = get_sensitivity(data_freqs_cpu, sens_fn="A1TDISens")
-        PSD_E = get_sensitivity(data_freqs_cpu, sens_fn="E1TDISens")
-        PSD_T = get_sensitivity(data_freqs_cpu, sens_fn="T1TDISens")
+        # Post-Phase-3 LAT refactor: get_sensitivity takes a DomainSettings,
+        # not a raw frequency array. Wrap data_freqs in FDSettings here.
+        _df_local = float(data_freqs_cpu[1] - data_freqs_cpu[0])
+        _fd_settings = FDSettings(
+            N=len(data_freqs_cpu) + 1,  # +1 to account for the DC bin we sliced off above
+            df=_df_local,
+            min_freq=float(data_freqs_cpu[0]),
+            max_freq=float(data_freqs_cpu[-1]),
+        )
+        PSD_A = get_sensitivity(_fd_settings, sens_fn="A1TDISens")
+        PSD_E = get_sensitivity(_fd_settings, sens_fn="E1TDISens")
+        PSD_T = get_sensitivity(_fd_settings, sens_fn="T1TDISens")
 
         df = data_freqs[1] - data_freqs[0]
 

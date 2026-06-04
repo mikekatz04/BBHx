@@ -113,6 +113,9 @@ class Likelihood(BBHxParallelModule):
 
         self.waveform_gen = template_gen
         self.data_stream_length = len(data_freqs)
+        # psd is shape (nchannels, n_freqs); infer the channel count.
+        # (Mirrors the HeterodynedLikelihood pattern below at line 923.)
+        self.nchannels = self.psd.shape[0]
 
         # assumes data_channels is already factored by psd
         self.d_d = (
@@ -197,7 +200,13 @@ class Likelihood(BBHxParallelModule):
         self.d_h = np.zeros(self.waveform_gen.num_bin_all, dtype=self.xp.complex128)
         self.h_h = np.zeros(self.waveform_gen.num_bin_all, dtype=self.xp.complex128)
 
-        device = self.xp.cuda.runtime.getDevice()
+        # Get current CUDA device when on cupy backend; CPU mode has no
+        # device, fall back to -1 (the C kernel uses this to take the
+        # CPU code path).
+        if hasattr(self.xp, "cuda"):
+            device = self.xp.cuda.runtime.getDevice()
+        else:
+            device = -1
         self.like_gen(
             self.d_h,
             self.h_h,
@@ -358,8 +367,14 @@ class HeterodynedLikelihood(BBHxParallelModule):
     @sens_mat.setter
     def sens_mat(self, sens_mat):
         if sens_mat is None:
-            _f_not_needed = np.logspace(-5, -1, 1000)
-            sens_mat = AET1SensitivityMatrix(_f_not_needed)
+            # Post-Phase-3 LAT refactor: SensitivityMatrix subclasses take
+            # a DomainSettingsBase, not a raw frequency array. This is a
+            # placeholder built only to satisfy the constructor; it is
+            # immediately overwritten downstream when the user supplies
+            # real psd data on the het grid (set_data path).
+            from lisatools.domains import FDSettings
+            _settings = FDSettings(N=1001, df=1e-4, min_freq=0.0, max_freq=1e-1)
+            sens_mat = AET1SensitivityMatrix(_settings)
         assert isinstance(sens_mat, SensitivityMatrix)
         self._sens_mat = sens_mat
 
@@ -512,7 +527,19 @@ class HeterodynedLikelihood(BBHxParallelModule):
         except AttributeError:
             f_n_host = self.f_dense
 
-        self.sens_mat.update_frequency_arr(f_n_host)
+        # Post-Phase-3 LAT refactor: SensitivityMatrix.update_frequency_arr
+        # became SensitivityMatrix.update_basis_settings, which takes a
+        # DomainSettingsBase. Wrap f_n_host in an FDSettings that covers
+        # the same active band.
+        from lisatools.domains import FDSettings
+        _df_dense = float(f_n_host[1] - f_n_host[0])
+        _fd_settings_dense = FDSettings(
+            N=len(f_n_host) + 1,  # +1 to account for the DC bin
+            df=_df_dense,
+            min_freq=float(f_n_host[0]),
+            max_freq=float(f_n_host[-1]),
+        )
+        self.sens_mat.update_basis_settings(_fd_settings_dense)
 
         # compute sensitivity at dense frequencies
         S_n = self.xp.asarray([self.sens_mat[0], self.sens_mat[1], self.sens_mat[2]])

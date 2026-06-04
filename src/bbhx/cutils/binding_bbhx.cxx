@@ -39,6 +39,46 @@ void bbhx_part(py::module &m) {
         .def("get_phenomd_ringdown_frequencies",
              &BBHxComputationWrap::get_phenomd_ringdown_frequencies,
              "PhenomD ringdown + damping frequencies (spline-based).")
+        // Interpolate.hh (migrated from interp.pyx)
+        .def("interpolate_wrap",
+             &BBHxComputationWrap::interpolate_wrap,
+             "Cubic-spline interpolation of propArrays.")
+        // Likelihood.hh (migrated from bbhlikelihood.pyx)
+        .def("hdyn_wrap",
+             &BBHxComputationWrap::hdyn_wrap,
+             "Heterodyned likelihood.")
+        .def("direct_like_wrap",
+             &BBHxComputationWrap::direct_like_wrap,
+             "Direct (full-FD) likelihood.")
+        .def("prep_hdyn",
+             &BBHxComputationWrap::prep_hdyn,
+             "Prepare heterodyne coefficients (A0/A1/B0/B1).")
+        // Response.hh (migrated from lisaresponse.pyx)
+        .def("LISA_response_wrap",
+             &BBHxComputationWrap::LISA_response_wrap,
+             "FastFD LISA response (PhenomHM amp+phase -> TDI).")
+        // WaveformBuild.hh (migrated from bbhwaveformbuild.pyx)
+        .def("InterpTDI_wrap",
+             &BBHxComputationWrap::InterpTDI_wrap,
+             "Interpolate sparse PhenomHM modes onto dense TDI channels.")
+        .def("direct_sum_wrap",
+             &BBHxComputationWrap::direct_sum_wrap,
+             "Sum PhenomHM modes -> TDI channels directly (no interp).")
+        // Likelihood.hh extra (migrated from newhdynlike.pyx; GPU only)
+#if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
+        .def("new_hdyn_like",
+             &BBHxComputationWrap::new_hdyn_like,
+             "Hdyn likelihood with multiple constant-segment shifts.")
+        .def("new_hdyn_prep",
+             &BBHxComputationWrap::new_hdyn_prep,
+             "Hdyn preparation with per-binary segment indexing.")
+#endif
+        // SpecialLikelihood.hh (migrated from gpuonlywaveformbuild.pyx; GPU only)
+#if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
+        .def("speciallike",
+             &BBHxComputationWrap::speciallike,
+             "InterpTDILike: fused interp + likelihood on the same kernel.")
+#endif
         ;
 }
 

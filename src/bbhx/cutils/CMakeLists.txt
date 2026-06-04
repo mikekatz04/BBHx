@@ -392,17 +392,17 @@ endfunction()
 # --- phenomhm ---
 # ----------------
 
-# Phase BBHx.pybind.phenomhm (2026-06-03): phenomhm.pyx Cython module
-# retired -- all 3 free functions (waveform_amp_phase_wrap,
-# get_phenomhm_ringdown_frequencies, get_phenomd_ringdown_frequencies)
-# now live as methods on BBHxComputationWrap inside the cbbhx pybind11
-# module. PhenomHMWaveform.cu (the underlying source) is still copy-
-# compiled, but its `OUTPUT "PhenomHMWaveform.cxx"` rule has moved to
-# the cbbhx section below (mirrors LAT's binding_flr.cxx +
-# Detector.cxx pattern: one .so per backend wheel, one binding TU,
-# direct compilation of the .cu).
+# Phase BBHx.pybind.{phenomhm,interp,bbhlikelihood,lisaresponse,bbhwaveformbuild,newhdynlike,gpuonlywaveformbuild}
+# (2026-06-03): six Cython modules retired -- their free functions now
+# live as methods on BBHxComputationWrap inside the cbbhx pybind11 module.
+# The underlying .cu sources (PhenomHMWaveform, Interpolate, Likelihood,
+# Response, WaveformBuild, SpecialLikelihood + LAT's Detector) compile
+# into one .so per backend wheel, mirroring LAT's
+# `lisaanalysistools_{cpu,gpu}_pycppdetector` pattern
+# (one binding TU + directly-compiled .cu/.cxx files).
 
-# `PhenomHMWaveform.cxx` for the cbbhx CPU build: copy from .cu.
+# CPU build: copy .cu sources to .cxx and pull LAT's Detector.{cu,hpp} +
+# global.hpp from the installed lisatools package.
 if(BBHX_WITH_CPU)
   add_custom_command(
     OUTPUT "PhenomHMWaveform.cxx"
@@ -411,326 +411,65 @@ if(BBHX_WITH_CPU)
             "${CMAKE_CURRENT_BINARY_DIR}/PhenomHMWaveform.cxx"
     DEPENDS "PhenomHMWaveform.cu"
     VERBATIM)
-endif()
 
-
-# ----------------
-# --- interp ---
-# ----------------
-
-# I. Process interp.pyx into a C++ file
-add_custom_command(
-  OUTPUT "interp.cxx"
-  COMMENT "Cythonize interp.pyx into interp.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/interp.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/interp.cxx" -3 -+ --module-name
-    "interp" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "interp.pyx"
-  VERBATIM)
-
-# II. Declare the CPU backend
-if(BBHX_WITH_CPU)
   add_custom_command(
     OUTPUT "Interpolate.cxx"
-    COMMENT "Copy Interpolate.cu to Interpolate.cxx"
-    COMMAND
-      ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Interpolate.cu"
-      "${CMAKE_CURRENT_BINARY_DIR}/Interpolate.cxx"
+    COMMENT "Copy Interpolate.cu to Interpolate.cxx (for cbbhx CPU)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Interpolate.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/Interpolate.cxx"
     DEPENDS "Interpolate.cu"
     VERBATIM)
 
-  python_add_library(bbhx_cpu_interp MODULE WITH_SOABI interp.cxx
-                     Interpolate.cxx)
-  apply_cpu_backend_common_options(interp)
-  target_sources(
-    bbhx_cpu_interp PUBLIC FILE_SET HEADERS FILES constants.h global.h
-                  Interpolate.hh)
-
-  # interp needs to link against LAPACKE. USe the following method to detect
-  # it and obtain ${BBHX_LAPACKE_LIBS}. In case of failure, it will stop the
-  # processing execution.
-  bbhx_get_lapacke()
-  # Now, link against ${BBHX_LAPACKE_LIBS} to link against liblapacke.so and
-  # include lapacke.h
-  target_link_libraries(bbhx_cpu_interp LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
-                        ${BBHX_LAPACKE_EXTRA_LIBS})
-
-endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_interp MODULE WITH_SOABI interp.cxx
-                     Interpolate.cu)
-  apply_gpu_backend_common_options(interp)
-  target_sources(
-    bbhx_gpu_interp PUBLIC FILE_SET HEADERS FILES cuda_complex.hpp global.h
-                            Interpolate.hh)
-endif()
-
-
-# ----------------
-# --- likelihood ---
-# ----------------
-
-# I. Process bbhlikelihood.pyx into a C++ file
-add_custom_command(
-  OUTPUT "bbhlikelihood.cxx"
-  COMMENT "Cythonize bbhlikelihood.pyx into bbhlikelihood.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/bbhlikelihood.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/bbhlikelihood.cxx" -3 -+ --module-name
-    "likelihood" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "bbhlikelihood.pyx"
-  VERBATIM)
-
-# II. Declare the CPU backend
-if(BBHX_WITH_CPU)
   add_custom_command(
     OUTPUT "Likelihood.cxx"
-    COMMENT "Copy Likelihood.cu to Likelihood.cxx"
+    COMMENT "Copy Likelihood.cu to Likelihood.cxx (for cbbhx CPU)"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Likelihood.cu"
             "${CMAKE_CURRENT_BINARY_DIR}/Likelihood.cxx"
     DEPENDS "Likelihood.cu"
     VERBATIM)
 
-  python_add_library(bbhx_cpu_likelihood MODULE WITH_SOABI bbhlikelihood.cxx Likelihood.cxx)
-  apply_cpu_backend_common_options(likelihood)
-
-  target_sources(bbhx_cpu_likelihood PUBLIC FILE_SET HEADERS FILES
-                                        constants.h global.h Likelihood.hh)
-
-  # likelihood needs to link against LAPACKE. USe the following method to detect
-  # it and obtain ${BBHX_LAPACKE_LIBS}. In case of failure, it will stop the
-  # processing execution.
-  bbhx_get_lapacke()
-  # Now, link against ${BBHX_LAPACKE_LIBS} to link against liblapacke.so and
-  # include lapacke.h
-  target_link_libraries(bbhx_cpu_likelihood LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
-                        ${BBHX_LAPACKE_EXTRA_LIBS})
-endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_likelihood MODULE WITH_SOABI bbhlikelihood.cxx Likelihood.cu)
-  apply_gpu_backend_common_options(likelihood)
-  target_sources(bbhx_gpu_likelihood PUBLIC FILE_SET HEADERS FILES
-                                       constants.h global.h Likelihood.hh)
-
-endif()
-
-
-
-# 0. Copy lisa analysis tools c files from the installed lisatools package.
-file(COPY "${LISATOOLS_CUTILS}/Detector.cu"
-     DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
-file(COPY "${LISATOOLS_CUTILS}/Detector.hpp"
-     DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
-file(COPY "${LISATOOLS_CUTILS}/global.hpp"
-     DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
-
-
-# ----------------
-# --- response ---
-# ----------------
-
-# I. Process lisaresponse.pyx into a C++ file
-add_custom_command(
-  OUTPUT "lisaresponse.cxx"
-  COMMENT "Cythonize lisaresponse.pyx into lisaresponse.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/lisaresponse.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/lisaresponse.cxx" -3 -+ --module-name
-    "response" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "lisaresponse.pyx"
-  VERBATIM)
-
-# II. Declare the CPU backend
-if(BBHX_WITH_CPU)
   add_custom_command(
     OUTPUT "Response.cxx"
-    COMMENT "Copy Response.cu to Response.cxx"
+    COMMENT "Copy Response.cu to Response.cxx (for cbbhx CPU)"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Response.cu"
             "${CMAKE_CURRENT_BINARY_DIR}/Response.cxx"
     DEPENDS "Response.cu"
     VERBATIM)
 
   add_custom_command(
-    OUTPUT "Detector.cxx"
-    COMMENT "Copy Detector.cu to Detector.cxx"
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Detector.cu"
-            "${CMAKE_CURRENT_BINARY_DIR}/Detector.cxx"
-    DEPENDS "Detector.cu"
-    VERBATIM)
-
-  python_add_library(bbhx_cpu_response MODULE WITH_SOABI Detector.cxx lisaresponse.cxx Response.cxx)
-  apply_cpu_backend_common_options(response)
-  # Detector.cu (downloaded from LISAanalysistools) includes gbt_global.h from
-  # gpubackendtools; make that path visible to the CPU build.
-  target_include_directories(bbhx_cpu_response PUBLIC ${GBT_CUTILS})
-
-  target_sources(bbhx_cpu_response PUBLIC FILE_SET HEADERS FILES
-                                        global.hpp Detector.hpp constants.h global.h Response.hh)
-
-endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_response MODULE WITH_SOABI Detector.cu lisaresponse.cxx Response.cu)
-  apply_gpu_backend_common_options(response)
-  target_include_directories(bbhx_gpu_response PUBLIC ${GBT_CUTILS})
-  target_sources(bbhx_gpu_response PUBLIC FILE_SET HEADERS FILES
-                                       global.hpp Detector.hpp constants.h global.h Response.hh)
-
-  set_property(TARGET bbhx_gpu_response PROPERTY CUDA_ARCHITECTURES ${BBHX_CUDA_ARCH})
-  set_property(TARGET bbhx_gpu_response PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-  set_property(TARGET bbhx_gpu_response PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-  set_property(TARGET bbhx_gpu_response PROPERTY POSITION_INDEPENDENT_CODE ON)
-  
-  install(TARGETS bbhx_gpu_response
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages/bbhx)        
-
-endif()
-
-# IV. Remove downloaded files. 
-file(REMOVE "./src/bbhx/cutils/Detector.cu")
-file(REMOVE "./src/bbhx/cutils/Detector.hpp")
-file(REMOVE "./src/bbhx/cutils/global.hpp")
-
-
-
-# ----------------
-# --- waveformbuild ---
-# ----------------
-
-# I. Process bbhwaveformbuild.pyx into a C++ file
-add_custom_command(
-  OUTPUT "bbhwaveformbuild.cxx"
-  COMMENT "Cythonize bbhwaveformbuild.pyx into bbhwaveformbuild.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/bbhwaveformbuild.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/bbhwaveformbuild.cxx" -3 -+ --module-name
-    "waveformbuild" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "bbhwaveformbuild.pyx"
-  VERBATIM)
-
-# II. Declare the CPU backend
-if(BBHX_WITH_CPU)
-  add_custom_command(
     OUTPUT "WaveformBuild.cxx"
-    COMMENT "Copy WaveformBuild.cu to WaveformBuild.cxx"
+    COMMENT "Copy WaveformBuild.cu to WaveformBuild.cxx (for cbbhx CPU)"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/WaveformBuild.cu"
             "${CMAKE_CURRENT_BINARY_DIR}/WaveformBuild.cxx"
     DEPENDS "WaveformBuild.cu"
     VERBATIM)
 
-  python_add_library(bbhx_cpu_waveformbuild MODULE WITH_SOABI bbhwaveformbuild.cxx WaveformBuild.cxx)
-  apply_cpu_backend_common_options(waveformbuild)
+  # SpecialLikelihood.cu is GPU only -- its `cmplx trans_complex1 = 0.0;`
+  # syntax doesn't compile under the CPU std::complex<double> typedef.
+  # Compiled into the GPU cbbhx target below; CPU build skips it entirely
+  # and the cbbhx::speciallike method is `#ifdef __CUDACC__`-guarded in
+  # binding_bbhx.hpp.
 
-  target_sources(bbhx_cpu_waveformbuild PUBLIC FILE_SET HEADERS FILES
-                                        constants.h global.h Likelihood.hh)
-
+  # LAT's Detector.cu is the source of truth; copy it via the
+  # LISATOOLS_CUTILS path detected above (mirrors how lisa-on-gpu does it).
+  add_custom_command(
+    OUTPUT "Detector.cxx"
+    COMMENT "Copy LAT's Detector.cu to Detector.cxx (for cbbhx CPU)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${LISATOOLS_CUTILS}/Detector.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/Detector.cxx"
+    DEPENDS "${LISATOOLS_CUTILS}/Detector.cu"
+    VERBATIM)
 endif()
 
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_waveformbuild MODULE WITH_SOABI bbhwaveformbuild.cxx WaveformBuild.cu)
-  apply_gpu_backend_common_options(waveformbuild)
-  target_sources(bbhx_gpu_waveformbuild PUBLIC FILE_SET HEADERS FILES
-                                       constants.h global.h WaveformBuild.hh)
-
-endif()
-
-# I. Process bbhwaveformbuild.pyx into a C++ file
-add_custom_command(
-  OUTPUT "gpuonlywaveformbuild.cxx"
-  COMMENT "Cythonize gpuonlywaveformbuild.pyx into gpuonlywaveformbuild.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/gpuonlywaveformbuild.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/gpuonlywaveformbuild.cxx" -3 -+ --module-name
-    "speciallike" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "gpuonlywaveformbuild.pyx"
-  VERBATIM)
+# LAPACKE: Interpolate + Likelihood need it. Detect once (idempotent).
+bbhx_get_lapacke()
 
 
-# II. Declare the CPU backend
-# if(BBHX_WITH_CPU)
-#   add_custom_command(
-#     OUTPUT "SpecialLikelihood.cxx"
-#     COMMENT "Copy SpecialLikelihood.cu to SpecialLikelihood.cxx"
-#     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/SpecialLikelihood.cu"
-#             "${CMAKE_CURRENT_BINARY_DIR}/SpecialLikelihood.cxx"
-#     DEPENDS "SpecialLikelihood.cu"
-#     VERBATIM)
-
-#   python_add_library(bbhx_cpu_speciallike MODULE WITH_SOABI gpuonlywaveformbuild.cxx SpecialLikelihood.cxx)
-#   apply_cpu_backend_common_options(speciallike)
-
-#   target_sources(bbhx_cpu_speciallike PUBLIC FILE_SET HEADERS FILES
-#                                         constants.h global.h SpecialLikelihood.hh)
-
-# endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_speciallike MODULE WITH_SOABI gpuonlywaveformbuild.cxx SpecialLikelihood.cu)
-  apply_gpu_backend_common_options(speciallike)
-  target_sources(bbhx_gpu_speciallike PUBLIC FILE_SET HEADERS FILES
-                                       constants.h global.h SpecialLikelihood.hh)
-
-endif()
-
-
-
-# ----------------
-# --- new hdyn likelihood (only for GPU right now) ---
-# ----------------
-
-# I. Process newhdynlike.pyx into a C++ file
-add_custom_command(
-  OUTPUT "newhdynlike.cxx"
-  COMMENT "Cythonize newhdynlike.pyx into newhdynlike.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/newhdynlike.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/newhdynlike.cxx" -3 -+ --module-name
-    "newhdyn" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "newhdynlike.pyx"
-  VERBATIM)
-
-# II. Declare the CPU backend
-# if(BBHX_WITH_CPU)
-  # # add_custom_command(
-  #   OUTPUT "Likelihood.cxx"
-  #   COMMENT "Copy Likelihood.cu to Likelihood.cxx"
-  #   COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Likelihood.cu"
-  #           "${CMAKE_CURRENT_BINARY_DIR}/Likelihood.cxx"
-  #   DEPENDS "Likelihood.cu"
-  #   VERBATIM)
-
-  # python_add_library(bbhx_cpu_likelihood MODULE WITH_SOABI bbhlikelihood.cxx Likelihood.cxx)
-  # apply_cpu_backend_common_options(likelihood)
-
-  # target_sources(bbhx_cpu_likelihood PUBLIC FILE_SET HEADERS FILES
-  #                                       constants.h global.h Likelihood.hh)
-
-  # # likelihood needs to link against LAPACKE. USe the following method to detect
-  # # it and obtain ${BBHX_LAPACKE_LIBS}. In case of failure, it will stop the
-  # # processing execution.
-  # bbhx_get_lapacke()
-  # # Now, link against ${BBHX_LAPACKE_LIBS} to link against liblapacke.so and
-  # # include lapacke.h
-  # target_link_libraries(bbhx_cpu_likelihood LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
-  #                       ${BBHX_LAPACKE_EXTRA_LIBS})
-# endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_newhdyn MODULE WITH_SOABI newhdynlike.cxx Likelihood.cu)
-  apply_gpu_backend_common_options(newhdyn)
-  target_sources(bbhx_gpu_newhdyn PUBLIC FILE_SET HEADERS FILES
-                                       constants.h global.h Likelihood.hh)
-
-endif()
+# (Cython sections for interp / likelihood / response / waveformbuild /
+# speciallike / newhdyn all removed at Phase BBHx.pybind.bulk -- their
+# functions are now methods on BBHxComputationWrap inside the cbbhx
+# pybind11 module. The .cu sources they used to compile against now
+# compile into cbbhx directly via the add_custom_command rules above.)
 
 
 # ----------------
@@ -750,32 +489,58 @@ endif()
 # TDIConfigWrap, LISAResponseWrap, WDM*/FD*/Spline* (those are LAT's).
 
 if(BBHX_WITH_CPU)
-  # binding_bbhx.cxx is consumed directly by pybind11_add_module; no copy
-  # needed because the file is host C++ (pybind11 ABI; no nvcc).
-  # PhenomHMWaveform.cxx (copy from PhenomHMWaveform.cu, see the
-  # bbhx_cpu_phenomhm target above) is compiled into this module so the
-  # waveform_amp_phase / *_ringdown_frequencies_wrap symbols are
-  # available -- this is the Cython-to-pybind11 migration target for
-  # phenomhm.pyx (Phase BBHx.pybind.phenomhm, 2026-06-03).
-  pybind11_add_module(bbhx_cpu_cbbhx binding_bbhx.cxx PhenomHMWaveform.cxx)
+  # cbbhx CPU build: one .so per backend wheel containing the pybind11
+  # binding + every BBHx-local .cu + LAT's Detector.cu, mirroring LAT's
+  # `lisaanalysistools_cpu_pycppdetector` layout.
+  pybind11_add_module(bbhx_cpu_cbbhx
+    binding_bbhx.cxx
+    PhenomHMWaveform.cxx
+    Interpolate.cxx
+    Likelihood.cxx
+    Response.cxx
+    WaveformBuild.cxx
+    Detector.cxx)  # SpecialLikelihood.cxx omitted: GPU only
   apply_cpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_cpu_cbbhx PRIVATE
-    "${LISATOOLS_CUTILS}"  # ReturnPointerBase + lisatools_header_abi.hpp from LAT
+    "${LISATOOLS_CUTILS}"  # ReturnPointerBase + lisatools_header_abi.hpp + LAT Detector.hpp
     "${GBT_CUTILS}"        # gbt_global.h, pybind11_cuda_array_interface.hpp
   )
+  target_link_libraries(bbhx_cpu_cbbhx LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
+                        ${BBHX_LAPACKE_EXTRA_LIBS})
   target_sources(bbhx_cpu_cbbhx PUBLIC FILE_SET HEADERS FILES
-                                       binding_bbhx.hpp PhenomHMWaveform.hh)
+                                       binding_bbhx.hpp
+                                       PhenomHMWaveform.hh Interpolate.hh
+                                       Likelihood.hh Response.hh
+                                       WaveformBuild.hh
+                                       constants.h global.h)
 endif()
 
 if(BBHX_WITH_GPU)
-  # PhenomHMWaveform.cu compiled directly for the GPU build (no .cxx
-  # copy intermediate, matches the bbhx_gpu_phenomhm pattern).
-  pybind11_add_module(bbhx_gpu_cbbhx binding_bbhx.cxx PhenomHMWaveform.cu)
+  # cbbhx GPU build: same layout, .cu sources compiled directly by nvcc.
+  pybind11_add_module(bbhx_gpu_cbbhx
+    binding_bbhx.cxx
+    PhenomHMWaveform.cu
+    Interpolate.cu
+    Likelihood.cu
+    Response.cu
+    WaveformBuild.cu
+    SpecialLikelihood.cu
+    "${LISATOOLS_CUTILS}/Detector.cu")
   apply_gpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_gpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"
     "${GBT_CUTILS}"
   )
+  target_link_libraries(bbhx_gpu_cbbhx LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
+                        ${BBHX_LAPACKE_EXTRA_LIBS})
+  set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_ARCHITECTURES ${BBHX_CUDA_ARCH})
+  set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+  set_property(TARGET bbhx_gpu_cbbhx PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_sources(bbhx_gpu_cbbhx PUBLIC FILE_SET HEADERS FILES
-                                       binding_bbhx.hpp PhenomHMWaveform.hh)
+                                       binding_bbhx.hpp
+                                       PhenomHMWaveform.hh Interpolate.hh
+                                       Likelihood.hh Response.hh
+                                       WaveformBuild.hh SpecialLikelihood.hh
+                                       cuda_complex.hpp constants.h global.h)
 endif()

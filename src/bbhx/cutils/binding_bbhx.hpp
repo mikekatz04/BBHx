@@ -14,15 +14,36 @@
 // WaveformBuild, Likelihood, Interpolate) and -- once Phase 3L.8 lands
 // -- SOBBHTDIonTheFly + SOBBHComputationGroup.
 
-// BBHx-specific waveform/response/likelihood headers. As each Cython
-// module migrates into BBHxComputationWrap, its corresponding header is
-// added below. NOTE: the locally-defined Interpolate.hh shares the
-// `__INTERPOLATE_HH__` guard with GBT's, so if/when wrapping BBHx's
-// interp.pyx, use GBT's InterpolateDevice.hh for CubicSpline rather than
-// BBHx's local Interpolate.hh.
+// GBT's InterpolateDevice.hh defines the `CubicSpline` class that
+// binding_flr.hpp's `CubicSplineWrap_responselisa` needs. Include it
+// FIRST so that when binding_flr.hpp transitively pulls in `Interpolate.hh`
+// (GBT's, which #includes InterpolateDevice.hh), the include guards are
+// already satisfied and CubicSpline is visible. Without this, BBHx's
+// local `Interpolate.hh` (same `__INTERPOLATE_HH__` guard, no CubicSpline)
+// wins the include race and CubicSpline is undeclared.
+#include "InterpolateDevice.hh"
+
+// BBHx-specific waveform/response/likelihood headers. Each migrated
+// Cython module's free functions get a method wrapper on
+// BBHxComputationWrap, calling out to the underlying free function from
+// the corresponding .hh below.
 #include "PhenomHMWaveform.hh"  // waveform_amp_phase,
                                  // get_phenomhm_ringdown_frequencies_wrap,
                                  // get_phenomd_ringdown_frequencies_wrap
+#include "Interpolate.hh"       // interpolate (BBHx's local, not GBT's)
+#include "Likelihood.hh"        // hdyn, direct_like, prep_hdyn_wrap,
+                                 // new_hdyn_prep_wrap, new_hdyn_like_wrap
+#include "Response.hh"          // LISA_response
+#include "WaveformBuild.hh"     // InterpTDI, direct_sum
+// SpecialLikelihood.hh is GPU-only: its underlying SpecialLikelihood.cu has
+// `cmplx trans_complex1 = 0.0;`-style initializers that only compile under
+// the cuda_complex.hpp GPU branch (the CPU std::complex<double> typedef
+// doesn't accept scalar 0.0). The corresponding `speciallike` wrapper is
+// guarded by the same toggle below; the CPU __init__.py loader passes
+// `speciallike=None` (matches the prior Cython-era behavior).
+#if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
+#include "SpecialLikelihood.hh" // InterpTDILike (GPU only)
+#endif
 
 // LAT-canonical pybind11 base + array typedefs + Orbits + TDIConfig wrappers.
 // binding_flr.hpp provides ReturnPointerBase and array_type<T>; consuming TUs
@@ -173,6 +194,286 @@ class BBHxComputationWrap : public ReturnPointerBase {
             return_pointer(c3_dm_all, "c3_dm_all"),
             dspin, num_segs);
     }
+
+    // ---- Interpolate.hh wrapper (migrated from interp.pyx) ----
+
+    void interpolate_wrap(
+        array_type<double> freqs, array_type<double> propArrays,
+        array_type<double> B, array_type<double> upper_diag,
+        array_type<double> diag, array_type<double> lower_diag,
+        int length, int numInterpParams, int numModes, int numBinAll)
+    {
+        interpolate(
+            return_pointer(freqs,      "freqs"),
+            return_pointer(propArrays, "propArrays"),
+            return_pointer(B,          "B"),
+            return_pointer(upper_diag, "upper_diag"),
+            return_pointer(diag,       "diag"),
+            return_pointer(lower_diag, "lower_diag"),
+            length, numInterpParams, numModes, numBinAll);
+    }
+
+    // ---- Likelihood.hh wrappers (migrated from bbhlikelihood.pyx) ----
+
+    void hdyn_wrap(
+        array_type<std::complex<double>> likeOut1,
+        array_type<std::complex<double>> likeOut2,
+        array_type<std::complex<double>> templateChannels,
+        array_type<std::complex<double>> dataConstants,
+        array_type<double> dataFreqs,
+        int numBinAll, int data_length, int nChannels)
+    {
+        hdyn(
+            (cmplx*) return_pointer(likeOut1,         "likeOut1"),
+            (cmplx*) return_pointer(likeOut2,         "likeOut2"),
+            (cmplx*) return_pointer(templateChannels, "templateChannels"),
+            (cmplx*) return_pointer(dataConstants,    "dataConstants"),
+            return_pointer(dataFreqs, "dataFreqs"),
+            numBinAll, data_length, nChannels);
+    }
+
+    void direct_like_wrap(
+        array_type<std::complex<double>> d_h,
+        array_type<std::complex<double>> h_h,
+        array_type<std::complex<double>> dataChannels,
+        array_type<double> noise_weight_times_df,
+        array_type<long> templateChannels_ptrs,
+        array_type<int> inds_start,
+        array_type<int> ind_lengths,
+        int data_stream_length, int numBinAll, int nChannels, int device)
+    {
+        direct_like(
+            (cmplx*) return_pointer(d_h,          "d_h"),
+            (cmplx*) return_pointer(h_h,          "h_h"),
+            (cmplx*) return_pointer(dataChannels, "dataChannels"),
+            return_pointer(noise_weight_times_df,    "noise_weight_times_df"),
+            return_pointer(templateChannels_ptrs,    "templateChannels_ptrs"),
+            return_pointer(inds_start,               "inds_start"),
+            return_pointer(ind_lengths,              "ind_lengths"),
+            data_stream_length, numBinAll, nChannels, device);
+    }
+
+    void prep_hdyn(
+        array_type<std::complex<double>> A0_in,
+        array_type<std::complex<double>> A1_in,
+        array_type<std::complex<double>> B0_in,
+        array_type<std::complex<double>> B1_in,
+        array_type<std::complex<double>> d_arr,
+        array_type<std::complex<double>> h0_arr,
+        array_type<double> S_n_arr,
+        double df,
+        array_type<int> bins,
+        array_type<double> f_dense,
+        array_type<double> f_m_arr,
+        int data_length, int nchannels, int length_f_rel)
+    {
+        prep_hdyn_wrap(
+            (cmplx*) return_pointer(A0_in,  "A0_in"),
+            (cmplx*) return_pointer(A1_in,  "A1_in"),
+            (cmplx*) return_pointer(B0_in,  "B0_in"),
+            (cmplx*) return_pointer(B1_in,  "B1_in"),
+            (cmplx*) return_pointer(d_arr,  "d_arr"),
+            (cmplx*) return_pointer(h0_arr, "h0_arr"),
+            return_pointer(S_n_arr, "S_n_arr"),
+            df,
+            return_pointer(bins,    "bins"),
+            return_pointer(f_dense, "f_dense"),
+            return_pointer(f_m_arr, "f_m_arr"),
+            data_length, nchannels, length_f_rel);
+    }
+
+    // ---- Response.hh wrapper (migrated from lisaresponse.pyx) ----
+    //
+    // `orbits` is the LAT-canonical OrbitsWrap* (the post-Phase-3E
+    // wrapper from binding.hpp, NOT the OrbitsWrap_responselisa from
+    // binding_flr.hpp). pybind11's shared-type registry routes Python
+    // `Orbits.pycppdetector` (= `self.backend.OrbitsWrap(*args)` in
+    // lisatools/detector.py) through this signature. The Python frontend
+    // in bbhx/response/fastfdresponse.py passes `self.orbits.pycppdetector`.
+    void LISA_response_wrap(
+        array_type<double> response_out,
+        array_type<int>    ells_in,
+        array_type<int>    mms_in,
+        array_type<double> freqs,
+        array_type<double> phi_ref,
+        array_type<double> inc,
+        array_type<double> lam,
+        array_type<double> beta,
+        array_type<double> psi,
+        int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil,
+        int numModes, int length, int numBinAll, int includesAmps,
+        OrbitsWrap *orbits_wrap)
+    {
+        LISA_response(
+            return_pointer(response_out, "response_out"),
+            return_pointer(ells_in,      "ells_in"),
+            return_pointer(mms_in,       "mms_in"),
+            return_pointer(freqs,        "freqs"),
+            return_pointer(phi_ref,      "phi_ref"),
+            return_pointer(inc,          "inc"),
+            return_pointer(lam,          "lam"),
+            return_pointer(beta,         "beta"),
+            return_pointer(psi,          "psi"),
+            TDItag, rescaled, tdi2, order_fresnel_stencil,
+            numModes, length, numBinAll, includesAmps,
+            orbits_wrap->orbits);
+    }
+
+    // ---- WaveformBuild.hh wrappers (migrated from bbhwaveformbuild.pyx) ----
+
+    void InterpTDI_wrap(
+        array_type<long> templateChannels_ptrs,
+        array_type<double> dataFreqs,
+        array_type<double> freqs,
+        array_type<double> propArrays,
+        array_type<double> c1, array_type<double> c2, array_type<double> c3,
+        array_type<double> t_start, array_type<double> t_end,
+        int length, int data_length, int numBinAll, int numModes,
+        array_type<long> inds_ptrs,
+        array_type<int> inds_start,
+        array_type<int> ind_lengths)
+    {
+        InterpTDI(
+            return_pointer(templateChannels_ptrs, "templateChannels_ptrs"),
+            return_pointer(dataFreqs,             "dataFreqs"),
+            return_pointer(freqs,                 "freqs"),
+            return_pointer(propArrays,            "propArrays"),
+            return_pointer(c1,                    "c1"),
+            return_pointer(c2,                    "c2"),
+            return_pointer(c3,                    "c3"),
+            return_pointer(t_start,               "t_start"),
+            return_pointer(t_end,                 "t_end"),
+            length, data_length, numBinAll, numModes,
+            return_pointer(inds_ptrs,    "inds_ptrs"),
+            return_pointer(inds_start,   "inds_start"),
+            return_pointer(ind_lengths,  "ind_lengths"));
+    }
+
+    void direct_sum_wrap(
+        array_type<std::complex<double>> templateChannels,
+        array_type<double> bbh_buffer,
+        int numBinAll, int data_length, int nChannels, int numModes,
+        array_type<double> t_start, array_type<double> t_end)
+    {
+        direct_sum(
+            (cmplx*) return_pointer(templateChannels, "templateChannels"),
+            return_pointer(bbh_buffer, "bbh_buffer"),
+            numBinAll, data_length, nChannels, numModes,
+            return_pointer(t_start, "t_start"),
+            return_pointer(t_end,   "t_end"));
+    }
+
+    // ---- Likelihood.hh extra (migrated from newhdynlike.pyx; GPU only) ----
+    //
+    // new_hdyn_prep_wrap / new_hdyn_like_wrap are inside the
+    // `#ifdef __CUDACC__` block in Likelihood.cu -- they use GPU triple-
+    // bracket kernel-launch syntax that doesn't survive the CPU compile.
+    // The CPU __init__.py loader sets new_hdyn_* = None (matches the
+    // prior Cython-era setup: bbhx_cpu_newhdyn was commented out, only
+    // bbhx_gpu_newhdyn shipped).
+#if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
+    void new_hdyn_like(
+        array_type<std::complex<double>> likeOut1,
+        array_type<std::complex<double>> likeOut2,
+        array_type<std::complex<double>> templateChannels,
+        array_type<std::complex<double>> dataConstants,
+        array_type<double> dataFreqsIn,
+        array_type<int> constants_index,
+        int numBinAll, int length_f_rel, int nChannels, int num_constants)
+    {
+        new_hdyn_like_wrap(
+            (cmplx*) return_pointer(likeOut1,         "likeOut1"),
+            (cmplx*) return_pointer(likeOut2,         "likeOut2"),
+            (cmplx*) return_pointer(templateChannels, "templateChannels"),
+            (cmplx*) return_pointer(dataConstants,    "dataConstants"),
+            return_pointer(dataFreqsIn,     "dataFreqsIn"),
+            return_pointer(constants_index, "constants_index"),
+            numBinAll, length_f_rel, nChannels, num_constants);
+    }
+
+    void new_hdyn_prep(
+        array_type<std::complex<double>> A0_out,
+        array_type<std::complex<double>> A1_out,
+        array_type<std::complex<double>> B0_out,
+        array_type<std::complex<double>> B1_out,
+        array_type<std::complex<double>> h0_arr,
+        array_type<std::complex<double>> data,
+        array_type<double> psd,
+        array_type<double> f_m_arr,
+        double df,
+        array_type<double> f_dense,
+        array_type<int> data_index,
+        array_type<int> noise_index,
+        array_type<int> start_inds_all,
+        array_type<int> num_points_seg,
+        int length_f_rel, int num_bin, int data_length, int nchannels)
+    {
+        new_hdyn_prep_wrap(
+            (cmplx*) return_pointer(A0_out, "A0_out"),
+            (cmplx*) return_pointer(A1_out, "A1_out"),
+            (cmplx*) return_pointer(B0_out, "B0_out"),
+            (cmplx*) return_pointer(B1_out, "B1_out"),
+            (cmplx*) return_pointer(h0_arr, "h0_arr"),
+            (cmplx*) return_pointer(data,   "data"),
+            return_pointer(psd,            "psd"),
+            return_pointer(f_m_arr,        "f_m_arr"),
+            df,
+            return_pointer(f_dense,        "f_dense"),
+            return_pointer(data_index,     "data_index"),
+            return_pointer(noise_index,    "noise_index"),
+            return_pointer(start_inds_all, "start_inds_all"),
+            return_pointer(num_points_seg, "num_points_seg"),
+            length_f_rel, num_bin, data_length, nchannels);
+    }
+#endif // __CUDACC__ (new_hdyn_*: GPU only)
+
+    // ---- SpecialLikelihood.hh wrapper (migrated from gpuonlywaveformbuild.pyx) ----
+    //
+    // GPU only -- SpecialLikelihood.cu uses cuda_complex.hpp's GPU-side
+    // scalar-to-cmplx conversions that don't translate to the CPU
+    // typedef. Matches the prior Cython-era setup where
+    // bbhx_cpu_speciallike was commented out and only bbhx_gpu_speciallike
+    // shipped. The CPU __init__.py loader sets speciallike=None.
+#if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
+    void speciallike(
+        array_type<std::complex<double>> d_h,
+        array_type<std::complex<double>> h_h,
+        array_type<std::complex<double>> dataChannels,
+        array_type<double> psd,
+        array_type<double> dataFreqs,
+        array_type<double> freqs,
+        array_type<double> propArrays,
+        array_type<double> c1, array_type<double> c2, array_type<double> c3,
+        array_type<double> t_start, array_type<double> t_end,
+        int length, int data_length, int numBinAll, int numModes,
+        array_type<long> inds_ptrs,
+        array_type<int> inds_start,
+        array_type<int> ind_lengths,
+        double df,
+        array_type<int> data_index_all, int num_data_sets,
+        array_type<int> noise_index_all, int num_noise_sets,
+        int gpu)
+    {
+        InterpTDILike(
+            (cmplx*) return_pointer(d_h,          "d_h"),
+            (cmplx*) return_pointer(h_h,          "h_h"),
+            (cmplx*) return_pointer(dataChannels, "dataChannels"),
+            return_pointer(psd,        "psd"),
+            return_pointer(dataFreqs,  "dataFreqs"),
+            return_pointer(freqs,      "freqs"),
+            return_pointer(propArrays, "propArrays"),
+            return_pointer(c1, "c1"), return_pointer(c2, "c2"), return_pointer(c3, "c3"),
+            return_pointer(t_start, "t_start"), return_pointer(t_end, "t_end"),
+            length, data_length, numBinAll, numModes,
+            return_pointer(inds_ptrs,    "inds_ptrs"),
+            return_pointer(inds_start,   "inds_start"),
+            return_pointer(ind_lengths,  "ind_lengths"),
+            df,
+            return_pointer(data_index_all,  "data_index_all"), num_data_sets,
+            return_pointer(noise_index_all, "noise_index_all"), num_noise_sets,
+            gpu);
+    }
+#endif // __CUDACC__ (speciallike: GPU only)
 };
 
 // Module entry called from PYBIND11_MODULE(cbbhx, m) in binding_bbhx.cxx.

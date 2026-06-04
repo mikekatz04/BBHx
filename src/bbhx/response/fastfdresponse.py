@@ -489,7 +489,12 @@ class LISATDIResponse(BBHxParallelModule):
             length,
             num_bin_all,
             includes_amps,
-            self.orbits,
+            # LISA_response_wrap (pybind11, post-Phase-BBHx.pybind.bulk) takes the
+            # OrbitsWrap_responselisa pybind11 instance, not the high-level Python
+            # Orbits class -- the wrap is exposed as `self.orbits.pycppdetector`.
+            # Prior Cython binding used gpubackendtools.wrapper which extracted
+            # `.ptr` from the Python Orbits object.
+            self.orbits.pycppdetector,
         )
 
         # adjust input phase arrays in-place

@@ -111,6 +111,7 @@ sdist.include = [
   "src/bbhx/git_version.py",                 #@SKIP_PLUGIN@
   "src/bbhx_backend_cuda11x/git_version.py",
   "src/bbhx_backend_cuda12x/git_version.py",
+  "src/bbhx_backend_cuda13x/git_version.py",
   "tests/",
 ]
 sdist.exclude = [

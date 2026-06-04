@@ -47,9 +47,18 @@ set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_WITH_GPU)
 # BBHX_CUDA_ARCH will be passed as the CUDA_ARCHITECTURES property for the CUDA
 # backend if it is compiled. See the documentation of CUDA_ARCHITECTURES:
 # https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
+#
+# For cuda13x and upwards cuda_arch <= 70 (V100) is not supported anymore. The
+# default value is computed dynamically against the detected CUDAToolkit
+# version (the find_package(CUDAToolkit) call lives in src/bbhx/cutils/
+# CMakeLists.txt and runs before this default is read by the CUDA target),
+# but to keep this option declaration self-contained we list the full default
+# here and apply the filter at use-site. Mirrors LISAanalysistools'
+# FILTERED_ARCHS pattern.
 set(BBHX_CUDA_ARCH "70;75;80;86;90"
     CACHE STRING "CUDA Architecture targetted for BBHX compilation (see doc of \
-          CMAKE_CUDA_ARCHITECTURES).")
+          CMAKE_CUDA_ARCHITECTURES). On CUDA >= 13 the value 70 is filtered \
+          out automatically since V100 is no longer supported by nvcc.")
 set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_CUDA_ARCH)
 
 set(BBHX_MARCH "native"
@@ -175,6 +184,41 @@ get_target_property(_BBHX_WITH_GPU bbhx WITH_GPU)
 if(_BBHX_WITH_GPU)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
+
+  # For cuda13x and upwards cuda_arch <= 70 (V100) is not supported anymore.
+  # The code below takes that into consideration, while still being agnostic
+  # to the cuda version usage. Mirrors the LISAanalysistools FILTERED_ARCHS
+  # pattern (LAT CMakeLists.txt:131-150). If a user passed an explicit
+  # -DBBHX_CUDA_ARCH=... on the CMake command line, that cache value was
+  # populated before this block runs, and the no-FORCE set() below leaves it
+  # untouched (CMake CACHE semantics).
+  set(DEFAULT_ARCHS "70;75;80;86;90")
+  set(FILTERED_ARCHS "")
+  foreach(_arch IN LISTS DEFAULT_ARCHS)
+    if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0" AND _arch LESS_EQUAL 70)
+      message(STATUS "CUDA Toolkit ${CUDAToolkit_VERSION} detected: Dropping unsupported architecture '${_arch}'")
+    else()
+      list(APPEND FILTERED_ARCHS "${_arch}")
+    endif()
+  endforeach()
+
+  # BBHx (unlike LAT) declares BBHX_CUDA_ARCH up top so it can register the
+  # var with BBHX_OPTION_NAMES for the build summary. That upfront set()
+  # populates the cache to the unfiltered default before find_package
+  # runs, so a no-FORCE set() here would be a no-op. Force-overwrite only
+  # if the cache still equals that exact unfiltered default -- preserving a
+  # user's -DBBHX_CUDA_ARCH=... override (which differs from the default by
+  # construction).
+  if(BBHX_CUDA_ARCH STREQUAL "${DEFAULT_ARCHS}")
+    set(
+      BBHX_CUDA_ARCH "${FILTERED_ARCHS}"
+      CACHE STRING "CUDA Architectures targeted for BBHX compilation."
+      FORCE
+    )
+  endif()
+
+  set(CMAKE_CUDA_ARCHITECTURES ${BBHX_CUDA_ARCH})
+  message(STATUS "BBHX CUDA Architectures set to: ${CMAKE_CUDA_ARCHITECTURES}")
 endif()
 
 # ---- Include sources ----

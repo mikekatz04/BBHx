@@ -537,10 +537,12 @@ if(BBHX_WITH_GPU)
   set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
   set_property(TARGET bbhx_gpu_cbbhx PROPERTY POSITION_INDEPENDENT_CODE ON)
+  # NB: cuda_complex.hpp deliberately omitted -- resolved via
+  # ${GBT_CUTILS} (GPUBackendTools owns the canonical copy).
   target_sources(bbhx_gpu_cbbhx PUBLIC FILE_SET HEADERS FILES
                                        binding_bbhx.hpp
                                        PhenomHMWaveform.hh Interpolate.hh
                                        Likelihood.hh Response.hh
                                        WaveformBuild.hh SpecialLikelihood.hh
-                                       cuda_complex.hpp constants.h global.h)
+                                       constants.h global.h)
 endif()

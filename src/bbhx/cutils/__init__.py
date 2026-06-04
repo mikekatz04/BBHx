@@ -73,9 +73,9 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
             import bbhx_backend_cpu.likelihood
             import bbhx_backend_cpu.waveformbuild
             import bbhx_backend_cpu.response
-            import bbhx_backend_cpu.phenomhm
+            import bbhx_backend_cpu.cbbhx  # pybind11 module; replacing per-method Cython modules
             import bbhx_backend_cpu.interp
-            
+
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
                 "'cpu' backend could not be imported."
@@ -83,15 +83,21 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
 
         numpy = BBHxCpuBackend.check_numpy()
 
+        # Single-instance BBHxComputationWrap holds the migrated wrappers;
+        # bound methods are exposed below as `waveform_amp_phase_wrap` etc.
+        # so the user-facing API (self.backend.waveform_amp_phase_wrap(...))
+        # is unchanged from the prior Cython-only implementation.
+        _cbbhx = bbhx_backend_cpu.cbbhx.BBHxComputationWrapCPU()
+
         return BBHxBackendMethods(
             hdyn_wrap=bbhx_backend_cpu.likelihood.hdyn_wrap,
             direct_like_wrap=bbhx_backend_cpu.likelihood.direct_like_wrap,
             direct_sum_wrap=bbhx_backend_cpu.waveformbuild.direct_sum_wrap,
             InterpTDI_wrap=bbhx_backend_cpu.waveformbuild.InterpTDI_wrap,
             LISA_response_wrap=bbhx_backend_cpu.response.LISA_response_wrap,
-            waveform_amp_phase_wrap=bbhx_backend_cpu.phenomhm.waveform_amp_phase_wrap,
-            get_phenomhm_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomhm_ringdown_frequencies,
-            get_phenomd_ringdown_frequencies=bbhx_backend_cpu.phenomhm.get_phenomd_ringdown_frequencies,
+            waveform_amp_phase_wrap=_cbbhx.waveform_amp_phase_wrap,
+            get_phenomhm_ringdown_frequencies=_cbbhx.get_phenomhm_ringdown_frequencies,
+            get_phenomd_ringdown_frequencies=_cbbhx.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cpu.interp.interpolate_wrap,
             speciallike=None,  # bbhx_backend_cpu.speciallike.InterpTDILike_wrap,
             new_hdyn_prep=None,  # bbhx_backend_cuda11x.newhdyn.new_hdyn_prep,
@@ -116,7 +122,7 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
             import bbhx_backend_cuda11x.likelihood
             import bbhx_backend_cuda11x.waveformbuild
             import bbhx_backend_cuda11x.response
-            import bbhx_backend_cuda11x.phenomhm
+            import bbhx_backend_cuda11x.cbbhx  # pybind11 module; replacing per-method Cython modules
             import bbhx_backend_cuda11x.interp
             import bbhx_backend_cuda11x.speciallike
             import bbhx_backend_cuda11x.newhdyn
@@ -133,15 +139,17 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
                 "'cuda11x' backend requires cupy", pip_deps=["cupy-cuda11x"]
             ) from e
 
+        _cbbhx = bbhx_backend_cuda11x.cbbhx.BBHxComputationWrapGPU()
+
         return BBHxBackendMethods(
             hdyn_wrap=bbhx_backend_cuda11x.likelihood.hdyn_wrap,
             direct_like_wrap=bbhx_backend_cuda11x.likelihood.direct_like_wrap,
             direct_sum_wrap=bbhx_backend_cuda11x.waveformbuild.direct_sum_wrap,
             InterpTDI_wrap=bbhx_backend_cuda11x.waveformbuild.InterpTDI_wrap,
             LISA_response_wrap=bbhx_backend_cuda11x.response.LISA_response_wrap,
-            waveform_amp_phase_wrap=bbhx_backend_cuda11x.phenomhm.waveform_amp_phase_wrap,
-            get_phenomhm_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomhm_ringdown_frequencies,
-            get_phenomd_ringdown_frequencies=bbhx_backend_cuda11x.phenomhm.get_phenomd_ringdown_frequencies,
+            waveform_amp_phase_wrap=_cbbhx.waveform_amp_phase_wrap,
+            get_phenomhm_ringdown_frequencies=_cbbhx.get_phenomhm_ringdown_frequencies,
+            get_phenomd_ringdown_frequencies=_cbbhx.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cuda11x.interp.interpolate_wrap,
             speciallike=bbhx_backend_cuda11x.speciallike.InterpTDILike_wrap,
             new_hdyn_prep=bbhx_backend_cuda12x.newhdyn.new_hdyn_prep,
@@ -164,7 +172,7 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
             import bbhx_backend_cuda12x.likelihood
             import bbhx_backend_cuda12x.waveformbuild
             import bbhx_backend_cuda12x.response
-            import bbhx_backend_cuda12x.phenomhm
+            import bbhx_backend_cuda12x.cbbhx  # pybind11 module; replacing per-method Cython modules
             import bbhx_backend_cuda12x.interp
             import bbhx_backend_cuda12x.speciallike
             import bbhx_backend_cuda12x.newhdyn
@@ -181,15 +189,17 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
                 "'cuda12x' backend requires cupy", pip_deps=["cupy-cuda12x"]
             ) from e
 
+        _cbbhx = bbhx_backend_cuda12x.cbbhx.BBHxComputationWrapGPU()
+
         return BBHxBackendMethods(
             hdyn_wrap=bbhx_backend_cuda12x.likelihood.hdyn_wrap,
             direct_like_wrap=bbhx_backend_cuda12x.likelihood.direct_like_wrap,
             direct_sum_wrap=bbhx_backend_cuda12x.waveformbuild.direct_sum_wrap,
             InterpTDI_wrap=bbhx_backend_cuda12x.waveformbuild.InterpTDI_wrap,
             LISA_response_wrap=bbhx_backend_cuda12x.response.LISA_response_wrap,
-            waveform_amp_phase_wrap=bbhx_backend_cuda12x.phenomhm.waveform_amp_phase_wrap,
-            get_phenomhm_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomhm_ringdown_frequencies,
-            get_phenomd_ringdown_frequencies=bbhx_backend_cuda12x.phenomhm.get_phenomd_ringdown_frequencies,
+            waveform_amp_phase_wrap=_cbbhx.waveform_amp_phase_wrap,
+            get_phenomhm_ringdown_frequencies=_cbbhx.get_phenomhm_ringdown_frequencies,
+            get_phenomd_ringdown_frequencies=_cbbhx.get_phenomd_ringdown_frequencies,
             interpolate_wrap=bbhx_backend_cuda12x.interp.interpolate_wrap,
             speciallike=bbhx_backend_cuda12x.speciallike.InterpTDILike_wrap,
             new_hdyn_prep=bbhx_backend_cuda12x.newhdyn.new_hdyn_prep,

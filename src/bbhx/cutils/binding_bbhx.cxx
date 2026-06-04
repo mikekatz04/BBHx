@@ -29,8 +29,16 @@ void bbhx_part(py::module &m) {
     py::class_<BBHxComputationWrap>(m, "BBHxComputationWrapCPU")
 #endif
         .def(py::init<>())
-        // Method wrappers populated in subsequent commits as each
-        // Cython .pyx module is migrated.
+        // PhenomHMWaveform.hh (migrated from phenomhm.pyx)
+        .def("waveform_amp_phase_wrap",
+             &BBHxComputationWrap::waveform_amp_phase_wrap,
+             "PhenomHM/PhenomD amp + phase generator.")
+        .def("get_phenomhm_ringdown_frequencies",
+             &BBHxComputationWrap::get_phenomhm_ringdown_frequencies,
+             "PhenomHM ringdown + damping frequencies.")
+        .def("get_phenomd_ringdown_frequencies",
+             &BBHxComputationWrap::get_phenomd_ringdown_frequencies,
+             "PhenomD ringdown + damping frequencies (spline-based).")
         ;
 }
 

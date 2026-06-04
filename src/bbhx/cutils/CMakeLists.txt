@@ -392,40 +392,25 @@ endfunction()
 # --- phenomhm ---
 # ----------------
 
-# I. Process phenomhm.pyx into a C++ file
-add_custom_command(
-  OUTPUT "phenomhm.cxx"
-  COMMENT "Cythonize phenomhm.pyx into phenomhm.cxx"
-  COMMAND
-    Python::Interpreter -m cython "${CMAKE_CURRENT_SOURCE_DIR}/phenomhm.pyx"
-    --output-file "${CMAKE_CURRENT_BINARY_DIR}/phenomhm.cxx" -3 -+ --module-name
-    "phenomhm" -I "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "phenomhm.pyx"
-  VERBATIM)
+# Phase BBHx.pybind.phenomhm (2026-06-03): phenomhm.pyx Cython module
+# retired -- all 3 free functions (waveform_amp_phase_wrap,
+# get_phenomhm_ringdown_frequencies, get_phenomd_ringdown_frequencies)
+# now live as methods on BBHxComputationWrap inside the cbbhx pybind11
+# module. PhenomHMWaveform.cu (the underlying source) is still copy-
+# compiled, but its `OUTPUT "PhenomHMWaveform.cxx"` rule has moved to
+# the cbbhx section below (mirrors LAT's binding_flr.cxx +
+# Detector.cxx pattern: one .so per backend wheel, one binding TU,
+# direct compilation of the .cu).
 
-# II. Declare the CPU backend
+# `PhenomHMWaveform.cxx` for the cbbhx CPU build: copy from .cu.
 if(BBHX_WITH_CPU)
   add_custom_command(
     OUTPUT "PhenomHMWaveform.cxx"
-    COMMENT "Copy PhenomHM.cu to PhenomHMWaveform.cxx"
+    COMMENT "Copy PhenomHMWaveform.cu to PhenomHMWaveform.cxx (for cbbhx CPU)"
     COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/PhenomHMWaveform.cu"
             "${CMAKE_CURRENT_BINARY_DIR}/PhenomHMWaveform.cxx"
     DEPENDS "PhenomHMWaveform.cu"
     VERBATIM)
-
-  python_add_library(bbhx_cpu_phenomhm MODULE WITH_SOABI phenomhm.cxx PhenomHMWaveform.cxx)
-  apply_cpu_backend_common_options(phenomhm)
-
-  target_sources(bbhx_cpu_phenomhm PUBLIC FILE_SET HEADERS FILES
-                                        constants.h global.h PhenomHMWaveform.hh)
-endif()
-
-# III. Declare the GPU backend
-if(BBHX_WITH_GPU)
-  python_add_library(bbhx_gpu_phenomhm MODULE WITH_SOABI phenomhm.cxx PhenomHMWaveform.cu)
-  apply_gpu_backend_common_options(phenomhm)
-  target_sources(bbhx_gpu_phenomhm PUBLIC FILE_SET HEADERS FILES
-                                         cuda_complex.hpp global.h PhenomHMWaveform.hh)
 endif()
 
 
@@ -767,23 +752,30 @@ endif()
 if(BBHX_WITH_CPU)
   # binding_bbhx.cxx is consumed directly by pybind11_add_module; no copy
   # needed because the file is host C++ (pybind11 ABI; no nvcc).
-  pybind11_add_module(bbhx_cpu_cbbhx binding_bbhx.cxx)
+  # PhenomHMWaveform.cxx (copy from PhenomHMWaveform.cu, see the
+  # bbhx_cpu_phenomhm target above) is compiled into this module so the
+  # waveform_amp_phase / *_ringdown_frequencies_wrap symbols are
+  # available -- this is the Cython-to-pybind11 migration target for
+  # phenomhm.pyx (Phase BBHx.pybind.phenomhm, 2026-06-03).
+  pybind11_add_module(bbhx_cpu_cbbhx binding_bbhx.cxx PhenomHMWaveform.cxx)
   apply_cpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_cpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"  # ReturnPointerBase + lisatools_header_abi.hpp from LAT
     "${GBT_CUTILS}"        # gbt_global.h, pybind11_cuda_array_interface.hpp
   )
   target_sources(bbhx_cpu_cbbhx PUBLIC FILE_SET HEADERS FILES
-                                       binding_bbhx.hpp)
+                                       binding_bbhx.hpp PhenomHMWaveform.hh)
 endif()
 
 if(BBHX_WITH_GPU)
-  pybind11_add_module(bbhx_gpu_cbbhx binding_bbhx.cxx)
+  # PhenomHMWaveform.cu compiled directly for the GPU build (no .cxx
+  # copy intermediate, matches the bbhx_gpu_phenomhm pattern).
+  pybind11_add_module(bbhx_gpu_cbbhx binding_bbhx.cxx PhenomHMWaveform.cu)
   apply_gpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_gpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"
     "${GBT_CUTILS}"
   )
   target_sources(bbhx_gpu_cbbhx PUBLIC FILE_SET HEADERS FILES
-                                       binding_bbhx.hpp)
+                                       binding_bbhx.hpp PhenomHMWaveform.hh)
 endif()

@@ -459,6 +459,58 @@ if(BBHX_WITH_CPU)
             "${CMAKE_CURRENT_BINARY_DIR}/Detector.cxx"
     DEPENDS "${LISATOOLS_CUTILS}/Detector.cu"
     VERBATIM)
+
+  # Phase 3L.8 (2026-06-04): SOBBH-specific TDI-on-the-fly bodies
+  # carved out of lisa-on-gpu's TDIonTheFly.cu. Copy to .cxx for the
+  # host C++ compiler (CPU backend), same pattern as the GB carve-out
+  # in GBGPU's CMakeLists.txt at Phase 3L.7c.
+  add_custom_command(
+    OUTPUT "sobbh_tdi_on_the_fly.cxx"
+    COMMENT "Copy sobbh_tdi_on_the_fly.cu to .cxx (for cbbhx CPU)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/sobbh_tdi_on_the_fly.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/sobbh_tdi_on_the_fly.cxx"
+    DEPENDS "sobbh_tdi_on_the_fly.cu"
+    VERBATIM)
+
+  # Phase 3L.8 (2026-06-04): SOBBHTDIonTheFly inherits from
+  # LISATDIonTheFly. Copy-compile LAT's lat_tdi_on_the_fly.cu into
+  # cbbhx so the virtual-class typeinfo lives in the cbbhx .so
+  # (mirrors GBGPU's Phase 3L.7d pattern for gb_tdi_on_the_fly).
+  add_custom_command(
+    OUTPUT "lat_tdi_on_the_fly.cxx"
+    COMMENT "Copy LAT's lat_tdi_on_the_fly.cu to .cxx (for cbbhx CPU)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${LISATOOLS_CUTILS}/lat_tdi_on_the_fly.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/lat_tdi_on_the_fly.cxx"
+    DEPENDS "${LISATOOLS_CUTILS}/lat_tdi_on_the_fly.cu"
+    VERBATIM)
+
+  # Phase 3L.8 (2026-06-04): chunked-het pipeline (called from
+  # SOBBHComputationGroupWrap::sobbh_wdm_het_*) needs GBT's
+  # fit_cubic_spline_thomas tridiagonal cubic-spline solver. GBT's
+  # Interpolate.cu cannot be pulled in directly because BBHx's local
+  # Interpolate.cu defines six helper symbols (prep_splines, fill_B,
+  # interpolate_kern, fill_coefficients, set_spline_constants,
+  # interpolate) with the same names but different signatures, which
+  # would collide at link time. The wrapper TU lat_interpolate_thomas.cu
+  # renames the colliding helpers via #define and then #includes GBT's
+  # Interpolate.cu; only fit_cubic_spline_thomas + fit_cubic_spline_thomas_run
+  # (i.e. the ones lat_chunked_het_kernels.hh actually needs) end up
+  # at global scope in cbbhx. Copy both files (GBT's Interpolate.cu +
+  # our wrapper) into the build dir so the relative #include resolves.
+  add_custom_command(
+    OUTPUT "gbt_Interpolate.cu"
+    COMMENT "Copy GBT's Interpolate.cu (renamed) to build dir (for lat_interpolate_thomas wrapper)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${GBT_CUTILS}/Interpolate.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/gbt_Interpolate.cu"
+    DEPENDS "${GBT_CUTILS}/Interpolate.cu"
+    VERBATIM)
+  add_custom_command(
+    OUTPUT "lat_interpolate_thomas.cxx"
+    COMMENT "Copy wrapper lat_interpolate_thomas.cu to .cxx (for cbbhx CPU)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/lat_interpolate_thomas.cu"
+            "${CMAKE_CURRENT_BINARY_DIR}/lat_interpolate_thomas.cxx"
+    DEPENDS "lat_interpolate_thomas.cu" "gbt_Interpolate.cu"
+    VERBATIM)
 endif()
 
 # LAPACKE: Interpolate + Likelihood need it. Detect once (idempotent).
@@ -499,11 +551,15 @@ if(BBHX_WITH_CPU)
     Likelihood.cxx
     Response.cxx
     WaveformBuild.cxx
-    Detector.cxx)  # SpecialLikelihood.cxx omitted: GPU only
+    Detector.cxx
+    sobbh_tdi_on_the_fly.cxx
+    lat_tdi_on_the_fly.cxx
+    lat_interpolate_thomas.cxx)  # SpecialLikelihood.cxx omitted: GPU only
   apply_cpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_cpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"  # ReturnPointerBase + lisatools_header_abi.hpp + LAT Detector.hpp
     "${GBT_CUTILS}"        # gbt_global.h, pybind11_cuda_array_interface.hpp
+    "${CMAKE_CURRENT_BINARY_DIR}" # lat_interpolate_thomas.cxx -> "gbt_Interpolate.cu" copy
   )
   target_link_libraries(bbhx_cpu_cbbhx LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
                         ${BBHX_LAPACKE_EXTRA_LIBS})
@@ -525,11 +581,15 @@ if(BBHX_WITH_GPU)
     Response.cu
     WaveformBuild.cu
     SpecialLikelihood.cu
-    "${LISATOOLS_CUTILS}/Detector.cu")
+    "${LISATOOLS_CUTILS}/Detector.cu"
+    "${LISATOOLS_CUTILS}/lat_tdi_on_the_fly.cu"
+    sobbh_tdi_on_the_fly.cu
+    lat_interpolate_thomas.cu)
   apply_gpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_gpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"
     "${GBT_CUTILS}"
+    "${CMAKE_CURRENT_BINARY_DIR}" # lat_interpolate_thomas.cu -> "gbt_Interpolate.cu" copy
   )
   target_link_libraries(bbhx_gpu_cbbhx LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
                         ${BBHX_LAPACKE_EXTRA_LIBS})

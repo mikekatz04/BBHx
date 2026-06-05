@@ -76,7 +76,7 @@ class BBHxBackend(LISAToolsBackend):
     BBHx backends expose every LAT native symbol (OrbitsWrap,
     TDIConfigWrap, WDM/FD/Spline wraps, TDITypeDict) plus the
     BBH-specific bound methods and SOBBH Wraps. Consumer code can do
-    ``self.backend.OrbitsWrap_responselisa``,
+    ``self.backend.OrbitsWrap``,
     ``self.backend.SOBBHTDIonTheFlyWrap``, and
     ``self.backend.waveform_amp_phase_wrap(...)`` on the same object.
     """
@@ -135,7 +135,6 @@ def _lat_methods_from_pycppdetector(_lat_pd, *, gpu: bool, xp):
         "FDSplineTDIWaveformWrap": getattr(_lat_pd, f"FDSplineTDIWaveformWrap{suffix}"),
         "LISAResponseWrap": getattr(_lat_pd, f"LISAResponseWrap{suffix}"),
         "LISAResponse": getattr(_lat_pd, f"LISAResponse{suffix}"),
-        "OrbitsWrap_responselisa": getattr(_lat_pd, f"OrbitsWrap{suffix}_responselisa"),
         "TDIConfigWrap": getattr(_lat_pd, f"TDIConfigWrap{suffix}"),
         "TDIConfig": getattr(_lat_pd, f"TDIConfig{suffix}"),
         "CubicSplineWrap_responselisa": getattr(_lat_pd, f"CubicSplineWrap{suffix}_responselisa"),

@@ -3,7 +3,7 @@
 // Adapted from origin/pybind branch (binding_bbhx.cxx) against the
 // post-Phase-3L LAT setup. The originally-on-pybind-branch redeclaration
 // of OrbitsWrap_bbhx / its pybind11 registration has been removed --
-// LAT's pycppdetector is the sole registrant of OrbitsWrap_responselisa
+// LAT's pycppdetector is the sole registrant of OrbitsWrap
 // (and the rest of the shared wrapper family). BBHx's cbbhx module is
 // reserved for BBH-specific wrappers + the (future) SOBBHTDIonTheFly +
 // SOBBHComputationGroup carve-out from Phase 3L.8.
@@ -56,7 +56,7 @@ void SOBBHTDIonTheFlyWrap::run_wave_tdi_wrap(
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
     array_type<double> template_fill,
-    OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+    OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
     WDMSettingsWrap *wdm_settings_wrap,
     array_type<double> params_all, array_type<double> factors_all,
     array_type<double> chunk_t_starts,
@@ -93,7 +93,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
     array_type<double> d_h_out, array_type<double> h_h_out,
-    OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+    OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
     WDMSettingsWrap *wdm_settings_wrap,
     array_type<double> params_all,
     array_type<int> data_index_all, array_type<int> noise_index_all,
@@ -153,7 +153,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
     array_type<double> d_h_add_out, array_type<double> d_h_remove_out,
     array_type<double> add_add_out, array_type<double> remove_remove_out,
     array_type<double> add_remove_out,
-    OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+    OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
     WDMSettingsWrap *wdm_settings_wrap,
     array_type<double> params_add_all, array_type<double> params_remove_all,
     array_type<int> data_index_all, array_type<int> noise_index_all,
@@ -219,7 +219,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
     array_type<double> N_arr_re_out, array_type<double> N_arr_im_out,
     array_type<double> M_mat_re_out, array_type<double> M_mat_im_out,
-    OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+    OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
     WDMSettingsWrap *wdm_settings_wrap,
     array_type<double> params_all,
     array_type<int> data_index_all, array_type<int> noise_index_all,
@@ -340,7 +340,7 @@ void bbhx_part(nb::module_ &m) {
 #else
     nb::class_<SOBBHTDIonTheFlyWrap>(m, "SOBBHTDIonTheFlyWrapCPU")
 #endif
-    .def(nb::init<OrbitsWrap_responselisa *, TDIConfigWrap *, double, double>(),
+    .def(nb::init<OrbitsWrap *, TDIConfigWrap *, double, double>(),
          nb::arg("orbits"), nb::arg("tdi_config"), nb::arg("Tobs"), nb::arg("t_ref"))
     .def("run_wave_tdi_wrap", &SOBBHTDIonTheFlyWrap::run_wave_tdi_wrap, "Run SOBBH TDI on the fly.")
     .def("get_buffer_size", &SOBBHTDIonTheFlyWrap::get_buffer_size, "Get needed buffer size.")

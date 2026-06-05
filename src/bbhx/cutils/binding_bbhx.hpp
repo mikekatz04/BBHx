@@ -8,7 +8,7 @@
 // ReturnPointerBase + OrbitsWrap_bbhx + Detector here, we consume the
 // canonical versions LAT registers in pycppdetector. This keeps the
 // single-registrant rule intact -- LAT is the sole pybind11 registrant
-// of OrbitsWrap_responselisa, TDIConfigWrap, LISAResponseWrap, the
+// of OrbitsWrap, TDIConfigWrap, LISAResponseWrap, the
 // LISATDIonTheFly base, and the FD/WDM/Spline Wraps. BBHx's cbbhx
 // module is reserved for BBH-specific wrappers (PhenomHM, Response,
 // WaveformBuild, Likelihood, Interpolate) and -- once Phase 3L.8 lands
@@ -48,7 +48,7 @@
 // LAT-canonical pybind11 base + array typedefs + Orbits + TDIConfig wrappers.
 // binding_flr.hpp provides ReturnPointerBase and array_type<T>; consuming TUs
 // MUST leave LISATOOLS_IS_WRAPPER_OWNER at its default (0) to satisfy the
-// per-TU static_assert (BBHx never re-registers OrbitsWrap_responselisa et al).
+// per-TU static_assert (BBHx never re-registers OrbitsWrap et al).
 #include "lisatools_header_abi.hpp"
 #include "binding_flr.hpp"
 // Phase 3L.8 (2026-06-04): SOBBH-specific pybind11 Wraps for
@@ -300,7 +300,7 @@ class BBHxComputationWrap : public ReturnPointerBase {
     // ---- Response.hh wrapper (migrated from lisaresponse.pyx) ----
     //
     // `orbits` is the LAT-canonical OrbitsWrap* (the post-Phase-3E
-    // wrapper from binding.hpp, NOT the OrbitsWrap_responselisa from
+    // wrapper from binding.hpp, NOT the OrbitsWrap from
     // binding_flr.hpp). pybind11's shared-type registry routes Python
     // `Orbits.pycppdetector` (= `self.backend.OrbitsWrap(*args)` in
     // lisatools/detector.py) through this signature. The Python frontend
@@ -511,7 +511,7 @@ class SOBBHTDIonTheFlyWrap : public LISATDIonTheFlyWrap {
     double T;
     double t_ref;
 
-    SOBBHTDIonTheFlyWrap(OrbitsWrap_responselisa *orbits_, TDIConfigWrap *tdi_config_, double T_, double t_ref_): LISATDIonTheFlyWrap(orbits_, tdi_config_)
+    SOBBHTDIonTheFlyWrap(OrbitsWrap *orbits_, TDIConfigWrap *tdi_config_, double T_, double t_ref_): LISATDIonTheFlyWrap(orbits_, tdi_config_)
     {
         T = T_;
         t_ref = t_ref_;
@@ -538,7 +538,7 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
   public:
     void sobbh_wdm_het_fill_global(
         array_type<double> template_fill,
-        OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+        OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
         WDMSettingsWrap *wdm_settings_wrap,
         array_type<double> params_all, array_type<double> factors_all,
         array_type<double> chunk_t_starts,
@@ -554,7 +554,7 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
 
     void sobbh_wdm_het_get_ll(
         array_type<double> d_h_out, array_type<double> h_h_out,
-        OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+        OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
         WDMSettingsWrap *wdm_settings_wrap,
         array_type<double> params_all,
         array_type<int> data_index_all, array_type<int> noise_index_all,
@@ -576,7 +576,7 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
         array_type<double> d_h_add_out, array_type<double> d_h_remove_out,
         array_type<double> add_add_out, array_type<double> remove_remove_out,
         array_type<double> add_remove_out,
-        OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+        OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
         WDMSettingsWrap *wdm_settings_wrap,
         array_type<double> params_add_all, array_type<double> params_remove_all,
         array_type<int> data_index_all, array_type<int> noise_index_all,
@@ -598,7 +598,7 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
     void sobbh_wdm_het_get_fstat_ll(
         array_type<double> N_arr_re_out, array_type<double> N_arr_im_out,
         array_type<double> M_mat_re_out, array_type<double> M_mat_im_out,
-        OrbitsWrap_responselisa *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
+        OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
         WDMSettingsWrap *wdm_settings_wrap,
         array_type<double> params_all,
         array_type<int> data_index_all, array_type<int> noise_index_all,

@@ -537,7 +537,7 @@ bbhx_get_lapacke()
 # Phase 3L.8. The skeleton commit ships an empty BBHxComputationWrap;
 # subsequent commits populate it. The single-registrant rule is
 # enforced via static_assert(!LISATOOLS_IS_WRAPPER_OWNER) in
-# binding_bbhx.cxx -- BBHx must NOT register OrbitsWrap_responselisa,
+# binding_bbhx.cxx -- BBHx must NOT register OrbitsWrap,
 # TDIConfigWrap, LISAResponseWrap, WDM*/FD*/Spline* (those are LAT's).
 
 if(BBHX_WITH_CPU)

@@ -69,9 +69,10 @@ sobbhx waveform currently in sprint-tree scripts. Each gets a
 kernel.
 
 **Single-registrant rule (sprint-wide)**: BBHx's binding TUs MUST NOT
-register `OrbitsWrap`, `LISAResponseWrap`, `TDIConfigWrap`,
-`OrbitsWrap_responselisa`, or `CubicSplineWrap_responselisa`. Those are
-owned by LAT's `pycppdetector`. When BBHx receives its tdionthefly
+register `OrbitsWrap`, `LISAResponseWrap`, `TDIConfigWrap`, or
+`CubicSplineWrap_responselisa`. Those are owned by LAT's
+`pycppdetector`. (`OrbitsWrap_responselisa` was deleted at Phase
+3L.7p 2026-06-04 in favor of the canonical `OrbitsWrap`.) When BBHx receives its tdionthefly
 module, add `#include "lisatools_header_abi.hpp"` +
 `static_assert(!LISATOOLS_IS_WRAPPER_OWNER, ...)` to its binding source
 (see `lisa-on-gpu/src/fastlisaresponse/cutils/binding_tof.cxx` for the

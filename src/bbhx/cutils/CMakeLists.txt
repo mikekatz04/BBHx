@@ -544,7 +544,7 @@ if(BBHX_WITH_CPU)
   # cbbhx CPU build: one .so per backend wheel containing the pybind11
   # binding + every BBHx-local .cu + LAT's Detector.cu, mirroring LAT's
   # `lisaanalysistools_cpu_pycppdetector` layout.
-  pybind11_add_module(bbhx_cpu_cbbhx
+  nanobind_add_module(bbhx_cpu_cbbhx
     binding_bbhx.cxx
     PhenomHMWaveform.cxx
     Interpolate.cxx
@@ -573,7 +573,7 @@ endif()
 
 if(BBHX_WITH_GPU)
   # cbbhx GPU build: same layout, .cu sources compiled directly by nvcc.
-  pybind11_add_module(bbhx_gpu_cbbhx
+  nanobind_add_module(bbhx_gpu_cbbhx
     binding_bbhx.cxx
     PhenomHMWaveform.cu
     Interpolate.cu

@@ -11,7 +11,6 @@
 #include "binding_bbhx.hpp"
 
 #if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
-#include "pybind11_cuda_array_interface.hpp"
 #endif
 
 // Single-registrant rule: this TU must not be marked as the wrapper owner.
@@ -271,13 +270,13 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
 }
 
 
-void bbhx_part(py::module &m) {
+void bbhx_part(nb::module_ &m) {
 #if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
-    py::class_<BBHxComputationWrap>(m, "BBHxComputationWrapGPU")
+    nb::class_<BBHxComputationWrap>(m, "BBHxComputationWrapGPU")
 #else
-    py::class_<BBHxComputationWrap>(m, "BBHxComputationWrapCPU")
+    nb::class_<BBHxComputationWrap>(m, "BBHxComputationWrapCPU")
 #endif
-        .def(py::init<>())
+        .def(nb::init<>())
         // PhenomHMWaveform.hh (migrated from phenomhm.pyx)
         .def("waveform_amp_phase_wrap",
              &BBHxComputationWrap::waveform_amp_phase_wrap,
@@ -337,33 +336,33 @@ void bbhx_part(py::module &m) {
     // ========================================================================
 
 #if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
-    py::class_<SOBBHTDIonTheFlyWrap>(m, "SOBBHTDIonTheFlyWrapGPU")
+    nb::class_<SOBBHTDIonTheFlyWrap>(m, "SOBBHTDIonTheFlyWrapGPU")
 #else
-    py::class_<SOBBHTDIonTheFlyWrap>(m, "SOBBHTDIonTheFlyWrapCPU")
+    nb::class_<SOBBHTDIonTheFlyWrap>(m, "SOBBHTDIonTheFlyWrapCPU")
 #endif
-    .def(py::init<OrbitsWrap_responselisa *, TDIConfigWrap *, double, double>(),
-         py::arg("orbits"), py::arg("tdi_config"), py::arg("Tobs"), py::arg("t_ref"))
+    .def(nb::init<OrbitsWrap_responselisa *, TDIConfigWrap *, double, double>(),
+         nb::arg("orbits"), nb::arg("tdi_config"), nb::arg("Tobs"), nb::arg("t_ref"))
     .def("run_wave_tdi_wrap", &SOBBHTDIonTheFlyWrap::run_wave_tdi_wrap, "Run SOBBH TDI on the fly.")
     .def("get_buffer_size", &SOBBHTDIonTheFlyWrap::get_buffer_size, "Get needed buffer size.")
-    .def_readwrite("orbits", &SOBBHTDIonTheFlyWrap::orbits)
-    .def_readwrite("tdi_config", &SOBBHTDIonTheFlyWrap::tdi_config)
+    .def_rw("orbits", &SOBBHTDIonTheFlyWrap::orbits)
+    .def_rw("tdi_config", &SOBBHTDIonTheFlyWrap::tdi_config)
     ;
 
 #if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
-    py::class_<SOBBHTDIonTheFly>(m, "SOBBHTDIonTheFlyGPU")
+    nb::class_<SOBBHTDIonTheFly>(m, "SOBBHTDIonTheFlyGPU")
 #else
-    py::class_<SOBBHTDIonTheFly>(m, "SOBBHTDIonTheFlyCPU")
+    nb::class_<SOBBHTDIonTheFly>(m, "SOBBHTDIonTheFlyCPU")
 #endif
-    .def(py::init<Orbits *, TDIConfig*, double, double>(),
-         py::arg("orbits"), py::arg("tdi_config"), py::arg("Tobs"), py::arg("t_ref"))
+    .def(nb::init<Orbits *, TDIConfig*, double, double>(),
+         nb::arg("orbits"), nb::arg("tdi_config"), nb::arg("Tobs"), nb::arg("t_ref"))
     ;
 
 #if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
-    py::class_<SOBBHComputationGroupWrap>(m, "SOBBHComputationGroupWrapGPU")
+    nb::class_<SOBBHComputationGroupWrap>(m, "SOBBHComputationGroupWrapGPU")
 #else
-    py::class_<SOBBHComputationGroupWrap>(m, "SOBBHComputationGroupWrapCPU")
+    nb::class_<SOBBHComputationGroupWrap>(m, "SOBBHComputationGroupWrapCPU")
 #endif
-    .def(py::init<>())
+    .def(nb::init<>())
     .def("sobbh_wdm_het_fill_global", &SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global,
          "SOBBH chunked-heterodyne fill_global. Same as gb_wdm_het_fill_global "
          "but with SOBBHTDIonTheFly as the source class. 11-parameter source "
@@ -378,7 +377,7 @@ void bbhx_part(py::module &m) {
 }
 
 
-PYBIND11_MODULE(cbbhx, m) {
+NB_MODULE(cbbhx, m) {
     m.doc() = "BBHx pybind11 backend. Hosts the BBH-specific waveform + "
               "response + likelihood + interp wrappers plus (Phase 3L.8, "
               "2026-06-04) the SOBBHTDIonTheFly + SOBBHComputationGroup "

@@ -63,10 +63,11 @@
 
 #include <string>
 #include <iostream>
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/string.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 #if defined(__CUDA_COMPILATION__) || defined(__CUDACC__)
 #define BBHxComputationWrap BBHxComputationWrapGPU
@@ -615,7 +616,7 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
 };
 
 
-// Module entry called from PYBIND11_MODULE(cbbhx, m) in binding_bbhx.cxx.
-void bbhx_part(py::module &m);
+// Module entry called from NB_MODULE(cbbhx, m) in binding_bbhx.cxx.
+void bbhx_part(nb::module_ &m);
 
 #endif // __BINDING_BBHX_HPP__

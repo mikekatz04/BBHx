@@ -11,11 +11,14 @@ project(bbhx VERSION ${SKBUILD_PROJECT_VERSION} LANGUAGES CXX)
 # ---- Find required dependencies ----
 find_package(Python COMPONENTS Interpreter Development.Module NumPy REQUIRED)
 
-# pybind11 is needed for the cbbhx module added at Phase BBHx.pybind. It is
-# declared in pyproject.toml's build-system.requires so it's installed in the
-# build env; find_package(pybind11 CONFIG) locates the CMake package it ships.
-# Mirrors LAT (LISAanalysistools/CMakeLists.txt) + lisa-on-gpu setup.
-find_package(pybind11 CONFIG)
+# Phase 3M (2026-06-04): sprint-wide pybind11 -> nanobind migration.
+# nanobind ships its CMake config under `$(python -m nanobind --cmake_dir)`;
+# resolve here once so cutils/CMakeLists.txt can call `nanobind_add_module`.
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+  OUTPUT_VARIABLE nanobind_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+find_package(nanobind CONFIG REQUIRED)
 
 # This line defines the install directory variables
 include(GNUInstallDirs)

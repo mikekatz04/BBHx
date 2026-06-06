@@ -545,7 +545,8 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
         int N_sparse, int log2_N_sparse,
         int nchannels, int n_rfft_chunk,
         double T_chunk, double dt, double T, double t_ref,
-        double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit);
+        double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
+        int m_band_half_width);
 
     void sobbh_wdm_het_get_ll(
         array_type<double> d_h_out, array_type<double> h_h_out,

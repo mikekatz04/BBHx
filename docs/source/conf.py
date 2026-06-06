@@ -21,7 +21,11 @@ extensions = [
 import shutil
 shutil.copy(
     "../../examples/bbhx_tutorial.ipynb",
-    "bbhx_tutorial.ipynb",
+    "bbhx_tutorial.ipynb",)
+
+shutil.copy(
+    "../../examples/sobbh_tutorial.ipynb",
+    "sobbh_tutorial.ipynb",
 )
 
 source_suffix = [".rst"]

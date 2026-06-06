@@ -68,7 +68,8 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
     int N_sparse, int log2_N_sparse,
     int nchannels, int n_rfft_chunk,
     double T_chunk, double dt, double T, double t_ref,
-    double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit)
+    double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
+    int m_band_half_width)
 {
     const int Nf = wdm_settings_wrap->wdm_settings->Nf;
     const int Nt = wdm_settings_wrap->wdm_settings->Nt;
@@ -88,7 +89,8 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
         Nt_sub, log2_Nt_sub,
         N_sparse, log2_N_sparse,
         nchannels, n_rfft_chunk,
-        T_chunk, dt, T, t_ref, tukey_alpha, grid_dim, N_cp_sig, N_cp_orbit);
+        T_chunk, dt, T, t_ref, tukey_alpha, grid_dim, N_cp_sig, N_cp_orbit,
+        m_band_half_width);
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(

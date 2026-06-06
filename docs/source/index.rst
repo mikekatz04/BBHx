@@ -13,6 +13,7 @@
 
 .. toctree::
    :maxdepth: 4
-   :caption: Tutorial:
+   :caption: Tutorials:
 
    bbhx_tutorial
+   sobbh_tutorial

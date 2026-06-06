@@ -183,7 +183,8 @@ class SOBBHComputationGroup{
         int nchannels, int n_rfft_chunk,
         double T_chunk, double dt, double T, double t_ref,
         double tukey_alpha,
-        int grid_dim, int N_cp_sig, int N_cp_orbit);
+        int grid_dim, int N_cp_sig, int N_cp_orbit,
+        int m_band_half_width);
 
     void sobbh_wdm_het_get_ll_wrap(
         double *d_h_out, double *h_h_out,

@@ -23,7 +23,6 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-from ..utils.interpolate import CubicSplineInterpolant, searchsorted2d_vec
 from ..utils.constants import *
 from ..waveforms.ringdownphenomd import *
 from ..utils.parallelbase import BBHxParallelModule

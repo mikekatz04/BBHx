@@ -28,7 +28,7 @@ except (ImportError, ModuleNotFoundError) as e:
 from .waveforms.phenomhm import PhenomHMAmpPhase
 from .response.fastfdresponse import LISATDIResponse
 from .utils.transform import tSSBfromLframe, tLfromSSBframe
-from .utils.interpolate import CubicSplineInterpolant
+from gpubackendtools.interpolate import CubicSplineInterpolant
 from .utils.constants import *
 # from .utils.citations import *
 from .utils.parallelbase import BBHxParallelModule
@@ -36,7 +36,7 @@ from .utils.parallelbase import BBHxParallelModule
 class TemplateInterpFD(BBHxParallelModule):
     """Interpolate frequency domain template.
 
-    This class wraps :class:`CubicSplineInterpolant <bbhx.utils.interpolate.CubicSplineInterpolant>` so
+    This class wraps :class:`CubicSplineInterpolant <gpubackendtools.interpolate.CubicSplineInterpolant>` so
     that it fits into this specific waveform production method.
 
     This class has GPU capabilities.
@@ -107,7 +107,7 @@ class TemplateInterpFD(BBHxParallelModule):
         Args:
             data_freqs (double xp.ndarray): Frequencies to interpolate to.
             interp_container (obj): ``container`` attribute from the interpolant
-                class: :class:`CubicSplineInterpolant <bbhx.utils.interpolate.CubicSplineInterpolant>`.
+                class: :class:`CubicSplineInterpolant <gpubackendtools.interpolate.CubicSplineInterpolant>`.
             t_start (double xp.ndarray): Array of start times (sec) for each binary.
             t_end (double xp.ndarray): Array of end times (sec) for each binary.
             length (int): Length of original frequency array.
@@ -627,24 +627,41 @@ class BBHWaveformFD(BBHxParallelModule):
 
         else:
 
-            # setup interpolant
+            # GBT's CubicSplineInterpolant treats x and y as one spline per
+            # row of an (ninterps, length) grid. BBHx's spline grid is 4D --
+            # (num_interp_params, num_bin_all, num_modes, length) for y but
+            # only (num_bin_all, num_modes, length) for x, because the
+            # frequency axis is shared across the interpolation parameters.
+            # Tile x to match y's leading dimension, then build the spline
+            # with ninterps = num_interp_params * num_bin_all * num_modes.
+            ninterps = self.num_interp_params * self.num_bin_all * self.num_modes
+            x_tiled = self.xp.tile(
+                self.amp_phase_gen.freqs.ravel(), self.num_interp_params
+            )
             spline = CubicSplineInterpolant(
-                self.amp_phase_gen.freqs,
-                out_buffer,
+                x_tiled,
+                out_buffer.ravel(),
+                ninterps=ninterps,
                 length=self.length,
-                num_interp_params=self.num_interp_params,
-                num_modes=self.num_modes,
-                num_bin_all=self.num_bin_all,
                 force_backend=self.force_backend,
             )
 
             if return_splines:
                 return spline
 
-            # TODO: try single block reduction for likelihood (will probably be worse for smaller batch, but maybe better for larger batch)?
+            # InterpTDI expects x with the un-tiled (num_bin_all, num_modes,
+            # length) layout (shared across params); reuse the original
+            # freqs buffer rather than spline.container[0] (which holds the
+            # tiled copy).
             template_channels = self.interp_response(
                 freqs,
-                spline.container,
+                [
+                    self.amp_phase_gen.freqs,
+                    out_buffer,
+                    spline.c1_flat,
+                    spline.c2_flat,
+                    spline.c3_flat,
+                ],
                 t_start,
                 t_end,
                 self.length,
@@ -724,8 +741,17 @@ class BBHWaveformFD(BBHxParallelModule):
         self.data_length = len(data_freqs)
         self.num_channels = 3
 
-        # unpack interp_container
-        (freqs, y, c1, c2, c3) = splines.container
+        # unpack interp_container -- splines.container[0] holds the tiled
+        # x (size num_interp_params * num_bin_all * num_modes * length) we
+        # built for GBT's ninterps-flat layout; downstream interp_like
+        # expects the un-tiled (num_bin_all, num_modes, length) layout
+        # used by the original amp/phase grid. Slice the leading copy.
+        spline_x_size = self.num_bin_all * self.num_modes * self.length
+        freqs = splines.x_flat[:spline_x_size]
+        y = splines.y_flat
+        c1 = splines.c1_flat
+        c2 = splines.c2_flat
+        c3 = splines.c3_flat
 
         freqs_shaped = freqs.reshape(self.num_bin_all, -1)
 

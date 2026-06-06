@@ -412,12 +412,16 @@ if(BBHX_WITH_CPU)
     DEPENDS "PhenomHMWaveform.cu"
     VERBATIM)
 
+  # GPUBackendTools owns the cubic-spline solver (Phase 3.dedup-followup,
+  # 2026-06-05): BBHx's local Interpolate.{hh,cu} were retired in favor
+  # of GBT's Interpolate.cu directly compiled into cbbhx. Same
+  # copy-then-compile pattern as LAT's Detector.cu below.
   add_custom_command(
     OUTPUT "Interpolate.cxx"
-    COMMENT "Copy Interpolate.cu to Interpolate.cxx (for cbbhx CPU)"
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/Interpolate.cu"
+    COMMENT "Copy GBT's Interpolate.cu to Interpolate.cxx (for cbbhx CPU)"
+    COMMAND ${CMAKE_COMMAND} -E copy "${GBT_CUTILS}/Interpolate.cu"
             "${CMAKE_CURRENT_BINARY_DIR}/Interpolate.cxx"
-    DEPENDS "Interpolate.cu"
+    DEPENDS "${GBT_CUTILS}/Interpolate.cu"
     VERBATIM)
 
   add_custom_command(
@@ -484,33 +488,15 @@ if(BBHX_WITH_CPU)
     DEPENDS "${LISATOOLS_CUTILS}/lat_tdi_on_the_fly.cu"
     VERBATIM)
 
-  # Phase 3L.8 (2026-06-04): chunked-het pipeline (called from
-  # SOBBHComputationGroupWrap::sobbh_wdm_het_*) needs GBT's
-  # fit_cubic_spline_thomas tridiagonal cubic-spline solver. GBT's
-  # Interpolate.cu cannot be pulled in directly because BBHx's local
-  # Interpolate.cu defines six helper symbols (prep_splines, fill_B,
-  # interpolate_kern, fill_coefficients, set_spline_constants,
-  # interpolate) with the same names but different signatures, which
-  # would collide at link time. The wrapper TU lat_interpolate_thomas.cu
-  # renames the colliding helpers via #define and then #includes GBT's
-  # Interpolate.cu; only fit_cubic_spline_thomas + fit_cubic_spline_thomas_run
-  # (i.e. the ones lat_chunked_het_kernels.hh actually needs) end up
-  # at global scope in cbbhx. Copy both files (GBT's Interpolate.cu +
-  # our wrapper) into the build dir so the relative #include resolves.
-  add_custom_command(
-    OUTPUT "gbt_Interpolate.cu"
-    COMMENT "Copy GBT's Interpolate.cu (renamed) to build dir (for lat_interpolate_thomas wrapper)"
-    COMMAND ${CMAKE_COMMAND} -E copy "${GBT_CUTILS}/Interpolate.cu"
-            "${CMAKE_CURRENT_BINARY_DIR}/gbt_Interpolate.cu"
-    DEPENDS "${GBT_CUTILS}/Interpolate.cu"
-    VERBATIM)
-  add_custom_command(
-    OUTPUT "lat_interpolate_thomas.cxx"
-    COMMENT "Copy wrapper lat_interpolate_thomas.cu to .cxx (for cbbhx CPU)"
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/lat_interpolate_thomas.cu"
-            "${CMAKE_CURRENT_BINARY_DIR}/lat_interpolate_thomas.cxx"
-    DEPENDS "lat_interpolate_thomas.cu" "gbt_Interpolate.cu"
-    VERBATIM)
+  # Phase 3L.8 chunked-het pipeline (SOBBHComputationGroupWrap::
+  # sobbh_wdm_het_*) needs GBT's fit_cubic_spline_thomas tridiagonal
+  # cubic-spline solver. Pre-2026-06-05 this required a rename-shim TU
+  # (lat_interpolate_thomas.cu) because BBHx had its own local
+  # Interpolate.cu whose `prep_splines` / `fill_B` / `interpolate` etc.
+  # collided at link time with GBT's. After the GBT-dedup pass, BBHx's
+  # local copy is gone -- GBT's Interpolate.cu is the only one in
+  # cbbhx, so the shim was deleted and the GBT-direct copy above
+  # (Interpolate.cxx) is enough.
 endif()
 
 # LAPACKE: Interpolate + Likelihood need it. Detect once (idempotent).
@@ -547,25 +533,24 @@ if(BBHX_WITH_CPU)
   nanobind_add_module(bbhx_cpu_cbbhx
     binding_bbhx.cxx
     PhenomHMWaveform.cxx
-    Interpolate.cxx
+    Interpolate.cxx     # GBT's Interpolate.cu, copied via the rule above
     Likelihood.cxx
     Response.cxx
     WaveformBuild.cxx
     Detector.cxx
     sobbh_tdi_on_the_fly.cxx
-    lat_tdi_on_the_fly.cxx
-    lat_interpolate_thomas.cxx)  # SpecialLikelihood.cxx omitted: GPU only
+    lat_tdi_on_the_fly.cxx)  # SpecialLikelihood.cxx omitted: GPU only
   apply_cpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_cpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"  # ReturnPointerBase + lisatools_header_abi.hpp + LAT Detector.hpp
-    "${GBT_CUTILS}"        # gbt_global.h, pybind11_cuda_array_interface.hpp
-    "${CMAKE_CURRENT_BINARY_DIR}" # lat_interpolate_thomas.cxx -> "gbt_Interpolate.cu" copy
+    "${GBT_CUTILS}"        # Interpolate.hh / InterpolateDevice.hh / gbt_global.h /
+                            # cuda_complex.hpp / pybind11_cuda_array_interface.hpp
   )
   target_link_libraries(bbhx_cpu_cbbhx LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
                         ${BBHX_LAPACKE_EXTRA_LIBS})
   target_sources(bbhx_cpu_cbbhx PUBLIC FILE_SET HEADERS FILES
                                        binding_bbhx.hpp
-                                       PhenomHMWaveform.hh Interpolate.hh
+                                       PhenomHMWaveform.hh
                                        Likelihood.hh Response.hh
                                        WaveformBuild.hh
                                        constants.h global.h)
@@ -576,20 +561,18 @@ if(BBHX_WITH_GPU)
   nanobind_add_module(bbhx_gpu_cbbhx
     binding_bbhx.cxx
     PhenomHMWaveform.cu
-    Interpolate.cu
+    "${GBT_CUTILS}/Interpolate.cu"       # GBT-owned cubic-spline solver
     Likelihood.cu
     Response.cu
     WaveformBuild.cu
     SpecialLikelihood.cu
     "${LISATOOLS_CUTILS}/Detector.cu"
     "${LISATOOLS_CUTILS}/lat_tdi_on_the_fly.cu"
-    sobbh_tdi_on_the_fly.cu
-    lat_interpolate_thomas.cu)
+    sobbh_tdi_on_the_fly.cu)
   apply_gpu_backend_common_options(cbbhx)
   target_include_directories(bbhx_gpu_cbbhx PRIVATE
     "${LISATOOLS_CUTILS}"
     "${GBT_CUTILS}"
-    "${CMAKE_CURRENT_BINARY_DIR}" # lat_interpolate_thomas.cu -> "gbt_Interpolate.cu" copy
   )
   target_link_libraries(bbhx_gpu_cbbhx LINK_PUBLIC ${BBHX_LAPACKE_LIBS}
                         ${BBHX_LAPACKE_EXTRA_LIBS})
@@ -597,11 +580,12 @@ if(BBHX_WITH_GPU)
   set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_property(TARGET bbhx_gpu_cbbhx PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
   set_property(TARGET bbhx_gpu_cbbhx PROPERTY POSITION_INDEPENDENT_CODE ON)
-  # NB: cuda_complex.hpp deliberately omitted -- resolved via
-  # ${GBT_CUTILS} (GPUBackendTools owns the canonical copy).
+  # NB: cuda_complex.hpp + Interpolate.hh + InterpolateDevice.hh deliberately
+  # omitted from local sources -- resolved via ${GBT_CUTILS}
+  # (GPUBackendTools owns the canonical copies).
   target_sources(bbhx_gpu_cbbhx PUBLIC FILE_SET HEADERS FILES
                                        binding_bbhx.hpp
-                                       PhenomHMWaveform.hh Interpolate.hh
+                                       PhenomHMWaveform.hh
                                        Likelihood.hh Response.hh
                                        WaveformBuild.hh SpecialLikelihood.hh
                                        constants.h global.h)

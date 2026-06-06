@@ -287,10 +287,11 @@ void bbhx_part(nb::module_ &m) {
         .def("get_phenomd_ringdown_frequencies",
              &BBHxComputationWrap::get_phenomd_ringdown_frequencies,
              "PhenomD ringdown + damping frequencies (spline-based).")
-        // Interpolate.hh (migrated from interp.pyx)
-        .def("interpolate_wrap",
-             &BBHxComputationWrap::interpolate_wrap,
-             "Cubic-spline interpolation of propArrays.")
+        // Interpolate.hh: no interpolate_wrap method here. BBHx's local
+        // 3D-grid solver was deleted at the 2026-06-05 GBT-dedup pass;
+        // the Python frontend uses gpubackendtools.interpolate
+        // .CubicSplineInterpolant, which calls gbt_backend_*.interp's
+        // interpolate_wrap directly.
         // Likelihood.hh (migrated from bbhlikelihood.pyx)
         .def("hdyn_wrap",
              &BBHxComputationWrap::hdyn_wrap,

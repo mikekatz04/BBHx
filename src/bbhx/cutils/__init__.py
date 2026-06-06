@@ -51,6 +51,9 @@ class BBHxBackendMethods(LISAToolsBackendMethods):
     """
 
     # ---- BBHx native methods (BBHxComputationWrap; pre-3L.7k) ----
+    # NB: interpolate_wrap was retired here at the 2026-06-05 GBT-dedup
+    # pass; cubic-spline construction routes through
+    # gpubackendtools.interpolate.CubicSplineInterpolant (gbt_backend_*).
     hdyn_wrap: typing.Callable[(...), None]
     direct_like_wrap: typing.Callable[(...), None]
     direct_sum_wrap: typing.Callable[(...), None]
@@ -59,7 +62,6 @@ class BBHxBackendMethods(LISAToolsBackendMethods):
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
-    interpolate_wrap: typing.Callable[(...), None]
     speciallike: typing.Callable[(...), None]
     new_hdyn_prep: typing.Callable[(...), None]
     new_hdyn_like: typing.Callable[(...), None]
@@ -90,7 +92,6 @@ class BBHxBackend(LISAToolsBackend):
     waveform_amp_phase_wrap: typing.Callable[(...), None]
     get_phenomhm_ringdown_frequencies: typing.Callable[(...), None]
     get_phenomd_ringdown_frequencies: typing.Callable[(...), None]
-    interpolate_wrap: typing.Callable[(...), None]
     speciallike: typing.Callable[(...), None]
     new_hdyn_prep: typing.Callable[(...), None]
     new_hdyn_like: typing.Callable[(...), None]
@@ -112,7 +113,6 @@ class BBHxBackend(LISAToolsBackend):
         self.waveform_amp_phase_wrap = bbhx_backend_methods.waveform_amp_phase_wrap
         self.get_phenomhm_ringdown_frequencies = bbhx_backend_methods.get_phenomhm_ringdown_frequencies
         self.get_phenomd_ringdown_frequencies = bbhx_backend_methods.get_phenomd_ringdown_frequencies
-        self.interpolate_wrap = bbhx_backend_methods.interpolate_wrap
         self.speciallike = bbhx_backend_methods.speciallike
         self.new_hdyn_prep = bbhx_backend_methods.new_hdyn_prep
         self.new_hdyn_like = bbhx_backend_methods.new_hdyn_like
@@ -159,7 +159,6 @@ def _bbhx_methods_from_cbbhx(_cbbhx, *, gpu: bool):
         "waveform_amp_phase_wrap": _bbcomp.waveform_amp_phase_wrap,
         "get_phenomhm_ringdown_frequencies": _bbcomp.get_phenomhm_ringdown_frequencies,
         "get_phenomd_ringdown_frequencies": _bbcomp.get_phenomd_ringdown_frequencies,
-        "interpolate_wrap": _bbcomp.interpolate_wrap,
         # SOBBH source-class Wraps (Phase 3L.8).
         "SOBBHTDIonTheFlyWrap": getattr(_cbbhx, f"SOBBHTDIonTheFlyWrap{suffix}"),
         "SOBBHComputationGroupWrap": getattr(_cbbhx, f"SOBBHComputationGroupWrap{suffix}"),

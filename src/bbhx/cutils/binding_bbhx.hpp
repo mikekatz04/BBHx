@@ -14,14 +14,17 @@
 // WaveformBuild, Likelihood, Interpolate) and -- once Phase 3L.8 lands
 // -- SOBBHTDIonTheFly + SOBBHComputationGroup.
 
-// GBT's InterpolateDevice.hh defines the `CubicSpline` class that
-// binding_flr.hpp's `CubicSplineWrap_responselisa` needs. Include it
-// FIRST so that when binding_flr.hpp transitively pulls in `Interpolate.hh`
-// (GBT's, which #includes InterpolateDevice.hh), the include guards are
-// already satisfied and CubicSpline is visible. Without this, BBHx's
-// local `Interpolate.hh` (same `__INTERPOLATE_HH__` guard, no CubicSpline)
-// wins the include race and CubicSpline is undeclared.
-#include "InterpolateDevice.hh"
+// GBT owns the canonical Interpolate.hh / InterpolateDevice.hh /
+// Interpolate.cu (Phase 3.dedup-followup, 2026-06-05). BBHx used to
+// keep a local Interpolate.{hh,cu} with a bespoke 3D-grid signature
+// (numInterpParams x numModes x numBinAll); the Python frontend now
+// uses gpubackendtools.interpolate.CubicSplineInterpolant with a tiled
+// x array against GBT's generic ninterps-flat solver, so the local
+// copy was deleted. GBT's headers come in via the ${GBT_CUTILS}
+// include path on the cbbhx targets.
+#include "Interpolate.hh"       // GBT: interpolate, fit_cubic_spline_thomas,
+                                 // eval_wrap, + #includes InterpolateDevice.hh
+                                 // (CubicSpline class for CubicSplineWrap_responselisa)
 
 // BBHx-specific waveform/response/likelihood headers. Each migrated
 // Cython module's free functions get a method wrapper on
@@ -30,7 +33,6 @@
 #include "PhenomHMWaveform.hh"  // waveform_amp_phase,
                                  // get_phenomhm_ringdown_frequencies_wrap,
                                  // get_phenomd_ringdown_frequencies_wrap
-#include "Interpolate.hh"       // interpolate (BBHx's local, not GBT's)
 #include "Likelihood.hh"        // hdyn, direct_like, prep_hdyn_wrap,
                                  // new_hdyn_prep_wrap, new_hdyn_like_wrap
 #include "Response.hh"          // LISA_response
@@ -210,23 +212,16 @@ class BBHxComputationWrap : public ReturnPointerBase {
             dspin, num_segs);
     }
 
-    // ---- Interpolate.hh wrapper (migrated from interp.pyx) ----
-
-    void interpolate_wrap(
-        array_type<double> freqs, array_type<double> propArrays,
-        array_type<double> B, array_type<double> upper_diag,
-        array_type<double> diag, array_type<double> lower_diag,
-        int length, int numInterpParams, int numModes, int numBinAll)
-    {
-        interpolate(
-            return_pointer(freqs,      "freqs"),
-            return_pointer(propArrays, "propArrays"),
-            return_pointer(B,          "B"),
-            return_pointer(upper_diag, "upper_diag"),
-            return_pointer(diag,       "diag"),
-            return_pointer(lower_diag, "lower_diag"),
-            length, numInterpParams, numModes, numBinAll);
-    }
+    // ---- Interpolate.hh ----
+    //
+    // No interpolate_wrap on BBHxComputationWrap: the Python frontend
+    // (waveformbuild.py) uses gpubackendtools.interpolate.CubicSplineInterpolant
+    // directly, which routes through gbt_backend_*.interp.interpolate_wrap.
+    // BBHx's local Interpolate.{hh,cu} were retired here at the
+    // 2026-06-05 dedup pass; only fit_cubic_spline_thomas (consumed by
+    // lat_chunked_het_kernels.hh inside the SOBBH carve-out) is still
+    // pulled in from GBT, via the direct copy-compile of GBT's
+    // Interpolate.cu in CMakeLists.txt.
 
     // ---- Likelihood.hh wrappers (migrated from bbhlikelihood.pyx) ----
 

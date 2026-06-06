@@ -37,11 +37,11 @@
 
 #include "Detector.hpp"               // Orbits + Vec
 #include "LISAResponse.hh"            // TDIConfig
-// BBHx ships a same-named, different-purpose `Interpolate.hh`. We do NOT
-// include either Interpolate.hh here: the BBHx-local copy would shadow
-// GBT's via source-file-relative quote-include resolution, and we only
-// need GBT's `CubicSpline` + `CUBIC_SPLINE_LINEAR_SPACING`, which
-// InterpolateDevice.hh provides standalone (Phase 3L.8, 2026-06-04).
+// CubicSpline + CUBIC_SPLINE_LINEAR_SPACING. We pull in the header-only
+// InterpolateDevice.hh directly rather than going through GBT's
+// Interpolate.hh -- both work post-2026-06-05 (BBHx no longer ships its
+// own Interpolate.hh, so the local-shadow concern is gone), but the
+// device-only header is what we actually need here.
 #include "InterpolateDevice.hh"       // CubicSpline + CUBIC_SPLINE_LINEAR_SPACING
 #include "fd_domain.hh"               // FDDomain
 #include "wdm_settings.hh"            // WDMSettings

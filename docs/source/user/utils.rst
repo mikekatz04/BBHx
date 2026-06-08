@@ -9,10 +9,15 @@ Interpolation Utilities
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: bbhx.utils.interpolate.CubicSplineInterpolant
+.. autoclass:: gpubackendtools.interpolate.CubicSplineInterpolant
     :members:
     :show-inheritance:
     :inherited-members:
+
+.. note::
+   ``CubicSplineInterpolant`` moved to ``gpubackendtools.interpolate``
+   at the BBHx GBT-dedup (2026-06-05). The old
+   ``bbhx.utils.interpolate`` module no longer exists.
 
 Useful Transformation Functions
 ********************************

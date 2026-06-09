@@ -3,7 +3,7 @@
 ### Designed for LISA data analysis of Massive Black Hole Binaries.
 
 
-This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and likelihood computations from [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). The various parts of this package are arranged to be modular as waveform or response changes or improvements are made. Generally, the modules fall into four categories: waveforms, response, waveform building, and utilities. Please see the [documentation](https://mikekatz04.github.io/BBHx/) for further information on these modules. The code can be found on Github [here](https://github.com/mikekatz04/BBHx).
+This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and likelihood computations from [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). The various parts of this package are arranged to be modular as waveform or response changes or improvements are made. Generally, the modules fall into four categories: waveforms, response, waveform building, and utilities. Please see the [documentation](https://lisa-analysis-tools.github.io/BBHx/) for further information on these modules. The code can be found on Github [here](https://github.com/lisa-analysis-tools/BBHx).
 
 This package is a part of the LISA Analysis Tools environment.
 
@@ -12,7 +12,7 @@ If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/20
 
 ## Getting started
 
-Detailed installation instructions can be found in the [documentation](https://mikekatz04.github.io/BBHx/).
+Detailed installation instructions can be found in the [documentation](https://lisa-analysis-tools.github.io/BBHx/).
 Below is a quick set of instructions to install the BBHx package on CPUs and GPUs.
 
 To install the latest version of `bbhx` using `pip`, simply run:
@@ -101,7 +101,7 @@ The above exception was the direct cause of the following exception:
 bbhx.cutils.BackendAccessException: Backend 'cuda12x' is unavailable. See previous error messages.
 ```
 
-Once FEW is working and the expected backends are selected, check out the [examples notebooks](https://github.com/mikekatz04/BBHx/tree/master/examples/)
+Once FEW is working and the expected backends are selected, check out the [examples notebooks](https://github.com/lisa-analysis-tools/BBHx/tree/master/examples/)
 on how to start with this software.
 
 ## Installing from sources
@@ -131,7 +131,7 @@ We recommend to install FEW using conda in order to have the compilers all withi
 First clone the repo
 
 ```
-git clone https://github.com/mikekatz04/BBHx.git
+git clone https://github.com/lisa-analysis-tools/BBHx.git
 cd BBHx
 ```
 
@@ -176,7 +176,7 @@ the repository, and then simply run a `pip install` command:
 
 ```sh
 # Clone the repository
-git clone https://github.com/mikekatz04/BBHx.git
+git clone https://github.com/lisa-analysis-tools/BBHx.git
 cd BBHx
 
 # Run the install
@@ -184,9 +184,9 @@ pip install .
 ```
 
 If the installation does not work, first check the [detailed installation
-documentation](https://mikekatz04.github.io/BBHx/). If
+documentation](https://lisa-analysis-tools.github.io/BBHx/). If
 it still does not work, please open an issue on the
-[GitHub repository](https://github.com/mikekatz04/BBHx/issues)
+[GitHub repository](https://github.com/lisa-analysis-tools/BBHx/issues)
 or contact the developers through other means.
 
 
@@ -204,7 +204,7 @@ pip install bbhx[testing]
 pip install bbhx-cuda12x[testing]
 
 # For from-source install with testing enabled
-git clone https://github.com/mikekatz04/BBHx.git
+git clone https://github.com/lisa-analysis-tools/BBHx.git
 cd BBHx
 pip install '.[testing]'
 ```
@@ -212,7 +212,7 @@ pip install '.[testing]'
 To run the tests, open a terminal in a directory containing the sources of FEW and then run the `unittest` module in `discover` mode:
 
 ```sh
-$ git clone https://github.com/mikekatz04/BBHx.git
+$ git clone https://github.com/lisa-analysis-tools/BBHx.git
 $ cd BBHx
 $ python -m bbhx.tests  # or "python -m unittest discover"
 ...
@@ -228,7 +228,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 If you want to develop FEW and produce documentation, install `bbhx` from source with the `[dev]` label and in `editable` mode:
 
 ```
-$ git clone https://github.com/mikekatz04/BBHx.git
+$ git clone https://github.com/lisa-analysis-tools/BBHx.git
 $ cd BBHx
 pip install -e '.[dev, testing]'
 ```
@@ -239,7 +239,7 @@ The documentation source files are in `docs/source`. To compile the documentatio
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/mikekatz04/BBHx/tags).
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/lisa-analysis-tools/BBHx/tags).
 
 ## Contributors
 

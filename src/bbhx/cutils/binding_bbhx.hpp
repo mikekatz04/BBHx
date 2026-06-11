@@ -24,7 +24,7 @@
 // include path on the cbbhx targets.
 #include "Interpolate.hh"       // GBT: interpolate, fit_cubic_spline_thomas,
                                  // eval_wrap, + #includes InterpolateDevice.hh
-                                 // (CubicSpline class for CubicSplineWrap_responselisa)
+                                 // (CubicSpline class for CubicSplineWrap)
 
 // BBHx-specific waveform/response/likelihood headers. Each migrated
 // Cython module's free functions get a method wrapper on

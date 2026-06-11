@@ -17,3 +17,4 @@
 
    bbhx_tutorial
    sobbh_tutorial
+   mbh_tdionfly_tutorial

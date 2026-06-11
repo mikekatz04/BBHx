@@ -61,6 +61,22 @@ BBHx owns MBH (PhenomHM, PhenomTAX) and SOBBH-specific physics.
   variant follows the same pattern with `SOBBHAbsoluteFD` swapping in
   for `GBAbsoluteFD`).
 
+**Received from LAT (2026-06-10): `bbhx.mbhtdionfly.MBHTDIonFly`** —
+time-domain MBH TDI-on-the-fly generator, copied from
+`LISAanalysistools/scripts/mbh/mbhtdionfly.py` and converted to a
+library module (`BBHxParallelModule` subclass; backend at
+instantiation via `force_backend`, sprint rule). It composes a
+time-domain amp/phase mode generator (`phentax.waveform.IMRPhenomTHM`)
+with `lisatools.response.tdionfly.TDTDIonTheFly`. Pure Python — no new
+native code. `phentax` (external, `asantini29/phentax`, NOT on PyPI)
+installs via the `phentax` extra (`pip install 'bbhx[phentax]'`, PEP
+508 git direct reference — must be stripped/pinned before any PyPI
+upload) or directly from GitHub. Docs: `docs/source/user/main.rst`
+(autoclass) + `examples/mbh_tdionfly_tutorial.ipynb`. Test:
+`tests/test_mbhtdionfly.py` (skips waveform test if phentax missing).
+Validated bitwise-identical to the LAT script before the script's
+removal.
+
 **Phentax + sobbhx waveform expansion** (plan section, not yet started):
 the existing `waveforms/phentax/` subpackage will house the PhenomTAX
 waveform implementation; a new `waveforms/sobbhx/` will house the
@@ -70,9 +86,10 @@ kernel.
 
 **Single-registrant rule (sprint-wide)**: BBHx's binding TUs MUST NOT
 register `OrbitsWrap`, `LISAResponseWrap`, `TDIConfigWrap`, or
-`CubicSplineWrap_responselisa`. Those are owned by LAT's
-`pycppdetector`. (`OrbitsWrap_responselisa` was deleted at Phase
-3L.7p 2026-06-04 in favor of the canonical `OrbitsWrap`.) When BBHx receives its tdionthefly
+`CubicSplineWrap`. The first three are owned by LAT's `pycppdetector`;
+`CubicSplineWrap` is owned by GBT's `interp` module (2026-06-10). (The
+legacy `OrbitsWrap_responselisa` was deleted at Phase 3L.7p 2026-06-04
+in favor of the canonical `OrbitsWrap`.) When BBHx receives its tdionthefly
 module, add `#include "lisatools_header_abi.hpp"` +
 `static_assert(!LISATOOLS_IS_WRAPPER_OWNER, ...)` to its binding source
 (see `lisa-on-gpu/src/fastlisaresponse/cutils/binding_tof.cxx` for the

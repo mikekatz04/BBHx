@@ -124,7 +124,7 @@ class BBHxBackend(LISAToolsBackend):
 # --- module-loader helpers -----------------------------------------------
 
 
-def _lat_methods_from_pycppdetector(_lat_pd, *, gpu: bool, xp):
+def _lat_methods_from_pycppdetector(_lat_pd, _gbt_interp, *, gpu: bool, xp):
     """Build the LAT-side portion of BBHxBackendMethods."""
     suffix = "GPU" if gpu else "CPU"
     return {
@@ -137,7 +137,9 @@ def _lat_methods_from_pycppdetector(_lat_pd, *, gpu: bool, xp):
         "LISAResponse": getattr(_lat_pd, f"LISAResponse{suffix}"),
         "TDIConfigWrap": getattr(_lat_pd, f"TDIConfigWrap{suffix}"),
         "TDIConfig": getattr(_lat_pd, f"TDIConfig{suffix}"),
-        "CubicSplineWrap_responselisa": getattr(_lat_pd, f"CubicSplineWrap{suffix}_responselisa"),
+        # GBT is the single registrant for CubicSplineWrap (same pattern
+        # as this package consuming LAT's OrbitsWrap).
+        "CubicSplineWrap": getattr(_gbt_interp, f"CubicSplineWrap{suffix}"),
         "WDMSettingsWrap": getattr(_lat_pd, f"WDMSettingsWrap{suffix}"),
         "WDMDomainWrap": getattr(_lat_pd, f"WDMDomainWrap{suffix}"),
         "FDDomainWrap": getattr(_lat_pd, f"FDDomainWrap{suffix}"),
@@ -194,6 +196,7 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
     @staticmethod
     def cpu_methods_loader() -> BBHxBackendMethods:
         try:
+            import gbt_backend_cpu.interp
             import bbhx_backend_cpu.cbbhx
             import lisatools_backend_cpu.pycppdetector
         except (ModuleNotFoundError, ImportError) as e:
@@ -202,7 +205,7 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
         numpy = BBHxCpuBackend.check_numpy()
         return BBHxBackendMethods(
             **_lat_methods_from_pycppdetector(
-                lisatools_backend_cpu.pycppdetector, gpu=False, xp=numpy
+                lisatools_backend_cpu.pycppdetector, gbt_backend_cpu.interp, gpu=False, xp=numpy
             ),
             **_bbhx_methods_from_cbbhx(bbhx_backend_cpu.cbbhx, gpu=False),
         )
@@ -218,6 +221,7 @@ def _make_cuda_loader(flavor):
             import importlib
 
             bb_mod = importlib.import_module(f"{bb_mod_name}.cbbhx")
+            gbt_mod = importlib.import_module(f"gbt_backend_{flavor}.interp")
             lat_mod = importlib.import_module(f"{lat_mod_name}.pycppdetector")
         except (ModuleNotFoundError, ImportError) as e:
             raise BackendUnavailableException(
@@ -233,7 +237,7 @@ def _make_cuda_loader(flavor):
             ) from e
 
         return BBHxBackendMethods(
-            **_lat_methods_from_pycppdetector(lat_mod, gpu=True, xp=cupy),
+            **_lat_methods_from_pycppdetector(lat_mod, gbt_mod, gpu=True, xp=cupy),
             **_bbhx_methods_from_cbbhx(bb_mod, gpu=True),
         )
 

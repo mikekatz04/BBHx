@@ -28,6 +28,11 @@ shutil.copy(
     "sobbh_tutorial.ipynb",
 )
 
+shutil.copy(
+    "../../examples/mbh_tdionfly_tutorial.ipynb",
+    "mbh_tdionfly_tutorial.ipynb",
+)
+
 source_suffix = [".rst"]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -28,6 +28,20 @@ pip install bbhx-cuda11x
 pip install bbhx-cuda12x
 ```
 
+To use the time-domain MBH TDI-on-the-fly generator
+(`bbhx.mbhtdionfly.MBHTDIonFly`), you also need the
+[phentax](https://github.com/asantini29/phentax) waveform package
+(IMRPhenomTHM). It is not published on PyPI, so install it through the
+`phentax` extra (which pulls it from GitHub) or directly:
+
+```sh
+# Via the extra (from a source/git install of bbhx)
+pip install 'bbhx[phentax]'
+
+# Or directly
+pip install git+https://github.com/asantini29/phentax.git
+```
+
 To know your CUDA version, run the tool `nvidia-smi` in a terminal a check the CUDA version reported in the table header:
 
 ```sh

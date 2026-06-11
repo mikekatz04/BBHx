@@ -2,7 +2,11 @@
 [build-system]
 build-backend = "scikit_build_core.build"
 
-requires = [ "cython", "numpy", "scikit-build-core", "gpubackendtools", "lisaanalysistools", "nanobind>=2.4.0,<3"]
+# nanobind is pinned EXACTLY (sprint-wide invariant, see LAT
+# constraints/sprint.txt): cross-wheel nanobind type sharing (OrbitsWrap,
+# CubicSplineWrap, ...) requires every separately-built wheel to embed the
+# same nanobind internals ABI. Bump in ONE sprint-wide PR only.
+requires = [ "cython", "numpy", "scikit-build-core", "gpubackendtools", "lisaanalysistools", "nanobind==2.12.0"]
 
 [project]
 name = "bbhx" #@NAMESUFFIX@
@@ -62,6 +66,10 @@ dependencies = [
   "wrapt",
   "gpubackendtools", 
   "lisaanalysistools",
+  # NOTE (2026-06-10): the CUDA backends now import gbt_backend_<flavor>.interp
+  # at load time (GBT is the single registrant for CubicSplineWrap). Once
+  # GPUBackendTools publishes cuda plugin wheels, add a #@DEPS_GBTCUDA@
+  # placeholder here + a sed step in publish.yml mirroring #@DEPS_CUPYCUDA@.
   #@DEPS_CUPYCUDA@,
   #@DEPS_BBHXCORE@,
 ]
@@ -78,11 +86,17 @@ optional-dependencies.doc = [
   "sphinx-tippy",
 ]
 
+# phentax (MBH IMRPhenomTHM, external collaborator asantini29/phentax) is
+# not published on PyPI, so this extra uses a PEP 508 direct reference.
+# NOTE: wheels carrying direct-URL extras cannot be uploaded to PyPI; the
+# release pipeline must strip or pin this extra before publishing.
+optional-dependencies.phentax = [
+  "phentax @ git+https://github.com/asantini29/phentax.git",
+]
+
 optional-dependencies.sampling = [
   "eryn",
-  "fastlisaresponse",
   "lisaanalysistools",
-  "lisatools",
 ]
 
 optional-dependencies.testing = [

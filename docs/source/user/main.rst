@@ -20,3 +20,25 @@ TDI observable waveforms are produced in three main parts:
     :members:
     :show-inheritance:
     :inherited-members:
+
+
+Time-domain TDI on the fly
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As an alternative to the frequency-domain pipeline above, MBH TDI
+observables can be generated directly in the time domain. A time-domain
+mode generator (currently `phentax <https://github.com/asantini29/phentax>`_'s
+``IMRPhenomTHM``) produces per-mode amplitude and phase on an adaptive
+time grid; those splines are then fed through the LISA TDI-on-the-fly
+response (:class:`lisatools.response.tdionfly.TDTDIonTheFly`) to produce
+the TDI channels without an intermediate Fourier transform.
+
+.. note::
+    ``phentax`` is not published on PyPI. Install it with the
+    ``phentax`` extra (``pip install 'bbhx[phentax]'``) or directly via
+    ``pip install git+https://github.com/asantini29/phentax.git``.
+
+.. autoclass:: bbhx.mbhtdionfly.MBHTDIonFly
+    :members:
+    :show-inheritance:
+    :inherited-members:

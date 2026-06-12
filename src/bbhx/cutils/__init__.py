@@ -137,6 +137,13 @@ def _lat_methods_from_pycppdetector(_lat_pd, _gbt_interp, *, gpu: bool, xp):
         "LISAResponse": getattr(_lat_pd, f"LISAResponse{suffix}"),
         "TDIConfigWrap": getattr(_lat_pd, f"TDIConfigWrap{suffix}"),
         "TDIConfig": getattr(_lat_pd, f"TDIConfig{suffix}"),
+        # stft_tof merge (2026-06): XYZ sensitivity backend + galactic grid
+        # reactivated on the LAT backend table; mirror them here.
+        "SensitivityMatrixWrap": getattr(_lat_pd, f"XYZSensitivityMatrixWrap{suffix}"),
+        "GalacticGridSetup": _lat_pd.GalacticGridSetup,
+        "GalacticGridWrap": getattr(_lat_pd, f"GalacticGridWrap{suffix}"),
+        "psd_likelihood": _lat_pd.psd_likelihood,
+        "compute_logpdf": _lat_pd.compute_logpdf,
         # GBT is the single registrant for CubicSplineWrap (same pattern
         # as this package consuming LAT's OrbitsWrap).
         "CubicSplineWrap": getattr(_gbt_interp, f"CubicSplineWrap{suffix}"),

@@ -142,9 +142,16 @@ class MBHTDIonFly(BBHxParallelModule):
         else:
             waveform_duration = self.waveform_duration
 
+        # Reference phase is anchored at the reference epoch (t = -t_merge
+        # relative to merger), NOT at merger (t_ref=0).  This matches the
+        # PhenomTHMTDIWaveform / pyResponse convention (use_reference_time ->
+        # t_ref = -merger_time) and the mojito merger-vs-reference-epoch phase
+        # convention.  t_ref=0.0 left a ~sin^2(inc), frequency-growing
+        # mismatch vs pyResponse (~11% edge-on, dominated by the higher modes);
+        # t_ref=-t_merge brings the signal-band agreement to ~3e-4.
         new_times, new_mask, sc_amp, sc_phase = self.wave_gen.compute_strain_components_amp_phase(
             m1, m2, s1z, s2z, distance, phi_ref, inclination, psi,
-            delta_t=self.dt_min, t_min=-waveform_duration, t_ref=0.0,
+            delta_t=self.dt_min, t_min=-waveform_duration, t_ref=-t_merge,
         )
 
         mode_amp = sc_amp / 2.0          # AMP_FACTOR = 1/2

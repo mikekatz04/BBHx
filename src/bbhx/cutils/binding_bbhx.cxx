@@ -69,7 +69,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
     int nchannels, int n_rfft_chunk,
     double T_chunk, double dt, double T, double t_ref,
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
-    int m_band_half_width)
+    int m_band_half_width, bool active_band)
 {
     const int Nf = wdm_settings_wrap->wdm_settings->Nf;
     const int Nt = wdm_settings_wrap->wdm_settings->Nt;
@@ -90,7 +90,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
         N_sparse, log2_N_sparse,
         nchannels, n_rfft_chunk,
         T_chunk, dt, T, t_ref, tukey_alpha, grid_dim, N_cp_sig, N_cp_orbit,
-        m_band_half_width);
+        m_band_half_width, active_band);
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
@@ -111,7 +111,8 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
     double T_chunk, double dt, double T, double t_ref, int tdi_type,
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
     array_type<int> binary_perm, array_type<int> group_starts, array_type<int> group_ends,
-    array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups)
+    array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups,
+    int m_band_half_width)
 {
     const int gn = (n_groups > 0) ? n_groups : 1;
     const int Nf_active = wdm_settings_wrap->wdm_settings->Nf_active;
@@ -148,7 +149,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
         return_pointer_and_check_length(group_ends,   "group_ends",   gn, 1),
         return_pointer_and_check_length(group_m_lo,   "group_m_lo",   gn, 1),
         return_pointer_and_check_length(group_m_hi,   "group_m_hi",   gn, 1),
-        n_groups);
+        n_groups, m_band_half_width);
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
@@ -172,7 +173,8 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
     array_type<int> binary_perm, array_type<int> group_starts, array_type<int> group_ends,
     array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups,
-    array_type<int> pair_m_lo_b, array_type<int> pair_m_hi_b)
+    array_type<int> pair_m_lo_b, array_type<int> pair_m_hi_b,
+    int m_band_half_width)
 {
     const int gn = (n_groups > 0) ? n_groups : 1;
     const int Nf_active = wdm_settings_wrap->wdm_settings->Nf_active;
@@ -215,7 +217,8 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
         return_pointer_and_check_length(group_m_hi,   "group_m_hi",   gn, 1),
         n_groups,
         return_pointer_and_check_length(pair_m_lo_b, "pair_m_lo_b", num_bin, 1),
-        return_pointer_and_check_length(pair_m_hi_b, "pair_m_hi_b", num_bin, 1));
+        return_pointer_and_check_length(pair_m_hi_b, "pair_m_hi_b", num_bin, 1),
+        m_band_half_width);
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
@@ -269,6 +272,277 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
         nchannels, n_rfft_chunk,
         T_chunk, dt, T, t_ref, tdi_type,
         tukey_alpha, grid_dim, m_band_half_width);
+}
+
+
+// ---- SOBBH signal-heterodyne (v2 polyphase) pybind shims ------------------
+// Mirror of GBComputationGroupWrap::gb_signal_het_* in binding_gbgpu.cxx.
+
+void SOBBHComputationGroupWrap::sobbh_signal_het_get_ll(
+    array_type<double> d_h_out, array_type<double> h_h_out,
+    array_type<std::complex<double>> fd_rfft_all,
+    array_type<std::complex<double>> c0_sparse_all,
+    array_type<std::complex<double>> A0_all,
+    array_type<std::complex<double>> A1_all,
+    array_type<std::complex<double>> B0_all,
+    array_type<std::complex<double>> B1_all,
+    array_type<double> wdm_window,
+    array_type<int> n_sparse_local_arr,
+    array_type<double> params_cand_all,
+    array_type<double> params_ref_all,
+    array_type<int> data_index_all,
+    int num_bin, int num_data,
+    int nparams, int f0_idx, int fdot_idx,
+    int Nf, int Nt, int Nf_active, int Nt_active,
+    int Nt_layer, int N_sparse_t, int stride,
+    int ind_min_t, int ind_min_f,
+    int m_active_half_width,
+    double layer_df, double dt,
+    int nchannels, int tdi_type,
+    int n_rfft, double max_r)
+{
+    (void) Nt_layer;
+    const size_t b_xyz  = (size_t) num_data * nchannels * nchannels * Nf_active * N_sparse_t;
+    const size_t b_diag = (size_t) num_data * nchannels * Nf_active * N_sparse_t;
+    sobbh_signal_het_get_ll_wrap(
+        return_pointer_and_check_length(d_h_out, "d_h_out", num_bin, 1),
+        return_pointer_and_check_length(h_h_out, "h_h_out", num_bin, 1),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            fd_rfft_all, "fd_rfft_all", (size_t) num_bin * nchannels * n_rfft, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            c0_sparse_all, "c0_sparse_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A0_all, "A0_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A1_all, "A1_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B0_all, "B0_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B1_all, "B1_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        return_pointer_and_check_length(wdm_window, "wdm_window", Nt, 1),
+        return_pointer_and_check_length(n_sparse_local_arr, "n_sparse_local", N_sparse_t, 1),
+        return_pointer_and_check_length(params_cand_all, "params_cand_all", nparams, num_bin),
+        return_pointer_and_check_length(params_ref_all, "params_ref_all", nparams, num_data),
+        return_pointer_and_check_length(data_index_all, "data_index_all", num_bin, 1),
+        num_bin, num_data, nparams, f0_idx, fdot_idx,
+        Nf, Nt, Nf_active, Nt_active, Nt_layer, N_sparse_t, stride,
+        ind_min_t, ind_min_f, m_active_half_width,
+        layer_df, dt, nchannels, tdi_type, n_rfft, max_r);
+}
+
+void SOBBHComputationGroupWrap::sobbh_signal_het_get_ll_sparse(
+    array_type<double> d_h_out, array_type<double> h_h_out,
+    array_type<std::complex<double>> X_het_all,
+    array_type<int> k_f0_all,
+    array_type<std::complex<double>> c0_sparse_all,
+    array_type<std::complex<double>> A0_all,
+    array_type<std::complex<double>> A1_all,
+    array_type<std::complex<double>> B0_all,
+    array_type<std::complex<double>> B1_all,
+    array_type<double> wdm_window,
+    array_type<int> n_sparse_local_arr,
+    array_type<double> params_cand_all,
+    array_type<double> params_ref_all,
+    array_type<int> data_index_all,
+    int num_bin, int num_data,
+    int nparams, int f0_idx, int fdot_idx,
+    int Nf, int Nt, int Nf_active, int Nt_active,
+    int Nt_layer, int N_sparse_t, int stride,
+    int ind_min_t, int ind_min_f,
+    int m_active_half_width,
+    double layer_df, double dt,
+    int nchannels, int tdi_type,
+    int N_sparse_fd, double max_r)
+{
+    (void) Nt_layer;
+    const size_t b_xyz  = (size_t) num_data * nchannels * nchannels * Nf_active * N_sparse_t;
+    const size_t b_diag = (size_t) num_data * nchannels * Nf_active * N_sparse_t;
+    sobbh_signal_het_get_ll_sparse_wrap(
+        return_pointer_and_check_length(d_h_out, "d_h_out", num_bin, 1),
+        return_pointer_and_check_length(h_h_out, "h_h_out", num_bin, 1),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            X_het_all, "X_het_all", (size_t) num_bin * nchannels * N_sparse_fd, 1)),
+        return_pointer_and_check_length(k_f0_all, "k_f0_all", num_bin, 1),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            c0_sparse_all, "c0_sparse_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A0_all, "A0_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A1_all, "A1_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B0_all, "B0_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B1_all, "B1_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        nullptr, nullptr,   /* B0nc/B1nc: this validation path stays complex */
+        return_pointer_and_check_length(wdm_window, "wdm_window", Nt, 1),
+        return_pointer_and_check_length(n_sparse_local_arr, "n_sparse_local", N_sparse_t, 1),
+        return_pointer_and_check_length(params_cand_all, "params_cand_all", nparams, num_bin),
+        return_pointer_and_check_length(params_ref_all, "params_ref_all", nparams, num_data),
+        return_pointer_and_check_length(data_index_all, "data_index_all", num_bin, 1),
+        num_bin, num_data, nparams, f0_idx, fdot_idx,
+        Nf, Nt, Nf_active, Nt_active, Nt_layer, N_sparse_t, stride,
+        ind_min_t, ind_min_f, m_active_half_width,
+        layer_df, dt, nchannels, tdi_type, N_sparse_fd, max_r, /*project_real=*/0);
+}
+
+void SOBBHComputationGroupWrap::sobbh_signal_het_get_ll_in_kernel(
+    SOBBHTDIonTheFlyWrap *tdi_wrap,
+    array_type<double> d_h_out, array_type<double> h_h_out,
+    array_type<std::complex<double>> c0_sparse_all,
+    array_type<std::complex<double>> A0_all,
+    array_type<std::complex<double>> A1_all,
+    array_type<std::complex<double>> B0_all,
+    array_type<std::complex<double>> B1_all,
+    array_type<std::complex<double>> B0nc_all,
+    array_type<std::complex<double>> B1nc_all,
+    array_type<double> wdm_window,
+    array_type<int> n_sparse_local_arr,
+    array_type<double> params_cand_all,
+    array_type<double> params_ref_all,
+    array_type<int> data_index_all,
+    int num_bin, int num_data,
+    int nparams, int f0_idx, int fdot_idx,
+    int Nf, int Nt, int Nf_active, int Nt_active,
+    int Nt_layer, int N_sparse_t, int stride,
+    int ind_min_t, int ind_min_f,
+    int m_active_half_width,
+    double layer_df, double dt,
+    double T_obs, double t_start,
+    int nchannels, int tdi_type,
+    int N_sparse_fd, double tukey_alpha, double max_r, int project_real)
+{
+    (void) Nt_layer;
+    const size_t b_xyz  = (size_t) num_data * nchannels * nchannels * Nf_active * N_sparse_t;
+    const size_t b_diag = (size_t) num_data * nchannels * Nf_active * N_sparse_t;
+    sobbh_signal_het_get_ll_in_kernel_wrap(
+        tdi_wrap->waveform,
+        return_pointer_and_check_length(d_h_out, "d_h_out", num_bin, 1),
+        return_pointer_and_check_length(h_h_out, "h_h_out", num_bin, 1),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            c0_sparse_all, "c0_sparse_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A0_all, "A0_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A1_all, "A1_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B0_all, "B0_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B1_all, "B1_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B0nc_all, "B0nc_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B1nc_all, "B1nc_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        return_pointer_and_check_length(wdm_window, "wdm_window", Nt, 1),
+        return_pointer_and_check_length(n_sparse_local_arr, "n_sparse_local", N_sparse_t, 1),
+        return_pointer_and_check_length(params_cand_all, "params_cand_all", nparams, num_bin),
+        return_pointer_and_check_length(params_ref_all, "params_ref_all", nparams, num_data),
+        return_pointer_and_check_length(data_index_all, "data_index_all", num_bin, 1),
+        num_bin, num_data, nparams, f0_idx, fdot_idx,
+        Nf, Nt, Nf_active, Nt_active, Nt_layer, N_sparse_t, stride,
+        ind_min_t, ind_min_f, m_active_half_width,
+        layer_df, dt, T_obs, t_start,
+        nchannels, tdi_type, N_sparse_fd, tukey_alpha, max_r, project_real);
+}
+
+void SOBBHComputationGroupWrap::sobbh_signal_het_fill_global_in_kernel(
+    SOBBHTDIonTheFlyWrap *tdi_wrap,
+    array_type<double> template_fill,
+    array_type<std::complex<double>> c0_sparse_all,
+    array_type<std::complex<double>> c0_dense_complex_all,
+    array_type<double> wdm_window,
+    array_type<int> n_sparse_local_arr,
+    array_type<double> params_cand_all,
+    array_type<double> params_ref_all,
+    array_type<double> factors_all,
+    array_type<int> data_index_all,
+    int num_bin, int num_data,
+    int nparams, int f0_idx, int fdot_idx,
+    int Nf, int Nt, int Nf_active, int Nt_active,
+    int Nt_layer, int N_sparse_t, int stride,
+    int ind_min_t, int ind_min_f,
+    int m_active_half_width,
+    double layer_df, double dt,
+    double T_obs, double t_start,
+    int nchannels,
+    int N_sparse_fd, double tukey_alpha, double max_r)
+{
+    (void) Nt_layer;
+    sobbh_signal_het_fill_global_in_kernel_wrap(
+        tdi_wrap->waveform,
+        return_pointer_and_check_length(template_fill, "template_fill",
+            (size_t) num_data * nchannels * Nf * Nt, 1),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            c0_sparse_all, "c0_sparse_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            c0_dense_complex_all, "c0_dense_complex_all", (size_t) num_data * nchannels * Nf_active * Nt_active, 1)),
+        return_pointer_and_check_length(wdm_window, "wdm_window", Nt, 1),
+        return_pointer_and_check_length(n_sparse_local_arr, "n_sparse_local", N_sparse_t, 1),
+        return_pointer_and_check_length(params_cand_all, "params_cand_all", nparams, num_bin),
+        return_pointer_and_check_length(params_ref_all, "params_ref_all", nparams, num_data),
+        return_pointer_and_check_length(factors_all, "factors_all", num_bin, 1),
+        return_pointer_and_check_length(data_index_all, "data_index_all", num_bin, 1),
+        num_bin, num_data, nparams, f0_idx, fdot_idx,
+        Nf, Nt, Nf_active, Nt_active, Nt_layer, N_sparse_t, stride,
+        ind_min_t, ind_min_f, m_active_half_width,
+        layer_df, dt, T_obs, t_start,
+        nchannels, N_sparse_fd, tukey_alpha, max_r);
+}
+
+void SOBBHComputationGroupWrap::sobbh_signal_het_get_ll_grad_in_kernel(
+    SOBBHTDIonTheFlyWrap *tdi_wrap,
+    array_type<double> grad_out,
+    array_type<double> d_h_central, array_type<double> h_h_central,
+    array_type<std::complex<double>> c0_sparse_all,
+    array_type<std::complex<double>> A0_all,
+    array_type<std::complex<double>> A1_all,
+    array_type<std::complex<double>> B0_all,
+    array_type<std::complex<double>> B1_all,
+    array_type<double> wdm_window,
+    array_type<int> n_sparse_local_arr,
+    array_type<double> params_cand_all,
+    array_type<double> params_ref_all,
+    array_type<int> data_index_all,
+    array_type<double> param_eps,
+    int num_bin, int num_data,
+    int nparams, int f0_idx, int fdot_idx,
+    int Nf, int Nt, int Nf_active, int Nt_active,
+    int Nt_layer, int N_sparse_t, int stride,
+    int ind_min_t, int ind_min_f,
+    int m_active_half_width,
+    double layer_df, double dt,
+    double T_obs, double t_start,
+    int nchannels, int tdi_type,
+    int N_sparse_fd, double tukey_alpha, double max_r)
+{
+    (void) Nt_layer;
+    const size_t b_xyz  = (size_t) num_data * nchannels * nchannels * Nf_active * N_sparse_t;
+    const size_t b_diag = (size_t) num_data * nchannels * Nf_active * N_sparse_t;
+    sobbh_signal_het_get_ll_grad_in_kernel_wrap(
+        tdi_wrap->waveform,
+        return_pointer_and_check_length(grad_out, "grad_out", nparams, num_bin),
+        return_pointer_and_check_length(d_h_central, "d_h_central", num_bin, 1),
+        return_pointer_and_check_length(h_h_central, "h_h_central", num_bin, 1),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            c0_sparse_all, "c0_sparse_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A0_all, "A0_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            A1_all, "A1_all", (size_t) num_data * nchannels * Nf_active * N_sparse_t, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B0_all, "B0_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        reinterpret_cast<cmplx*>(return_pointer_and_check_length(
+            B1_all, "B1_all", (tdi_type == 0) ? b_xyz : b_diag, 1)),
+        return_pointer_and_check_length(wdm_window, "wdm_window", Nt, 1),
+        return_pointer_and_check_length(n_sparse_local_arr, "n_sparse_local", N_sparse_t, 1),
+        return_pointer_and_check_length(params_cand_all, "params_cand_all", nparams, num_bin),
+        return_pointer_and_check_length(params_ref_all, "params_ref_all", nparams, num_data),
+        return_pointer_and_check_length(data_index_all, "data_index_all", num_bin, 1),
+        return_pointer_and_check_length(param_eps, "param_eps", nparams, 1),
+        num_bin, num_data, nparams, f0_idx, fdot_idx,
+        Nf, Nt, Nf_active, Nt_active, Nt_layer, N_sparse_t, stride,
+        ind_min_t, ind_min_f, m_active_half_width,
+        layer_df, dt, T_obs, t_start,
+        nchannels, tdi_type, N_sparse_fd, tukey_alpha, max_r);
 }
 
 
@@ -376,6 +650,33 @@ void bbhx_part(nb::module_ &m) {
          "SOBBH chunked-heterodyne swap_ll.")
     .def("sobbh_wdm_het_get_fstat_ll", &SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll,
          "SOBBH chunked-heterodyne F-stat (same N+M outputs as the GB variant).")
+    // Signal-heterodyne (v2 polyphase) -- SOBBH duplicate of the GB family
+    // (gb_signal_het_*). CPU validated; GPU authored via the dual-path macros
+    // (block-per-binary, global scratch arena) but untested on this host.
+    .def("sobbh_signal_het_get_ll", &SOBBHComputationGroupWrap::sobbh_signal_het_get_ll,
+         "Signal-heterodyne get_ll from a precomputed rfft(Tukey*td) per "
+         "binary + reference c0_sparse/A0/A1/B0/B1. SOBBH mirror of "
+         "gb_signal_het_get_ll.")
+    .def("sobbh_signal_het_get_ll_sparse", &SOBBHComputationGroupWrap::sobbh_signal_het_get_ll_sparse,
+         "Sparse-FD signal-het get_ll. Consumes X_het (N_sparse_fd per binary "
+         "per channel) + per-binary k_f0. SOBBH mirror of gb_signal_het_get_ll_sparse.")
+    .def("sobbh_signal_het_get_ll_in_kernel", &SOBBHComputationGroupWrap::sobbh_signal_het_get_ll_in_kernel,
+         "In-kernel sparse-FD signal-het get_ll. Fuses sobbh_run_fd_wave_tdi "
+         "(from SOBBHTDIonTheFly) with the polyphase + bin-fold pipeline. Takes "
+         "a SOBBHTDIonTheFlyWrap; tukey_alpha must match the dense-rfft window "
+         "alpha; max_r caps |r| per channel-cell; project_real selects the "
+         "real-WDM projection. SOBBH mirror of gb_signal_het_get_ll_in_kernel.")
+    .def("sobbh_signal_het_fill_global_in_kernel",
+         &SOBBHComputationGroupWrap::sobbh_signal_het_fill_global_in_kernel,
+         "Signal-het fill_global. Reconstructs the dense candidate template via "
+         "interp(r_sparse) re-rotation * c0_dense_complex, takes Re, and "
+         "scatters factor * Re(c1_dense) into template_fill. SOBBH mirror of "
+         "gb_signal_het_fill_global_in_kernel.")
+    .def("sobbh_signal_het_get_ll_grad_in_kernel",
+         &SOBBHComputationGroupWrap::sobbh_signal_het_get_ll_grad_in_kernel,
+         "Signal-het central-difference gradient of logL = d_h - 0.5*h_h. "
+         "param_eps[k] <= 0 freezes dimension k. SOBBH mirror of "
+         "gb_signal_het_get_ll_grad_in_kernel.")
     ;
 }
 

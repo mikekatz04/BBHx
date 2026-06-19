@@ -141,6 +141,10 @@ class SOBBHTDIonTheFly : public LISATDIonTheFly{
         double sobbh_fdot(double t, double *params);
         CUDA_CALLABLE_MEMBER
         int get_sobbh_buffer_size(int N);
+        // Shared-memory budget for the heterodyne sparse-FD path
+        // (sobbh_run_fd_wave_tdi). Mirror of GBTDIonTheFly::get_gb_fd_buffer_size.
+        CUDA_CALLABLE_MEMBER
+        int get_sobbh_fd_buffer_size(int N, int nchannels);
         CUDA_DEVICE
         double get_amp(double t, double *params, int bin_i);
         CUDA_DEVICE
@@ -154,6 +158,79 @@ class SOBBHTDIonTheFly : public LISATDIonTheFly{
 void sobbh_run_wave_tdi_wrap(SOBBHTDIonTheFly *tdi_on_fly, cmplx *tdi_channels_arr,
     double *tdi_amp, double *tdi_phase, double *phi_ref,
     double *params, double *t_arr, int N, int num_bin, int n_params, int nchannels);
+
+
+// ============================================================================
+// Heterodyne sparse-FD generator + signal-heterodyne (v2 polyphase) family.
+//
+// SOBBH duplicate of GBGPU's gbfd_* + gb_signal_het_* machinery (the
+// signal-het port, 2026-06-18). The FD generator builds the carrier-removed
+// slow signal on a sparse time grid, FFTs it, and writes the heterodyne band
+// around f0; the signal-het methods consume that FD (or a precomputed dense
+// rfft) via the polyphase fold + bin-folded inner product. All bodies are
+// source-agnostic except the SOBBHTDIonTheFly construction, so the algorithm
+// is identical to GB's -- only the source physics (get_amp/phase/f/fdot)
+// differs. Authored GPU-first (CUDA_KERNEL + thread/block macros) with the
+// CPU path falling out via the GPUBackendTools #ifdef directives.
+// ============================================================================
+
+// FD helpers (mirror of gbfd_*). The short ones are header-inline so every
+// consuming TU sees them; the larger ones live in the .cu.
+CUDA_DEVICE
+inline int sobbhfd_log2_int(int n)
+{
+    int r = 0;
+    while ((n >>= 1) != 0) ++r;
+    return r;
+}
+
+CUDA_DEVICE
+inline int sobbhfd_bit_reverse(int x, int log2n)
+{
+    int r = 0;
+    for (int i = 0; i < log2n; ++i)
+    {
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+CUDA_DEVICE
+inline int sobbhfd_dense_bin(int m, int N, int kf0)
+{
+    int m_signed = (m < (N >> 1)) ? m : (m - N);
+    return kf0 + m_signed;
+}
+
+CUDA_DEVICE
+void sobbhfd_radix2_fft_inplace(cmplx *a, int N, int log2N);
+
+CUDA_DEVICE
+void sobbhfd_build_one_source(SOBBHTDIonTheFly *tof, void *shared_mem,
+                              double *params_in, double t_start, double Tobs,
+                              int N, int nchannels, int n_params, int bin_i,
+                              int log2N,
+                              cmplx **tdi_chan_out,
+                              int *kf0_out, double *f0g_out, double *dts_out,
+                              double tukey_alpha);
+
+CUDA_DEVICE
+void sobbhfd_run_one_source(SOBBHTDIonTheFly *tof, void *shared_mem,
+                            cmplx *X_het, int *k_f0_out, double *f0_grid_out,
+                            double *params_in, double t_start, double Tobs,
+                            int N, int nchannels, int n_params, int bin_i,
+                            int log2N, double tukey_alpha);
+
+// Heterodyned frequency-domain SOBBH TDI -- builds the slow positive-frequency
+// complex signal on a sparse time grid, FFTs it, and writes the heterodyne
+// band into X_het around the f0 carrier. Mirror of gb_run_fd_wave_tdi_wrap.
+void sobbh_run_fd_wave_tdi_wrap(
+    SOBBHTDIonTheFly *tdi_on_fly,
+    cmplx *X_het, int *k_f0_out, double *f0_grid_out,
+    double *params, double t_start, double Tobs,
+    int N_sparse, int num_bin, int n_params, int nchannels,
+    double tukey_alpha);
 
 
 // ============================================================================
@@ -184,7 +261,7 @@ class SOBBHComputationGroup{
         double T_chunk, double dt, double T, double t_ref,
         double tukey_alpha,
         int grid_dim, int N_cp_sig, int N_cp_orbit,
-        int m_band_half_width);
+        int m_band_half_width, bool active_band = false);
 
     void sobbh_wdm_het_get_ll_wrap(
         double *d_h_out, double *h_h_out,
@@ -204,7 +281,8 @@ class SOBBHComputationGroup{
         double tukey_alpha,
         int grid_dim, int N_cp_sig, int N_cp_orbit,
         int *binary_perm, int *group_starts, int *group_ends,
-        int *group_m_lo, int *group_m_hi, int n_groups);
+        int *group_m_lo, int *group_m_hi, int n_groups,
+        int m_band_half_width);
 
     void sobbh_wdm_het_swap_ll_wrap(
         double *d_h_add_out, double *d_h_remove_out,
@@ -226,7 +304,8 @@ class SOBBHComputationGroup{
         int grid_dim, int N_cp_sig, int N_cp_orbit,
         int *binary_perm, int *group_starts, int *group_ends,
         int *group_m_lo, int *group_m_hi, int n_groups,
-        int *pair_m_lo_b, int *pair_m_hi_b);
+        int *pair_m_lo_b, int *pair_m_hi_b,
+        int m_band_half_width);
 
     // F-stat (chunked-heterodyne); see GBComputationGroup::gb_wdm_het_get_fstat_ll_wrap.
     void sobbh_wdm_het_get_fstat_ll_wrap(
@@ -247,6 +326,129 @@ class SOBBHComputationGroup{
         double T_chunk, double dt, double T, double t_ref, int tdi_type,
         double tukey_alpha,
         int grid_dim, int m_band_half_width);
+
+    // ------------------------------------------------------------------
+    // Signal-heterodyne (v2 polyphase) family. SOBBH duplicate of the
+    // GBComputationGroup::gb_signal_het_*_wrap methods (2026-06-18). Same
+    // arguments, sobbh_ prefix; the *_in_kernel variants take a
+    // SOBBHTDIonTheFly* and regenerate the candidate FD via
+    // sobbh_run_fd_wave_tdi_wrap. See gb_tdi_on_the_fly.hh for the full
+    // per-argument documentation; the algorithm is identical.
+    // ------------------------------------------------------------------
+    void sobbh_signal_het_get_ll_wrap(
+        double *d_h_out, double *h_h_out,
+        cmplx  *fd_rfft_all,
+        cmplx  *c0_sparse_all, cmplx *A0_all, cmplx *A1_all,
+        cmplx  *B0_all, cmplx *B1_all,
+        double *wdm_window, int *n_sparse_local_arr,
+        double *params_cand_all, double *params_ref_all,
+        int    *data_index_all,
+        int     num_bin, int num_data,
+        int     nparams, int f0_idx, int fdot_idx,
+        int     Nf, int Nt, int Nf_active, int Nt_active,
+        int     Nt_layer, int N_sparse_t, int stride,
+        int     ind_min_t, int ind_min_f,
+        int     m_active_half_width,
+        double  layer_df, double dt,
+        int     nchannels, int tdi_type,
+        int     n_rfft, double max_r);
+
+    void sobbh_signal_het_get_ll_sparse_wrap(
+        double *d_h_out, double *h_h_out,
+        cmplx  *X_het_all, int *k_f0_all,
+        cmplx  *c0_sparse_all, cmplx *A0_all, cmplx *A1_all,
+        cmplx  *B0_all, cmplx *B1_all,
+        cmplx  *B0nc_all, cmplx *B1nc_all,
+        double *wdm_window, int *n_sparse_local_arr,
+        double *params_cand_all, double *params_ref_all,
+        int    *data_index_all,
+        int     num_bin, int num_data,
+        int     nparams, int f0_idx, int fdot_idx,
+        int     Nf, int Nt, int Nf_active, int Nt_active,
+        int     Nt_layer, int N_sparse_t, int stride,
+        int     ind_min_t, int ind_min_f,
+        int     m_active_half_width,
+        double  layer_df, double dt,
+        int     nchannels, int tdi_type,
+        int     N_sparse_fd, double max_r, int project_real);
+
+    void sobbh_signal_het_get_ll_in_kernel_wrap(
+        SOBBHTDIonTheFly *tdi_on_fly,
+        double *d_h_out, double *h_h_out,
+        cmplx  *c0_sparse_all,
+        cmplx  *A0_all, cmplx *A1_all,
+        cmplx  *B0_all, cmplx *B1_all,
+        cmplx  *B0nc_all, cmplx *B1nc_all,
+        double *wdm_window, int *n_sparse_local_arr,
+        double *params_cand_all, double *params_ref_all,
+        int    *data_index_all,
+        int     num_bin, int num_data,
+        int     nparams, int f0_idx, int fdot_idx,
+        int     Nf, int Nt, int Nf_active, int Nt_active,
+        int     Nt_layer, int N_sparse_t, int stride,
+        int     ind_min_t, int ind_min_f,
+        int     m_active_half_width,
+        double  layer_df, double dt,
+        double  T_obs, double t_start,
+        int     nchannels, int tdi_type,
+        int     N_sparse_fd, double tukey_alpha, double max_r, int project_real);
+
+    void sobbh_signal_het_fill_global_sparse_wrap(
+        double *template_fill,
+        cmplx  *X_het_all, int *k_f0_all,
+        cmplx  *c0_sparse_all, cmplx *c0_dense_complex_all,
+        double *wdm_window, int *n_sparse_local_arr,
+        double *params_cand_all, double *params_ref_all, double *factors_all,
+        int    *data_index_all,
+        int     num_bin, int num_data,
+        int     nparams, int f0_idx, int fdot_idx,
+        int     Nf, int Nt, int Nf_active, int Nt_active,
+        int     Nt_layer, int N_sparse_t, int stride,
+        int     ind_min_t, int ind_min_f,
+        int     m_active_half_width,
+        double  layer_df, double dt,
+        int     nchannels,
+        int     N_sparse_fd, double max_r);
+
+    void sobbh_signal_het_fill_global_in_kernel_wrap(
+        SOBBHTDIonTheFly *tdi_on_fly,
+        double *template_fill,
+        cmplx  *c0_sparse_all, cmplx *c0_dense_complex_all,
+        double *wdm_window, int *n_sparse_local_arr,
+        double *params_cand_all, double *params_ref_all, double *factors_all,
+        int    *data_index_all,
+        int     num_bin, int num_data,
+        int     nparams, int f0_idx, int fdot_idx,
+        int     Nf, int Nt, int Nf_active, int Nt_active,
+        int     Nt_layer, int N_sparse_t, int stride,
+        int     ind_min_t, int ind_min_f,
+        int     m_active_half_width,
+        double  layer_df, double dt,
+        double  T_obs, double t_start,
+        int     nchannels,
+        int     N_sparse_fd, double tukey_alpha, double max_r);
+
+    void sobbh_signal_het_get_ll_grad_in_kernel_wrap(
+        SOBBHTDIonTheFly *tdi_on_fly,
+        double *grad_out,
+        double *d_h_central, double *h_h_central,
+        cmplx  *c0_sparse_all,
+        cmplx  *A0_all, cmplx *A1_all,
+        cmplx  *B0_all, cmplx *B1_all,
+        double *wdm_window, int *n_sparse_local_arr,
+        double *params_cand_all, double *params_ref_all,
+        int    *data_index_all,
+        double *param_eps,
+        int     num_bin, int num_data,
+        int     nparams, int f0_idx, int fdot_idx,
+        int     Nf, int Nt, int Nf_active, int Nt_active,
+        int     Nt_layer, int N_sparse_t, int stride,
+        int     ind_min_t, int ind_min_f,
+        int     m_active_half_width,
+        double  layer_df, double dt,
+        double  T_obs, double t_start,
+        int     nchannels, int tdi_type,
+        int     N_sparse_fd, double tukey_alpha, double max_r);
 };
 
 #endif // __SOBBH_TDI_ON_THE_FLY_HH__

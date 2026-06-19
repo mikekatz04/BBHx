@@ -546,7 +546,7 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
         int nchannels, int n_rfft_chunk,
         double T_chunk, double dt, double T, double t_ref,
         double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
-        int m_band_half_width);
+        int m_band_half_width, bool active_band);
 
     void sobbh_wdm_het_get_ll(
         array_type<double> d_h_out, array_type<double> h_h_out,
@@ -566,7 +566,8 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
         double T_chunk, double dt, double T, double t_ref, int tdi_type,
         double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
         array_type<int> binary_perm, array_type<int> group_starts, array_type<int> group_ends,
-        array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups);
+        array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups,
+        int m_band_half_width);
 
     void sobbh_wdm_het_swap_ll(
         array_type<double> d_h_add_out, array_type<double> d_h_remove_out,
@@ -589,7 +590,8 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
         double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
         array_type<int> binary_perm, array_type<int> group_starts, array_type<int> group_ends,
         array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups,
-        array_type<int> pair_m_lo_b, array_type<int> pair_m_hi_b);
+        array_type<int> pair_m_lo_b, array_type<int> pair_m_hi_b,
+        int m_band_half_width);
 
     void sobbh_wdm_het_get_fstat_ll(
         array_type<double> N_arr_re_out, array_type<double> N_arr_im_out,
@@ -609,6 +611,131 @@ class SOBBHComputationGroupWrap: public SOBBHComputationGroup, public ReturnPoin
         int nchannels, int n_rfft_chunk,
         double T_chunk, double dt, double T, double t_ref, int tdi_type,
         double tukey_alpha, int grid_dim, int m_band_half_width);
+
+    // ---- Signal-heterodyne (v2 polyphase) pybind shims --------------------
+    // Mirror of GBComputationGroupWrap's gb_signal_het_* nanobind methods;
+    // the *_in_kernel ones take a SOBBHTDIonTheFlyWrap* and unbox to the
+    // underlying SOBBHTDIonTheFly* via ->waveform.
+    void sobbh_signal_het_get_ll(
+        array_type<double> d_h_out, array_type<double> h_h_out,
+        array_type<std::complex<double>> fd_rfft_all,
+        array_type<std::complex<double>> c0_sparse_all,
+        array_type<std::complex<double>> A0_all,
+        array_type<std::complex<double>> A1_all,
+        array_type<std::complex<double>> B0_all,
+        array_type<std::complex<double>> B1_all,
+        array_type<double> wdm_window,
+        array_type<int> n_sparse_local_arr,
+        array_type<double> params_cand_all,
+        array_type<double> params_ref_all,
+        array_type<int> data_index_all,
+        int num_bin, int num_data,
+        int nparams, int f0_idx, int fdot_idx,
+        int Nf, int Nt, int Nf_active, int Nt_active,
+        int Nt_layer, int N_sparse_t, int stride,
+        int ind_min_t, int ind_min_f,
+        int m_active_half_width,
+        double layer_df, double dt,
+        int nchannels, int tdi_type,
+        int n_rfft, double max_r);
+
+    void sobbh_signal_het_get_ll_sparse(
+        array_type<double> d_h_out, array_type<double> h_h_out,
+        array_type<std::complex<double>> X_het_all,
+        array_type<int> k_f0_all,
+        array_type<std::complex<double>> c0_sparse_all,
+        array_type<std::complex<double>> A0_all,
+        array_type<std::complex<double>> A1_all,
+        array_type<std::complex<double>> B0_all,
+        array_type<std::complex<double>> B1_all,
+        array_type<double> wdm_window,
+        array_type<int> n_sparse_local_arr,
+        array_type<double> params_cand_all,
+        array_type<double> params_ref_all,
+        array_type<int> data_index_all,
+        int num_bin, int num_data,
+        int nparams, int f0_idx, int fdot_idx,
+        int Nf, int Nt, int Nf_active, int Nt_active,
+        int Nt_layer, int N_sparse_t, int stride,
+        int ind_min_t, int ind_min_f,
+        int m_active_half_width,
+        double layer_df, double dt,
+        int nchannels, int tdi_type,
+        int N_sparse_fd, double max_r);
+
+    void sobbh_signal_het_get_ll_in_kernel(
+        SOBBHTDIonTheFlyWrap *tdi_wrap,
+        array_type<double> d_h_out, array_type<double> h_h_out,
+        array_type<std::complex<double>> c0_sparse_all,
+        array_type<std::complex<double>> A0_all,
+        array_type<std::complex<double>> A1_all,
+        array_type<std::complex<double>> B0_all,
+        array_type<std::complex<double>> B1_all,
+        array_type<std::complex<double>> B0nc_all,
+        array_type<std::complex<double>> B1nc_all,
+        array_type<double> wdm_window,
+        array_type<int> n_sparse_local_arr,
+        array_type<double> params_cand_all,
+        array_type<double> params_ref_all,
+        array_type<int> data_index_all,
+        int num_bin, int num_data,
+        int nparams, int f0_idx, int fdot_idx,
+        int Nf, int Nt, int Nf_active, int Nt_active,
+        int Nt_layer, int N_sparse_t, int stride,
+        int ind_min_t, int ind_min_f,
+        int m_active_half_width,
+        double layer_df, double dt,
+        double T_obs, double t_start,
+        int nchannels, int tdi_type,
+        int N_sparse_fd, double tukey_alpha, double max_r, int project_real);
+
+    void sobbh_signal_het_fill_global_in_kernel(
+        SOBBHTDIonTheFlyWrap *tdi_wrap,
+        array_type<double> template_fill,
+        array_type<std::complex<double>> c0_sparse_all,
+        array_type<std::complex<double>> c0_dense_complex_all,
+        array_type<double> wdm_window,
+        array_type<int> n_sparse_local_arr,
+        array_type<double> params_cand_all,
+        array_type<double> params_ref_all,
+        array_type<double> factors_all,
+        array_type<int> data_index_all,
+        int num_bin, int num_data,
+        int nparams, int f0_idx, int fdot_idx,
+        int Nf, int Nt, int Nf_active, int Nt_active,
+        int Nt_layer, int N_sparse_t, int stride,
+        int ind_min_t, int ind_min_f,
+        int m_active_half_width,
+        double layer_df, double dt,
+        double T_obs, double t_start,
+        int nchannels,
+        int N_sparse_fd, double tukey_alpha, double max_r);
+
+    void sobbh_signal_het_get_ll_grad_in_kernel(
+        SOBBHTDIonTheFlyWrap *tdi_wrap,
+        array_type<double> grad_out,
+        array_type<double> d_h_central, array_type<double> h_h_central,
+        array_type<std::complex<double>> c0_sparse_all,
+        array_type<std::complex<double>> A0_all,
+        array_type<std::complex<double>> A1_all,
+        array_type<std::complex<double>> B0_all,
+        array_type<std::complex<double>> B1_all,
+        array_type<double> wdm_window,
+        array_type<int> n_sparse_local_arr,
+        array_type<double> params_cand_all,
+        array_type<double> params_ref_all,
+        array_type<int> data_index_all,
+        array_type<double> param_eps,
+        int num_bin, int num_data,
+        int nparams, int f0_idx, int fdot_idx,
+        int Nf, int Nt, int Nf_active, int Nt_active,
+        int Nt_layer, int N_sparse_t, int stride,
+        int ind_min_t, int ind_min_f,
+        int m_active_half_width,
+        double layer_df, double dt,
+        double T_obs, double t_start,
+        int nchannels, int tdi_type,
+        int N_sparse_fd, double tukey_alpha, double max_r);
 };
 
 

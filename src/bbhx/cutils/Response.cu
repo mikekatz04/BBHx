@@ -50,7 +50,7 @@ double d_sinc(double x)
 /* # Single-link response
 # 'full' does include the orbital-delay term, 'constellation' does not
  */
-CUDA_CALLABLE_MEMBER
+CUDA_DEVICE
 d_Gslr_holder d_EvaluateGslr(double t, double f, cmplx *H, double *k, int response, double *p0, Orbits *orbits)
 {
     // response == 1 is full, response anything else is constellation
@@ -260,7 +260,7 @@ d_transferL_holder d_TDICombinationFD(d_Gslr_holder Gslr, double f, int TDItag, 
     }
 }
 
-CUDA_CALLABLE_MEMBER
+CUDA_DEVICE
 d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double lam, double beta, int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil, Orbits *orbits)
 {
 
@@ -317,7 +317,7 @@ d_transferL_holder d_JustLISAFDresponseTDI(cmplx *H, double f, double t, double 
  * Michael Katz added this function.
  * internal function that filles amplitude and phase for a specific frequency and mode.
  */
-CUDA_CALLABLE_MEMBER
+CUDA_DEVICE
 void response_modes(double *phases, double *response_out, int binNum, int mode_i, double *tf, double *freqs, double phi_ref, int ell, int mm, int length, int numBinAll, int numModes,
                     cmplx *H, double lam, double beta, int TDItag, bool rescaled, bool tdi2, int order_fresnel_stencil, Orbits *orbits)
 {
@@ -464,7 +464,7 @@ double dot_product_1d(double arr1[3], double arr2[3])
  * This is setup to allow for pre-allocation of arrays. Therefore, all arrays
  * should be setup outside of this function.
  */
-CUDA_CALLABLE_MEMBER
+CUDA_DEVICE
 void responseCore(
     double *phases,
     double *response_out,

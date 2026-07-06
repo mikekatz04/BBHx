@@ -426,7 +426,7 @@ void hdyn(cmplx* likeOut1, cmplx* likeOut2,
 }
 
 #ifdef __CUDACC__
-__device__ double atomicAddDouble(double* address, double val)
+static __device__ double atomicAddDouble(double* address, double val)
 {
     unsigned long long* address_as_ull =
                               (unsigned long long*)address;
@@ -444,7 +444,7 @@ __device__ double atomicAddDouble(double* address, double val)
     return __longlong_as_double(old);
 }
 
-__device__ void atomicAddComplex(cmplx* a, cmplx b){
+static __device__ void atomicAddComplex(cmplx* a, cmplx b){
   //transform the addresses of real and imag. parts to double pointers
   double *x = (double*)a;
   double *y = x+1;

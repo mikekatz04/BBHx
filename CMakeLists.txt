@@ -68,8 +68,12 @@ set(BBHX_MARCH "native"
     CACHE STRING "Value of the -march compiler option if supported by compiler")
 set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_MARCH)
 
-# BBHX_LAPACKE_DETECT_WITH sets the tool used to try to detect LAPACKE locally.
-# Possible values are:
+# GBT_LAPACKE_DETECT_WITH sets the tool used to try to detect LAPACKE locally.
+# The GBT_ prefix is deliberate: detection is delegated to GBT's
+# get_lapacke() (src/bbhx/cutils/CMakeLists.txt includes GBT's
+# cmake_functions.cmake), so the same pip
+# --config-settings=cmake.define.GBT_LAPACKE_*=... flags work across GBT,
+# GBGPU and BBHx. Possible values are:
 #
 # * AUTO: attempts PKGCONFIG and, in case of failure, CMAKE
 # * CMAKE: use CMake find_package() mechanism (try to find
@@ -78,12 +82,12 @@ set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_MARCH)
 #   and its dependencies in standard system locations or in PKG_CONFIG_PATH
 # * DISABLE (or any other value): disable detection of local lapacke
 #   installation
-set(BBHX_LAPACKE_DETECT_WITH "AUTO" CACHE STRING "Tool used to locate LAPACKE.")
-set_property(CACHE BBHX_LAPACKE_DETECT_WITH PROPERTY STRINGS "AUTO" "CMAKE"
+set(GBT_LAPACKE_DETECT_WITH "AUTO" CACHE STRING "Tool used to locate LAPACKE.")
+set_property(CACHE GBT_LAPACKE_DETECT_WITH PROPERTY STRINGS "AUTO" "CMAKE"
                                                     "PKGCONFIG" "DISABLE")
-set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_LAPACKE_DETECT_WITH)
+set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES GBT_LAPACKE_DETECT_WITH)
 
-# BBHX_LAPACKE_FETCH controls whether LAPACKE sources will be downloaded and
+# GBT_LAPACKE_FETCH controls whether LAPACKE sources will be downloaded and
 # compiled with BBHX backends. Possible values are:
 #
 # * AUTO: will try to locate LAPACKE locally and, in case of failure, will
@@ -91,14 +95,14 @@ set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_LAPACKE_DETECT_WITH)
 # * ON: will always fetch LAPACKE sources and compile them, even if already
 #   present locally
 # * OFF: will disable LAPACKE fetching mechanism
-set(BBHX_LAPACKE_FETCH "AUTO" CACHE STRING
+set(GBT_LAPACKE_FETCH "AUTO" CACHE STRING
                                    "Whether to download and compile LAPACK(E)")
-set_property(CACHE BBHX_LAPACKE_FETCH PROPERTY STRINGS "AUTO" "ON" "OFF")
-set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_LAPACKE_FETCH)
+set_property(CACHE GBT_LAPACKE_FETCH PROPERTY STRINGS "AUTO" "ON" "OFF")
+set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES GBT_LAPACKE_FETCH)
 
-# BBHX_LAPACKE_EXTRA_LIBS sets extra libraries that must be linked when linking
+# GBT_LAPACKE_EXTRA_LIBS sets extra libraries that must be linked when linking
 # LAPACKE. For example, if importing the CPU backend fails and complains about
-# missing "gfortran" symbols, set BBHX_LAPACKE_EXTRA_LIBS=gfortran. Note that if
+# missing "gfortran" symbols, set GBT_LAPACKE_EXTRA_LIBS=gfortran. Note that if
 # this option is unset, it will be automatically set to "gfortran" if that
 # library in linkable.
 include(CheckLinkerFlag)
@@ -108,10 +112,10 @@ if(GFORTRAN_AVAILABLE)
 else()
   set(DEFAULT_EXTRA_LIBS "")
 endif()
-set(BBHX_LAPACKE_EXTRA_LIBS "${DEFAULT_EXTRA_LIBS}"
+set(GBT_LAPACKE_EXTRA_LIBS "${DEFAULT_EXTRA_LIBS}"
     CACHE STRING "Extra libs to link to when\
 linking against LAPACKE.")
-set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES BBHX_LAPACKE_EXTRA_LIBS)
+set_property(GLOBAL APPEND PROPERTY BBHX_OPTION_NAMES GBT_LAPACKE_EXTRA_LIBS)
 unset(GFORTRAN_AVAILABLE)
 unset(DEFAULT_EXTRA_LIBS)
 

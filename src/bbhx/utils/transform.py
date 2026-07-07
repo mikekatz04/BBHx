@@ -40,6 +40,21 @@ def mT_q(mT, q):
     return (mT / (1 + q), mT * q / (1 + q))
 
 
+def m1_m2_to_mT_q(m1, m2):
+    """Convert ``m1, m2`` to total mass and mass ratio (inverse of :func:`mT_q`).
+
+    Args:
+        m1 (scalar or np.ndarray): Primary mass.
+        m2 (scalar or np.ndarray): Secondary mass.
+
+    Returns:
+        tuple: ``(mT, q)`` with ``mT = m1 + m2`` and ``q = m2 / m1`` (``q < 1``
+        when ``m1 >= m2``).
+
+    """
+    return (m1 + m2, m2 / m1)
+
+
 def modpi(phase):
     """Modulus with pi as the period
 

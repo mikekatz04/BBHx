@@ -59,6 +59,7 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
     OrbitsWrap *orbits_wrap, TDIConfigWrap *tdi_config_wrap,
     WDMSettingsWrap *wdm_settings_wrap,
     array_type<double> params_all, array_type<double> factors_all,
+    array_type<int> data_index,
     array_type<double> chunk_t_starts,
     array_type<int> chunk_keep_lo, array_type<int> chunk_keep_hi,
     array_type<int> chunk_n_global_offset,
@@ -73,13 +74,29 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
 {
     const int Nf = wdm_settings_wrap->wdm_settings->Nf;
     const int Nt = wdm_settings_wrap->wdm_settings->Nt;
+    // per_template is one template slab; the buffer holds num_templates such
+    // slabs and data_index[bin] routes each binary into its own slab (0 ->
+    // offset 0, backward compatible). Mirrors GBGPU's gb_wdm_het_fill_global.
+    const size_t per_template = active_band
+        ? (size_t) nchannels * wdm_settings_wrap->wdm_settings->Nf_active
+                             * wdm_settings_wrap->wdm_settings->Nt_active
+        : (size_t) nchannels * Nf * Nt;
+    const size_t templ_total = template_fill.size();
+    if (per_template == 0 || (templ_total % per_template) != 0) {
+        throw std::invalid_argument(
+            std::string("template_fill: length ") + std::to_string(templ_total)
+            + " is not an integer multiple of one template slab ("
+            + std::to_string(per_template) + ").");
+    }
+    const int num_templates = (int) (templ_total / per_template);
     sobbh_wdm_het_fill_global_wrap(
         return_pointer_and_check_length(template_fill, "template_fill",
-                                        (size_t) nchannels * Nf * Nt, 1),
+                                        (int) per_template, num_templates),
         orbits_wrap->orbits, tdi_config_wrap->tdi_config,
         wdm_settings_wrap->wdm_settings,
         return_pointer_and_check_length(params_all, "params_all", nparams, num_bin),
         return_pointer_and_check_length(factors_all, "factors_all", num_bin, 1),
+        return_pointer_and_check_length(data_index, "data_index", num_bin, 1),
         return_pointer_and_check_length(chunk_t_starts, "chunk_t_starts", n_chunks, 1),
         return_pointer_and_check_length(chunk_keep_lo, "chunk_keep_lo", n_chunks, 1),
         return_pointer_and_check_length(chunk_keep_hi, "chunk_keep_hi", n_chunks, 1),

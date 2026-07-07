@@ -251,6 +251,7 @@ class SOBBHComputationGroup{
         Orbits *orbits, TDIConfig *tdi_config,
         WDMSettings *wdm_settings,
         double *params_all, double *factors_all,
+        int *data_index_all,
         double *chunk_t_starts, int *chunk_keep_lo, int *chunk_keep_hi,
         int *chunk_n_global_offset,
         double *wdm_window,

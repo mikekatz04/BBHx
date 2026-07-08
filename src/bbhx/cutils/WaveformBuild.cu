@@ -41,13 +41,16 @@ static __device__ void atomicAddComplex(cmplx *a, cmplx b)
 #define DATA_BLOCK 128
 #define NUM_INTERPS 9
 
-CUDA_CALLABLE_MEMBER
+// static: WaveformBuild.cu and SpecialLikelihood.cu each carry these two
+// helpers and both TUs link into the single cbbhx module -- internal
+// linkage avoids an nvlink multiple-definition error.
+static CUDA_CALLABLE_MEMBER
 cmplx get_ampphasefactor(double amp, double phase, double phaseShift)
 {
     return amp * gcmplx::exp(cmplx(0.0, phase + phaseShift));
 }
 
-CUDA_CALLABLE_MEMBER
+static CUDA_CALLABLE_MEMBER
 void combine_information(cmplx *channel1, cmplx *channel2, cmplx *channel3, double amp, double phase, double tf, cmplx transferL1, cmplx transferL2, cmplx transferL3, double t_start, double t_end)
 {
     if (((tf >= t_start)) && ((tf <= t_end) || (t_end <= 0.0)))

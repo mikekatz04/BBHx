@@ -161,16 +161,37 @@ class MBHTDIonFly(BBHxParallelModule):
         _new_times = xp.asarray(new_times[new_mask] + t_merge + self.t0)
 
         nmodes = self.wave_gen.num_modes
-        new_times_arr = xp.repeat(_new_times[None, :], nmodes, axis=0)
 
         amp = xp.asarray(mode_amp[0][:, new_mask[0]])
         phase = xp.asarray(mode_phase[0][:, new_mask[0]])
 
+        # Zero-amplitude / constant-phase tail appended past the last
+        # waveform node. The waveform grid ends ~1400 s after the SSB merger
+        # time, but the merger burst ARRIVES at the constellation at
+        # t_merge + k.x/c (up to ~+500 s, sky-sign dependent), and the
+        # on-the-fly TDI reads the amp/phase splines at retarded times up to
+        # another ~|k.x|/c + delay-chain (~600 s) past each eval point. For
+        # unlucky sky positions those reads land past the node top
+        # ("Outside spline" on MBHB src1 at +0.09 s). The post-ringdown
+        # amplitude at the node top is ~1e-19 of peak, so a zero tail is the
+        # physical continuation; it is never inside the eval window itself.
+        n_tail = 120
+        dt_tail = 10.0
+        tail_t = _new_times[-1] + dt_tail * xp.arange(1, n_tail + 1)
+        _new_times_pad = xp.concatenate([_new_times, tail_t])
+        amp = xp.concatenate([amp, xp.zeros((amp.shape[0], n_tail))], axis=1)
+        phase = xp.concatenate([phase, xp.repeat(phase[:, -1:], n_tail, axis=1)], axis=1)
+
+        new_times_arr = xp.repeat(_new_times_pad[None, :], nmodes, axis=0)
+
         sampling_frequency = 1 / self.dt
 
-        tdi_buffer = int(1000 / self.dt)  # seconds #todo @Mike: how many samples do we have to discard here? I kept getting out of splines error for smaller values
+        # Eval window: same slice of the ORIGINAL (unpadded) grid as always
+        # -- [tdi_buffer : N_orig - tdi_buffer] samples. The appended tail
+        # only serves the spline reads beyond the eval window.
+        tdi_buffer = int(1000 / self.dt)  # samples (~1000 s at the coarse ends)
 
-        eval_t_arr = new_times_arr[:, tdi_buffer:-tdi_buffer]
+        eval_t_arr = new_times_arr[:, tdi_buffer:-(tdi_buffer + n_tail)]
 
         tdi_gen = TDTDIonTheFly(
             eval_t_arr,

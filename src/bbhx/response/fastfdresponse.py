@@ -131,7 +131,7 @@ class LISATDIResponse(BBHxParallelModule):
             )
         else:
             self._orbits = orbits
-        self._orbits.configure(linear_interp_setup=True)
+        self._orbits._ensure_configured()
         assert self._orbits.backend.name.split("_")[-1] == self.backend.name.split("_")[-1]
 
     @property

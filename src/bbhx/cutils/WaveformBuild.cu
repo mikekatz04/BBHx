@@ -5,7 +5,10 @@
 #define NUM_THREADS_BUILD 256
 
 #ifdef __CUDACC__
-__device__ double atomicAddDouble(double *address, double val)
+// static: Likelihood.cu, SpecialLikelihood.cu and WaveformBuild.cu each carry
+// these atomicAdd helpers and all three TUs device-link into the single
+// cbbhx module -- internal linkage avoids an nvlink multiple-definition error.
+static __device__ double atomicAddDouble(double *address, double val)
 {
     unsigned long long *address_as_ull =
         (unsigned long long *)address;
@@ -24,7 +27,7 @@ __device__ double atomicAddDouble(double *address, double val)
     return __longlong_as_double(old);
 }
 
-__device__ void atomicAddComplex(cmplx *a, cmplx b)
+static __device__ void atomicAddComplex(cmplx *a, cmplx b)
 {
     // transform the addresses of real and imag. parts to double pointers
     double *x = (double *)a;

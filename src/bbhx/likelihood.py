@@ -65,7 +65,7 @@ class Likelihood(BBHxParallelModule):
             (list of template arrays, start indices, lengths). See
             :class:`bbhx.waveform.BBHWaveformFD` for more information on this
             return type.
-        phase_marginalize (bool): If ``True``, compute the phase-marginalized
+        phase_maximize (bool): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
         return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
 
@@ -144,7 +144,7 @@ class Likelihood(BBHxParallelModule):
         self,
         params,
         return_extracted_snr=False,
-        phase_marginalize=False,
+        phase_maximize=False,
         **waveform_kwargs
     ):
         """Compute the log-Likelihood
@@ -158,7 +158,7 @@ class Likelihood(BBHxParallelModule):
             of the return array. This produces a return array of
             ``xp.array([log likelihood, snr]).T``. If ``False``, just return
             the log-Likelihood array.
-        phase_marginalize (bool, optional): If ``True``, compute the phase-marginalized
+        phase_maximize (bool, optional): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
         **waveform_kwargs (dict, optional): Keyword arguments for waveform
             generator.
@@ -169,7 +169,7 @@ class Likelihood(BBHxParallelModule):
         """
 
         # store info
-        self.phase_marginalize = phase_marginalize
+        self.phase_maximize = phase_maximize
         self.return_extracted_snr = return_extracted_snr
 
         # setup kwargs properly
@@ -222,7 +222,7 @@ class Likelihood(BBHxParallelModule):
         )
 
         # phase marginalize in d_h term
-        d_h_temp = self.d_h if not self.phase_marginalize else self.xp.abs(self.d_h)
+        d_h_temp = self.d_h if not self.phase_maximize else self.xp.abs(self.d_h)
         out = -1 / 2 * (self.d_d + self.h_h - 2 * d_h_temp).real
         # get out of cupy if needed
         try:
@@ -316,7 +316,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
         psd (double xp.ndarray): :math:`\\sqrt{\\frac{\\Delta f}{S_n(f)}}`.
             1D flattened array of shape: ``(3, len(data_freqs))``.
         return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
-        phase_marginalize (bool): If ``True``, compute the phase-marginalized
+        phase_maximize (bool): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
 
     """
@@ -601,7 +601,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
         self,
         params,
         return_extracted_snr=False,
-        phase_marginalize=False,
+        phase_maximize=False,
         **waveform_kwargs
     ):
         """Compute the log-Likelihood
@@ -615,7 +615,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
             of the return array. This produces a return array of
             ``xp.array([log likelihood, snr]).T``. If ``False``, just return
             the log-Likelihood array.
-        phase_marginalize (bool, optional): If ``True``, compute the phase-marginalized
+        phase_maximize (bool, optional): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
         **waveform_kwargs (dict, optional): Keyword arguments for waveform
             generator. Some may be overwritten. See the main class docstring.
@@ -626,7 +626,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
         """
 
         # store info
-        self.phase_marginalize = phase_marginalize
+        self.phase_maximize = phase_maximize
         self.return_extracted_snr = return_extracted_snr
 
         # setup kwargs
@@ -707,7 +707,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
 
         # if phase marginalize
         d_h_temp = (
-            self.total_d_h if not self.phase_marginalize else self.xp.abs(self.total_d_h)
+            self.total_d_h if not self.phase_maximize else self.xp.abs(self.total_d_h)
         )
 
         # log-Likelihood
@@ -827,7 +827,7 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
             :class:`bbhx.waveform.BBHWaveformFD` for more information on this
             return type.
         return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
-        phase_marginalize (bool): If ``True``, compute the phase-marginalized
+        phase_maximize (bool): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
         use_gpu (bool): If True, using GPU.
         xp (obj): Either numpy or cupy.
@@ -1100,7 +1100,7 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
         self,
         params,
         return_extracted_snr=False,
-        phase_marginalize=False,
+        phase_maximize=False,
         constants_index=None,
         **waveform_kwargs
     ):
@@ -1115,7 +1115,7 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
             of the return array. This produces a return array of
             ``xp.array([log likelihood, snr]).T``. If ``False``, just return
             the log-Likelihood array.
-        phase_marginalize (bool, optional): If ``True``, compute the phase-marginalized
+        phase_maximize (bool, optional): If ``True``, compute the phase-marginalized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
         **waveform_kwargs (dict, optional): Keyword arguments for waveform
             generator. Some may be overwritten. See the main class docstring.
@@ -1126,7 +1126,7 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
         """
 
         # store info
-        self.phase_marginalize = phase_marginalize
+        self.phase_maximize = phase_maximize
         self.return_extracted_snr = return_extracted_snr
 
         # setup kwargs
@@ -1186,7 +1186,7 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
 
         # if phase marginalize
         d_h_temp = (
-            self.hdyn_d_h if not self.phase_marginalize else self.xp.abs(self.hdyn_d_h)
+            self.hdyn_d_h if not self.phase_maximize else self.xp.abs(self.hdyn_d_h)
         )
 
         # log-Likelihood

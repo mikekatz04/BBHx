@@ -718,7 +718,7 @@ class BBHWaveformFD(BBHxParallelModule):
         *waveform_args,
         data_index=None,
         noise_index=None,
-        phase_marginalize=False,
+        phase_maximize=False,
         **waveform_kwargs,
     ):
 
@@ -858,7 +858,7 @@ class BBHWaveformFD(BBHxParallelModule):
             gpu
         )
 
-        if phase_marginalize:
+        if phase_maximize:
             self.non_marg_d_h = d_h.copy()
             d_h = self.xp.abs(d_h)
 

@@ -89,12 +89,9 @@ __all__ = [
     "__version__",
     "__version_tuple__",
     "_is_editable",
-    "get_logger",
-    "get_config",
-    "get_config_setter",
     "get_backend",
-    "get_file_manager",
     "has_backend",
+    "get_first_backend",
     "response",
     "waveforms",
 ]

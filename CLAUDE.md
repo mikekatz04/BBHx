@@ -3,9 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working
 with code in this repository.
 
-## Sprint reorg state (post-Phase-3G, 2026-06-02)
+**LISA Analysis Tools–wide conventions:** [`../LISAanalysistools/docs/conventions.md`](../LISAanalysistools/docs/conventions.md) (canonical). **This repo's map:** [`docs/codebase-map.md`](docs/codebase-map.md).
 
-BBHx is the **MBH + SOBBH-physics owner** in the sprint's layered
+## LISA Analysis Tools reorg state (post-Phase-3G, 2026-06-02)
+
+BBHx is the **MBH + SOBBH-physics owner** in the LISA Analysis Tools layered
 architecture. LISAanalysistools (LAT) owns generic LISA infrastructure;
 BBHx owns MBH (PhenomHM, PhenomTAX) and SOBBH-specific physics.
 
@@ -65,7 +67,7 @@ BBHx owns MBH (PhenomHM, PhenomTAX) and SOBBH-specific physics.
 time-domain MBH TDI-on-the-fly generator, copied from
 `LISAanalysistools/scripts/mbh/mbhtdionfly.py` and converted to a
 library module (`BBHxParallelModule` subclass; backend at
-instantiation via `force_backend`, sprint rule). It composes a
+instantiation via `force_backend`, per the LISA Analysis Tools–wide rule). It composes a
 time-domain amp/phase mode generator (`phentax.waveform.IMRPhenomTHM`)
 with `lisatools.response.tdionfly.TDTDIonTheFly`. Pure Python — no new
 native code. `phentax` (external, `asantini29/phentax`, NOT on PyPI)
@@ -80,11 +82,11 @@ removal.
 **Phentax + sobbhx waveform expansion** (plan section, not yet started):
 the existing `waveforms/phentax/` subpackage will house the PhenomTAX
 waveform implementation; a new `waveforms/sobbhx/` will house the
-sobbhx waveform currently in sprint-tree scripts. Each gets a
+sobbhx waveform currently in scripts across the LISA Analysis Tools repos. Each gets a
 `waveforms/<name>/` Python frontend + a `cutils/<Name>Waveform.cu`
 kernel.
 
-**Single-registrant rule (sprint-wide)**: BBHx's binding TUs MUST NOT
+**Single-registrant rule (LISA Analysis Tools–wide)**: BBHx's binding TUs MUST NOT
 register `OrbitsWrap`, `LISAResponseWrap`, `TDIConfigWrap`, or
 `CubicSplineWrap`. The first three are owned by LAT's `pycppdetector`;
 `CubicSplineWrap` is owned by GBT's `interp` module (2026-06-10). (The
@@ -93,7 +95,7 @@ in favor of the canonical `OrbitsWrap`.) When BBHx receives its tdionthefly
 module, add `#include "lisatools_header_abi.hpp"` +
 `static_assert(!LISATOOLS_IS_WRAPPER_OWNER, ...)` to its binding source
 (see `lisa-on-gpu/src/fastlisaresponse/cutils/binding_tof.cxx` for the
-pattern). Sprint-root `tools/check_single_registrant.sh` is the CI
+pattern). The umbrella workspace's `tools/check_single_registrant.sh` is the CI
 grep complement.
 
 **Editable-install requirement**: BBHx was installed to site-packages
@@ -102,7 +104,7 @@ ONLY visible if the package is installed editably (`pip install -e .`
 from `BBHx/`). When developing Phase 3+, ensure the editable install
 is current.
 
-## Backend implementation hierarchy (sprint-wide rule)
+## Backend implementation hierarchy (LISA Analysis Tools–wide rule)
 
 When implementing or modifying an algorithm that exists across multiple
 backends (GPU C++ / CPU C++ / JAX), follow this hierarchy:

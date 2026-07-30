@@ -416,28 +416,36 @@ double SOBBHTDIonTheFly::sobbh_fdot(double t, double *params)
     return (f_plus - f_minus) / (2.0 * dt_fd);
 }
 
+// Reference-epoch convention (t_ref fix, 2026-07-30): f_low and phi_c are
+// defined at t = t_ref (the LAT frontend has always documented this), so the
+// PN intrinsics are evaluated at t - t_ref. Applied at these four virtual
+// wrappers -- the single seam every consumer (dense TD reference, chunked-het
+// kernels, sig-het) goes through -- so all paths stay mutually consistent.
+// Before this fix t_ref was stored but never used: f_low was effectively
+// defined at absolute t = 0, silently wrong for any t_ref != 0 grid (e.g.
+// the mojito frame, data_t0 ~ 9.77e7 s).
 CUDA_DEVICE
 double SOBBHTDIonTheFly::get_amp(double t, double *params, int bin_i)
 {
-    return sobbh_amplitude(t, params);
+    return sobbh_amplitude(t - t_ref, params);
 }
 
 CUDA_DEVICE
 double SOBBHTDIonTheFly::get_phase(double t, double *params, int bin_i)
 {
-    return sobbh_phase(t, params);
+    return sobbh_phase(t - t_ref, params);
 }
 
 CUDA_DEVICE
 double SOBBHTDIonTheFly::get_f(double t, double *params, int bin_i)
 {
-    return sobbh_f(t, params);
+    return sobbh_f(t - t_ref, params);
 }
 
 CUDA_DEVICE
 double SOBBHTDIonTheFly::get_fdot(double t, double *params, int bin_i)
 {
-    return sobbh_fdot(t, params);
+    return sobbh_fdot(t - t_ref, params);
 }
 
 CUDA_DEVICE

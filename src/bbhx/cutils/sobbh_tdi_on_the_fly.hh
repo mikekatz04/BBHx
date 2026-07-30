@@ -81,12 +81,17 @@
 //   2: chi1z       (dimensionless aligned spin)
 //   3: chi2z       (dimensionless aligned spin)
 //   4: distance    (parsecs)
-//   5: f_low       (Hz, "f0" alias for unified kernels)
-//   6: phi_c       (rad)
+//   5: f_low       (Hz, "f0" alias for unified kernels; GW frequency AT t_ref)
+//   6: phi_c       (rad; reference orbital phase AT t_ref)
 //   7: iota        (rad)
 //   8: psi         (rad)
 //   9: lam         (rad, ecliptic longitude)
 //  10: beta        (rad, ecliptic latitude)
+//
+// Reference epoch: f_low and phi_c are defined at t = t_ref (the constructor
+// argument). The get_amp/get_phase/get_f/get_fdot virtuals evaluate the PN
+// intrinsics at t - t_ref (t_ref fix 2026-07-30; previously t_ref was stored
+// but unused, i.e. the reference epoch was silently absolute t = 0).
 // ============================================================================
 class SOBBHTDIonTheFly : public LISATDIonTheFly{
     public:

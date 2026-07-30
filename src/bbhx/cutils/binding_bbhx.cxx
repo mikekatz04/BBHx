@@ -70,15 +70,20 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
     int nchannels, int n_rfft_chunk,
     double T_chunk, double dt, double T, double t_ref,
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
-    int m_band_half_width, bool active_band)
+    int m_band_half_width, bool active_band,
+    int Nf_slab, array_type<int> slab_min_f)   // task-b per-band slab (0/empty = off)
 {
     const int Nf = wdm_settings_wrap->wdm_settings->Nf;
     const int Nt = wdm_settings_wrap->wdm_settings->Nt;
+    // Task-b: a narrow per-band slab covers Nf_slab layers instead of the full
+    // Nf_active (only in active_band mode). Nf_slab<=0 keeps the full extent.
+    const int slab_Nf = (Nf_slab > 0)
+        ? Nf_slab : wdm_settings_wrap->wdm_settings->Nf_active;
     // per_template is one template slab; the buffer holds num_templates such
     // slabs and data_index[bin] routes each binary into its own slab (0 ->
     // offset 0, backward compatible). Mirrors GBGPU's gb_wdm_het_fill_global.
     const size_t per_template = active_band
-        ? (size_t) nchannels * wdm_settings_wrap->wdm_settings->Nf_active
+        ? (size_t) nchannels * slab_Nf
                              * wdm_settings_wrap->wdm_settings->Nt_active
         : (size_t) nchannels * Nf * Nt;
     const size_t templ_total = template_fill.size();
@@ -107,7 +112,10 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_fill_global(
         N_sparse, log2_N_sparse,
         nchannels, n_rfft_chunk,
         T_chunk, dt, T, t_ref, tukey_alpha, grid_dim, N_cp_sig, N_cp_orbit,
-        m_band_half_width, active_band);
+        m_band_half_width, active_band,
+        Nf_slab,
+        (slab_min_f.size() > 0
+             ? return_pointer(slab_min_f, "slab_min_f") : nullptr));
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
@@ -129,10 +137,14 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
     array_type<int> binary_perm, array_type<int> group_starts, array_type<int> group_ends,
     array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups,
-    int m_band_half_width)
+    int m_band_half_width,
+    int Nf_slab, array_type<int> slab_min_f)   // task-b per-band slab (0/empty = off)
 {
     const int gn = (n_groups > 0) ? n_groups : 1;
-    const int Nf_active = wdm_settings_wrap->wdm_settings->Nf_active;
+    // Task-b: per-band slab covers Nf_slab layers (full Nf_active when Nf_slab<=0).
+    // The data_d/invC per-slab size checks below key off this extent.
+    const int Nf_active = (Nf_slab > 0)
+        ? Nf_slab : wdm_settings_wrap->wdm_settings->Nf_active;
     const int Nt_active = wdm_settings_wrap->wdm_settings->Nt_active;
     sobbh_wdm_het_get_ll_wrap(
         return_pointer_and_check_length(d_h_out, "d_h_out", num_bin, 1),
@@ -147,15 +159,23 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
         return_pointer_and_check_length(chunk_keep_hi, "chunk_keep_hi", n_chunks, 1),
         return_pointer_and_check_length(chunk_n_global_offset, "chunk_n_global_offset", n_chunks, 1),
         return_pointer_and_check_length(wdm_window, "wdm_window", Nt_sub, 1),
-        return_pointer_and_check_length(
-            data_d, "data_d",
-            (size_t) nchannels * Nf_active * Nt_active, 1),
-        return_pointer_and_check_length(
-            invC, "invC",
-            ((tdi_type == TDI_XYZ)
-                 ? (size_t) nchannels * nchannels * Nf_active * Nt_active
-                 : (size_t) nchannels * Nf_active * Nt_active),
-            1),
+        // data_d / invC may hold ANY whole number of (walker, band) slabs --
+        // the kernels stride into them via data_index / noise_index. Require
+        // whole slabs only (per-slab strides below).
+        (data_d.size() % ((size_t) nchannels * Nf_active * Nt_active) == 0
+             && data_d.size() > 0
+             ? return_pointer(data_d, "data_d")
+             : throw std::invalid_argument(
+                   "data_d: length must be a positive multiple of "
+                   "nchannels * Nf_active * Nt_active.")),
+        (invC.size() % ((tdi_type == TDI_XYZ)
+                            ? (size_t) nchannels * nchannels * Nf_active * Nt_active
+                            : (size_t) nchannels * Nf_active * Nt_active) == 0
+             && invC.size() > 0
+             ? return_pointer(invC, "invC")
+             : throw std::invalid_argument(
+                   "invC: length must be a positive multiple of the "
+                   "per-slab inverse-covariance size.")),
         n_chunks, num_bin, nparams,
         Nt_sub, log2_Nt_sub,
         N_sparse, log2_N_sparse,
@@ -166,7 +186,10 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_ll(
         return_pointer_and_check_length(group_ends,   "group_ends",   gn, 1),
         return_pointer_and_check_length(group_m_lo,   "group_m_lo",   gn, 1),
         return_pointer_and_check_length(group_m_hi,   "group_m_hi",   gn, 1),
-        n_groups, m_band_half_width);
+        n_groups, m_band_half_width,
+        Nf_slab,
+        (slab_min_f.size() > 0
+             ? return_pointer(slab_min_f, "slab_min_f") : nullptr));
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
@@ -191,10 +214,13 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
     array_type<int> binary_perm, array_type<int> group_starts, array_type<int> group_ends,
     array_type<int> group_m_lo, array_type<int> group_m_hi, int n_groups,
     array_type<int> pair_m_lo_b, array_type<int> pair_m_hi_b,
-    int m_band_half_width)
+    int m_band_half_width,
+    int Nf_slab, array_type<int> slab_min_f)   // task-b per-band slab (0/empty = off)
 {
     const int gn = (n_groups > 0) ? n_groups : 1;
-    const int Nf_active = wdm_settings_wrap->wdm_settings->Nf_active;
+    // Task-b: per-band slab covers Nf_slab layers (full Nf_active when Nf_slab<=0).
+    const int Nf_active = (Nf_slab > 0)
+        ? Nf_slab : wdm_settings_wrap->wdm_settings->Nf_active;
     const int Nt_active = wdm_settings_wrap->wdm_settings->Nt_active;
     sobbh_wdm_het_swap_ll_wrap(
         return_pointer_and_check_length(d_h_add_out,       "d_h_add_out",       num_bin, 1),
@@ -213,15 +239,21 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
         return_pointer_and_check_length(chunk_keep_hi,     "chunk_keep_hi",     n_chunks, 1),
         return_pointer_and_check_length(chunk_n_global_offset, "chunk_n_global_offset", n_chunks, 1),
         return_pointer_and_check_length(wdm_window, "wdm_window", Nt_sub, 1),
-        return_pointer_and_check_length(
-            data_d, "data_d",
-            (size_t) nchannels * Nf_active * Nt_active, 1),
-        return_pointer_and_check_length(
-            invC, "invC",
-            ((tdi_type == TDI_XYZ)
-                 ? (size_t) nchannels * nchannels * Nf_active * Nt_active
-                 : (size_t) nchannels * Nf_active * Nt_active),
-            1),
+        // whole-multiple slab checks (see sobbh_wdm_het_get_ll)
+        (data_d.size() % ((size_t) nchannels * Nf_active * Nt_active) == 0
+             && data_d.size() > 0
+             ? return_pointer(data_d, "data_d")
+             : throw std::invalid_argument(
+                   "data_d: length must be a positive multiple of "
+                   "nchannels * Nf_active * Nt_active.")),
+        (invC.size() % ((tdi_type == TDI_XYZ)
+                            ? (size_t) nchannels * nchannels * Nf_active * Nt_active
+                            : (size_t) nchannels * Nf_active * Nt_active) == 0
+             && invC.size() > 0
+             ? return_pointer(invC, "invC")
+             : throw std::invalid_argument(
+                   "invC: length must be a positive multiple of the "
+                   "per-slab inverse-covariance size.")),
         n_chunks, num_bin, nparams,
         Nt_sub, log2_Nt_sub,
         N_sparse, log2_N_sparse,
@@ -235,7 +267,10 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_swap_ll(
         n_groups,
         return_pointer_and_check_length(pair_m_lo_b, "pair_m_lo_b", num_bin, 1),
         return_pointer_and_check_length(pair_m_hi_b, "pair_m_hi_b", num_bin, 1),
-        m_band_half_width);
+        m_band_half_width,
+        Nf_slab,
+        (slab_min_f.size() > 0
+             ? return_pointer(slab_min_f, "slab_min_f") : nullptr));
 }
 
 void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
@@ -255,9 +290,12 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
     int N_sparse, int log2_N_sparse,
     int nchannels, int n_rfft_chunk,
     double T_chunk, double dt, double T, double t_ref, int tdi_type,
-    double tukey_alpha, int grid_dim, int m_band_half_width)
+    double tukey_alpha, int grid_dim, int m_band_half_width,
+    int Nf_slab, array_type<int> slab_min_f)   // task-b per-band slab (0/empty = off)
 {
-    const int Nf_active = wdm_settings_wrap->wdm_settings->Nf_active;
+    // Task-b: per-band slab covers Nf_slab layers (full Nf_active when Nf_slab<=0).
+    const int Nf_active = (Nf_slab > 0)
+        ? Nf_slab : wdm_settings_wrap->wdm_settings->Nf_active;
     const int Nt_active = wdm_settings_wrap->wdm_settings->Nt_active;
     sobbh_wdm_het_get_fstat_ll_wrap(
         return_pointer_and_check_length(N_arr_re_out, "N_arr_re_out", num_bin, 4),
@@ -274,21 +312,30 @@ void SOBBHComputationGroupWrap::sobbh_wdm_het_get_fstat_ll(
         return_pointer_and_check_length(chunk_keep_hi, "chunk_keep_hi", n_chunks, 1),
         return_pointer_and_check_length(chunk_n_global_offset, "chunk_n_global_offset", n_chunks, 1),
         return_pointer_and_check_length(wdm_window, "wdm_window", Nt_sub, 1),
-        return_pointer_and_check_length(
-            data_d, "data_d",
-            (size_t) nchannels * Nf_active * Nt_active, 1),
-        return_pointer_and_check_length(
-            invC, "invC",
-            ((tdi_type == TDI_XYZ)
-                 ? (size_t) nchannels * nchannels * Nf_active * Nt_active
-                 : (size_t) nchannels * Nf_active * Nt_active),
-            1),
+        // whole-multiple slab checks (see sobbh_wdm_het_get_ll)
+        (data_d.size() % ((size_t) nchannels * Nf_active * Nt_active) == 0
+             && data_d.size() > 0
+             ? return_pointer(data_d, "data_d")
+             : throw std::invalid_argument(
+                   "data_d: length must be a positive multiple of "
+                   "nchannels * Nf_active * Nt_active.")),
+        (invC.size() % ((tdi_type == TDI_XYZ)
+                            ? (size_t) nchannels * nchannels * Nf_active * Nt_active
+                            : (size_t) nchannels * Nf_active * Nt_active) == 0
+             && invC.size() > 0
+             ? return_pointer(invC, "invC")
+             : throw std::invalid_argument(
+                   "invC: length must be a positive multiple of the "
+                   "per-slab inverse-covariance size.")),
         n_chunks, num_bin, nparams,
         Nt_sub, log2_Nt_sub,
         N_sparse, log2_N_sparse,
         nchannels, n_rfft_chunk,
         T_chunk, dt, T, t_ref, tdi_type,
-        tukey_alpha, grid_dim, m_band_half_width);
+        tukey_alpha, grid_dim, m_band_half_width,
+        Nf_slab,
+        (slab_min_f.size() > 0
+             ? return_pointer(slab_min_f, "slab_min_f") : nullptr));
 }
 
 

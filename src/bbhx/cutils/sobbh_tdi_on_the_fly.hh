@@ -262,7 +262,8 @@ class SOBBHComputationGroup{
         double T_chunk, double dt, double T, double t_ref,
         double tukey_alpha,
         int grid_dim, int N_cp_sig, int N_cp_orbit,
-        int m_band_half_width, bool active_band = false);
+        int m_band_half_width, bool active_band = false,
+        int Nf_slab = 0, int *slab_min_f = nullptr);  // task-b per-band slab
 
     void sobbh_wdm_het_get_ll_wrap(
         double *d_h_out, double *h_h_out,
@@ -283,7 +284,8 @@ class SOBBHComputationGroup{
         int grid_dim, int N_cp_sig, int N_cp_orbit,
         int *binary_perm, int *group_starts, int *group_ends,
         int *group_m_lo, int *group_m_hi, int n_groups,
-        int m_band_half_width);
+        int m_band_half_width,
+        int Nf_slab = 0, int *slab_min_f = nullptr);  // task-b per-band slab
 
     void sobbh_wdm_het_swap_ll_wrap(
         double *d_h_add_out, double *d_h_remove_out,
@@ -306,7 +308,8 @@ class SOBBHComputationGroup{
         int *binary_perm, int *group_starts, int *group_ends,
         int *group_m_lo, int *group_m_hi, int n_groups,
         int *pair_m_lo_b, int *pair_m_hi_b,
-        int m_band_half_width);
+        int m_band_half_width,
+        int Nf_slab = 0, int *slab_min_f = nullptr);  // task-b per-band slab
 
     // F-stat (chunked-heterodyne); see GBComputationGroup::gb_wdm_het_get_fstat_ll_wrap.
     void sobbh_wdm_het_get_fstat_ll_wrap(
@@ -326,7 +329,8 @@ class SOBBHComputationGroup{
         int nchannels, int n_rfft_chunk,
         double T_chunk, double dt, double T, double t_ref, int tdi_type,
         double tukey_alpha,
-        int grid_dim, int m_band_half_width);
+        int grid_dim, int m_band_half_width,
+        int Nf_slab = 0, int *slab_min_f = nullptr);  // task-b per-band slab
 
     // ------------------------------------------------------------------
     // Signal-heterodyne (v2 polyphase) family. SOBBH duplicate of the

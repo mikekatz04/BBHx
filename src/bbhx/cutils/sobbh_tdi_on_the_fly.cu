@@ -526,7 +526,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_fill_global_wrap(
     int nchannels, int n_rfft_chunk,
     double T_chunk, double dt, double T, double t_ref,
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
-    int m_band_half_width, bool active_band)
+    int m_band_half_width, bool active_band,
+    int Nf_slab, int *slab_min_f)
 {
     wdm_het_fill_global_impl<SOBBHTDIonTheFly>(
         template_fill, orbits, tdi_config,
@@ -537,7 +538,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_fill_global_wrap(
         wdm_window, n_chunks, num_bin, nparams,
         Nt_sub, log2_Nt_sub, N_sparse, log2_N_sparse,
         nchannels, n_rfft_chunk, T_chunk, dt, T, t_ref, tukey_alpha,
-        grid_dim, N_cp_sig, N_cp_orbit, m_band_half_width, active_band);
+        grid_dim, N_cp_sig, N_cp_orbit, m_band_half_width, active_band,
+        Nf_slab, slab_min_f);
 }
 
 void SOBBHComputationGroup::sobbh_wdm_het_get_ll_wrap(
@@ -555,7 +557,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_get_ll_wrap(
     double tukey_alpha, int grid_dim, int N_cp_sig, int N_cp_orbit,
     int *binary_perm, int *group_starts, int *group_ends,
     int *group_m_lo, int *group_m_hi, int n_groups,
-    int m_band_half_width)
+    int m_band_half_width,
+    int Nf_slab, int *slab_min_f)
 {
     wdm_het_get_ll_impl<SOBBHTDIonTheFly>(
         d_h_out, h_h_out, orbits, tdi_config,
@@ -569,7 +572,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_get_ll_wrap(
         T_chunk, dt, T, t_ref, tdi_type, tukey_alpha,
         grid_dim, N_cp_sig, N_cp_orbit,
         binary_perm, group_starts, group_ends,
-        group_m_lo, group_m_hi, n_groups, m_band_half_width);
+        group_m_lo, group_m_hi, n_groups, m_band_half_width,
+        Nf_slab, slab_min_f);
 }
 
 void SOBBHComputationGroup::sobbh_wdm_het_swap_ll_wrap(
@@ -591,7 +595,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_swap_ll_wrap(
     int *binary_perm, int *group_starts, int *group_ends,
     int *group_m_lo, int *group_m_hi, int n_groups,
     int *pair_m_lo_b, int *pair_m_hi_b,
-    int m_band_half_width)
+    int m_band_half_width,
+    int Nf_slab, int *slab_min_f)
 {
     wdm_het_swap_ll_impl<SOBBHTDIonTheFly>(
         d_h_add_out, d_h_remove_out, add_add_out, remove_remove_out, add_remove_out,
@@ -607,7 +612,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_swap_ll_wrap(
         grid_dim, N_cp_sig, N_cp_orbit,
         binary_perm, group_starts, group_ends,
         group_m_lo, group_m_hi, n_groups,
-        pair_m_lo_b, pair_m_hi_b, m_band_half_width);
+        pair_m_lo_b, pair_m_hi_b, m_band_half_width,
+        Nf_slab, slab_min_f);
 }
 
 
@@ -628,7 +634,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_get_fstat_ll_wrap(
     int nchannels, int n_rfft_chunk,
     double T_chunk, double dt, double T, double t_ref, int tdi_type,
     double tukey_alpha,
-    int grid_dim, int m_band_half_width)
+    int grid_dim, int m_band_half_width,
+    int Nf_slab, int *slab_min_f)
 {
     wdm_het_get_fstat_ll_impl<SOBBHTDIonTheFly>(
         N_arr_re_out, N_arr_im_out, M_mat_re_out, M_mat_im_out,
@@ -640,7 +647,8 @@ void SOBBHComputationGroup::sobbh_wdm_het_get_fstat_ll_wrap(
         Nt_sub, log2_Nt_sub, N_sparse, log2_N_sparse,
         nchannels, n_rfft_chunk,
         T_chunk, dt, T, t_ref, tdi_type, tukey_alpha,
-        grid_dim, m_band_half_width);
+        grid_dim, m_band_half_width,
+        Nf_slab, slab_min_f);
 }
 
 

@@ -364,8 +364,21 @@ double SOBBHTDIonTheFly::sobbh_phase(double t, double *params)
     double tau = eta * (tc - t) / (5.0 * M);
     double x   = sobbh_tau_to_x_fn(tau, sigma, delta, eta, s_pn);
 
-    double phi_orbital = phi_c - sobbh_phase_fn(x, sigma, delta, eta, s_pn);
-    return 2.0 * phi_orbital;
+    // Reference-epoch anchor + feed convention (2026-07-30), matching the
+    // June-2026 fixes in lisatools' python SOBBHWaveform: the PN phase_fn
+    // anchors phase = 0 at MERGER, but phi_c is the ORBITAL phase at the
+    // REFERENCE epoch (t = t_ref, where f = f_low) -- add + phase(x_ref)
+    // so Phi(t_ref) == phi_c. The + pi matches the validated python feed
+    // convention (phase = 2*Phi + pi into the shared get_hp_hc, whose
+    // cos/sin split carries the overall minus). Without these two terms
+    // the C++ phase differed from the python reference by a constant,
+    // PARAMETER-DEPENDENT offset (measured exactly pi at the full_year
+    // test source -- a global sign flip there).
+    double tau_ref = eta * tc / (5.0 * M);
+    double x_ref   = sobbh_tau_to_x_fn(tau_ref, sigma, delta, eta, s_pn);
+    double phi_orbital = phi_c - sobbh_phase_fn(x, sigma, delta, eta, s_pn)
+                       + sobbh_phase_fn(x_ref, sigma, delta, eta, s_pn);
+    return 2.0 * phi_orbital + M_PI;
 }
 
 CUDA_DEVICE

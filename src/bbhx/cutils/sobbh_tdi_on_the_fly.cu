@@ -826,8 +826,15 @@ void sobbhfd_build_one_source(SOBBHTDIonTheFly *tof, void *shared_mem,
         for (int c = 0; c < nchannels; ++c)
         {
             const double th = tdi_phase[c * N + n] + phref - carrier;
-            tdi_chan[c * N + n] =
-                gcmplx::polar(tdi_amp[c * N + n] * w, th);
+            // Direct cos/sin assembly, NOT gcmplx::polar: the amp/phase
+            // extraction returns a SIGNED amplitude (envelope sign flips
+            // booked at null crossings with +pi folded into the phase),
+            // and polar() returns (NaN,NaN) for negative rho -- the NaN
+            // scrub below then silently ZEROES the whole flip span
+            // (GB twin bug root-caused 2026-08-02; bit-identical to
+            // polar for rho >= 0).
+            const double aw = tdi_amp[c * N + n] * w;
+            tdi_chan[c * N + n] = cmplx(aw * cos(th), aw * sin(th));
         }
     }
     CUDA_SYNC_THREADS;

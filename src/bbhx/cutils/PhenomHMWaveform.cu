@@ -2595,7 +2595,7 @@ void calculate_modes_phenomd(int binNum, double *amps, double *phases, double *t
     double eps = 1e-9;
 
     int start, increment;
-#ifdef __CUDACC__
+#if defined(__CUDA_ARCH__)
     start = threadIdx.x;
     increment = blockDim.x;
 #else
@@ -2637,7 +2637,7 @@ void calculate_modes(int binNum, int mode_i, double *amps, double *phases, doubl
     double eps = 1e-9;
 
     int start, increment;
-#ifdef __CUDACC__
+#if defined(__CUDA_ARCH__)
     start = threadIdx.x;
     increment = blockDim.x;
 #else

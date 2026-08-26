@@ -2595,7 +2595,18 @@ void calculate_modes_phenomd(int binNum, double *amps, double *phases, double *t
     double eps = 1e-9;
 
     int start, increment;
-#ifdef __CUDACC__
+    // __CUDA_ARCH__, NOT __CUDACC__ (2026-08-26): this function is
+    // CUDA_CALLABLE_MEMBER (__host__ __device__), so nvcc ALSO emits a
+    // host version -- and __CUDACC__ is defined in BOTH nvcc passes.
+    // Guarded by __CUDACC__, the host emission referenced
+    // threadIdx/blockDim, whose host-side declarations are extern
+    // __device_builtin_variable_* that nothing defines: whenever the
+    // linker didn't dead-strip the unused host code, the backend .so
+    // failed to dlopen with ``undefined symbol:
+    // __device_builtin_variable_blockDim`` (recurring on cuda12x).
+    // __CUDA_ARCH__ is device-pass-only; the CPU .cxx copy-compile
+    // defines neither macro and keeps the host branch, unchanged.
+#if defined(__CUDA_ARCH__)
     start = threadIdx.x;
     increment = blockDim.x;
 #else
@@ -2637,7 +2648,18 @@ void calculate_modes(int binNum, int mode_i, double *amps, double *phases, doubl
     double eps = 1e-9;
 
     int start, increment;
-#ifdef __CUDACC__
+    // __CUDA_ARCH__, NOT __CUDACC__ (2026-08-26): this function is
+    // CUDA_CALLABLE_MEMBER (__host__ __device__), so nvcc ALSO emits a
+    // host version -- and __CUDACC__ is defined in BOTH nvcc passes.
+    // Guarded by __CUDACC__, the host emission referenced
+    // threadIdx/blockDim, whose host-side declarations are extern
+    // __device_builtin_variable_* that nothing defines: whenever the
+    // linker didn't dead-strip the unused host code, the backend .so
+    // failed to dlopen with ``undefined symbol:
+    // __device_builtin_variable_blockDim`` (recurring on cuda12x).
+    // __CUDA_ARCH__ is device-pass-only; the CPU .cxx copy-compile
+    // defines neither macro and keeps the host branch, unchanged.
+#if defined(__CUDA_ARCH__)
     start = threadIdx.x;
     increment = blockDim.x;
 #else

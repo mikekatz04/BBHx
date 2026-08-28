@@ -157,6 +157,28 @@ def _lat_methods_from_pycppdetector(_lat_pd, _gbt_interp, *, gpu: bool, xp):
         "FDDomainForStftWrap": getattr(_lat_pd, f"FDDomainForStftWrap{suffix}"),
         "STFTFresnelWrap": getattr(_lat_pd, f"STFTFresnelWrap{suffix}"),
         "TDITypeDict": {"XYZ": _lat_pd.TDI_XYZ, "AET": _lat_pd.TDI_AET, "AE": _lat_pd.TDI_AE},
+        # Fused GB in-model kernels (LAT 0f0fc73a). Passed through with a
+        # ``None`` fallback, mirroring LAT's own loaders, for two reasons:
+        #
+        # 1. Robustness (the reason that bit). These arrived as REQUIRED
+        #    fields on ``LISAToolsBackendMethods``, which this dataclass
+        #    subclasses, so every BBHx backend load raised at import time
+        #    -- "TypeError: BBHxBackendMethods.__init__() missing 2
+        #    required positional arguments" (cluster job 355, 2026-08-28;
+        #    GBGPU hit the identical wall on 354). LAT has since made them
+        #    keyword-only with a ``None`` default, but naming them here
+        #    means a BBHx load no longer depends on which side of that fix
+        #    the installed LAT happens to be on.
+        # 2. Completeness. Nothing in BBHx consumes these kernels today --
+        #    they are LAT-internal (gf_routing_kernels.hpp) -- so this is
+        #    not fixing a live miswiring; it keeps the loader passing every
+        #    field the parent declares, which is what made the omission
+        #    invisible until a required field appeared.
+        #
+        # ``getattr`` with ``None``: a stale ``.so`` predating the kernels
+        # is a legitimate state, and ``None`` is the honest value for it.
+        "gb_inmodel_gate_compact": getattr(_lat_pd, "gb_inmodel_gate_compact", None),
+        "gb_inmodel_accept_apply": getattr(_lat_pd, "gb_inmodel_accept_apply", None),
         "xp": xp,
     }
 

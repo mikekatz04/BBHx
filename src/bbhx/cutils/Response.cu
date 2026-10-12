@@ -375,6 +375,11 @@ void response_modes(double *phases, double *response_out, int binNum, int mode_i
         double phase_change = transferL.phaseRdelay;
 
         // adjust phase
+        // TODO(2026-10-12): phaseRdelay is already applied to Tslr above as
+        // exp(-i phaseRdelay); adding it to the phase here too makes the
+        // merger arrival time NOT track the sky at fixed t_ref (see the TODO
+        // in BBHWaveformFD.__call__, waveformbuild.py). Resolve the intended
+        // orbital-delay convention.
         phases[mode_index] += phase_change;
     }
 }

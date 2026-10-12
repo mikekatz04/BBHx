@@ -428,6 +428,25 @@ class BBHWaveformFD(BBHxParallelModule):
 
         """
 
+        # TODO(2026-10-12, sky-mode verification): the merger ARRIVAL time of
+        # this FD response does not follow the sky position at fixed ``t_ref``
+        # the way the LISA Analysis Tools time-domain response (pyResponseTDI)
+        # does. Measured with the 22 mode on the stock equal-arm orbits:
+        #   * two skies at the same t_ref: the arrival shifts by about MINUS
+        #     TWICE the physical retardation difference (n2 - n1) . r_c / c
+        #     (expected: plus one times it);
+        #   * a LISA-frame sky-mode hop (SSB_to_LISA -> hop -> LISA_to_SSB,
+        #     which moves t_ref by dt_hop so the DETECTOR time is fixed) only
+        #     matches the original after shifting the hopped template back by
+        #     -dt_hop, i.e. ``t_ref`` behaves like a LISA-frame time here.
+        # Suspect: Response.cu applies exp(-i phaseRdelay) to the transfer
+        # functions AND adds +phaseRdelay to ``phases`` (response_modes), and
+        # WaveformBuild.cu conjugates the product -- the two orbital-delay
+        # factors do not cancel/combine as intended. Not on the production
+        # (time-domain) path; the SSB<->LISA transforms themselves are verified
+        # against pyResponseTDI (tests/test_frame_transform.py and LAT
+        # tests/test_skymodehop.py). Decide the intended t_ref convention and
+        # add a two-sky arrival-time test when this is fixed.
         # make sure everything is at least a 1D array
         m1 = np.atleast_1d(m1)
         m2 = np.atleast_1d(m2)

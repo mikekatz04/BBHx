@@ -94,6 +94,13 @@ def tSSBfromLframe(tL, lambdaSSB, betaSSB, t0=0.0):
     of the LISA constellation ``tL``. **NOTE**: depends on the sky position
     given in solar system barycenter (SSB) frame.
 
+    The constellation center sits at ecliptic longitude
+    :math:`\\alpha(t) = \\Omega t + \\Omega t_0` (circular 1 AU orbit), so a
+    wavefront that reaches the SSB at ``tSSB`` reaches the constellation at
+    ``tL = tSSB - (R/c) cos(beta) cos(alpha - lambda)``
+    (:func:`tLfromSSBframe`). This is the inverse of that relation, solved
+    to first order in :math:`\\Omega R / c`.
+
     Originally from Sylvain Marsat. For more information and citation, see
     `arXiv:2003.00357 <https://arxiv.org/abs/2003.00357>`_.
 
@@ -102,8 +109,11 @@ def tSSBfromLframe(tL, lambdaSSB, betaSSB, t0=0.0):
         lambdaSSB (scalar or np.ndarray): Ecliptic longitude in
             SSB reference frame.
         betaSSB (scalar or np.ndarray): Ecliptic latitude in SSB reference frame.
-        t0 (double, optional): Initial start time point away from zero.
-            (Default: ``0.0``)
+        t0 (double or np.ndarray, optional): Orbital-phase offset in
+            **seconds** (``alpha = Omega * (t + t0)``). **Note** the public
+            :func:`LISA_to_SSB` / :func:`SSB_to_LISA` take ``t0`` in years
+            and convert before calling this. Broadcasts against the other
+            arguments. (Default: ``0.0``)
 
     Returns:
         scalar or np.ndarray: Time in the SSB frame.
@@ -119,7 +129,6 @@ def tSSBfromLframe(tL, lambdaSSB, betaSSB, t0=0.0):
     )
 
 
-# Compute retarded time at the center of the LISA constellation tL from Solar System Barycenter time tSSB */
 def tLfromSSBframe(tSSB, lambdaSSB, betaSSB, t0=0.0):
     """Get time in LISA frame from time in SSB-frame.
 
@@ -127,16 +136,20 @@ def tLfromSSBframe(tSSB, lambdaSSB, betaSSB, t0=0.0):
     the time in the SSB frame ``tSSB``. **NOTE**: depends on the sky position
     given in solar system barycenter (SSB) frame.
 
+    ``tL = tSSB - n . r_c(tSSB) / c`` with ``n`` the unit vector towards the
+    source and ``r_c = R (cos alpha, sin alpha, 0)`` the constellation
+    center, ``alpha = Omega * (tSSB + t0)``.
+
     Originally from Sylvain Marsat. For more information and citation, see
     `arXiv:2003.00357 <https://arxiv.org/abs/2003.00357>`_.
 
     Args:
-        tSSB (scalar or np.ndarray): Time in LISA constellation reference frame.
+        tSSB (scalar or np.ndarray): Time in the SSB reference frame.
         lambdaSSB (scalar or np.ndarray): Ecliptic longitude in
             SSB reference frame.
-        betaSSB (scalar or np.ndarray): Time in LISA constellation reference frame.
-        t0 (double, optional): Initial start time point away from zero.
-            (Default: ``0.0``)
+        betaSSB (scalar or np.ndarray): Ecliptic latitude in SSB reference frame.
+        t0 (double or np.ndarray, optional): Orbital-phase offset in
+            **seconds** (see :func:`tSSBfromLframe`). (Default: ``0.0``)
 
     Returns:
         scalar or np.ndarray: Time in the LISA frame.
@@ -152,7 +165,10 @@ def LISA_to_SSB(tL, lambdaL, betaL, psiL, t0=0.0):
     """Convert sky/orientation from LISA frame to SSB frame.
 
     Convert the sky and orientation parameters from the center of the LISA
-    constellation reference to the SSB reference frame.
+    constellation reference to the SSB reference frame. Exact inverse of
+    :func:`SSB_to_LISA` (see there for the frame definition); the SSB time
+    is recovered by a 3-step fixed-point iteration on the retardation,
+    which converges to ~1e-6 s.
 
     The parameters that are converted are the reference time, ecliptic latitude,
     ecliptic longitude, and polarization angle.
@@ -166,8 +182,11 @@ def LISA_to_SSB(tL, lambdaL, betaL, psiL, t0=0.0):
             LISA reference frame.
         betaL (scalar or np.ndarray): Ecliptic latitude in LISA reference frame.
         psiL (scalar or np.ndarray): Polarization angle in LISA reference frame.
-        t0 (double, optional): Initial start time point away from zero.
-            (Default: ``0.0``)
+        t0 (double or np.ndarray, optional): Orbital-phase offset in
+            **years**: the constellation center is at ecliptic longitude
+            ``alpha = Omega * (tSSB + t0 * YRSID_SI)``. Broadcasts against the
+            other inputs, so a per-source array pins each row's constellation
+            phase independently. (Default: ``0.0``)
 
     Returns:
         Tuple: (``tSSB``, ``lambdaSSB``, ``betaSSB``, ``psiSSB``)
@@ -184,8 +203,6 @@ def LISA_to_SSB(tL, lambdaL, betaL, psiL, t0=0.0):
     sinlambdaL = np.sin(lambdaL)
     cosbetaL = np.cos(betaL)
     sinbetaL = np.sin(betaL)
-    cospsiL = np.cos(psiL)
-    sinpsiL = np.sin(psiL)
     lambdaSSB_approx = 0.0
     betaSSB_approx = 0.0
     # Initially, approximate alpha using tL instead of tSSB - then iterate */
@@ -237,6 +254,27 @@ def SSB_to_LISA(tSSB, lambdaSSB, betaSSB, psiSSB, t0=0.0):
     The parameters that are converted are the reference time, ecliptic latitude,
     ecliptic longitude, and polarization angle.
 
+    **Frame definition** (verified 2026-10 against the LISA Analysis Tools
+    time-domain response on the stock equal-arm and ESA orbits):
+
+    * the constellation center is at ecliptic longitude
+      :math:`\\alpha = \\Omega (t_{SSB} + t_0)` on a circular 1 AU orbit;
+    * the LISA frame is the SSB ecliptic frame rotated by the tilt angle
+      :math:`\\zeta = 60^\\circ` about the orbital tangent
+      :math:`(-\\sin\\alpha, \\cos\\alpha, 0)`, i.e.
+      :math:`R_z(\\alpha) R_y(-\\zeta) R_z(-\\alpha)`. Its ``z`` axis
+      :math:`(-\\sin\\zeta\\cos\\alpha, -\\sin\\zeta\\sin\\alpha, \\cos\\zeta)`
+      is the normal of the constellation plane; the in-plane (cartwheel)
+      rotation is deliberately NOT tracked -- it only shifts
+      :math:`\\lambda_L, \\psi_L` by a constant, which the 4-fold
+      longitudinal sky-mode symmetry absorbs;
+    * ``psiL = psiSSB + chi`` where ``chi`` is the rotation (about the line
+      of sight) from the ecliptic local north to the LISA-frame local north
+      at the source -- the same convention as the ICRS <-> ecliptic
+      polarization rotation in ``lisatools.sources.utils``;
+    * ``tL`` is the retarded time at the constellation center
+      (:func:`tLfromSSBframe`).
+
     Originally from Sylvain Marsat. For more information and citation, see
     `arXiv:2003.00357 <https://arxiv.org/abs/2003.00357>`_.
     **Note**: no transformation of the phase -- approximant-dependence.
@@ -247,8 +285,11 @@ def SSB_to_LISA(tSSB, lambdaSSB, betaSSB, psiSSB, t0=0.0):
             SSB reference frame.
         betaSSB (scalar or np.ndarray): Ecliptic latitude in SSB reference frame.
         psiSSB (scalar or np.ndarray): Polarization angle in SSB reference frame.
-        t0 (double, optional): Initial start time point away from zero in years.
-            (Default: ``0.0``)
+        t0 (double or np.ndarray, optional): Orbital-phase offset in
+            **years** (``alpha = Omega * (tSSB + t0 * YRSID_SI)``). Broadcasts
+            against the other inputs, so a per-source array pins each row's
+            constellation phase independently (e.g. to the phase read off a
+            realistic orbit file at that row's time). (Default: ``0.0``)
 
     Returns:
         Tuple: (``tL``, ``lambdaL``, ``betaL``, ``psiL``)
@@ -257,23 +298,12 @@ def SSB_to_LISA(tSSB, lambdaSSB, betaSSB, psiSSB, t0=0.0):
     t0 = t0 * YRSID_SI
 
     ConstPhi0 = ConstOmega * t0
-    alpha = 0.0
-    cosalpha = 0
-    sinalpha = 0.0
-    coslambda = 0
-    sinlambda = 0.0
-    cosbeta = 0.0
-    sinbeta = 0.0
-    cospsi = 0.0
-    sinpsi = 0.0
     coszeta = np.cos(np.pi / 3.0)
     sinzeta = np.sin(np.pi / 3.0)
     coslambda = np.cos(lambdaSSB)
     sinlambda = np.sin(lambdaSSB)
     cosbeta = np.cos(betaSSB)
     sinbeta = np.sin(betaSSB)
-    cospsi = np.cos(psiSSB)
-    sinpsi = np.sin(psiSSB)
     alpha = ConstOmega * tSSB + ConstPhi0
     cosalpha = np.cos(alpha)
     sinalpha = np.sin(alpha)
@@ -311,15 +341,15 @@ def SSB_to_LISA(tSSB, lambdaSSB, betaSSB, psiSSB, t0=0.0):
 def mbh_sky_mode_transform(
     coords, ind_map=None, kind="both", inplace=False, cos_i=False
 ):
-    """Sky-mode transformation in the LISA reference frame
+    r"""Sky-mode transformation in the LISA reference frame
 
     In the LISA constellation referenence frame, the sky localization for a
     source generally has 8 sky modes: 4 longitudinal and 2 latitudinal.
-    Longitudinal modes involve :math:`\lambda + (0, 1, 2, 3)\\times\pi/2` and
-    :math:`\psi + (0, 1, 2, 3)\\times\pi/2`, where :math:`\lambda` is the
+    Longitudinal modes involve :math:`\lambda + (0, 1, 2, 3)\times\pi/2` and
+    :math:`\psi + (0, 1, 2, 3)\times\pi/2`, where :math:`\lambda` is the
     ecliptic longitude and :math:`\psi` is the polarization angle. The
-    latitudinal modes are at :math:`(\pm\\beta, \pm\cos{\iota}, \pm\cos{\psi})`
-    where :math:`\\beta` and :math:`\iota` are the ecliptic latitude and inclination,
+    latitudinal modes are at :math:`(\pm\beta, \pm\cos{\iota}, \pi - \psi)`
+    where :math:`\beta` and :math:`\iota` are the ecliptic latitude and inclination,
     respectively.
 
     It is generally wise to start MBH PE runs in all eight sky modes. Using
@@ -327,12 +357,17 @@ def mbh_sky_mode_transform(
     For MBHBs at higher frequency, the 8 modes reduce only to the latitudinal
     modes located at the true ecliptic longitude.
 
+    **Layout**: the output is source-major -- the ``factor`` modes of binary
+    ``i`` occupy rows ``i * factor .. (i + 1) * factor - 1`` (mode index
+    ``2 * k + j``: longitudinal shift ``k``, latitudinal flip ``j``). The
+    same layout is assumed of the input when ``inplace=True``.
+
     Args:
         coords (np.ndarray): 2D array with shape: ``(num_bin_all, ndim)``.
             ``num_bin_all`` is the total number of binaries. ``ndim`` is the
             number of parameters given. If the inclination is given as :math:`\cos{\iota}`,
             that needs to be indicated with ``cos_i=True``. It does not matter if
-            :math:`\\beta` or :math:`\sin{\\beta}` is given because the transforms
+            :math:`\beta` or :math:`\sin{\beta}` is given because the transforms
             involve multiplying the input by -1.
         ind_map (dict, optional): Keys are parameter names and values are there index
             into the coords array. Must include the keys ``inc, lam, beta, psi``.
@@ -394,7 +429,11 @@ def mbh_sky_mode_transform(
             )
 
     else:
-        coords = np.tile(coords, (factor, 1))
+        # source-major (each binary's modes contiguous): the strided mode
+        # indexing below assumes this. (``np.tile`` -- the pre-2026-10 layout
+        # -- interleaved binaries and only covered all modes for a single
+        # binary.)
+        coords = np.repeat(np.atleast_2d(coords), factor, axis=0)
 
     if kind == "both" or kind == "lat":
 

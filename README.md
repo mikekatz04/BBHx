@@ -1,13 +1,23 @@
 # GPU-Accelerated Black Hole Binary Waveforms (`bbhx`)
 
-### Designed for LISA data analysis of Massive Black Hole Binaries.
+**Designed for LISA data analysis of Massive Black Hole Binaries.**
 
 
-This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and likelihood computations from [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). The various parts of this package are arranged to be modular as waveform or response changes or improvements are made. Generally, the modules fall into four categories: waveforms, response, waveform building, and utilities. Please see the [documentation](https://lisa-analysis-tools.github.io/BBHx/) for further information on these modules. The code can be found on Github [here](https://github.com/lisa-analysis-tools/BBHx).
+This package implements GPU/CPU agnostic Massive Black Hole Binary waveforms and likelihood computations from [arXiv:2005.01827](https://arxiv.org/abs/2005.01827) and [arXiv:2111.01064](https://arxiv.org/abs/2111.01064). The various parts of this package are arranged to be modular as waveform or response changes or improvements are made. The main modules are:
 
-This package is a part of the LISA Analysis Tools environment.
+- frequency-domain waveforms (PhenomHM / PhenomD, `bbhx.waveforms.phenomhm`);
+- the fast frequency-domain LISA response (`bbhx.response.fastfdresponse`);
+- waveform building (`bbhx.waveformbuild.BBHWaveformFD`);
+- likelihoods (`bbhx.likelihood`: direct and heterodyned);
+- time-domain TDI-on-the-fly generators for MBHs (`bbhx.mbhtdionfly`, using the external [phentax](https://github.com/asantini29/phentax) model) and for stellar-origin BBHs (`bbhx.sobbhtdionfly`);
+- the SOBBH chunked-heterodyne WDM likelihood (`bbhx.sobbhcomps`) and its native kernels;
+- utilities (SSB <-> LISA frame transforms, constants, backends).
 
-If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/records/17195311) Please also cite any consituent parts used like the response function or waveforms. See the `citation` attribute for each class or docstring for functions for more information.
+Please see the [documentation](https://lisa-analysis-tools.github.io/BBHx/) for further information on these modules. The code can be found on Github [here](https://github.com/lisa-analysis-tools/BBHx).
+
+This package is a part of the LISA Analysis Tools environment. Generic LISA infrastructure (orbits, TDI configuration, the time-domain response, WDM / FD domains, sensitivity curves) comes from [LISA Analysis Tools](https://github.com/lisa-analysis-tools/lisa-analysis-tools) (`lisaanalysistools`), and the backend machinery from `gpubackendtools`. Physical constants come from `lisaconstants`.
+
+If you use this software please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064), and the associated [Zenodo page](https://zenodo.org/records/17195311). Please also cite any constituent parts used, like the response function or waveforms. The papers for each class are listed in its docstring. (The classes' `citation` properties currently raise `NameError`: the citation module they read was removed.)
 
 
 ## Getting started
@@ -28,6 +38,9 @@ pip install bbhx-cuda11x
 pip install bbhx-cuda12x
 ```
 
+The CUDA 13 backend (`cuda13x`) is not published as a wheel. A source build with a
+CUDA 13 toolkit builds it (see "Installing from sources" below).
+
 To use the time-domain MBH TDI-on-the-fly generator
 (`bbhx.mbhtdionfly.MBHTDIonFly`), you also need the
 [phentax](https://github.com/asantini29/phentax) waveform package
@@ -42,7 +55,7 @@ pip install 'bbhx[phentax]'
 pip install git+https://github.com/asantini29/phentax.git
 ```
 
-To know your CUDA version, run the tool `nvidia-smi` in a terminal a check the CUDA version reported in the table header:
+To know your CUDA version, run the tool `nvidia-smi` in a terminal and check the CUDA version reported in the table header:
 
 ```sh
 $ nvidia-smi
@@ -77,46 +90,29 @@ import bbhx
 You may check the currently available backends:
 
 ```py3
->>> for backend in ["cpu", "cuda11x", "cuda12x", "cuda", "gpu"]:
-...     print(f" - Backend '{backend}': {"available" if bbhx.has_backend(backend) else "unavailable"}")
+>>> for backend in ["cpu", "cuda11x", "cuda12x", "cuda13x"]:
+...     status = "available" if bbhx.has_backend(backend) else "unavailable"
+...     print(f" - Backend '{backend}': {status}")
  - Backend 'cpu': available
  - Backend 'cuda11x': unavailable
  - Backend 'cuda12x': unavailable
- - Backend 'cuda': unavailable
- - Backend 'gpu': unavailable
+ - Backend 'cuda13x': unavailable
 ```
 
-Note that the `cuda` backend is an alias for either `cuda11x` or `cuda12x`. If any is available, then the `cuda` backend is available.
-Similarly, the `gpu` backend is (for now) an alias for `cuda`.
+`bbhx.has_backend` accepts these flavor names (or the full `bbhx_<flavor>` names). It
+does not accept the `cuda` / `gpu` aliases: it raises `ValueError` for them. For
+`bbhx.get_backend` and for the `force_backend` argument of the compute classes, `cuda`
+(and its alias `gpu`) means the first available of `cuda13x`, `cuda12x` and `cuda11x`.
 
-If you expected a backend to be available but it is not, run the following command to obtain an error
-message which can guide you to fix this issue:
+If you expected a backend to be available but it is not, call `bbhx.get_backend` with its
+name, e.g. `bbhx.get_backend("cuda12x")`. The exception it raises is chained to the
+original import error, which names the missing piece. A BBHx backend needs three native
+modules of the same flavor (`bbhx_backend_<flavor>`, `lisatools_backend_<flavor>` and
+`gbt_backend_<flavor>`), and a CUDA backend also needs `cupy`.
 
-```py3
->>> import bbhx
->>> bbhx.get_backend("cuda12x")
-ModuleNotFoundError: No module named 'bbhx_backend_cuda12x'
-
-The above exception was the direct cause of the following exception:
-...
-
-bbhx.cutils.BackendNotInstalled: The 'cuda12x' backend is not installed.
-
-The above exception was the direct cause of the following exception:
-...
-
-bbhx.cutils.MissingDependencies: BBHx CUDA plugin is missing.
-    If you are using bbhx in an environment managed using pip, run:
-        $ pip install bbhx-cuda12x
-
-The above exception was the direct cause of the following exception:
-...
-
-bbhx.cutils.BackendAccessException: Backend 'cuda12x' is unavailable. See previous error messages.
-```
-
-Once FEW is working and the expected backends are selected, check out the [examples notebooks](https://github.com/lisa-analysis-tools/BBHx/tree/master/examples/)
-on how to start with this software.
+Once BBHx is working and the expected backends are selected, check out the [examples notebooks](https://github.com/lisa-analysis-tools/BBHx/tree/master/examples/)
+on how to start with this software. The LISA Analysis Tools Workshop tutorials
+([LATW](https://github.com/lisa-analysis-tools/LATW)) cover the wider stack.
 
 ## Installing from sources
 
@@ -125,23 +121,42 @@ on how to start with this software.
 To install this software from source, you will need:
 
 - A C++ compiler (g++, clang++, ...)
-- A Python version supported by [scikit-build-core](https://github.com/scikit-build/scikit-build-core) (>=3.7 as of Jan. 2025)
+- Python 3.12 or newer. BBHx itself declares `>=3.9`, but its `lisaanalysistools`
+  dependency requires `>=3.12`.
+- The build requirements listed in `pyproject.toml`, in particular `gpubackendtools`,
+  `lisaanalysistools` and `nanobind==2.12.0` (pip installs them in its isolated build
+  environment unless you pass `--no-build-isolation`). The build compiles sources and
+  headers taken from the installed `lisaanalysistools` (e.g. `Detector.cu`,
+  `lat_tdi_on_the_fly.cu`) and `gpubackendtools` (`Interpolate.cu`) packages into
+  BBHx's native module.
 
 Some installation steps require the external library `LAPACK` along with its C-bindings provided by `LAPACKE`.
 If these libraries and their header files (in particular `lapacke.h`) are available on your system, they will be detected
-and used automatically. If they are available on a non-standard location, see below for some options to help detecting them.
-Note that by default, if `LAPACKE` is not available on your system, the installation step will attempt to download its sources
-and add them to the compilation tree. This makes the installation a bit longer but a lot easier.
+and used automatically. Detection is delegated to GPUBackendTools' `get_lapacke()` and
+is controlled by the CMake options `GBT_LAPACKE_DETECT_WITH` (`AUTO`, `CMAKE`,
+`PKGCONFIG` or `DISABLE`), `GBT_LAPACKE_FETCH` (`AUTO`, `ON` or `OFF`) and
+`GBT_LAPACKE_EXTRA_LIBS` (e.g. `gfortran`). Pass them as
+`pip install --config-settings=cmake.define.GBT_LAPACKE_DETECT_WITH=PKGCONFIG .`.
+By default, if `LAPACKE` is not found on your system, the installation step downloads its sources
+and adds them to the compilation tree. This makes the installation a bit longer but a lot easier.
 
-If you want to enable GPU support in FEW, you will also need the NVIDIA CUDA Compiler `nvcc` in your path as well as
+If you want to enable GPU support in BBHx, you will also need the NVIDIA CUDA Compiler `nvcc` in your path as well as
 the [CUDA toolkit](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) (with, in particular, the
-libraries `CUDA Runtime Library`, `cuBLAS` and `cuSPARSE`).
+libraries `CUDA Runtime Library`, `cuBLAS` and `cuSPARSE`). The CMake option `BBHX_WITH_GPU` controls the GPU build:
 
-There are a set of files required for total use of this package. They will download automatically the first time they are needed. Files are generally under 10MB. However, there is a 100MB file needed for the slow waveform and the bicubic amplitude interpolation. This larger file will only download if you run either of those two modules. The files are hosted on the [Black Hole Perturbation Toolkit Download Server](https://download.bhptoolkit.org/bbhx/data).
+- `AUTO` (default): build the GPU backend when a CUDA toolchain is found;
+- `ON`: build it, and fail without a toolchain;
+- `OFF`: build the CPU backend only;
+- `ONLY`: build the GPU backend only;
+- `BARE`: build no backend.
+
+`BBHX_CUDA_ARCH` sets the CUDA architectures (default `70;75;80;86;90`; `70` is dropped
+for CUDA >= 13). The GPU backend is named after the toolkit's major version
+(`cuda11x`, `cuda12x` or `cuda13x`).
 
 ### Installation instructions using conda
 
-We recommend to install FEW using conda in order to have the compilers all within an environment.
+We recommend installing BBHx using conda, so that the compilers are all within one environment.
 First clone the repo
 
 ```
@@ -149,13 +164,12 @@ git clone https://github.com/lisa-analysis-tools/BBHx.git
 cd BBHx
 ```
 
-Now create an environment (these instructions work for all platforms but some
-adjustements can be needed, refer to the
-[detailed installation documentation](https://bbhx.readthedocs.io/en/stable/user/install.html) for more information):
+Now create an environment (these instructions work for all platforms, but some
+adjustments may be needed):
 
 ```
-conda create -n bbhx_env -y -c conda-forge --override-channels |
-    cxx-compiler pkgconfig conda-forge/label/lapack_rc::liblapacke
+conda create -n bbhx_env -y -c conda-forge --override-channels \
+    python=3.12 cxx-compiler pkgconfig conda-forge/label/lapack_rc::liblapacke
 ```
 
 activate the environment
@@ -166,8 +180,18 @@ conda activate bbhx_env
 
 Then we can install locally for development:
 ```
-pip install -e '.[dev, testing]'
+pip install -e '.[doc,testing]'
 ```
+
+### The development stack
+
+On the `dev` branch, BBHx is built against the development branches of the LISA
+Analysis Tools packages (GPUBackendTools, LISA Analysis Tools, ...). The central
+installer `install.sh` of the
+[LISA Analysis Tools repository](https://github.com/lisa-analysis-tools/lisa-analysis-tools)
+clones and installs the whole stack side by side. It installs BBHx (branch `dev`) with
+`pip install --no-build-isolation -e .`, so that the build uses the
+already installed development versions of `gpubackendtools` and `lisaanalysistools`.
 
 ### Installation instructions using conda on GPUs and linux
 Below is a quick set of instructions to install the BBHx package on GPUs and linux.
@@ -207,8 +231,10 @@ or contact the developers through other means.
 
 ### Running the Tests
 
-The tests require a bbhx dependencies which are not installed by default. To install them, add the `[testing]` label to FEW package
-name when installing it. E.g:
+The tests need some dependencies that are not installed by default (the `[testing]`
+extra adds `matplotlib`). The MBH TDI-on-the-fly waveform test also needs `phentax` and
+is skipped without it. To install the extra, add the `[testing]` label to the BBHx
+package name when installing it. E.g:
 
 ```sh
 # For CPU-only version with testing enabled
@@ -223,33 +249,31 @@ cd BBHx
 pip install '.[testing]'
 ```
 
-To run the tests, open a terminal in a directory containing the sources of FEW and then run the `unittest` module in `discover` mode:
+To run the tests, open a terminal in a directory containing the sources of BBHx and then run the `unittest` module in `discover` mode:
 
 ```sh
 $ git clone https://github.com/lisa-analysis-tools/BBHx.git
 $ cd BBHx
-$ python -m bbhx.tests  # or "python -m unittest discover"
+$ python -m unittest discover  # the CI runs "python -m unittest tests/test*"
 ...
-----------------------------------------------------------------------
-Ran 20 tests in 71.514s
 OK
 ```
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [CONTRIBUTING.md](https://github.com/lisa-analysis-tools/BBHx/blob/dev/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
-If you want to develop FEW and produce documentation, install `bbhx` from source with the `[dev]` label and in `editable` mode:
+If you want to develop BBHx and produce documentation, install `bbhx` from source with the `[doc]` label and in `editable` mode:
 
 ```
 $ git clone https://github.com/lisa-analysis-tools/BBHx.git
 $ cd BBHx
-pip install -e '.[dev, testing]'
+pip install -e '.[doc,testing]'
 ```
 
-This will install necessary packages for building the documentation (`sphinx`, `pypandoc`, `sphinx_rtd_theme`, `nbsphinx`) and to run the tests.
+This will install the packages needed to build the documentation (`sphinx`, `sphinx-rtd-theme`, `sphinx-tippy`, `myst-parser`, `nbsphinx`, `pypandoc`, `ipython`, `ipykernel`, `ipywidgets`) and to run the tests.
 
-The documentation source files are in `docs/source`. To compile the documentation locally, change to the `docs` directory and run `make html`.
+The documentation source files are in `docs/source`. To compile the documentation locally, change to the `docs` directory and run `make html`. The tutorial notebooks are copied from `examples/` at build time. Some API pages import optional packages: `jax` for the JAX SOBBH source, and `eryn` (the `[sampling]` extra) for `bbhx.mbhphentax`.
 
 ## Versioning
 
@@ -257,16 +281,16 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Contributors
 
-A (non-exhaustive) list of contributors to the FEW code can be found in [CONTRIBUTORS.md](CONTRIBUTORS.md).
+A (non-exhaustive) list of contributors can be found in [CONTRIBUTORS.md](https://github.com/lisa-analysis-tools/BBHx/blob/dev/CONTRIBUTORS.md).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License, version 3 or (at your option) any later version - see the [LICENSE](https://github.com/lisa-analysis-tools/BBHx/blob/dev/LICENSE) file for details.
 
 ## Citation
 
-Please make sure to cite FEW papers and the FEW software on [Zenodo](https://zenodo.org/records/3969004).
-We provide a set of prepared references in [PAPERS.bib](PAPERS.bib). There are other papers that require citation based on the classes used. For most classes this applies to, you can find these by checking the `citation` attribute for that class.  All references are detailed in the [CITATION.cff](CITATION.cff) file.
+Please cite [arXiv:2005.01827](https://arxiv.org/abs/2005.01827), [arXiv:2111.01064](https://arxiv.org/abs/2111.01064) and the BBHx software on [Zenodo](https://zenodo.org/records/17195311).
+Other papers need to be cited depending on the classes used (waveform models, response, heterodyning). They are listed in each class's docstring.
 
 ## Acknowledgments
 

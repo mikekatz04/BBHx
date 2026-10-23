@@ -47,6 +47,7 @@ MBH_TDIONFLY_TOL = 1e-12
 MBH_TDIONFLY_COARSE_SCALE = 48.0
 
 
+# TODO check: keep/remove/document -- not in the runs; sole user get_mbh_phentax_response_wrapper
 class IMRPhenomTHMWaveform:
     """LISA-side IMRPhenomTHM (phentax) waveform generator.
 
@@ -196,6 +197,7 @@ class IMRPhenomTHMWaveform:
         return hp + 1j * hx
 
 
+# TODO check: keep/remove/document -- unused by the runs; only importer: a legacy LAT settings file
 def get_mbh_phentax_response_wrapper(
     *,
     Tobs: float,
@@ -259,13 +261,17 @@ def get_mbh_phentax_response_wrapper(
     return wave_gen
 
 
+# TODO check: keep/remove/document -- unused by the runs; only importer: a legacy LAT settings file
 class MBHWaveWrap:
     """Run the cached MBH ResponseWrapper and project to the run's domain.
 
     Output is a :class:`~lisatools.domains.DomainBase` subclass (FDSignal /
     WDMSignal / ...) so ACA dispatch and the MBH move's ``get_waveform_here``
-    land on the right kernels. Sky coords pass through in the orbits frame
-    directly (sprint convention: SSB ecliptic) — no per-call frame conversion.
+    land on the right kernels. Sky coords pass through unchanged to ``wave_gen`` —
+    no per-call frame conversion: the :class:`ResponseWrapper` built by
+    :func:`get_mbh_phentax_response_wrapper` reads ``lam`` / ``beta`` in the frame of
+    its orbits (``is_ecliptic_latitude=True`` only says ``beta`` is a latitude, not a
+    polar angle).
     """
 
     def __init__(
@@ -295,6 +301,7 @@ class MBHWaveWrap:
         )
 
 
+# TODO check: keep/remove/document -- superseded by LAT erebor/wrappers.py copy; no importer
 def get_mbh_tdionfly_gen(
     *,
     dt: float,
@@ -358,11 +365,13 @@ def get_mbh_tdionfly_gen(
     return gen
 
 
+# TODO check: keep/remove/document -- superseded by LAT erebor/wrappers.py copy; no importer
 class MBHTDIonFlyWaveWrap:
     """Adapter: :class:`bbhx.mbhtdionfly.MBHTDIonFly` TD output -> run-domain signal.
 
-    Consumes the MBH **waveform** basis produced by
-    ``make_mbh_transform_container().both_transforms`` —
+    Consumes the MBH **waveform** basis produced by LISA Analysis Tools'
+    ``make_mbh_transform_container().both_transforms``
+    (``lisatools.globalfit.stock.erebor.transforms``) —
     ``(m1, m2, s1z, s2z, dist[Mpc], phi_ref, inc, psi, ra, dec, t_plunge)``
     (psi before ra/dec) — and reorders it to the ``MBHTDIonFly`` call order
     ``(..., inc, ra, dec, psi, t_merge)`` before evaluating on the data time grid
@@ -412,6 +421,7 @@ class MBHTDIonFlyWaveWrap:
         )
 
 
+# TODO check: keep/remove/document -- unused by the runs; only importer: a legacy LAT settings file
 def make_mbh_phentax_transform_container() -> TransformContainer:
     """Sampling-basis -> waveform-basis transform for the legacy phentax MBH path.
 
@@ -422,8 +432,8 @@ def make_mbh_phentax_transform_container() -> TransformContainer:
     ``(m1, m2, s1z, s2z, dist, phi_ref, inc, psi, lam, beta, t_plunge)``.
 
     Unlike the legacy bbhx MBH transform this does NOT apply ``LISA_to_SSB``
-    (phentax + :class:`ResponseWrapper` consume ecliptic ``(lam, beta)`` directly
-    with ``is_ecliptic_latitude=True``) nor ``gpc_to_mpc``
+    (phentax + :class:`ResponseWrapper` consume ``(lam, beta)`` directly, as longitude /
+    latitude in the orbits frame) nor ``gpc_to_mpc``
     (:class:`IMRPhenomTHMWaveform` converts Gpc -> Mpc inside its ``__call__``).
     """
     basis = [
@@ -462,6 +472,7 @@ MBH_TDIONFLY_SAMPLED_BASIS = [
 ]
 
 
+# TODO check: keep/remove/document -- no caller; basis order differs from MBHTDIonFlyWaveWrap's
 def make_mbh_tdionfly_transform_container() -> TransformContainer:
     """Sampling-basis -> waveform-basis transform for the TDI-on-the-fly path.
 

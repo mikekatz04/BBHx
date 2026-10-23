@@ -15,6 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Time-domain MBH TDI-on-the-fly generator (:class:`MBHTDIonFly`).
+
+Feeds the per-mode amplitude / phase of a time-domain mode generator (phentax
+``IMRPhenomTHM``) through the LISA Analysis Tools TDI-on-the-fly response
+(:class:`lisatools.response.tdionfly.TDTDIonTheFly`). Used by LISA Analysis Tools only when
+``USE_TDIONFLY=1`` (``lisatools.globalfit.stock.erebor.wrappers.get_mbh_tdionfly_gen``),
+which the production launchers do not set.
+"""
+
 from typing import Optional
 
 import numpy as np
@@ -45,27 +54,57 @@ class MBHTDIonFly(BBHxParallelModule):
         wave_gen (object): Time-domain mode generator. Must expose
             ``compute_strain_components_amp_phase(m1, m2, s1z, s2z,
             distance, phi_ref, inclination, psi, delta_t=..., t_min=...,
-            t_ref=...)`` returning ``(times, mask, amp, phase)`` and a
-            ``num_modes`` attribute (e.g.
-            ``phentax.waveform.IMRPhenomTHM``).
+            t_ref=...)`` returning ``(times, mask, amp, phase)`` (amp / phase of shape
+            ``(num_binaries, num_modes, num_times)``, merger at ``t = 0``) and a
+            ``num_modes`` attribute (e.g. ``phentax.waveform.IMRPhenomTHM``).
         orbits (:class:`lisatools.detector.Orbits`): Configured orbits
-            instance.
+            instance. The sky angles given at call time are read in its frame
+            (``orbits.frame``; ICRS for the global-fit orbits).
         tdi_config (:class:`lisatools.response.tdiconfig.TDIConfig`):
             TDI configuration (e.g. ``TDIConfig("2nd generation")``).
-        dt (float): Sampling cadence of the data stream (sec).
-        Tobs (float): Observation time (sec).
+        dt (float): Sampling cadence of the data stream (sec); the
+            ``sampling_frequency`` of the response, and the unit of the ``1000 / dt``
+            node margin trimmed from each end of the evaluation grid.
+        Tobs (float): Observation time (sec); stored as ``T``, not used by
+            :meth:`__call__`.
         t0 (float): Reference time offset added to the waveform time
-            grid (sec).
+            grid (sec): the merger lands at absolute time ``t0 + t_merge``.
         dt_min (float, optional): Densest cadence used when generating
-            the waveform modes (sec). (default: ``0.1``)
-        t_min (float, optional): Minimum time (sec). (default: ``0.0``)
+            the waveform modes (sec; the ``delta_t`` handed to ``wave_gen``). Default
+            ``0.1``.
+        t_min (float, optional): Minimum time (sec); stored, not used by
+            :meth:`__call__`. Default ``0.0``.
         waveform_duration (float, optional): Duration of waveform to
             generate before merger (sec). If ``None``, the merger time
-            passed at call time is used. (default: ``None``)
+            passed at call time is used (the waveform starts at ``t0``). Default
+            ``None``.
         force_backend (str, optional): ``"cpu"``, ``"gpu"``, ``"cuda"``,
-            ``"cuda11x"``, ``"cuda12x"``, or ``"cuda13x"``.
-            (default: ``None``)
+            ``"cuda11x"``, ``"cuda12x"``, or ``"cuda13x"`` (see
+            :class:`~bbhx.utils.parallelbase.BBHxParallelModule`); the same flavor is
+            handed to the LISA Analysis Tools response. Default ``None``.
 
+    Example:
+        .. code-block:: python
+
+            import numpy as np
+            from phentax.waveform import IMRPhenomTHM
+            from lisatools.detector import ESAOrbits
+            from lisatools.response.tdiconfig import TDIConfig
+            from bbhx.mbhtdionfly import MBHTDIonFly
+
+            dur = 3.0e6  # s
+            wave = IMRPhenomTHM(
+                higher_modes=[21, 33, 44], include_negative_modes=True,
+                coarse_grain=True, coarse_graining_scale_factor=48.0, T=dur,
+            )  # as in lisatools.globalfit.stock.erebor.wrappers, minus t_low_fit / atol / rtol
+            gen = MBHTDIonFly(
+                wave, ESAOrbits(force_backend="cpu"), TDIConfig("2nd generation"),
+                dt=5.0, Tobs=dur, t0=0.0, force_backend="cpu",
+            )
+            # m1, m2 [Msun], s1z, s2z, distance [Mpc], phi_ref, inc, ra, dec, psi,
+            # t_merge [s after t0]
+            tdi = gen(1e6, 5e5, 0.2, 0.4, 1.0e4, 0.0, 0.8, 1.0, 0.3, 0.5, 2.5e6,
+                      upsample_t_arr=np.arange(0.0, dur, 5.0), combine=True)  # (3, N)
     """
 
     def __init__(
@@ -94,6 +133,7 @@ class MBHTDIonFly(BBHxParallelModule):
 
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
@@ -108,7 +148,7 @@ class MBHTDIonFly(BBHxParallelModule):
 
     @property
     def dt(self) -> float:
-        """dt value from data."""
+        """dt value from data (s); setting it also sets ``sampling_frequency = 1 / dt``."""
         return self._dt
 
     @dt.setter
@@ -135,6 +175,46 @@ class MBHTDIonFly(BBHxParallelModule):
         *args: Optional[tuple],
         **kwargs: Optional[dict],
     ):
+        """Generate the time-domain TDI observables of one MBH binary.
+
+        The modes are generated on ``wave_gen``'s adaptive grid from
+        ``-waveform_duration`` to just after merger (merger at ``t = 0``, reference phase at
+        ``t_ref = -t_merge``, i.e. at absolute time ``t0``, which is the start of the window
+        when ``waveform_duration`` is ``None``), shifted to absolute times
+        ``t + t_merge + t0``, converted to the response convention (amplitude ``/ 2``,
+        phase ``pi - phase``) and padded with a 1200 s zero-amplitude tail. They are then
+        projected with :class:`lisatools.response.tdionfly.TDTDIonTheFly` with ``inc = 0``
+        (the inclination is already in the spin-weighted spherical harmonics). Only the
+        first binary of the mode generator's output is used.
+
+        Args:
+            m1 (float): Mass of body 1 (solar masses).
+            m2 (float): Mass of body 2 (solar masses).
+            s1z (float): Dimensionless aligned spin of body 1.
+            s2z (float): Dimensionless aligned spin of body 2.
+            distance (float): Luminosity distance in the unit ``wave_gen`` expects (Mpc
+                for phentax ``IMRPhenomTHM``).
+            phi_ref (float): Reference phase (rad) at absolute time ``t0``.
+            inclination (float): Inclination (rad).
+            ra (float): Sky longitude (rad) in the frame of ``orbits`` (right ascension
+                for ICRS orbits).
+            dec (float): Sky latitude (rad) in the same frame (declination for ICRS).
+            psi (float): Polarization angle (rad) in the same frame.
+            t_merge (float): Merger time (s) after ``t0``.
+            upsample_t_arr: Absolute times (s) on which to evaluate the TDI. Default
+                ``None`` returns the response output object instead.
+            combine: Sum the modes. Only used with ``upsample_t_arr``. Default ``False``.
+            dt_tdi_eval (float, optional): Accepted but not used. Default ``10.0``.
+            *args: Ignored.
+            **kwargs: Ignored.
+
+        Returns:
+            lisatools.response.tdionfly.TDTDIOutput or xp.ndarray: Without
+            ``upsample_t_arr``, the spline-backed output of the response (one sub-signal
+            per mode). Otherwise the channels on ``upsample_t_arr``: shape
+            ``(num_modes, 3, len(upsample_t_arr))``, or ``(3, len(upsample_t_arr))`` with
+            ``combine=True``; times outside the output span are 0.
+        """
         xp = self.xp
 
         if self.waveform_duration is None:

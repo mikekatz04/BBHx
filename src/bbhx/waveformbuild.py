@@ -15,6 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Frequency-domain MBH TDI waveform builder.
+
+:class:`BBHWaveformFD` chains :class:`~bbhx.waveforms.phenomhm.PhenomHMAmpPhase` (per-mode
+amplitude, phase and t(f) on a sparse frequency grid),
+:class:`~bbhx.response.fastfdresponse.LISATDIResponse` (fast FD transfer functions) and
+:class:`TemplateInterpFD` (spline interpolation onto the data frequencies) to produce TDI
+channels of PhenomHM / PhenomD signals. Its templates feed
+:class:`~bbhx.likelihood.Likelihood` and :class:`~bbhx.likelihood.HeterodynedLikelihood`.
+
+The global-fit production runs import this module (through
+``lisatools.sources.bbh.waveform``) but do not evaluate it: their MBH waveform is phentax
+plus the LISA Analysis Tools response. Importing the module prints ``No CuPy`` when ``cupy``
+is not installed.
+"""
+
 import numpy as np
 import warnings
 
@@ -34,26 +49,38 @@ from .utils.constants import *
 from .utils.parallelbase import BBHxParallelModule
 
 class TemplateInterpFD(BBHxParallelModule):
-    """Interpolate frequency domain template.
+    """Interpolate sparse waveform + response splines onto the data frequencies.
 
-    This class wraps :class:`CubicSplineInterpolant <gpubackendtools.interpolate.CubicSplineInterpolant>` so
-    that it fits into this specific waveform production method.
+    Wraps the native ``InterpTDI_wrap`` kernel. Given the cubic-spline values and
+    coefficients (from :class:`gpubackendtools.interpolate.CubicSplineInterpolant`) of the
+    nine per-mode quantities on each binary's sparse frequency grid (amplitude, phase,
+    t(f), and the real / imaginary parts of the three transfer functions), it evaluates the
+    TDI channels at every data frequency inside that binary's band, sums the modes, and zeros
+    the frequencies whose t(f) falls outside ``[t_start, t_end]``. Used by
+    :class:`BBHWaveformFD` when ``direct=False``. The attributes below are set by
+    :meth:`__call__`.
 
     This class has GPU capabilities.
 
     Args:
-        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
+        force_backend (str, optional): Backend name (``"cpu"``, ``"cuda12x"``, ``"cuda"``,
+            ``"gpu"``, ...), see :class:`~bbhx.utils.parallelbase.BBHxParallelModule`.
+            Default ``None`` picks the first available of ``cuda13x``, ``cuda12x``,
+            ``cuda11x``, ``cpu``.
 
     Attributes:
-        data_length (int): Length of data. This class interpolates to this length.
-        length (int): Length of original frequency array.
+        data_length (int): Number of data frequencies interpolated onto.
+        length (int): Length of each sparse frequency grid.
         num_bin_all (int): Number of binaries.
-        num_channels (int): Number of channels in data.
+        num_channels (int): Number of TDI channels.
         num_modes (int): Number of harmonics.
-        template_carrier (complex128 xp.ndarray): Carrier for output templates.
-            Templates can be accessed through the ``template_channels`` property.
-        force_backend (str): Backend string indicator.
-
+        lengths (np.ndarray): ``int32``, shape ``(num_bin_all,)``: number of data
+            frequencies inside each binary's band.
+        start_inds (np.ndarray): ``int32``, shape ``(num_bin_all,)``: index into the data
+            frequencies of the first frequency of each binary's band.
+        template_carrier (list[xp.ndarray]): One flat ``complex128`` array of size
+            ``num_channels * lengths[i]`` per binary; reshaped views are returned by
+            :attr:`template_channels`.
     """
 
     def __init__(self, force_backend=None):
@@ -66,16 +93,17 @@ class TemplateInterpFD(BBHxParallelModule):
     
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def template_gen(self) -> callable:
-        """C/CUDA wrapped function for computing interpolated waveforms"""
+        """Native ``InterpTDI_wrap`` kernel that interpolates and sums the templates."""
         return self.backend.InterpTDI_wrap
 
     @property
     def template_channels(self):
-        """Get template channels from ``self.template_carrier``."""
+        """Per-binary templates, ``template_carrier[i]`` shaped ``(num_channels, lengths[i])``."""
         return [
             self.template_carrier[i].reshape(self.num_channels, self.lengths[i])
             for i in range(self.num_bin_all)
@@ -83,7 +111,12 @@ class TemplateInterpFD(BBHxParallelModule):
 
     @property
     def citation(self):
-        """citations for this class"""
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: ``katz_citations`` is no longer defined in this module (the
+            ``bbhx.utils.citations`` import is commented out).
+        """
         return katz_citations
 
     def __call__(
@@ -98,26 +131,35 @@ class TemplateInterpFD(BBHxParallelModule):
     ):
         """Generate frequency domain template via interpolation.
 
-        This class takes all waveform and response information as sparse arrays
-        and then interpolates to the proper frequency array.
-
-        This class acts in a unique why by passing arrays of pointers from python
-        into C++/CUDA.
+        Takes all waveform and response information as sparse spline arrays and
+        interpolates them onto ``data_freqs``. Each binary's band runs from the lowest to
+        the highest sparse frequency over all its modes; the per-binary index windows are
+        passed to C++/CUDA as arrays of pointers.
 
         Args:
-            data_freqs (double xp.ndarray): Frequencies to interpolate to.
-            interp_container (obj): ``container`` attribute from the interpolant
-                class: :class:`CubicSplineInterpolant <gpubackendtools.interpolate.CubicSplineInterpolant>`.
-            t_start (double xp.ndarray): Array of start times (sec) for each binary.
-            t_end (double xp.ndarray): Array of end times (sec) for each binary.
-            length (int): Length of original frequency array.
+            data_freqs (xp.ndarray): Data frequencies (Hz), 1D and increasing. Must be an
+                ``xp`` array of this backend on GPU.
+            interp_container (list): ``[freqs, y, c1, c2, c3]``: ``freqs`` is the flat
+                sparse grid of shape ``(num_bin_all * num_modes * length,)``; ``y``, ``c1``,
+                ``c2``, ``c3`` are the flat spline values and coefficients of the 9
+                quantities, ordered ``(param, binary, mode, frequency)`` with ``param`` =
+                amplitude, phase, t(f), transferL1 re / im, transferL2 re / im,
+                transferL3 re / im.
+            t_start (xp.ndarray): Per-binary start time (s); frequencies whose t(f) is
+                earlier are zeroed.
+            t_end (xp.ndarray): Per-binary end time (s); frequencies whose t(f) is later
+                are zeroed (a value ``<= 0`` disables this cut).
+            length (int): Length of each sparse frequency grid.
             num_modes (int): Number of harmonics.
-            num_channels (int): Number of channels in data.
+            num_channels (int): Number of TDI channels.
 
         Returns:
-            list: List of template arrays for all binaries.
-                shape of each array: ``(self.num_channels, self.data_length)``
+            list[xp.ndarray]: :attr:`template_channels`: entry ``i`` is ``complex128`` of
+            shape ``(num_channels, lengths[i])`` and holds binary ``i`` on
+            ``data_freqs[start_inds[i]:start_inds[i] + lengths[i]]``.
 
+        Raises:
+            ValueError: On a GPU backend, when ``data_freqs`` is not a ``cupy`` array.
         """
 
         # fill important quantities
@@ -240,7 +282,7 @@ class TemplateInterpFD(BBHxParallelModule):
 
 
 class BBHWaveformFD(BBHxParallelModule):
-    """Generate waveforms put through response functions
+    """Generate waveforms put through response functions.
 
     This class generates waveforms put through the LISA response function. In the
     future, ground-based analysis may be added. Therefore, it currently
@@ -260,32 +302,65 @@ class BBHWaveformFD(BBHxParallelModule):
     The response function is the fast frequency domain response function
     from `arXiv:1806.10734 <https://arxiv.org/abs/1806.10734>`_ and
     `arXiv:2003.00357 <https://arxiv.org/abs/2003.00357>`_. It is implemented in
-    :class:`LISATDIResponse <bbhx.response.fastfdresponse.LISATDIResponse`.
+    :class:`LISATDIResponse <bbhx.response.fastfdresponse.LISATDIResponse>`.
 
-    This class is GPU accelerated.
+    This class is GPU accelerated. The three sub-generators are built with the same
+    ``force_backend``. It is not used by the global-fit production runs.
 
     Args:
-        amp_phase_kwargs (dict, optional): Keyword arguments for the
-            initialization of the ampltidue-phase waveform class: :class:`PhenomHMAmpPhase <bbhx.waveforms.phenomhm.PhenomHMAmpPhase>`.
-        response_kwargs (dict, optional): Keyword arguments for the initialization
-            of the response class: :class:`LISATDIResponse <bbhx.response.fastfdresponse.LISATDIResponse`.
-        interp_kwargs (dict, optional): Keyword arguments for the initialization
-            of the interpolation class: :class:`TemplateInterpFD`.
-        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
+        amp_phase_kwargs (dict, optional): Keyword arguments for
+            :class:`PhenomHMAmpPhase <bbhx.waveforms.phenomhm.PhenomHMAmpPhase>`
+            (``run_phenomd``, ``mf_min``, ``mf_max``, ``initial_t_val``). Default ``{}``.
+        response_kwargs (dict, optional): Keyword arguments for
+            :class:`LISATDIResponse <bbhx.response.fastfdresponse.LISATDIResponse>`
+            (``TDItag``, ``orbits``, ``rescaled``, ``tdi2``, ``order_fresnel_stencil``).
+            Default ``{}`` (AET, TDI 1, the response's default orbits).
+        interp_kwargs (dict, optional): Keyword arguments for :class:`TemplateInterpFD`,
+            which takes none besides ``force_backend``. Default ``{}``.
+        force_backend (str, optional): Backend name (``"cpu"``, ``"cuda12x"``, ``"cuda"``,
+            ``"gpu"``, ...), see :class:`~bbhx.utils.parallelbase.BBHxParallelModule`.
+            Default ``None`` picks the first available of ``cuda13x``, ``cuda12x``,
+            ``cuda11x``, ``cpu``.
 
     Attributes:
-        amp_phase_gen (obj): Waveform generation class.
-        data_length (int): Length of the final output data.
-        interp_response (obj): Interpolation class.
-        length (int): Length of initial evaluations of waveform and response.
-        num_bin_all (int): Total number of binaries analyzed.
-        num_interp_params (int): Number of parameters to interpolate (9).
-        num_modes (int): Number of harmonic modes.
-        out_buffer_final (xp.ndarray): Array with buffer information with shape:
-            ``(self.num_interp_params, self.num_bin_all, self.num_modes, self.length)``.
-            The order of the parameters is amplitude, phase, t-f, transferL1re, transferL1im,
-            transferL2re, transferL2im, transferL3re, transferL3im.
+        amp_phase_gen (PhenomHMAmpPhase): Amplitude / phase generator.
+        response_gen (LISATDIResponse): Response generator.
+        interp_response (TemplateInterpFD): Interpolation stage.
+        interp_like (callable or None): Native ``speciallike`` kernel used by
+            :meth:`get_direct_ll` (``None`` on CPU).
+        force_backend (str or None): The ``force_backend`` argument as given.
+        data_length (int): Number of data frequencies (set when ``direct=False``).
+        length (int): Number of frequencies of the sparse (or direct) evaluation grid.
+        num_bin_all (int): Number of binaries of the last call.
+        num_interp_params (int): Number of per-mode quantities in the buffer (9).
+        num_modes (int): Number of harmonic modes of the last call.
+        t_start (np.ndarray): Per-binary observation start, SSB time (s), of the last call.
+        t_end (np.ndarray): Per-binary observation end, SSB time (s), of the last call.
+        out_buffer_final (xp.ndarray): Copy of the filled buffer of the last call, shape
+            ``(num_interp_params, num_bin_all, num_modes, length)``. The order of the
+            quantities is amplitude, phase, t(f), transferL1re, transferL1im, transferL2re,
+            transferL2im, transferL3re, transferL3im.
 
+    Example:
+        .. code-block:: python
+
+            import numpy as np
+            from lisatools.detector import ESAOrbits
+            from bbhx.waveformbuild import BBHWaveformFD
+            from bbhx.utils.constants import PC_SI, YRSID_SI
+
+            wave_gen = BBHWaveformFD(
+                response_kwargs=dict(orbits=ESAOrbits(force_backend="cpu")),
+                force_backend="cpu",
+            )
+            freqs = np.logspace(-4, 0, 10000)
+            # m1, m2 [Msun], chi1z, chi2z, distance [m], phi_ref, f_ref, inc,
+            # lam, beta (SSB ecliptic), psi, t_ref [s]
+            AET = wave_gen(
+                1e6, 5e5, 0.2, 0.4, 18e3 * PC_SI * 1e6, 0.0, 0.0, np.pi / 3,
+                np.pi / 5, np.pi / 4, np.pi / 6, 0.5 * YRSID_SI,
+                freqs=freqs, length=1024, fill=True,
+            )[0]  # (3, len(freqs)): A, E, T on ``freqs``
     """
 
     def __init__(
@@ -314,16 +389,23 @@ class BBHWaveformFD(BBHxParallelModule):
 
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def waveform_gen(self) -> callable:
-        """C/CUDA wrapped function for computing waveforms"""
+        """Native ``direct_sum_wrap`` kernel (direct, non-interpolated TDI build)."""
         return self.backend.direct_sum_wrap
 
     @property
     def citation(self):
-        """Citations for this class"""
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: the citation strings (``katz_citations``, ...) are no
+            longer defined in this module (the ``bbhx.utils.citations`` import is commented
+            out).
+        """
         return (
             katz_citations + marsat_1 + marsat_2 + phenomhm_citation + phenomd_citations
         )
@@ -355,77 +437,116 @@ class BBHWaveformFD(BBHxParallelModule):
         combine=False,
         return_splines=False,
     ):
-        """Generate the binary black hole frequency-domain TDI waveforms
+        """Generate the binary black hole frequency-domain TDI waveforms.
 
+        :class:`~bbhx.waveforms.phenomhm.PhenomHMAmpPhase` computes the per-mode amplitude,
+        phase and t(f) (on a sparse grid of ``length`` frequencies per mode when
+        ``direct=False``, on ``freqs`` when ``direct=True``);
+        :class:`~bbhx.response.fastfdresponse.LISATDIResponse` adds the transfer functions
+        and the reference phase; the TDI channels are then summed directly on that grid
+        (``direct=True``) or spline-interpolated onto ``freqs`` (:class:`TemplateInterpFD`).
+        With ``direct=False`` each mode's sparse grid is log-spaced over the model's default
+        band (``mf_min`` to ``mf_max`` in units of the total mass), clipped to the
+        frequencies whose t(f) lies between 500 s and 500 s before the end of the orbit
+        data. Frequencies whose t(f) falls outside the observation window are zeroed.
+
+        The source parameters accept scalars or 1D arrays of length ``num_bin_all`` (one
+        entry per binary).
 
         Args:
-            m1 (double scalar or np.ndarray): Mass 1 in Solar Masses :math:`(m1 > m2)`.
-            m2 (double or np.ndarray): Mass 2 in Solar Masses :math:`(m1 > m2)`.
-            chi1z (double or np.ndarray): Dimensionless spin 1 (for Mass 1) in Solar Masses.
-            chi2z (double or np.ndarray): Dimensionless spin 2 (for Mass 1) in Solar Masses.
-            distance (double or np.ndarray): Luminosity distance in m.
-            phi_ref (double or np.ndarray): Phase at ``f_ref``.
-            f_ref (double or np.ndarray): Reference frequency at which ``phi_ref`` and ``t_ref`` are set.
-                If ``f_ref == 0``, it will be set internally by the PhenomHM code
-                to :math:`f_\\text{max} = \\text{max}(f^2A_{22}(f))`.
-            inc (double or np.ndarray): Inclination of the binary in radians :math:`(\iota\in[0.0, \pi])`.
-            lam (double or np.ndarray): Ecliptic longitude :math:`(\lambda\in[0.0, 2\pi])`.
-            beta (double or np.ndarray): Ecliptic latitude :math:`(\\beta\in[-\pi/2, \pi/2])`.
-            psi (double or np.ndarray): Polarization angle in radians :math:`(\psi\in[0.0, \pi])`.
-            t_ref (double or np.ndarray): Reference time in seconds. It is set at ``f_ref``.
-            t_obs_start (double, optional): Start time of observation in years
-                in the LISA constellation reference frame. This is with reference to :math:`t=0`.
-                (Default: 0.0)
-            t_obs_end (double, optional): End time of observation in years in the
-                LISA constellation reference frame. This is with reference to :math:`t=0`.
-                (Default: 1.0)
-            freqs (np.ndarray, optional): Frequencies at which to evaluate the final waveform.
-                If ``length`` is also given, the interpolants interpolate to these
-                frequencies. If ``length`` is not given, the waveform amplitude, phase,
-                and response will be directly evaluated at these frequencies. In this case,
-                a 2D np.ndarray can also be provided. (Default: ``None``)
-            length (int, optional): Number of frequencies to use in sparse array for
-                interpolation.
-            modes (list, optional): Harmonic modes to use. If not given, they will
-                default to those available in the waveform model. For PhenomHM:
-                [(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]. For PhenomD: [(2,2)].
-                (Default: ``None``)
-            shift_t_limits (bool, optional): If ``False``, ``t_obs_start`` and ``t_obs_end``
-                are relative to ``t_ref`` counting backwards in time. If ``True``,
-                those quantities are relative to :math:`t=0`. (Default: ``False``)
-            direct (bool, optional): If ``True``, directly compute the waveform without
-                interpolation. (Default: ``False``)
-            compress (bool, optional): If ``True``, combine harmonics into single channel
-                waveforms. (Default: ``True``)
-            squeeze (bool, optional): If ``True``, remove any axes of length 1 from the
-                final return information. (Default: ``False``)
-            fill (bool, optional): If ``True``, fill data streams according to the ``combine``
-                keyword argument. If ``False, returns information for the fast likelihood functions.
-            combine (bool, optional): If ``True``, combine all waveforms into the same output
-                data stream. (Default: ``False``)
-
+            m1 (float or np.ndarray): Mass of body 1 in solar masses. When ``m1 < m2`` the
+                bodies (and spins) are swapped so that ``m1 >= m2`` (see Note).
+            m2 (float or np.ndarray): Mass of body 2 in solar masses.
+            chi1z (float or np.ndarray): Dimensionless aligned spin of body 1,
+                ``|chi1z| <= 1``.
+            chi2z (float or np.ndarray): Dimensionless aligned spin of body 2,
+                ``|chi2z| <= 1``.
+            distance (float or np.ndarray): Luminosity distance in metres.
+            phi_ref (float or np.ndarray): Reference phase (rad). It is applied by the
+                response; the waveform kernel runs with zero phase.
+            f_ref (float or np.ndarray): Reference frequency (Hz). Passed to the kernel but
+                currently IGNORED: the kernel always uses the peak frequency of the PhenomD
+                (2,2) merger-ringdown amplitude ansatz (``fmaxCalc``, Eq. 20 of
+                arXiv:1508.07253) as reference frequency, so ``t_ref`` and ``phi_ref``
+                refer to that frequency. ``0.0`` is the conventional value.
+            inc (float or np.ndarray): Inclination (rad), in ``[0, pi]``.
+            lam (float or np.ndarray): Ecliptic longitude (rad), SSB frame (see Warning).
+            beta (float or np.ndarray): Ecliptic latitude (rad), SSB frame.
+            psi (float or np.ndarray): Polarization angle (rad), in ``[0, pi]``.
+            t_ref (float or np.ndarray): Time (s) at which the (2,2) mode reaches the
+                reference frequency above (about the merger time); every mode's t(f) is
+                shifted by ``t_ref``. It is read on the time axis of
+                ``response_gen.orbits``. Intended as an SSB-frame time; see Warning.
+            t_obs_start (float or np.ndarray, optional): Start of the observation in years,
+                a LISA-frame time measured from ``t = 0`` (scalar or one per binary);
+                converted per binary to an SSB time with
+                :func:`~bbhx.utils.transform.tSSBfromLframe` (orbital phase ``t0 = 0``).
+                Default ``0.0``.
+            t_obs_end (float or np.ndarray, optional): End of the observation in years,
+                same convention. Default ``1.0``.
+            freqs (np.ndarray, optional): With ``direct=False``: data frequencies (Hz, 1D,
+                increasing) to interpolate onto; required unless ``return_splines=True``.
+                With ``direct=True``: the evaluation frequencies, 1D ``(length,)`` (shared by
+                all binaries and modes) or 3D ``(num_bin_all, num_modes, length)``; when
+                ``None``, the internal grid ``amp_phase_gen.freqs`` is used. Default
+                ``None``.
+            length (int, optional): Number of sparse frequencies per mode; required when
+                ``direct=False``. With ``direct=True`` it is taken from ``freqs``, or, when
+                ``freqs`` is ``None``, it is required and sets the size of the internal grid.
+            modes (list, optional): ``(l, m)`` tuples, a subset of
+                ``[(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]``. Default ``None``: all modes of
+                the model (PhenomD: ``[(2,2)]``).
+            shift_t_limits (bool, optional): Deprecated. ``False`` only emits a warning;
+                ``t_obs_start`` / ``t_obs_end`` are always measured from ``t = 0``. Default
+                ``True``.
+            direct (bool, optional): Evaluate directly on ``freqs`` without interpolation.
+                Default ``False``.
+            compress (bool, optional): With ``direct=True``, sum the modes into the TDI
+                channels; ``False`` keeps a mode axis. Default ``True``.
+            squeeze (bool, optional): Remove length-1 axes from the output. Applied to the
+                ``direct=True`` outputs and to ``fill=True, combine=True``; NOT applied to
+                ``fill=True, combine=False`` or to the template tuple. Default ``False``.
+            fill (bool, optional): With ``direct=False``, return data-length arrays instead
+                of the per-binary template tuple. Default ``False``.
+            combine (bool, optional): With ``fill=True``, sum all binaries into one data
+                stream. Default ``False``.
+            return_splines (bool, optional): With ``direct=False``, return the
+                :class:`~gpubackendtools.interpolate.CubicSplineInterpolant` built over the 9
+                sparse quantities instead of interpolating. Default ``False``.
 
         Returns:
-            xp.ndarray: Shape ``(3, self.length, self.num_bin_all)``.
-                Final waveform for each binary. If ``direct==True`` and ``compress==True``.
-                # TODO: switch dimensions?
-            xp.ndarray:  Shape ``(3, self.num_modes, self.length, self.num_bin_all)``.
-                Final waveform for each binary. If ``direct==True`` and ``compress==False``.
-            xp.ndarray:  Shape ``(3, self.data_length)``.
-                Final waveform of all binaries in the same data stream.
-                If ``fill==True`` and ``combine==True``.
-            xp.ndarray:  Shape ``(self.num_bin_all, 3, self.data_length)``.
-                Final waveform of all binaries in the same data stream.
-                If ``fill==True`` and ``combine==False``.
-            tuple: Information for fast likelihood functions.
-                First entry is ``template_channels`` property from :class:`TemplateInterpFD`.
-                Second entry is ``start_inds`` attribute from ``self.interp_response``.
-                Third entry is ``lengths`` attribute from ``self.interp_response``.
+            xp.ndarray or tuple or CubicSplineInterpolant: ``complex128`` arrays with the 3
+            channels of the response's ``TDItag``:
+
+            - ``direct=True, compress=True``: shape ``(num_bin_all, 3, length)``.
+            - ``direct=True, compress=False``: shape ``(num_bin_all, 3, num_modes, length)``.
+            - ``fill=True, combine=True``: shape ``(3, len(freqs))``.
+            - ``fill=True, combine=False``: shape ``(num_bin_all, 3, len(freqs))``.
+            - ``fill=False`` (default): ``(template_channels, start_inds, lengths)`` from
+              :class:`TemplateInterpFD`; ``template_channels[i]`` has shape
+              ``(3, lengths[i])`` and covers ``freqs[start_inds[i]:start_inds[i] + lengths[i]]``.
+            - ``return_splines=True``: the spline object.
 
         Raises:
-            ValueError: ``length`` and ``freqs`` not given. Modes are given but not in a list.
+            ValueError: Neither ``freqs`` nor ``length`` is given; ``direct=False`` without
+                ``length``; ``modes`` is not a list or holds an unavailable mode;
+                ``|chi| > 1``; the t(f) window search fails (``t_ref`` too close to 0 or
+                to the end of the orbit data).
 
+        Note:
+            ``m1``, ``m2``, ``chi1z``, ``chi2z`` passed as ``np.ndarray`` are modified in
+            place when bodies are swapped (``np.atleast_1d`` does not copy).
 
+        Warning:
+            ``lam`` / ``beta`` enter the transfer functions together with the spacecraft
+            positions of ``response_gen.orbits`` (they must be in that orbit data's frame)
+            and the orbital-delay phase through an analytic circular orbit in the ecliptic
+            plane, so the two agree only for ecliptic orbit data (the packaged LISA
+            Analysis Tools orbit files hold SSB-ecliptic positions whatever their
+            ``frame`` label; Mojito ``L1Orbits`` loaded with ``frame="icrs"`` do not).
+            The merger arrival time does not follow the sky position at fixed
+            ``t_ref`` the way the LISA Analysis Tools time-domain response does (open TODO
+            in the method body).
         """
 
         # TODO(2026-10-12, sky-mode verification): the merger ARRIVAL time of
@@ -740,6 +861,49 @@ class BBHWaveformFD(BBHxParallelModule):
         phase_maximize=False,
         **waveform_kwargs,
     ):
+        """Direct log-likelihood of interpolated templates against one or more data sets.
+
+        GPU only. Builds the sparse splines (:meth:`__call__` with ``return_splines=True``)
+        and hands them to the fused ``speciallike`` kernel, which interpolates every binary
+        onto ``data_freqs`` and accumulates ``<d|h>`` and ``<h|h>`` without materializing
+        the templates. Binary ``i`` is compared with data set ``data_index[i]`` and PSD set
+        ``noise_index[i]``. The caller must set ``self.d_d`` first (a float or an array of
+        length ``num_bin_all``). Only caller: ``search_likelihood_wrap`` in LISA Analysis
+        Tools' ``globalfit/mbhsearch.py`` (a development search script, not on the
+        production path).
+
+        Args:
+            data_freqs (xp.ndarray): Data frequencies (Hz), 1D of length ``data_length``.
+            dataChannels (xp.ndarray): Flat complex data of
+                ``num_data_sets * 3 * data_length`` entries (``(num_data_sets, 3,
+                data_length)`` flattened).
+            psd (xp.ndarray): Flat PSD of ``num_noise_sets * 3 * data_length`` entries.
+            df (float): Frequency spacing of the data (Hz).
+            *waveform_args: Source parameters forwarded to :meth:`__call__`
+                (``m1, m2, chi1z, chi2z, distance, phi_ref, f_ref, inc, lam, beta, psi,
+                t_ref``).
+            data_index (np.ndarray, optional): ``int32`` numpy array of length
+                ``num_bin_all``: data set of each binary. Default ``None`` means all 0.
+            noise_index (np.ndarray, optional): ``int32`` numpy array of length
+                ``num_bin_all``: PSD set of each binary. Default ``None`` means all 0.
+            phase_maximize (bool, optional): Use ``|<d|h>|`` (phase maximization); the
+                complex value is kept in ``self.non_marg_d_h``. Default ``False``.
+            **waveform_kwargs: Forwarded to :meth:`__call__`; must contain ``length``.
+                ``direct``, ``compress``, ``squeeze``, ``fill``, ``combine`` and
+                ``return_splines`` are overwritten.
+
+        Returns:
+            xp.ndarray: Complex, shape ``(num_bin_all,)``:
+            ``-1/2 (d_d + <h|h> - 2 <d|h>)`` (take ``.real``). ``<d|h>`` and ``<h|h>`` are
+            stored in ``self.d_h`` and ``self.h_h``.
+
+        Raises:
+            AssertionError: ``length`` missing, index arrays not ``int32`` numpy arrays, or
+                data / PSD sizes not multiples of ``3 * data_length`` covering the indices.
+            ValueError: ``self.d_d`` is not set.
+            NameError: On a CPU backend (the CPU branch raises the undefined
+                ``NotImplementedErrors``).
+        """
 
         assert "length" in waveform_kwargs and waveform_kwargs["length"] is not None
 

@@ -19,6 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""PhenomHM / PhenomD frequency-domain waveforms in the amplitude-phase representation.
+
+:class:`PhenomHMAmpPhase` evaluates, per binary, per harmonic and per frequency, the
+amplitude, the phase and the time-frequency correspondence t(f) of PhenomHM (or PhenomD,
+the (2,2) mode alone) with the native ``waveform_amp_phase_wrap`` kernel. It is the source
+stage of :class:`bbhx.waveformbuild.BBHWaveformFD`. The PhenomD ringdown / damping
+frequencies come from the QNM tables of :mod:`bbhx.waveforms.ringdownphenomd`.
+"""
 
 import numpy as np
 from scipy.interpolate import CubicSpline
@@ -29,54 +37,78 @@ from ..utils.parallelbase import BBHxParallelModule
 
 
 class PhenomHMAmpPhase(BBHxParallelModule):
-    """Produce PhenomHM in the amplitude and phase representation
+    r"""Produce PhenomHM in the amplitude and phase representation.
 
     This class implements PhenomD and PhenomHM in a GPU-accelerated form.
     If you use this class, please cite
     `arXiv:2005.01827 <https://arxiv.org/abs/2005.01827>`_,
-    `arXiv:2111.01064 <https://arxiv.org/abs/2111.01064>`_
+    `arXiv:2111.01064 <https://arxiv.org/abs/2111.01064>`_,
     `arXiv:1708.00404 <https://arxiv.org/abs/1708.00404>`_,
     `arXiv:1508.07250 <https://arxiv.org/abs/1508.07250>`_, and
-    `arXiv:1508.07253 <https://arxiv.org/abs/1508.07253>_.
+    `arXiv:1508.07253 <https://arxiv.org/abs/1508.07253>`_.
+
+    For each binary, mode and frequency it computes the amplitude :math:`A_{lm}(f)`, the
+    phase :math:`\phi_{lm}(f)` (convention
+    :math:`\tilde{h}_{lm}(f) = A_{lm}(f) e^{-i\phi_{lm}(f)}`, see the BBHx docs) and the
+    time-frequency correspondence t(f) (s). They are stored flat in
+    :attr:`waveform_carrier` (quantity-major, then
+    ``(num_bin_all, num_modes, length)``) and read through :attr:`amp`, :attr:`phase`,
+    :attr:`tf` and :attr:`freqs_shaped`.
 
     Args:
-        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
+        force_backend (str, optional): Backend name (``"cpu"``, ``"cuda12x"``, ``"cuda"``,
+            ``"gpu"``, ...), see :class:`~bbhx.utils.parallelbase.BBHxParallelModule`.
+            Default ``None`` picks the first available of ``cuda13x``, ``cuda12x``,
+            ``cuda11x``, ``cpu``.
         run_phenomd (bool, optional): If ``True``, run the PhenomD
             waveform rather than PhenomHM. Really this is the same
-            as choosing ``modes=[(2,2)]`` in the PhenomHM waveform.
-        mf_min (double, optional): Dimensionless minimum frequency to use when performing
-            interpolation. (Default: ``1e-4``)
-        mf_max (double, optional): Dimensionless maximum frequency to use when performing
-            interpolation. (Default: ``6e-1``)
-        initial_t_val (double, optional): Time at the start of the
-            time window. This shifts the phase accordingly but does
-            not shift the tf correspondence so that the response
-            is still accurately reflected. (Default: ``0.0``)
+            as choosing ``modes=[(2,2)]`` in the PhenomHM waveform. Default ``False``.
+        mf_min (float, optional): Lowest dimensionless frequency ``M f`` (``M`` the total
+            mass in seconds) of the internal grid used when no ``freqs`` are given; mode
+            ``(l, m)`` uses ``M f`` times ``m / 2``. Default ``1e-4``.
+        mf_max (float, optional): Highest dimensionless frequency of that grid. Default
+            ``0.6``.
+        initial_t_val (float or np.ndarray, optional): Time origin of the phase: the phase
+            is shifted by ``2 pi f (t_ref - initial_t_val)`` while t(f) is still shifted by
+            ``t_ref``, so the response still sees the right times. A float, a
+            ``(num_bin_all,)`` array or a ``(num_bin_all, num_modes)`` numpy array (an
+            ``int`` is not accepted). Default ``0.0``.
 
     Attributes:
         allowable_modes (list): Allowed list of mode tuple pairs ``(l,m)`` for
             the chosen waveform model.
-        ells_default (np.ndarray): Default values for the ``l`` index of the harmonic.
-        mms_default (np.ndarray): Default values for the ``m`` index of the harmonic.
-        mf_max (double): Dimensionless maximum frequency to use when performing
-            interpolation.
-        mf_min (double): Dimensionless minimum frequency to use when performing
-            interpolation.
-        phenomhm_ringdown_freqs (obj): Ringdown frequency determination in PhenomHM.
-        phenomd_ringdown_freqs (obj): Ringdown frequency determination in PhenomD.
-        run_phenomd (bool): If ``True``, run the PhenomD
-            waveform rather than PhenomHM. Really this is the same
-            as choosing ``modes=[(2,2)]`` in the PhenomHM waveform.
-        y_rd (xp.ndarray): Y-values for PhenomD ringdown frequncy for Cubic Spline.
+        ells_default (xp.ndarray): Default values for the ``l`` index of the harmonic.
+        mms_default (xp.ndarray): Default values for the ``m`` index of the harmonic.
+        mf_max (float): See Args.
+        mf_min (float): See Args.
+        initial_t_val (float or np.ndarray): See Args (may be reassigned between calls).
+        run_phenomd (bool): See Args.
+        modes (list): Modes used by the last call.
+        y_rd (xp.ndarray): Y-values for PhenomD ringdown frequency for Cubic Spline.
         c1_rd (xp.ndarray): Cubic Spline c1 values for PhenomD ringdown frequency.
         c2_rd (xp.ndarray): Cubic Spline c2 values for PhenomD ringdown frequency.
         c3_rd (xp.ndarray): Cubic Spline c3 values for PhenomD ringdown frequency.
-        y_dm (xp.ndarray): Y-values for PhenomD damping frequncy for Cubic Spline.
+        y_dm (xp.ndarray): Y-values for PhenomD damping frequency for Cubic Spline.
         c1_dm (xp.ndarray): Cubic Spline c1 values for PhenomD damping frequency.
         c2_dm (xp.ndarray): Cubic Spline c2 values for PhenomD damping frequency.
         c3_dm (xp.ndarray): Cubic Spline c3 values for PhenomD damping frequency.
-        waveform_carrier (xp.ndarray): Carrier for amplitude, phase, and tf information.
+        fringdown (xp.ndarray): Ringdown frequencies of the last call (per binary and
+            mode; PhenomHM appends the PhenomD (2,2) value per binary).
+        fdamp (xp.ndarray): Damping frequencies of the last call, same layout.
+        waveform_carrier (xp.ndarray): Flat carrier for amplitude, phase, and tf
+            information (or the caller's ``out_buffer``).
 
+    Example:
+        .. code-block:: python
+
+            from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
+            from bbhx.utils.constants import PC_SI, YRSID_SI
+
+            phenomhm = PhenomHMAmpPhase(run_phenomd=False, force_backend="cpu")
+            # m1, m2 [Msun], chi1z, chi2z, distance [m], phi_ref, f_ref, t_ref [s], length
+            phenomhm(1e6, 5e5, 0.2, 0.4, 18e3 * PC_SI * 1e6, 0.0, 0.0, 0.95 * YRSID_SI, 1024)
+            amp, phase, tf = phenomhm.amp, phenomhm.phase, phenomhm.tf  # (1, 6, 1024)
+            freqs = phenomhm.freqs_shaped  # (1, 6, 1024)
     """
 
     def __init__(
@@ -122,11 +154,12 @@ class PhenomHMAmpPhase(BBHxParallelModule):
     
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def waveform_gen(self) -> callable:
-        """C/CUDA wrapped function for computing interpolation."""
+        """Native ``waveform_amp_phase_wrap`` kernel (PhenomHM / PhenomD amplitude-phase)."""
         return self.backend.waveform_amp_phase_wrap
 
     @property
@@ -141,11 +174,22 @@ class PhenomHMAmpPhase(BBHxParallelModule):
 
     @property
     def citation(self):
-        """Return citations for this class"""
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: the citation strings (``katz_citations``, ...) are no
+            longer defined in this module (``bbhx.utils.citations`` was removed).
+        """
         return katz_citations + phenomhm_citation + phenomd_citations
 
     def _init_phenomd_fring_spline(self):
-        """Prepare PhenomD fring and fdamp splines"""
+        """Prepare PhenomD fring and fdamp splines.
+
+        Fits scipy cubic splines of ``QNMData_fring`` and ``QNMData_fdamp`` against the
+        final spin ``QNMData_a`` and stores the values and coefficients
+        (``y_rd, c1_rd, c2_rd, c3_rd`` and ``y_dm, c1_dm, c2_dm, c3_dm``, ``xp`` arrays) read
+        by the PhenomD ringdown-frequency kernel.
+        """
         # setup splines
         spl_ring = CubicSpline(QNMData_a, QNMData_fring)
         spl_damp = CubicSpline(QNMData_a, QNMData_fdamp)
@@ -162,7 +206,7 @@ class PhenomHMAmpPhase(BBHxParallelModule):
         self.c3_dm = self.xp.asarray(spl_damp.c[-4]).copy()
 
     def _sanity_check_modes(self, ells, mms):
-        """Make sure ell and mm combinations are available"""
+        """Raise ``ValueError`` if an ``(ell, mm)`` pair is not in :attr:`allowable_modes`."""
         for ell, mm in zip(ells, mms):
             if (ell, mm) not in self.allowable_modes:
                 raise ValueError(
@@ -172,7 +216,14 @@ class PhenomHMAmpPhase(BBHxParallelModule):
                 )
 
     def _sanity_check_params(self, m1, m2, chi1z, chi2z):
-        """Make sure input parameters are okay"""
+        """Check the spins and order the bodies so that ``m1 >= m2``.
+
+        Raises ``ValueError`` if any ``|chi1z|`` or ``|chi2z|`` exceeds 1. Where
+        ``m1 < m2`` the masses and spins are swapped IN PLACE on the given arrays.
+
+        Returns:
+            tuple: ``(m1, m2, chi1z, chi2z)`` (the same array objects).
+        """
         if np.any(np.abs(chi1z) > 1.0):
             raise ValueError(
                 "chi1z array contains values with abs(chi1z) > 1.0 which is not allowed."
@@ -198,14 +249,19 @@ class PhenomHMAmpPhase(BBHxParallelModule):
         return (m1, m2, chi1z, chi2z)
 
     def _initialize_waveform_container(self):
-        """Initialize the waveform container based on input dimensions"""
+        """Allocate a zero :attr:`waveform_carrier` of size ``nparams * num_per_param``."""
         self.waveform_carrier = self.xp.zeros(
             (self.nparams * self.length * self.num_modes * self.num_bin_all),
             dtype=self.xp.float64,
         )
 
     def _initialize_freqs(self, m1, m2, mms):
-        """Setup frequencies when not given by user"""
+        """Build the internal frequency grid when the user gives none.
+
+        ``length`` log-spaced points in ``[mf_min, mf_max]`` divided by the total mass in
+        seconds and multiplied by ``m / 2`` per mode; stored flat in :attr:`freqs`
+        (layout ``(num_bin_all, num_modes, length)``).
+        """
         M_tot_sec = (m1 + m2) * MTSUN_SI
 
         # dimensionless freqs
@@ -249,17 +305,17 @@ class PhenomHMAmpPhase(BBHxParallelModule):
 
     @property
     def freqs_shaped(self):
-        """Get the freqs array with shape ``(num_bin_all, length)``"""
+        """Get the freqs array with shape ``(num_bin_all, num_modes, length)``"""
         return self._freqs.reshape(self.num_bin_all, self.num_modes, self.length)
 
     @property
     def freqs(self):
-        """Get the flat freqs array"""
+        """Get the flat freqs array (Hz), layout ``(num_bin_all, num_modes, length)``"""
         return self._freqs
 
     @freqs.setter
     def freqs(self, f):
-        """Prepare frequencies properly for C"""
+        """Store frequencies flat for C (arrays with ``ndim > 1`` are flattened)."""
         if f.ndim > 1:
             self._freqs = f.flatten()
 
@@ -281,37 +337,57 @@ class PhenomHMAmpPhase(BBHxParallelModule):
         out_buffer=None,
         modes=None,
     ):
-        """Generate PhenomHM/D waveforms
+        """Generate PhenomHM/D waveforms.
 
-        Generate PhenomHM/PhenomD waveforms based on user given quantitites
-        in the Amplitude-Phase representation.
+        Generate PhenomHM/PhenomD waveforms based on user given quantities
+        in the Amplitude-Phase representation. The kernel produces the waveform with the
+        (2,2) mode at ``t(f) = 0`` and zero phase at the reference frequency; this method
+        then adds
+        ``2 pi f (t_ref - initial_t_val)`` to the phase and ``t_ref`` to t(f). Results are
+        read through :attr:`amp`, :attr:`phase`, :attr:`tf` and :attr:`freqs_shaped`.
+
+        Binaries whose PhenomD ringdown frequency comes out negative get
+        ``fringdown = fdamp = 1e-2`` and their distance multiplied by ``1e20`` (amplitude
+        effectively zero), and a ``FIX FIX FIX FREQ`` line with their parameters is
+        printed. This works with a single mode only: with several modes the mask has
+        ``num_modes * num_bin_all`` entries while ``distance`` and the masses have
+        ``num_bin_all``, so the branch raises ``IndexError``.
 
         Args:
-            m1 (double scalar or np.ndarray): Mass 1 in Solar Masses :math:`(m1 > m2)`.
-            m2 (double or np.ndarray): Mass 2 in Solar Masses :math:`(m1 > m2)`.
-            chi1z (double or np.ndarray): Dimensionless spin 1 (for Mass 1) in Solar Masses.
-            chi2z (double or np.ndarray): Dimensionless spin 2 (for Mass 1) in Solar Masses.
-            distance (double or np.ndarray): Luminosity distance in m.
-            phi_ref (double or np.ndarray): Phase at ``f_ref``.
-            f_ref (double or np.ndarray): Reference frequency at which ``phi_ref`` and ``t_ref`` are set.
-                If ``f_ref == 0``, it will be set internally by the PhenomHM code
-                to :math:`f_\\text{max} = \\text{max}(f^2A_{22}(f))`.
-            t_ref (double or np.ndarray): Reference time in seconds. It is set at ``f_ref``.
-            length (int): Length of the frequency array over which the waveform is created.
-            freqs (1D or 2D xp.ndarray, optional): If ``None``, the class will generate the
-                frequency array over which the waveform is evaluated. If 1D xp.ndarray,
-                this array will be copied for all binaries evaluated. If 2D,
-                it must have shape ``(num_bin_all, length)``. (Default: ``None``)
-            out_buffer (xp.ndarray, optional): If ``None``, a buffer array will be created.
-                If provided, it should be flattened from shape
-                ``(nparams, length, num_modes, num_bin_all)``. ``nparams`` can
-                be 3 if just evaluating PhenomHM/D. If using the same buffer for
-                the response it must be 9. (Default: ``None``)
-            modes (list, optional): Harmonic modes to use. If not given, they will
-                default to those available in the waveform model. For PhenomHM:
-                [(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]. For PhenomD: [(2,2)].
-                (Default: ``None``)
+            m1 (float or np.ndarray): Mass of body 1 in solar masses. Bodies (and spins) are
+                swapped in place where ``m1 < m2`` (see :meth:`_sanity_check_params`).
+            m2 (float or np.ndarray): Mass of body 2 in solar masses.
+            chi1z (float or np.ndarray): Dimensionless aligned spin of body 1,
+                ``|chi1z| <= 1``.
+            chi2z (float or np.ndarray): Dimensionless aligned spin of body 2,
+                ``|chi2z| <= 1``.
+            distance (float or np.ndarray): Luminosity distance in metres.
+            phi_ref (float or np.ndarray): Accepted but NOT used: the kernel runs with zero
+                reference phase (:class:`~bbhx.waveformbuild.BBHWaveformFD` applies
+                ``phi_ref`` in the response).
+            f_ref (float or np.ndarray): Reference frequency (Hz). Passed to the kernel but
+                currently IGNORED: the kernel always uses the peak frequency of the PhenomD
+                (2,2) merger-ringdown amplitude ansatz (``fmaxCalc``, Eq. 20 of
+                arXiv:1508.07253).
+            t_ref (float or np.ndarray): Time (s) at which the (2,2) mode reaches that
+                reference frequency (t(f) of every mode is shifted by ``t_ref``).
+            length (int): Number of frequencies per mode.
+            freqs (xp.ndarray, optional): Evaluation frequencies (Hz): 1D ``(length,)``
+                (tiled to every binary and mode) or 3D ``(num_bin_all, num_modes, length)``.
+                Default ``None`` builds the internal grid from ``mf_min`` / ``mf_max``.
+            out_buffer (xp.ndarray, optional): Flat buffer to fill instead of a new
+                :attr:`waveform_carrier`, layout ``(nparams, num_bin_all, num_modes,
+                length)``; the first 3 slots (amplitude, phase, t(f)) are filled. Use
+                ``nparams = 9`` to share it with
+                :class:`~bbhx.response.fastfdresponse.LISATDIResponse`. Its size is not
+                checked. Default ``None``.
+            modes (list, optional): ``(l, m)`` tuples, a subset of
+                :attr:`allowable_modes`. Default ``None``: PhenomHM
+                ``[(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]``, PhenomD ``[(2,2)]``
+                (``run_phenomd=True`` always uses ``[(2,2)]``).
 
+        Raises:
+            ValueError: ``|chi| > 1``, an unavailable mode, or ``freqs`` neither 1D nor 3D.
         """
 
         # cast to 1D arrays if scalars
@@ -530,6 +606,30 @@ class PhenomHMAmpPhase(BBHxParallelModule):
         ).flatten()
 
     def __call__(self, *args, t_orbit_end=None, direct=False, **kwargs):
+        """Generate the waveform, restricting the frequency band to the orbit-covered times.
+
+        Runs :meth:`run_wave`. With ``direct=False`` it then finds, per binary and mode, the
+        frequencies where t(f) crosses ``500`` s and ``t_orbit_end - 500`` s (keeping the
+        band edges where t(f) stays inside), and runs :meth:`run_wave` again on
+        ``length`` log-spaced frequencies between them (a 3D ``freqs`` grid). This keeps
+        the response inside the orbit data.
+
+        Args:
+            *args: Positional arguments of :meth:`run_wave`
+                (``m1, m2, chi1z, chi2z, distance, phi_ref, f_ref, t_ref, length``).
+            t_orbit_end (float or np.ndarray, optional): End time (s) of the orbit data: a
+                float, a numpy ``(num_bin_all,)`` array or a numpy
+                ``(num_bin_all, num_modes)`` array. Default ``None`` means no upper cut.
+            direct (bool, optional): If ``True``, run :meth:`run_wave` once on the given
+                frequencies, without band adjustment. Default ``False``.
+            **kwargs: Keyword arguments of :meth:`run_wave` (``freqs``, ``out_buffer``,
+                ``modes``).
+
+        Raises:
+            ValueError: The t(f) crossing is not found exactly once per binary and mode
+                (``t_ref`` too close to 0 or to ``t_orbit_end``), or ``t_orbit_end`` has an
+                unsupported type.
+        """
 
         self.run_wave(*args, **kwargs)
 

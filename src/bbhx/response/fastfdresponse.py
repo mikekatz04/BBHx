@@ -1,3 +1,10 @@
+"""Fast frequency-domain LISA response for MBH harmonics (:class:`LISATDIResponse`).
+
+Computes the TDI transfer functions of each ``(l, m)`` mode along its time-frequency track
+t(f) (arXiv:1806.10734, arXiv:2003.00357) with the native ``LISA_response_wrap`` kernel.
+It is the response stage of :class:`bbhx.waveformbuild.BBHWaveformFD`; the global-fit
+production runs do not evaluate it.
+"""
 from __future__ import annotations
 # LISA Response Functions
 
@@ -25,44 +32,85 @@ from lisatools.detector import EqualArmlengthOrbits, Orbits
 from ..utils.parallelbase import BBHxParallelModule
 
 class LISATDIResponse(BBHxParallelModule):
-    """Evaluate the fast frequency domain response function
+    r"""Evaluate the fast frequency domain response function.
 
     The response function is the fast frequency domain response function
     from `arXiv:1806.10734 <https://arxiv.org/abs/1806.10734>`_ and
     `arXiv:2003.00357 <https://arxiv.org/abs/2003.00357>`_. Please cite
-    these papers if this class is used. This response assumes a fixed,
-    non-breathing armlength for the LISA constellation.
+    these papers if this class is used.
+
+    For each mode and frequency the kernel evaluates the single-link responses at time
+    t(f) with the spacecraft positions and link unit vectors of ``orbits``, combines
+    them into first-generation TDI with the constant armlength ``orbits.armlength`` (a
+    fixed, non-breathing armlength), multiplies in the spin-weighted spherical harmonics
+    of ``(inc, phi_ref)`` and the polarization ``psi``, and adds the orbital-delay phase
+    :math:`\phi_R = 2\pi f\, k \cdot p_0 / c` to the mode phase (the transfer functions are
+    also multiplied by :math:`e^{-i\phi_R}`), where ``p0`` is an analytic circular orbit of
+    radius ``AU_SI`` in the ecliptic plane at angle ``Omega0 * t``. ``lam`` / ``beta``
+    must therefore be expressed in the frame of the orbit data, and that frame must be
+    the ecliptic for the analytic delay to agree with it (true for the packaged LISA
+    Analysis Tools orbit files, whose positions are SSB-ecliptic whatever their ``frame``
+    label). See the TODOs on the orbital-delay convention in ``Response.cu`` and
+    :meth:`bbhx.waveformbuild.BBHWaveformFD.__call__`.
 
     This class has GPU capability.
 
     Args:
         TDItag (str, optional): TDI channels to generate. Options are ``"XYZ"`` and
-            ``"AET"``. If ``"XYZ"`` is not given, it will default to ``"AET"``.
-            (Default: ``"AET"``)
-        orbits (Orbits, optional): Orbit class. If ``None``, orbits is set to
-            :class:`EqualArmlengthOrbits`. (Default: ``None``)
-        rescaled (bool, optional): If ``True``, rescale TDI functions to avoid
-            infinities at high frequency. (Default: ``False``)
-        tdi2 (bool, optional): If ``True``, apply a factor of :math:`-2i \\sin{(4x)}e^{i4x})`
-            to tdi1 output. This is a conversion from TDI 1 to TDI 2 under the assumption of equal armlengt orbits.
-            (Default: ``False``)
+            ``"AET"``; any value other than ``"XYZ"`` gives ``"AET"``. Default ``"AET"``.
+        orbits: LISA Analysis Tools orbit object (:class:`~lisatools.detector.Orbits`);
+            its backend flavor must match this class's (asserted). Default
+            ``None`` builds :class:`~lisatools.detector.EqualArmlengthOrbits` with default
+            backend resolution, which can pick a different flavor than ``force_backend``;
+            pass orbits explicitly (e.g. ``ESAOrbits(force_backend="cpu")``).
+        rescaled: If ``True``, drop the overall TDI prefactors (``2i sin(2x) e^{2ix}`` for
+            XYZ; the A/E and T factors for AET) to avoid infinities at high frequency.
+            Default ``False``.
+        tdi2: If ``True``, multiply the AET output by :math:`-2i \sin(4x) e^{4ix}`,
+            :math:`x = \pi f L / c`: the TDI 1 -> TDI 2 conversion for equal armlengths.
+            Ignored for ``TDItag="XYZ"``. Default ``False``.
         order_fresnel_stencil (int, optional): Order of the Fresnel stencil in the
-            response. Currently, anything above 0 is not implemented. This is left
-            in for future compatibility. (Default: ``0``)
-        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
+            response. Currently, anything above 0 is not implemented (raises
+            ``NotImplementedError``). This is left in for future compatibility.
+            Default ``0``.
+        force_backend (str, optional): Backend name (``"cpu"``, ``"cuda12x"``, ``"cuda"``,
+            ``"gpu"``, ...), see :class:`~bbhx.utils.parallelbase.BBHxParallelModule`.
+            Default ``None`` picks the first available of ``cuda13x``, ``cuda12x``,
+            ``cuda11x``, ``cpu``.
 
     Attributes:
         allowable_modes (list): Allowed list of mode tuple pairs ``(l,m)`` for
             the chosen waveform model.
-        ells_default (np.ndarray): Default values for the ``l`` index of the harmonic.
-        mms_default (np.ndarray): Default values for the ``m`` index of the harmonic.
-        includes_amps (bool): If ``True``, the ``out_buffer`` contains the first
-            entry for amplitudes.
-        order_fresnel_stencil (int): Order of the Fresnel stencil in the
-            response. Currently, anything above 0 is not implemented. This is left
-            in for future compatibility.
+        ells_default (xp.ndarray): Default values for the ``l`` index of the harmonic.
+        mms_default (xp.ndarray): Default values for the ``m`` index of the harmonic.
+        buffer (float): Tolerance (s, class attribute ``1e3``) by which t(f) may leave
+            the orbit time span; values within it are clamped to the span.
+        includes_amps (int): ``1`` if the buffer of the last call holds amplitudes in its
+            first slot (9 quantities), ``0`` otherwise (8).
+        order_fresnel_stencil (int): See Args.
         TDItag (str): TDI channels to generate. Either ``"XYZ"`` or ``"AET"``.
+        rescaled (bool): See Args.
+        tdi2 (bool): See Args.
+        modes (list): Modes of the last call.
+        response_carrier (xp.ndarray): Flat buffer of the last call (the caller's
+            ``out_buffer`` when given).
 
+    Example:
+        .. code-block:: python
+
+            from lisatools.detector import ESAOrbits
+            from bbhx.response.fastfdresponse import LISATDIResponse
+            from bbhx.waveforms.phenomhm import PhenomHMAmpPhase
+
+            phenomhm = PhenomHMAmpPhase(force_backend="cpu")
+            phenomhm(1e6, 5e5, 0.2, 0.4, 5.5e26, 0.0, 0.0, 3e6, 1024)
+            response = LISATDIResponse(orbits=ESAOrbits(force_backend="cpu"), force_backend="cpu")
+            # freqs, inc, lam, beta, psi, phi_ref, length
+            response(
+                phenomhm.freqs_shaped.copy(), 0.8, 0.5, 0.6, 0.9, 0.0, 1024,
+                phase=phenomhm.phase.copy(), tf=phenomhm.tf.copy(), modes=phenomhm.modes,
+            )
+            A = response.transferL1  # (1, 6, 1024) complex transfer function
     """
 
     buffer = 1e3  # seconds
@@ -105,11 +153,12 @@ class LISATDIResponse(BBHxParallelModule):
     
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def response_gen(self):
-        """C function on GPU/CPU"""
+        """Native ``LISA_response_wrap`` kernel (CPU or GPU)."""
         return self.backend.LISA_response_wrap
 
     @property
@@ -119,6 +168,13 @@ class LISATDIResponse(BBHxParallelModule):
 
     @property
     def orbits(self) -> Orbits:
+        """Orbit object read by the response kernel (through ``orbits.pycppdetector``).
+
+        Setting ``None`` builds :class:`~lisatools.detector.EqualArmlengthOrbits`; a value
+        that is not a :class:`~lisatools.detector.Orbits` raises ``ValueError``. The setter
+        configures the orbits (``_ensure_configured``) and asserts that their backend
+        flavor equals this object's.
+        """
         return self._orbits
 
     @orbits.setter
@@ -136,11 +192,16 @@ class LISATDIResponse(BBHxParallelModule):
 
     @property
     def citation(self):
-        """Return citations for this class"""
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: the citation strings (``katz_citations``, ...) are no
+            longer defined in this module (``bbhx.utils.citations`` was removed).
+        """
         return katz_citations + marsat_1 + marsat_2
 
     def _sanity_check_modes(self, ells, mms):
-        """Make sure modes are allowed"""
+        """Raise ``ValueError`` if an ``(ell, mm)`` pair is not in :attr:`allowable_modes`."""
         for ell, mm in zip(ells, mms):
             if (ell, mm) not in self.allowable_modes:
                 raise ValueError(
@@ -150,7 +211,7 @@ class LISATDIResponse(BBHxParallelModule):
                 )
 
     def _initialize_response_container(self):
-        """setup reponse container if needed"""
+        """Allocate a zero :attr:`response_carrier` of size ``nparams * num_per_param``."""
         self.response_carrier = self.xp.zeros(
             (self.nparams * self.length * self.num_modes * self.num_bin_all),
             dtype=self.xp.float64,
@@ -251,54 +312,59 @@ class LISATDIResponse(BBHxParallelModule):
         adjust_phase=True,
         direct=False,
     ):
-        """Evaluate respones function
+        """Evaluate the response function.
+
+        Fills the transfer functions (read through :attr:`transferL1`, :attr:`transferL2`,
+        :attr:`transferL3`) and adds the orbital-delay phase to the mode phases (read
+        through :attr:`phase`; :attr:`tf` is the time-frequency track used). Returns
+        ``None``.
 
         Args:
-            freqs (1D or 2D xp.ndarray): Frequency at which the response is evaluated.
-                2D shape is ``(num_bin_all, length)``. If given as a 1D array,
-                it should be of length ``num_bin_all * length``.
-            inc (scalar or 1D xp.ndarray): Inclination of BBH system in radians.
-            lam (scalar or 1D xp.ndarray): Ecliptic longitude in SSB frame in radians.
-            beta (scalar or 1D xp.ndarray): Ecliptic latitude in SSB frame in radians.
-            psi (scalar or 1D xp.ndarray): Polarization angle of the system in radians.
-            phi_ref (scalar or 1D xp.ndarray): Reference phase. **Note**:
-                The response function rotates the source by ``phi_ref``. For this reason,
-                the main waveform functions (e.g. :class:`bbhx.waveform.BBHWaveformFD`)
+            freqs (xp.ndarray): Frequencies (Hz) at which the response is evaluated:
+                shape ``(num_bin_all, num_modes, length)`` or flat with
+                ``num_bin_all * num_modes * length`` entries.
+            inc (float or xp.ndarray): Inclination (rad), one per binary.
+            lam (float or xp.ndarray): Longitude (rad) in the frame of the orbit data
+                (conventionally SSB ecliptic, see the class docstring), one per binary.
+            beta (float or xp.ndarray): Latitude (rad), same frame, one per binary.
+            psi (float or xp.ndarray): Polarization angle (rad), one per binary.
+            phi_ref (float or xp.ndarray): Reference phase. **Note**:
+                The response function rotates the source by ``phi_ref`` (it enters the
+                spin-weighted spherical harmonics ``Y_lm(inc, phi_ref)``). For this reason,
+                the main waveform functions (e.g. :class:`bbhx.waveformbuild.BBHWaveformFD`)
                 provide ``phi_ref = 0.0`` into the source-frame scaled waveform generators
                 (e.g. :class:`bbhx.waveforms.phenomhm.PhenomHMAmpPhase`). This allows
                 the reference phase to be applied here in the response.
-            length (int): The length of the individual frequency arrays. This is required
-                because of the options for putting in 1D arrays into this function.
-                The length tells the chunk size in a 1D array.
-            modes (list, optional): Harmonic modes to use. If not given, they will
-                default to those available in the waveform model PhenomHM:
-                ``[(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]``. (Default: ``None``)
-            phase (xp.ndarray, optional): Waveform phase. This is adjusted by the ``phaseRdelay``
-                quantity in the code. If more than 1D, the shape should be
-                ``(num_bin_all, num_modes, length)``. If 1D, its total length
-                should be equivalent to ``num_bin_all * num_modes * length``.
-                If ``out_buffer`` is not provided, ``phase`` and ``tf`` are required.
-            tf (xp.ndarray, optional): Waveform time-frequency correspondence. This tells the
-                response where the LISA constellation is at each frequency.
-                If more than 1D, the shape should be
-                ``(num_bin_all, num_modes, length)``. If 1D, its total length
-                should be equivalent to ``num_bin_all * num_modes * length``.
-                If ``out_buffer`` is not provided, ``phase`` and ``tf`` are required.
-            out_buffer (xp.ndarray, optional): 1D array initialized to contain all computations
-                from the inital waveform and response function. If providing ``out_buffer``,
-                the response fills it directly. To make this happen easily in GPU/CPU
-                agnostic manner, out_buffer needs to be a 1D array with length
-                equivalent to ``nparams * num_bin_all * num_modes * length``.
-                ``nparams`` can be 8 if the buffer does not include the amplitudes
-                (which are not needed at all for the response computation) or 9
-                if it includes the amplitudes. (Default: ``None``)
-            adjust_phase (bool, optional): If ``True`` adjust the phase array in-place
-                inside the response code. **Note**: This only applies when
-                inputing ``phase`` and ``tf``. (Default: ``True``)
+            length (int): Number of frequencies per binary and mode (the chunk size of the
+                flat arrays).
+            modes (list, optional): ``(l, m)`` tuples, a subset of :attr:`allowable_modes`.
+                Default ``None``: the PhenomHM modes
+                ``[(2,2), (3,3), (4,4), (2,1), (3,2), (4,3)]``.
+            phase (xp.ndarray, optional): Waveform phase, shape
+                ``(num_bin_all, num_modes, length)`` or flat. The kernel adds the
+                orbital-delay phase ``phaseRdelay`` to it. Required, with ``tf``, when
+                ``out_buffer`` is not given.
+            tf (xp.ndarray, optional): Waveform time-frequency correspondence (s), same
+                shape as ``phase``: where the constellation is at each frequency. Values
+                within :attr:`buffer` of the orbit time span are clamped to it IN PLACE.
+            out_buffer (xp.ndarray, optional): Flat buffer holding the waveform and filled by
+                the response, ``nparams * num_bin_all * num_modes * length`` entries with
+                ``nparams = 9`` (amplitude first, the layout of
+                :class:`~bbhx.waveformbuild.BBHWaveformFD`) or ``8`` (no amplitude). When
+                ``phase`` / ``tf`` are not given, they are read from it. Default ``None``.
+            adjust_phase (bool, optional): If ``True``, write the delay-adjusted phase back
+                into the given ``phase`` array (only when ``phase`` and ``tf`` are given).
+                Default ``True``.
+            direct (bool, optional): If ``True``, skip the check / clamping of t(f) against
+                the orbit time span. Default ``False``.
 
         Raises:
-            ValueError: Incorrect dimensions for the arrays.
-
+            ValueError: Wrong array sizes or shapes, ``out_buffer`` not of 8 or 9
+                quantities, only one of ``phase`` / ``tf`` given, neither ``out_buffer`` nor
+                ``phase`` / ``tf`` given, an unavailable mode, or (``direct=False``, ``phase``
+                / ``tf`` given) t(f) more than :attr:`buffer` outside the orbit time span.
+            AttributeError: Same out-of-span case when t(f) is read from ``out_buffer``
+                (the error message formats ``tf.min()`` with ``tf=None``).
         """
 
         # to cupy if needed

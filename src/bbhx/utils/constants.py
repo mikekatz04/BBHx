@@ -1,5 +1,5 @@
 
-# Collection of citations for modules in bbhx package
+# Physical and mathematical constants of the bbhx package
 
 # Copyright (C) 2020 Michael L. Katz
 #
@@ -16,6 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Physical and mathematical constants used throughout BBHx (SI units).
+
+The physical values come from ``lisaconstants`` (pinned ``lisaconstants==2.0.2``):
+``MSUN_SI`` (kg), ``YRSID_SI`` (astronomical year, s), ``AU_SI`` (m), ``C_SI`` (m/s),
+``G_SI`` (m^3 kg^-1 s^-2), ``GMSUN`` (solar mass parameter, m^3/s^2), ``PC_SI`` (m), and the
+derived ``MTSUN_SI = GMSUN / C_SI**3`` (s) and ``MRSUN_SI = GMSUN / C_SI**2`` (m). The C++
+kernels read the same numbers from ``cutils/lisaconstants_values.h``.
+
+Mathematical constants: ``PI``, ``PI_2``, ``PI_3``, ``PI_4``, ``SQRTPI``, ``SQRTTWOPI``,
+``INVSQRTPI``, ``INVSQRTTWOPI``, ``GAMMA`` (Euler's constant), ``SQRT2``, ``SQRT3``,
+``SQRT6``, ``INVSQRT2``, ``INVSQRT3``, ``INVSQRT6``.
+
+LISA orbit constants of the analytic circular-orbit model used by
+:mod:`bbhx.utils.transform` and the fast FD response: ``F0 = 1 / YRSID_SI`` (Hz),
+``Omega0 = 2 PI / YRSID_SI`` (rad/s), ``ConstOmega`` (= ``Omega0``; read by LAT's MBH
+sky-mode move), ``L_SI = 2.5e9`` (nominal arm length, m) and
+``eorbit = L_SI / (2 SQRT3 AU_SI)`` (orbital eccentricity).
+"""
 
 import lisaconstants as _lc
 

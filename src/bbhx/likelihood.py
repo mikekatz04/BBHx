@@ -15,6 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Fast MBH log-likelihoods for frequency-domain BBHx templates.
+
+- :class:`Likelihood`: direct noise-weighted sum over the data frequencies where each
+  template is non-zero.
+- :class:`HeterodynedLikelihood`: heterodyned (relative-binning) likelihood against a
+  reference template, on a sparse frequency grid.
+- :class:`NewHeterodynedLikelihood`: GPU-only multi-reference / multi-data-set variant.
+- :func:`searchsorted2d_vec`: row-wise ``searchsorted`` helper.
+
+The templates come from :class:`bbhx.waveformbuild.BBHWaveformFD` (or any generator with
+the same call signature and output layout). Not used by the global-fit production runs.
+"""
+
 import numpy as np
 
 from .utils.constants import *
@@ -24,52 +37,71 @@ from lisatools.sensitivity import SensitivityMatrix, AET1SensitivityMatrix
 
 
 class Likelihood(BBHxParallelModule):
-    """Fast Base Likelihood Class for MBHBs
+    r"""Fast Base Likelihood Class for MBHBs.
 
-    This class computes the graitational wave Likelihood as a direct sum over
-    frequecy bins. It only sums over the frequencies where the MBHB signal
+    This class computes the gravitational wave Likelihood as a direct sum over
+    frequency bins. It only sums over the frequencies where the MBHB signal
     exists. Therefore, larger mass waveforms are faster because there are less
     frequencies. This class computes:
-    :math:`\\mathcal{L}\\propto-1/2\\langle d-h|d-h\\rangle=-1/2\\left(\\langle d|d\\rangle \\langle h|h\\rangle - 2\\langle d|h\\rangle\\right)`.
+
+    .. math::
+
+        \mathcal{L}\propto-\frac{1}{2}\langle d-h|d-h\rangle
+        =-\frac{1}{2}\left(\langle d|d\rangle + \langle h|h\rangle
+        - 2\langle d|h\rangle\right),
+
+    with :math:`\langle a|b\rangle = 4\sum_f a^*(f) b(f) \Delta f / S_n(f)` summed over
+    channels. The data are whitened once at construction
+    (``data_channels * sqrt(delta_f / psd)``); ``<d|d>`` is computed then.
 
     This class has GPU capability.
 
     Args:
-        template_gen (obj): Waveform generation class that returns a tuple of
-            (list of template arrays, start indices, lengths). See
-            :class:`bbhx.waveform.BBHWaveformFD` for more information on this
-            return type.
-        data_freqs (double xp.ndarray): Frequencies for the data stream. ``data_freqs``
+        template_gen (obj): Waveform generator called as
+            ``template_gen(*params, freqs=data_freqs, fill=False, direct=False, **kw)``
+            that returns ``(template_channels, start_inds, lengths)`` and exposes
+            ``num_bin_all``, e.g. :class:`bbhx.waveformbuild.BBHWaveformFD`.
+        data_freqs (xp.ndarray): Frequencies for the data stream (Hz), 1D. ``data_freqs``
             should be a numpy (cupy) array if running on the CPU (GPU).
-        data_channels (complex128 xp.ndarray): Data stream. 2D array of shape: ``(3, len(data_freqs))``.
-            It is assumed there are 3 channels. ``data_channels``
-            should be a numpy (cupy) array if running on the CPU (GPU).
-        psd (double xp.ndarray): Power Spectral Density in the noise:math:`S_n(f)`.
-            2D array of shape: ``(3, len(data_freqs))``.
-            It is assumed there are 3 channels. ``psd``
-            should be a numpy (cupy) array if running on the CPU (GPU).
-        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
+        data_channels (xp.ndarray): Complex data stream, shape
+            ``(nchannels, len(data_freqs))`` (3 channels with BBHx templates), NOT whitened.
+            ``data_channels`` should be a numpy (cupy) array if running on the CPU (GPU).
+        psd (np.ndarray or cupy.ndarray): One-sided noise PSD :math:`S_n(f)`, shape
+            ``(nchannels, len(data_freqs))``; copied to the host.
+        force_backend (str, optional): Backend name (``"cpu"``, ``"cuda12x"``, ``"cuda"``,
+            ``"gpu"``, ...), see :class:`~bbhx.utils.parallelbase.BBHxParallelModule`.
+            Default ``None`` picks the first available of ``cuda13x``, ``cuda12x``,
+            ``cuda11x``, ``cpu``.
 
     Attributes:
-        d_d (double): :math:`\\langle d|d\\rangle` inner product value.
-        data_channels (complex128 np.ndarray): Data stream. 1D flattened array
-            of shape: ``(3, len(data_freqs))``. **Note** ``data_channels`` should
-            be multiplied by ``psd`` before input into this class.
-        data_freqs (double np.ndarray): Frequencies for the data stream (1D).
+        d_d (float): :math:`\langle d|d\rangle` inner product value.
+        data_channels (xp.ndarray): Whitened data ``noise_factors * data_channels``, flat
+            ``(nchannels * len(data_freqs),)``.
+        data_freqs (xp.ndarray): Frequencies for the data stream (1D).
         data_stream_length (int): Length of data.
-        noise_factors (double xp.ndarray): :math:`\\sqrt{\\frac{\\Delta f}{S_n(f)}}`.
-            1D flattened array of shape: ``(3, len(data_freqs))``.
-        psd (double xp.ndarray): Power Spectral Density in the noise:math:`S_n(f)`.
-            1D flattened array of shape: ``(3, len(data_freqs))``.
-        template_gen (obj): Waveform generation class that returns a tuple of
-            (list of template arrays, start indices, lengths). See
-            :class:`bbhx.waveform.BBHWaveformFD` for more information on this
-            return type.
-        phase_maximize (bool): If ``True``, compute the phase-marginalized
+        delta_f (np.ndarray): Frequency spacing per bin, shape of ``psd`` (the first bin
+            repeats the second).
+        nchannels (int): Number of channels (``psd.shape[0]``).
+        noise_factors (xp.ndarray): :math:`\sqrt{\Delta f / S_n(f)}`, flat
+            ``(nchannels * len(data_freqs),)``.
+        psd (np.ndarray): Power Spectral Density :math:`S_n(f)` (host copy), shape
+            ``(nchannels, len(data_freqs))``.
+        waveform_gen (obj): The ``template_gen`` argument.
+        d_h (np.ndarray): Complex ``<d|h>`` per binary of the last :meth:`get_ll` call.
+        h_h (np.ndarray): Complex ``<h|h>`` per binary of the last :meth:`get_ll` call.
+        phase_maximize (bool): If ``True``, compute the phase-maximized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
-        return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
+        return_extracted_snr (bool): Return the snr in addition to the Likelihood.
 
+    Example:
+        .. code-block:: python
 
+            from bbhx.likelihood import Likelihood
+
+            # wave_gen: a BBHWaveformFD; data_freqs (n,); data (3, n) A, E, T; psd (3, n)
+            like = Likelihood(wave_gen, data_freqs, data, psd, force_backend="cpu")
+            # params: (12, num_bin_all) in BBHWaveformFD.__call__ order
+            ll = like.get_ll(params, length=1024)
     """
 
     def __init__(
@@ -124,11 +156,12 @@ class Likelihood(BBHxParallelModule):
 
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def like_gen(self):
-        """Likelihood for either GPU or CPU."""
+        """Native ``direct_like_wrap`` kernel (CPU or GPU)."""
         return self.backend.direct_like_wrap
 
     @property
@@ -138,6 +171,12 @@ class Likelihood(BBHxParallelModule):
 
     @property
     def citation(self):
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: ``katz_citations`` is no longer defined in this module
+            (``bbhx.utils.citations`` was removed).
+        """
         return katz_citations
 
     def get_ll(
@@ -147,25 +186,33 @@ class Likelihood(BBHxParallelModule):
         phase_maximize=False,
         **waveform_kwargs
     ):
-        """Compute the log-Likelihood
+        r"""Compute the log-Likelihood.
 
-        params (double np.ndarray): Parameters for evaluating log-Likelihood.
-            ``params.shape=(num_params,)`` if 1D or
-            ``params.shape=(num_params, num_bin_all)`` if 2D for more than
-            one binary.
-        return_extracted_snr (bool, optional): If ``True``, return
-            :math:`\\langle d|h\\rangle\\ / \\sqrt{\\langle h|h\\rangle}` as a second entry
-            of the return array. This produces a return array of
-            ``xp.array([log likelihood, snr]).T``. If ``False``, just return
-            the log-Likelihood array.
-        phase_maximize (bool, optional): If ``True``, compute the phase-marginalized
-            log-Likelihood (and snr if ``return_extracted_snr==True``).
-        **waveform_kwargs (dict, optional): Keyword arguments for waveform
-            generator.
+        Generates the templates on the data frequencies (``fill=False``, ``direct=False``)
+        and accumulates ``<d|h>`` and ``<h|h>`` with the native kernel over each
+        template's band only.
+
+        Args:
+            params (np.ndarray): Parameters for evaluating log-Likelihood, unpacked
+                row by row into ``template_gen``: shape ``(num_params,)`` for one binary
+                or ``(num_params, num_bin_all)`` for several (for
+                :class:`~bbhx.waveformbuild.BBHWaveformFD`: the 12 rows ``m1, m2, chi1z,
+                chi2z, distance, phi_ref, f_ref, inc, lam, beta, psi, t_ref``).
+            return_extracted_snr (bool, optional): If ``True``, also return
+                :math:`\mathrm{Re}\langle d|h\rangle / \sqrt{\mathrm{Re}\langle h|h\rangle}`
+                as a second column. Default ``False``.
+            phase_maximize (bool, optional): If ``True``, use :math:`|\langle d|h\rangle|`
+                (the phase-maximized log-Likelihood, and snr if
+                ``return_extracted_snr=True``). Default ``False``.
+            **waveform_kwargs: Keyword arguments for ``template_gen`` (for
+                :class:`~bbhx.waveformbuild.BBHWaveformFD`: ``length`` is required;
+                ``modes``, ``t_obs_start``, ...). ``freqs``, ``fill`` and ``direct`` are
+                overwritten.
 
         Returns:
-            np.ndarray: log-Likelihoods or ``np.array([log-Likelihoods, snr]).T``
-
+            np.ndarray: Log-likelihoods, shape ``(num_bin_all,)``, or
+            ``(num_bin_all, 2)`` columns ``[log-Likelihood, snr]`` with
+            ``return_extracted_snr=True``.
         """
 
         # store info
@@ -238,9 +285,9 @@ class Likelihood(BBHxParallelModule):
 
 
 class HeterodynedLikelihood(BBHxParallelModule):
-    """Compute the Heterodyned log-Likelihood
+    r"""Compute the Heterodyned log-Likelihood.
 
-    Heterdyning involves separating the fast and slow evolutions when comparing
+    Heterodyning involves separating the fast and slow evolutions when comparing
     signals. This involves comparing a reference template to the data stream and determining
     various quantities at the full frequency resolution of the data stream. Then, during
     online computation, the log-Likelihood is determined by computing a new waveform
@@ -251,74 +298,120 @@ class HeterodynedLikelihood(BBHxParallelModule):
     `arXiv:2109.02728 <https://arxiv.org/abs/2109.02728>`_. We implement the method
     as described in `arXiv:1806.08792 <https://arxiv.org/abs/1806.08792>`_.
 
-    This class also works with higher order harmonic modes, but it has not been tested extensivally.
-    It only does a direct summation over the modes rather than heterodyning per mode. So, it is less reliable,
-    but in practice it produces a solid posterior distribution.
+    This class also works with higher order harmonic modes, but it has not been tested
+    extensively. It only does a direct summation over the modes rather than heterodyning
+    per mode. So, it is less reliable, but in practice it produces a solid posterior
+    distribution.
+
+    Setup (:meth:`init_heterodyne_info`, run by the constructor): the reference template
+    ``h0`` is generated on the dense data grid; the sparse grid is ``length_f_het``
+    log-spaced frequencies between the first and last data frequency where ``h0`` is
+    non-zero; the summary constants A0, A1, B0, B1 are accumulated per sparse bin with the
+    PSD of ``sens_mat`` evaluated on the data grid. Up to ``outer_buffer // 2 + 1`` dense
+    bins on each side of the reference band (clipped at the grid edges) are handled
+    directly (no heterodyning) by :meth:`get_ll`; for a template whose ``Re <h|h>`` or
+    ``Re <d|h>`` contribution from the outermost bin of that buffer exceeds ``0.001``, the
+    outer terms are set to ``-1e300``, which gives a log-likelihood of about ``-5e299``
+    without phase maximization but about ``+1.5e300`` with ``phase_maximize=True`` (the
+    absolute value of ``<d|h>`` flips the sign).
 
     This class has GPU capabilities.
 
     Args:
-        template_gen (obj): Waveform generation class that returns a tuple of
-            (list of template arrays, start indices, lengths). See
-            :class:`bbhx.waveform.BBHWaveformFD` for more information on this
-            return type.
-        data_freqs (double xp.ndarray): Frequencies for the data stream. ``data_freqs``
-            should be a numpy (cupy) array if running on the CPU (GPU).
-        data_channels (complex128 xp.ndarray): Data stream. 2D array of shape: ``(3, len(data_freqs))``.
-            It is assumed there are 3 channels. ``data_channels``
-            should be a numpy (cupy) array if running on the CPU (GPU).
-        reference_template_params (np.ndarray): Parameters for the reference template for
-            ``template_gen``.
+        template_gen (obj): Waveform generator with the
+            :class:`~bbhx.waveformbuild.BBHWaveformFD` call signature and output layout
+            (it must expose ``num_bin_all``).
+        data_freqs (xp.ndarray): Frequencies for the data stream (Hz), 1D and evenly
+            spaced. ``data_freqs`` should be a numpy (cupy) array if running on the CPU
+            (GPU).
+        data_channels (xp.ndarray): Complex data stream, shape ``(3, len(data_freqs))``
+            (A, E, T matching ``sens_mat``). ``data_channels`` should be a numpy (cupy)
+            array if running on the CPU (GPU).
+        reference_template_params (np.ndarray): Parameters of the reference template, one
+            binary, unpacked into ``template_gen`` (``(num_params,)``).
+        length_f_het (int): Number of sparse (heterodyne) frequencies. Must be smaller than
+            the number of data frequencies inside the reference band.
         template_gen_kwargs (dict, optional): Keywords arguments for generating the
             template with ``template_gen``. It will automatically add/change ``direct``
             and ``compress`` keyword arguments to ``True``. The keyword argument
             ``squeeze`` is automatically set to ``True`` for the initial setup and then
             automatically set to ``False`` for online computations. If you so choose (not
-            recomended), you can change these kwargs for online running using the
+            recommended), you can change these kwargs for online running using the
             ``**waveform_kwargs`` setup in the ``self.get_ll`` method. However,
             if you include in this adjustment ``direct``, ``compress``, or ``squeeze``
-            will still automatically be overwritten.
-            (Default: ``{}``)
+            will still automatically be overwritten. The dict is modified in place.
+            Default ``{}``.
         reference_gen_kwargs (dict, optional): Keywords arguments for generating the
             reference template with ``template_gen``. It will automatically add/change
             ``fill``, ``compress``, and ``squeeze`` keyword arguments to ``True``.
             These waveforms can be produced without interpolation with ``direct = True``.
             If ``length`` keyword argument is given and ``direct=False``, the
             waveform will be interpolated. If ``length`` and ``direct`` are not given,
-            it will interpolate the signal with ``length=8096``.
-            (Default: ``{}``)
-        sens_mat (SensitivityMatrix, optional): :class:`SensitivityMatrix` object representing the AET channels.
-            If ``None``, defaults to class:`AET1SensitivityMatrix`. (default: ``None``)
-        force_backend (str, optional): ``"cpu"'', ``"gpu"'', ``"cuda"'', ``"cuda12x"'', or ``"cuda11x"''.
+            it will interpolate the signal with ``length=8096``. The dict is modified in
+            place. Default ``{}``. See the Warning on the interpolated reference.
+        sens_mat (SensitivityMatrix, optional): LISA Analysis Tools
+            :class:`~lisatools.sensitivity.SensitivityMatrix` with a 1D (uncorrelated)
+            channel layout, whose entries ``[0]``, ``[1]``, ``[2]`` are the PSDs of the three
+            data channels; it is re-evaluated on the data grid (``update_basis_settings``).
+            Default ``None`` uses :class:`~lisatools.sensitivity.AET1SensitivityMatrix`
+            (the analytic equal-arm TDI 1.5 A/E/T PSDs, not the global-fit noise model).
+        outer_buffer (int, optional): Number of dense bins (split evenly below and above
+            the reference band) handled directly in :meth:`get_ll`. Default ``1024``.
+        force_backend (str, optional): Backend name (``"cpu"``, ``"cuda12x"``, ``"cuda"``,
+            ``"gpu"``, ...), see :class:`~bbhx.utils.parallelbase.BBHxParallelModule`.
+            Default ``None`` picks the first available of ``cuda13x``, ``cuda12x``,
+            ``cuda11x``, ``cpu``.
 
     Attributes:
-        reference_d_d (double): :math:`\\langle d|d\\rangle` inner product value.
-        reference_h_h(double): :math:`\\langle h|h\\rangle` inner product value
+        reference_d_d (float): :math:`\langle d|d\rangle` inner product value.
+        reference_h_h (float): :math:`\langle h|h\rangle` inner product value
             for the reference template.
-        reference_d_h (double): :math:`\\langle d|h\\rangle` inner product value
+        reference_d_h (float): :math:`\langle d|h\rangle` inner product value
             for the reference template.
-        reference_ll (double): log-Likelihood value for the reference template.
-        hdyn_d_h (complex128 xp.ndarray): Heterodyned :math:`\\langle d|h\\rangle`
-            inner product values for the test templates.
-        hdyn_h_h (complex128 xp.ndarray): Heterodyned :math:`\\langle d|h\\rangle`
-            inner product values for the test templates.
-        h0_sparse (xp.ndarray): Array with sparse waveform for reference parameters.
-        h_sparse (xp.ndarray): Array with sparse waveform for test parameters.
-        d (complex128 xp.ndarray): Data stream. 1D flattened array
-            of shape: ``(3, len(data_freqs))``.
-        data_stream_length (int): Length of data.
+        reference_ll (float): log-Likelihood value for the reference template.
+        hdyn_d_h (np.ndarray): Heterodyned complex :math:`\langle d|h\rangle`
+            inner product values for the test templates (last call).
+        hdyn_h_h (np.ndarray): Heterodyned complex :math:`\langle h|h\rangle`
+            inner product values for the test templates (last call).
+        total_d_h (np.ndarray): ``hdyn_d_h`` plus the direct outer-buffer part.
+        total_h_h (np.ndarray): ``hdyn_h_h`` plus the direct outer-buffer part.
+        h0_sparse (xp.ndarray): Sparse reference waveform, shape ``(1, 3, length_f_het)``.
+        h_sparse (xp.ndarray): Sparse waveforms for the test parameters (last call).
+        d (xp.ndarray): Data stream, shape ``(3, len(data_freqs))``.
         data_constants (xp.ndarray): Flattened array container holding all heterodyning
-            constants needed: A0, A1, B0, B1.
+            constants needed: A0, A1, B0, B1 (each ``(3, length_f_het)``).
         f_dense (xp.ndarray): Frequencies for the data stream (1D).
         freqs (xp.ndarray): Frequencies for sparse arrays.
         f_m (xp.ndarray): Frequency of mid-point in each sparse bin.
         length_f_het (int): Length of sparse array.
-        psd (double xp.ndarray): :math:`\\sqrt{\\frac{\\Delta f}{S_n(f)}}`.
-            1D flattened array of shape: ``(3, len(data_freqs))``.
-        return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
-        phase_maximize (bool): If ``True``, compute the phase-marginalized
+        outer_freqs (xp.ndarray): Dense frequencies of the outer buffer.
+        return_extracted_snr (bool): Return the snr in addition to the Likelihood.
+        phase_maximize (bool): If ``True``, compute the phase-maximized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
 
+    Warning:
+        With the default interpolated reference (``reference_gen_kwargs`` without
+        ``direct=True``), :class:`~bbhx.waveformbuild.BBHWaveformFD` returns the dense
+        reference with shape ``(1, 3, n)`` (``fill=True, combine=False`` ignores
+        ``squeeze``), while :meth:`init_heterodyne_info` indexes it as ``(3, n)``: the
+        band search then picks up channel indices instead of frequency indices, the
+        sparse grid collapses onto the first three data frequencies, and the setup fails
+        (``IndexError`` on CPU). Only a ``direct=True`` reference has the expected shape.
+
+    Example:
+        .. code-block:: python
+
+            from bbhx.likelihood import HeterodynedLikelihood
+
+            # wave_gen: a BBHWaveformFD; data_freqs (n,) evenly spaced; data (3, n) A, E, T
+            # direct=True reference: see the Warning on the default interpolated one
+            like_het = HeterodynedLikelihood(
+                wave_gen, data_freqs, data, reference_params, 128,
+                reference_gen_kwargs=dict(direct=True), force_backend="cpu",
+            )
+            # params: (12, num_bin_all) in BBHWaveformFD.__call__ order
+            ll = like_het.get_ll(params)
+            like_het.init_heterodyne_info(new_reference_params)  # re-centre when needed
     """
 
     def __init__(
@@ -357,11 +450,19 @@ class HeterodynedLikelihood(BBHxParallelModule):
 
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
     def sens_mat(self):
-        """Sensitivity Matrix"""
+        """Sensitivity matrix of the data channels (see the ``sens_mat`` argument).
+
+        Setting ``None`` stores a placeholder
+        :class:`~lisatools.sensitivity.AET1SensitivityMatrix` on a dummy
+        ``FDSettings(N=1001, df=1e-4)`` grid; :meth:`init_heterodyne_info` re-evaluates the
+        matrix on the data grid. Other values must be
+        :class:`~lisatools.sensitivity.SensitivityMatrix` instances (asserted).
+        """
         return self._sens_mat
 
     @sens_mat.setter
@@ -380,7 +481,7 @@ class HeterodynedLikelihood(BBHxParallelModule):
 
     @property
     def like_gen(self):
-        """C function on GPU/CPU"""
+        """Native ``hdyn_wrap`` kernel (CPU or GPU)."""
         return self.backend.hdyn_wrap
 
     @property
@@ -390,7 +491,12 @@ class HeterodynedLikelihood(BBHxParallelModule):
 
     @property
     def citation(self):
-        """Citations for this class"""
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: the citation strings (``katz_citations``, ...) are no
+            longer defined in this module (``bbhx.utils.citations`` was removed).
+        """
         return katz_citations + Cornish_Heterodyning + Rel_Bin_citation
 
     def init_heterodyne_info(
@@ -399,30 +505,41 @@ class HeterodynedLikelihood(BBHxParallelModule):
         template_gen_kwargs={},
         reference_gen_kwargs={},
     ):
-        """Prepare all information for Heterdyning
+        """Prepare all information for Heterodyning.
+
+        Run by the constructor; call it again to re-centre on a new reference template
+        (the data, ``length_f_het`` and ``sens_mat`` are kept). Builds the dense
+        reference, the sparse grid, the outer-buffer indices and the A0, A1, B0, B1
+        summary constants, and sets the ``reference_*`` attributes (see the class
+        docstring). The kwargs given to the constructor are not reused: pass them again
+        when re-centring.
 
         Args:
             reference_template_params (np.ndarray): Parameters for the reference template for
-                ``template_gen``.
+                ``template_gen`` (one binary, ``(num_params,)``).
             template_gen_kwargs (dict, optional): Keywords arguments for generating the
                 template with ``template_gen``. It will automatically add/change ``direct``
                 and ``compress`` keyword arguments to ``True``. The keyword argument
                 ``squeeze`` is automatically set to ``True`` for the initial setup and then
                 automatically set to ``False`` for online computations. If you so choose (not
-                recomended), you can change these kwargs for online running using the
+                recommended), you can change these kwargs for online running using the
                 ``**waveform_kwargs`` setup in the ``self.get_ll`` method. However,
                 if you include in this adjustment ``direct``, ``compress``, or ``squeeze``
-                will still automatically be overwritten.
-                (Default: ``{}``)
+                will still automatically be overwritten. Modified in place and stored as
+                ``self.template_gen_kwargs``. Default ``{}``.
             reference_gen_kwargs (dict, optional): Keywords arguments for generating the
                 reference template with ``template_gen``. It will automatically add/change
                 ``fill``, ``compress``, and ``squeeze`` keyword arguments to ``True``.
                 These waveforms can be produced without interpolation with ``direct = True``.
                 If ``length`` keyword argument is given and ``direct=False``, the
                 waveform will be interpolated. If ``length`` and ``direct`` are not given,
-                it will interpolate the signal with ``length=8096``.
-                (Default: ``{}``)
+                it will interpolate the signal with ``length=8096``. Modified in place.
+                Default ``{}``.
 
+        Raises:
+            AssertionError: The reference band holds no more than ``length_f_het`` data
+                frequencies, or it starts at data index 1 / ends at index ``n - 2``
+                (degenerate outer buffer).
         """
 
         # add the necessary kwargs for the initial template generation process.
@@ -604,25 +721,34 @@ class HeterodynedLikelihood(BBHxParallelModule):
         phase_maximize=False,
         **waveform_kwargs
     ):
-        """Compute the log-Likelihood
+        r"""Compute the log-Likelihood.
 
-        params (double np.ndarray): Parameters for evaluating log-Likelihood.
-            ``params.shape=(num_params,)`` if 1D or
-            ``params.shape=(num_params, num_bin_all)`` if 2D for more than
-            one binary.
-        return_extracted_snr (bool, optional): If ``True``, return
-            :math:`\\langle d|h\\rangle\\ / \\sqrt{\\langle h|h\\rangle}` as a second entry
-            of the return array. This produces a return array of
-            ``xp.array([log likelihood, snr]).T``. If ``False``, just return
-            the log-Likelihood array.
-        phase_maximize (bool, optional): If ``True``, compute the phase-marginalized
-            log-Likelihood (and snr if ``return_extracted_snr==True``).
-        **waveform_kwargs (dict, optional): Keyword arguments for waveform
-            generator. Some may be overwritten. See the main class docstring.
+        Evaluates each template directly on the sparse grid, forms the ratio
+        ``h / h0`` and combines it with the summary constants in the native kernel, then
+        adds the directly computed outer-buffer terms. Uses ``reference_d_d`` for
+        ``<d|d>``.
+
+        Args:
+            params (np.ndarray): Parameters for evaluating log-Likelihood, unpacked
+                row by row into ``template_gen``: shape ``(num_params,)`` for one binary
+                or ``(num_params, num_bin_all)`` for several (BBHWaveformFD order
+                ``m1, m2, chi1z, chi2z, distance, phi_ref, f_ref, inc, lam, beta, psi,
+                t_ref``).
+            return_extracted_snr (bool, optional): If ``True``, also return
+                :math:`\mathrm{Re}\langle d|h\rangle / \sqrt{\mathrm{Re}\langle h|h\rangle}`
+                as a second column. Default ``False``.
+            phase_maximize (bool, optional): If ``True``, use :math:`|\langle d|h\rangle|`
+                (the phase-maximized log-Likelihood, and snr if
+                ``return_extracted_snr=True``). Default ``False``.
+            **waveform_kwargs: Keyword arguments for ``template_gen``. ``direct``,
+                ``compress`` and ``squeeze`` are always taken from
+                ``self.template_gen_kwargs`` and ``freqs`` is overwritten; other keys of
+                ``self.template_gen_kwargs`` fill in when absent.
 
         Returns:
-            np.ndarray: log-Likelihoods or ``np.array([log-Likelihoods, snr]).T``
-
+            np.ndarray: Log-likelihoods, shape ``(num_bin_all,)``, or
+            ``(num_bin_all, 2)`` columns ``[log-Likelihood, snr]`` with
+            ``return_extracted_snr=True``.
         """
 
         # store info
@@ -732,6 +858,26 @@ class HeterodynedLikelihood(BBHxParallelModule):
 
 
 def searchsorted2d_vec(a, b, xp=None, **kwargs):
+    """Row-wise ``searchsorted`` in one vectorized call.
+
+    Returns, for every row ``i``, ``xp.searchsorted(a[i], b_i, **kwargs)`` where ``b_i``
+    is ``b`` (1D, shared by all rows) or ``b[i]`` (2D). Each row is offset by
+    ``i * max_num`` (``max_num`` = the larger value range of ``a`` and ``b``, plus 1) so a
+    single flat ``searchsorted`` suffices; this assumes ``a`` and ``b`` cover comparable
+    value ranges (as for frequency grids of one band). Used by
+    :meth:`NewHeterodynedLikelihood.init_heterodyne_info`; copies of this helper also live
+    in gpubackendtools and LISA Analysis Tools.
+
+    Args:
+        a (xp.ndarray): Shape ``(m, n)``, each row sorted ascending.
+        b (xp.ndarray): Values to locate, shape ``(k,)`` or ``(m, k)``.
+        xp (module, optional): ``numpy`` or ``cupy``. Default ``None`` means ``numpy``.
+        **kwargs: Forwarded to ``xp.searchsorted`` (e.g. ``side="right"``).
+
+    Returns:
+        xp.ndarray: Integer indices of shape ``(m, k)``, each in ``[0, n]`` relative to
+        its row.
+    """
     if xp is None:
         xp = np
     m, n = a.shape
@@ -742,9 +888,9 @@ def searchsorted2d_vec(a, b, xp=None, **kwargs):
 
 
 class NewHeterodynedLikelihood(BBHxParallelModule):
-    """Compute the Heterodyned log-Likelihood
+    r"""Compute the Heterodyned log-Likelihood (multi-reference, GPU only).
 
-    Heterdyning involves separating the fast and slow evolutions when comparing
+    Heterodyning involves separating the fast and slow evolutions when comparing
     signals. This involves comparing a reference template to the data stream and determining
     various quantities at the full frequency resolution of the data stream. Then, during
     online computation, the log-Likelihood is determined by computing a new waveform
@@ -755,85 +901,80 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
     `arXiv:2109.02728 <https://arxiv.org/abs/2109.02728>`_. We implement the method
     as described in `arXiv:1806.08792 <https://arxiv.org/abs/1806.08792>`_.
 
-    This class also works with higher order harmonic modes. TODO: fill in.
+    GPU-only multi-reference variant of :class:`HeterodynedLikelihood`. Each of
+    ``num_bin`` reference templates gets its own sparse grid (``length_f_het`` log-spaced
+    frequencies over the band where that reference is non-zero) and its own summary
+    constants A0, A1, B0, B1, computed against data set ``data_index[j]`` and PSD set
+    ``noise_index[j]`` by the native ``new_hdyn_prep`` kernel; :meth:`get_ll` then picks a
+    constants set per template (``constants_index``). There is no outer buffer. The
+    native kernels exist only on CUDA backends (``None`` on CPU) and the setup frees the
+    cupy memory pool. The only known caller is ``MBHSpecialMove`` in LISA Analysis Tools
+    (not on the production path).
 
     This class has GPU capabilities.
 
     Args:
-        template_gen (obj): Waveform generation class that returns a tuple of
-            (list of template arrays, start indices, lengths). See
-            :class:`bbhx.waveform.BBHWaveformFD` for more information on this
-            return type.
-        data_freqs (double xp.ndarray): Frequencies for the data stream. ``data_freqs``
-            should be a numpy (cupy) array if running on the CPU (GPU).
-        data_channels (complex128 xp.ndarray): Data stream. 2D array of shape: ``(3, len(data_freqs))``.
-            It is assumed there are 3 channels. ``data_channels``
-            should be a numpy (cupy) array if running on the CPU (GPU).
-        reference_template_params (np.ndarray): Parameters for the reference template for
-            ``template_gen``.
-        template_gen_kwargs (dict, optional): Keywords arguments for generating the
-            template with ``template_gen``. It will automatically add/change ``direct``
-            and ``compress`` keyword arguments to ``True``. The keyword argument
-            ``squeeze`` is automatically set to ``True`` for the initial setup and then
-            automatically set to ``False`` for online computations. If you so choose (not
-            recomended), you can change these kwargs for online running using the
-            ``**waveform_kwargs`` setup in the ``self.get_ll`` method. However,
-            if you include in this adjustment ``direct``, ``compress``, or ``squeeze``
-            will still automatically be overwritten.
-            (Default: ``{}``)
-        reference_gen_kwargs (dict, optional): Keywords arguments for generating the
-            reference template with ``template_gen``. It will automatically add/change
-            ``fill``, ``compress``, and ``squeeze`` keyword arguments to ``True``.
-            These waveforms can be produced without interpolation with ``direct = True``.
-            If ``length`` keyword argument is given and ``direct=False``, the
-            waveform will be interpolated. If ``length`` and ``direct`` are not given,
-            it will interpolate the signal with ``length=8096``.
-            (Default: ``{}``)
-        noise_kwargs_AE (dict, optional): Keywords arguments for generating the
-            noise with ``noisepsd_AE`` (A & E Channel) option in the ``get_sensitivity`` function
-            from ``lisatools`` TODO: add link. (Default: ``{}``)
-        noise_kwargs_T (dict, optional): Keywords arguments for generating the
-            noise with ``noisepsd_T`` (T Channel) option in the ``get_sensitivity`` function
-            from ``lisatools`` TODO: add link. (Default: ``{}``)
-        use_gpu (bool, optional): If ``True``, use GPU.
+        template_gen (obj): Waveform generator with the
+            :class:`~bbhx.waveformbuild.BBHWaveformFD` call signature and output layout
+            (it must expose ``num_bin_all``).
+        data_freqs (xp.ndarray): Frequencies for the data stream (Hz), 1D and evenly
+            spaced (cupy).
+        data_channels (xp.ndarray): Complex data, shape
+            ``(num_data_sets, nchannels, len(data_freqs))``.
+        psd (xp.ndarray): PSDs, shape ``(num_noise_sets, nchannels, len(data_freqs))``.
+        reference_template_params (np.ndarray): Reference parameters, one ROW per
+            reference: shape ``(num_bin, num_params)`` (a 1D vector is one reference).
+        length_f_het (int): Number of sparse frequencies per reference.
+        data_index (xp.ndarray, optional): Data set of each reference, length
+            ``num_bin``; must already be ``int32``. Default ``None`` means all 0.
+        noise_index (xp.ndarray, optional): PSD set of each reference, length ``num_bin``
+            (cast to ``int32``). Default ``None`` means all 0.
+        template_gen_kwargs (dict, optional): Keyword arguments for the sparse templates;
+            ``direct=True``, ``compress=True`` and ``squeeze=False`` are forced. Modified
+            in place. Default ``{}``.
+        reference_gen_kwargs (dict, optional): Keyword arguments for the dense references;
+            ``fill=True``, ``compress=True`` and ``squeeze=False`` are forced, and
+            ``direct`` becomes ``False`` (with ``length`` defaulting to ``8096``) unless
+            ``direct=True`` is given. Modified in place. Default ``{}``.
+        noise_kwargs_AE (dict, optional): Accepted and ignored. Default ``{}``.
+        noise_kwargs_T (dict, optional): Accepted and ignored. Default ``{}``.
+        force_backend (str, optional): Backend name; must resolve to a CUDA backend
+            (``"cuda13x"``, ``"cuda"``, ...), see
+            :class:`~bbhx.utils.parallelbase.BBHxParallelModule`. Must be given: this
+            class defines no ``supported_backends``, so the default ``None`` raises
+            ``NotImplementedError``.
 
     Attributes:
-        reference_d_d (double): :math:`\langle d|d\\rangle` inner product value.
-        reference_h_h(double): :math:`\langle h|h\\rangle` inner product value
-            for the reference template.
-        reference_d_h (double): :math:`\langle d|h\\rangle` inner product value
-            for the reference template.
-        reference_ll (double): log-Likelihood value for the reference template.
-        hdyn_d_h (complex128 xp.ndarray): Heterodyned :math:`\langle d|h\\rangle`
-            inner product values for the test templates.
-        hdyn_h_h (complex128 xp.ndarray): Heterodyned :math:`\langle d|h\\rangle`
-            inner product values for the test templates.
-        h0_sparse (xp.ndarray): Array with sparse waveform for reference parameters.
-        h_sparse (xp.ndarray): Array with sparse waveform for test parameters.
-        d (complex128 xp.ndarray): Data stream. 1D flattened array
-            of shape: ``(3, len(data_freqs))``.
-        data_stream_length (int): Length of data.
-        data_constants (xp.ndarray): Flattened array container holding all heterodyning
-            constants needed: A0, A1, B0, B1.
+        reference_d_d (xp.ndarray): :math:`\langle d|d\rangle` of each data set,
+            shape ``(num_data_sets,)``.
+        reference_h_h (xp.ndarray): :math:`\langle h|h\rangle` of each reference,
+            shape ``(num_bin,)``.
+        reference_d_h (xp.ndarray): :math:`\langle d|h\rangle` of each reference.
+        reference_ll (xp.ndarray): Log-likelihood of each reference.
+        num_constants_sets (int): Number of constants sets (``len(reference_ll)``).
+        hdyn_d_h (np.ndarray): Heterodyned complex :math:`\langle d|h\rangle` of the
+            test templates (last call).
+        hdyn_h_h (np.ndarray): Heterodyned complex :math:`\langle h|h\rangle` of the
+            test templates (last call).
+        h0_sparse (xp.ndarray): Sparse references, shape
+            ``(num_bin, nchannels, length_f_het)``.
+        h_sparse (xp.ndarray): Sparse test templates (last call).
+        d (xp.ndarray): The data.
+        psd (xp.ndarray): The PSDs.
+        data_length (int): Number of data frequencies.
+        nchannels (int): Number of channels (``data_channels.shape[1]``).
+        A0_out (xp.ndarray): Summary constant A0, shape
+            ``(num_bin, nchannels, length_f_het)``; ``A1_out``, ``B0_out`` and ``B1_out``
+            hold A1, B0 and B1 the same way.
+        data_constants (xp.ndarray): The four arrays above, stacked and flattened.
         f_dense (xp.ndarray): Frequencies for the data stream (1D).
-        freqs (xp.ndarray): Frequencies for sparse arrays.
-        f_m (xp.ndarray): Frequency of mid-point in each sparse bin.
-        length_f_het (int): Length of sparse array.
-        like_gen (obj): C/CUDA implementation of likelihood compuation.
-        psd (double xp.ndarray): :math:`\\sqrt{\\frac{\\Delta f}{S_n(f)}}`.
-            1D flattened array of shape: ``(3, len(data_freqs))``.
-        template_gen (obj): Waveform generation class that returns a tuple of
-            (list of template arrays, start indices, lengths). See
-            :class:`bbhx.waveform.BBHWaveformFD` for more information on this
-            return type.
-        return_extracted_snr (bool): Return the snr in addition to the Likeilihood.
-        phase_maximize (bool): If ``True``, compute the phase-marginalized
+        freqs (xp.ndarray): Sparse frequencies, shape ``(num_bin, length_f_het)``.
+        f_m (xp.ndarray): Bin mid-point frequencies, same shape (first column 0).
+        length_f_het (int): Length of each sparse grid.
+        template_gen (obj): The waveform generator.
+        return_extracted_snr (bool): Return the snr in addition to the Likelihood.
+        phase_maximize (bool): If ``True``, compute the phase-maximized
             log-Likelihood (and snr if ``return_extracted_snr==True``).
-        use_gpu (bool): If True, using GPU.
-        xp (obj): Either numpy or cupy.
-
-
-
     """
 
     def __init__(
@@ -874,19 +1015,27 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
 
     @property
     def citation(self):
-        """Citations for this class"""
+        """Citation strings for this class.
+
+        Warning:
+            Raises ``NameError``: the citation strings (``katz_citations``, ...) are no
+            longer defined in this module (``bbhx.utils.citations`` was removed).
+        """
         return katz_citations + Cornish_Heterodyning + Rel_Bin_citation
 
     @property
     def xp(self) -> object:
+        """Numpy or Cupy"""
         return self.backend.xp
 
     @property
     def like_gen(self) -> callable:
+        """Native ``new_hdyn_like`` kernel (GPU only; ``None`` on CPU)."""
         return self.backend.new_hdyn_like
     
     @property
     def prep_gen(self) -> callable:
+        """Native ``new_hdyn_prep`` kernel (GPU only; ``None`` on CPU)."""
         return self.backend.new_hdyn_prep
 
     def init_heterodyne_info(
@@ -897,36 +1046,38 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
         data_index=None, 
         noise_index=None,
     ):
-        """Prepare all information for Heterdyning
+        """Prepare all information for Heterodyning.
+
+        Run by the constructor; call it again to re-centre (the data and PSDs are kept).
+        Builds per-reference sparse grids, the summary constants (native ``prep_gen``
+        kernel) and the ``reference_*`` attributes (see the class docstring), then frees
+        the cupy memory pool.
 
         Args:
-            reference_template_params (np.ndarray): Parameters for the reference template for
-                ``template_gen``.
-            template_gen_kwargs (dict, optional): Keywords arguments for generating the
-                template with ``template_gen``. It will automatically add/change ``direct``
-                and ``compress`` keyword arguments to ``True``. The keyword argument
-                ``squeeze`` is automatically set to ``True`` for the initial setup and then
-                automatically set to ``False`` for online computations. If you so choose (not
-                recomended), you can change these kwargs for online running using the
-                ``**waveform_kwargs`` setup in the ``self.get_ll`` method. However,
-                if you include in this adjustment ``direct``, ``compress``, or ``squeeze``
-                will still automatically be overwritten.
-                (Default: ``{}``)
-            reference_gen_kwargs (dict, optional): Keywords arguments for generating the
-                reference template with ``template_gen``. It will automatically add/change
-                ``fill``, ``compress``, and ``squeeze`` keyword arguments to ``True``.
-                These waveforms can be produced without interpolation with ``direct = True``.
-                If ``length`` keyword argument is given and ``direct=False``, the
-                waveform will be interpolated. If ``length`` and ``direct`` are not given,
-                it will interpolate the signal with ``length=8096``.
-                (Default: ``{}``)
-            noise_kwargs_AE (dict, optional): Keywords arguments for generating the
-                noise with ``noisepsd_AE`` (A & E Channel) option in the ``get_sensitivity`` function
-                from ``lisatools`` TODO: add link. (Default: ``{}``)
-            noise_kwargs_T (dict, optional): Keywords arguments for generating the
-                noise with ``noisepsd_T`` (T Channel) option in the ``get_sensitivity`` function
-                from ``lisatools`` TODO: add link. (Default: ``{}``)
+            reference_template_params (np.ndarray): Reference parameters, one row per
+                reference, shape ``(num_bin, num_params)`` (passed through
+                ``np.atleast_2d``).
+            template_gen_kwargs (dict, optional): Keyword arguments for the sparse
+                templates; ``squeeze=False``, ``compress=True`` and ``direct=True`` are
+                forced. Modified in place and stored as ``self.template_gen_kwargs``.
+                Default ``{}``.
+            reference_gen_kwargs (dict, optional): Keyword arguments for the dense
+                references; ``squeeze=False``, ``compress=True`` and ``fill=True`` are
+                forced; ``direct`` becomes ``False`` (with ``length`` defaulting to
+                ``8096``) unless ``direct=True`` is given. Modified in place. Default
+                ``{}``.
+            data_index (xp.ndarray, optional): ``int32`` data set of each reference.
+                Default ``None`` means all 0.
+            noise_index (xp.ndarray, optional): PSD set of each reference (cast to
+                ``int32``). Default ``None`` means all 0.
 
+        Raises:
+            AssertionError: Index arrays of the wrong length (or a non-``int32``
+                ``data_index``), or inconsistent sparse-bin bookkeeping.
+
+        Warning:
+            A sparse-bin index above ``length_f_het`` but below ``1e4`` triggers a
+            ``breakpoint()`` (debugger stop) left in the code.
         """
 
         # TODO: need this?
@@ -1104,25 +1255,38 @@ class NewHeterodynedLikelihood(BBHxParallelModule):
         constants_index=None,
         **waveform_kwargs
     ):
-        """Compute the log-Likelihood
+        r"""Compute the log-Likelihood.
 
-        params (double np.ndarray): Parameters for evaluating log-Likelihood.
-            ``params.shape=(num_params,)`` if 1D or
-            ``params.shape=(num_params, num_bin_all)`` if 2D for more than
-            one binary.
-        return_extracted_snr (bool, optional): If ``True``, return
-            :math:`\langle d|h\\rangle\ / \sqrt{\langle h|h\\rangle}` as a second entry
-            of the return array. This produces a return array of
-            ``xp.array([log likelihood, snr]).T``. If ``False``, just return
-            the log-Likelihood array.
-        phase_maximize (bool, optional): If ``True``, compute the phase-marginalized
-            log-Likelihood (and snr if ``return_extracted_snr==True``).
-        **waveform_kwargs (dict, optional): Keyword arguments for waveform
-            generator. Some may be overwritten. See the main class docstring.
+        Template ``i`` is evaluated on the sparse grid of constants set
+        ``constants_index[i]`` (``freqs`` of shape ``(num_bin_all, 1, length_f_het)``, so a
+        single-mode template generator is assumed), divided by that set's sparse reference
+        and combined with its constants by the native kernel. ``<d|d>`` is
+        ``reference_d_d[constants_index]``: ``reference_d_d`` holds one value per DATA set,
+        so this is right only when reference ``j`` uses data set ``j`` (or there is a
+        single data set and ``constants_index`` is all 0).
+
+        Args:
+            params (np.ndarray): Parameters, one ROW per template: shape
+                ``(num_bin_all, num_params)`` (transposed into ``template_gen``; note the
+                opposite layout to :meth:`HeterodynedLikelihood.get_ll`).
+            return_extracted_snr (bool, optional): If ``True``, also return
+                :math:`\mathrm{Re}\langle d|h\rangle / \sqrt{\mathrm{Re}\langle h|h\rangle}`
+                as a second column. Default ``False``.
+            phase_maximize (bool, optional): If ``True``, use :math:`|\langle d|h\rangle|`
+                (the phase-maximized log-Likelihood, and snr if
+                ``return_extracted_snr=True``). Default ``False``.
+            constants_index (xp.ndarray, optional): Constants set (reference) of each
+                template, length ``num_bin_all`` (cast to ``int32``; must be below
+                ``num_constants_sets``). Default ``None`` means all 0.
+            **waveform_kwargs: Keyword arguments for ``template_gen``. ``direct``,
+                ``compress`` and ``squeeze`` are always taken from
+                ``self.template_gen_kwargs`` and ``freqs`` is overwritten; other keys of
+                ``self.template_gen_kwargs`` fill in when absent.
 
         Returns:
-            np.ndarray: log-Likelihoods or ``np.array([log-Likelihoods, snr]).T``
-
+            np.ndarray: Log-likelihoods, shape ``(num_bin_all,)``, or
+            ``(num_bin_all, 2)`` columns ``[log-Likelihood, snr]`` with
+            ``return_extracted_snr=True``.
         """
 
         # store info

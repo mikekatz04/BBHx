@@ -1,3 +1,19 @@
+"""PhenomD quasi-normal-mode tables for the (2,2) ringdown and damping frequencies.
+
+Pure data, star-imported by :mod:`bbhx.waveforms.phenomhm`:
+
+- ``QNMData_a``: final dimensionless spin grid, 1001 points from ``-1.0`` to ``1.0``;
+- ``dspin``: its spacing, ``0.002``;
+- ``QNMData_fring``: (2,2) ringdown frequency on that grid, in units of the final mass
+  (``M_final * f``, geometric units);
+- ``QNMData_fdamp``: (2,2) damping frequency on that grid, same units.
+
+:meth:`~bbhx.waveforms.phenomhm.PhenomHMAmpPhase._init_phenomd_fring_spline` fits cubic
+splines to the last two against ``QNMData_a``; the native kernel evaluates them at the
+PhenomD final spin and divides by the PhenomD final mass (a fraction of the total mass),
+giving frequencies in units of the total mass.
+"""
+
 import numpy as np
 
 dspin = 0.002

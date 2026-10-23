@@ -1,15 +1,24 @@
 """BBHx backend definitions.
 
-Phase 3L.7k (2026-06-04): BBHx backends now compose the LAT
+Phase 3L.7k (2026-06-04): BBHx backends compose the LISA Analysis Tools
 ``LISAToolsBackend`` surface (Orbits / WDM / FD / Spline / response
 Wraps) with BBHx's own native symbols
-(`SOBBHTDIonTheFlyWrap`, `SOBBHComputationGroupWrap`, plus the
-PhenomHM / Response / WaveformBuild / Likelihood / Interpolate bound
-methods). Each module loader imports both
-``lisatools_backend_<flavor>.pycppdetector`` and
-``bbhx_backend_<flavor>.cbbhx`` so a single ``bbhx.get_backend(name)``
+(``SOBBHTDIonTheFlyWrap``, ``SOBBHComputationGroupWrap``, plus the
+PhenomHM / Response / WaveformBuild / Likelihood bound methods of
+``BBHxComputationWrap``). Each module loader imports
+``lisatools_backend_<flavor>.pycppdetector``,
+``gbt_backend_<flavor>.interp`` (``CubicSplineWrap``) and
+``bbhx_backend_<flavor>.cbbhx``, so a single ``bbhx.get_backend(name)``
 call returns a backend object carrying every native symbol the BBH
 pipelines need.
+
+Classes: :class:`BBHxBackendMethods` (the method table),
+:class:`BBHxBackend` (the mixin that copies it onto the backend), and the
+concrete :class:`BBHxCpuBackend`, :class:`BBHxCuda11xBackend`,
+:class:`BBHxCuda12xBackend`, :class:`BBHxCuda13xBackend`, registered by
+``bbhx/__init__.py`` as ``bbhx_cpu`` / ``bbhx_cuda11x`` / ``bbhx_cuda12x`` /
+``bbhx_cuda13x``. The native modules are imported only when a backend is
+first loaded (when a BBHx compute object is built), not at ``import bbhx``.
 
 This is the BBHx-side counterpart to the post-Phase-3L.7k LAT backend
 extension; the previously-separate ``fastlisaresponse_<flavor>``
@@ -45,9 +54,40 @@ class BBHxBackendMethods(LISAToolsBackendMethods):
 
     1. The BBH-specific bound methods that previously lived on this
        class pre-Phase-3L.7k (waveform / response / likelihood / interp
-       wraps from BBHxComputationWrap).
+       wraps of ``BBHxComputationWrap``).
     2. The SOBBH source-class Wraps carved to BBHx at Phase 3L.8
-       (SOBBHTDIonTheFlyWrap + SOBBHComputationGroupWrap).
+       (``SOBBHTDIonTheFlyWrap`` + ``SOBBHComputationGroupWrap``).
+
+    Built by the loaders of the concrete backends from
+    :func:`_lat_methods_from_pycppdetector` + :func:`_bbhx_methods_from_cbbhx`.
+
+    Attributes:
+        hdyn_wrap (callable): Heterodyned likelihood kernel
+            (:class:`~bbhx.likelihood.HeterodynedLikelihood`).
+        direct_like_wrap (callable): Direct-sum likelihood kernel
+            (:class:`~bbhx.likelihood.Likelihood`).
+        direct_sum_wrap (callable): Direct (non-interpolated) TDI waveform build
+            (:class:`~bbhx.waveformbuild.BBHWaveformFD` with ``direct=True``).
+        InterpTDI_wrap (callable): Spline interpolation of the sparse waveform onto the data
+            frequencies (:class:`~bbhx.waveformbuild.TemplateInterpFD`).
+        LISA_response_wrap (callable): Fast FD response
+            (:class:`~bbhx.response.fastfdresponse.LISATDIResponse`).
+        waveform_amp_phase_wrap (callable): PhenomHM / PhenomD amplitude-phase kernel
+            (:class:`~bbhx.waveforms.phenomhm.PhenomHMAmpPhase`).
+        get_phenomhm_ringdown_frequencies (callable): PhenomHM per-mode ringdown / damping
+            frequencies.
+        get_phenomd_ringdown_frequencies (callable): PhenomD ringdown / damping frequencies
+            from the QNM spline tables.
+        speciallike (callable or None): Interpolate-and-sum likelihood kernel used by
+            :meth:`~bbhx.waveformbuild.BBHWaveformFD.get_direct_ll`. GPU only; ``None`` on
+            CPU.
+        new_hdyn_prep (callable or None): Setup kernel of
+            :class:`~bbhx.likelihood.NewHeterodynedLikelihood`. GPU only; ``None`` on CPU.
+        new_hdyn_like (callable or None): Likelihood kernel of
+            :class:`~bbhx.likelihood.NewHeterodynedLikelihood`. GPU only; ``None`` on CPU.
+        SOBBHTDIonTheFlyWrap (type): Native SOBBH TDI-on-the-fly class.
+        SOBBHComputationGroupWrap (type): Native SOBBH chunked-heterodyne computation group
+            (:class:`~bbhx.sobbhcomps.SOBBHWDMComputations`).
     """
 
     # ---- BBHx native methods (BBHxComputationWrap; pre-3L.7k) ----
@@ -81,6 +121,13 @@ class BBHxBackend(LISAToolsBackend):
     ``self.backend.OrbitsWrap``,
     ``self.backend.SOBBHTDIonTheFlyWrap``, and
     ``self.backend.waveform_amp_phase_wrap(...)`` on the same object.
+
+    Args:
+        bbhx_backend_methods (BBHxBackendMethods): Method table built by the concrete
+            backend's loader; every field is copied onto the instance.
+
+    Raises:
+        AssertionError: If ``bbhx_backend_methods`` is not a :class:`BBHxBackendMethods`.
     """
 
     # BBH-specific bound methods
@@ -125,7 +172,20 @@ class BBHxBackend(LISAToolsBackend):
 
 
 def _lat_methods_from_pycppdetector(_lat_pd, _gbt_interp, *, gpu: bool, xp):
-    """Build the LAT-side portion of BBHxBackendMethods."""
+    """Build the LAT-side portion of BBHxBackendMethods.
+
+    Mirrors LAT's own loader: picks the ``*CPU`` / ``*GPU`` variant of each LAT native class.
+
+    Args:
+        _lat_pd (module): ``lisatools_backend_<flavor>.pycppdetector``.
+        _gbt_interp (module): ``gbt_backend_<flavor>.interp`` (source of ``CubicSplineWrap``).
+        gpu: Select the ``GPU``-suffixed symbols when ``True``.
+        xp (module): ``numpy`` or ``cupy``, stored as the ``xp`` field.
+
+    Returns:
+        dict: Keyword arguments for the LAT fields of :class:`BBHxBackendMethods`. The fused
+        GB in-model kernels (``gb_inmodel_*``) are ``None`` when the LAT ``.so`` predates them.
+    """
     suffix = "GPU" if gpu else "CPU"
     return {
         "OrbitsWrap": getattr(_lat_pd, f"OrbitsWrap{suffix}"),
@@ -184,7 +244,18 @@ def _lat_methods_from_pycppdetector(_lat_pd, _gbt_interp, *, gpu: bool, xp):
 
 
 def _bbhx_methods_from_cbbhx(_cbbhx, *, gpu: bool):
-    """Build the BBHx-specific portion of BBHxBackendMethods."""
+    """Build the BBHx-specific portion of BBHxBackendMethods.
+
+    Instantiates ``BBHxComputationWrap{CPU,GPU}`` once and exposes its bound methods.
+
+    Args:
+        _cbbhx (module): ``bbhx_backend_<flavor>.cbbhx``.
+        gpu: Select the ``GPU``-suffixed symbols when ``True``.
+
+    Returns:
+        dict: Keyword arguments for the BBHx fields of :class:`BBHxBackendMethods`.
+        ``speciallike``, ``new_hdyn_prep`` and ``new_hdyn_like`` are ``None`` on CPU.
+    """
     suffix = "GPU" if gpu else "CPU"
     _bbcomp = getattr(_cbbhx, f"BBHxComputationWrap{suffix}")()
     methods = {
@@ -218,8 +289,16 @@ def _bbhx_methods_from_cbbhx(_cbbhx, *, gpu: bool):
 
 
 class BBHxCpuBackend(CpuBackend, BBHxBackend):
-    """CPU backend backed by ``lisatools_backend_cpu.pycppdetector`` +
-    ``bbhx_backend_cpu.cbbhx``."""
+    """CPU backend (registered as ``"bbhx_cpu"``; ``xp`` is ``numpy``).
+
+    Backed by ``lisatools_backend_cpu.pycppdetector`` + ``gbt_backend_cpu.interp`` +
+    ``bbhx_backend_cpu.cbbhx``. Normally obtained through
+    :func:`bbhx.get_backend` (``bbhx.get_backend("cpu")``), not constructed directly.
+
+    Args:
+        *args: Forwarded to :class:`gpubackendtools.gpubackendtools.CpuBackend`.
+        **kwargs: Forwarded to :class:`gpubackendtools.gpubackendtools.CpuBackend`.
+    """
 
     _backend_name = "bbhx_backend_cpu"
     _name = "bbhx_cpu"
@@ -230,6 +309,14 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
 
     @staticmethod
     def cpu_methods_loader() -> BBHxBackendMethods:
+        """Import the three CPU native modules and build the method table.
+
+        Returns:
+            BBHxBackendMethods: Method table with ``xp=numpy``.
+
+        Raises:
+            BackendUnavailableException: If a native module cannot be imported.
+        """
         try:
             import gbt_backend_cpu.interp
             import bbhx_backend_cpu.cbbhx
@@ -247,7 +334,18 @@ class BBHxCpuBackend(CpuBackend, BBHxBackend):
 
 
 def _make_cuda_loader(flavor):
-    """Generate a flavor-specific cuda module loader function."""
+    """Generate a flavor-specific cuda module loader function.
+
+    Args:
+        flavor (str): ``"cuda11x"``, ``"cuda12x"`` or ``"cuda13x"``.
+
+    Returns:
+        callable: Zero-argument loader that imports ``bbhx_backend_<flavor>.cbbhx``,
+        ``gbt_backend_<flavor>.interp`` and ``lisatools_backend_<flavor>.pycppdetector`` and
+        returns a :class:`BBHxBackendMethods` with ``xp=cupy``. It raises
+        ``BackendUnavailableException`` when a native module is missing; the missing-``cupy``
+        branch names ``MissingDependencies``, which this module does not import.
+    """
 
     def _loader() -> BBHxBackendMethods:
         bb_mod_name = f"bbhx_backend_{flavor}"
@@ -280,7 +378,12 @@ def _make_cuda_loader(flavor):
 
 
 class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
-    """CUDA 11.x backend."""
+    """CUDA 11.x backend (registered as ``"bbhx_cuda11x"``; ``xp`` is ``cupy``).
+
+    Args:
+        *args: Forwarded to :class:`gpubackendtools.gpubackendtools.Cuda11xBackend`.
+        **kwargs: Forwarded to :class:`gpubackendtools.gpubackendtools.Cuda11xBackend`.
+    """
 
     _backend_name: str = "bbhx_backend_cuda11x"
     _name = "bbhx_cuda11x"
@@ -292,7 +395,12 @@ class BBHxCuda11xBackend(Cuda11xBackend, BBHxBackend):
 
 
 class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
-    """CUDA 12.x backend."""
+    """CUDA 12.x backend (registered as ``"bbhx_cuda12x"``; ``xp`` is ``cupy``).
+
+    Args:
+        *args: Forwarded to :class:`gpubackendtools.gpubackendtools.Cuda12xBackend`.
+        **kwargs: Forwarded to :class:`gpubackendtools.gpubackendtools.Cuda12xBackend`.
+    """
 
     _backend_name: str = "bbhx_backend_cuda12x"
     _name = "bbhx_cuda12x"
@@ -304,7 +412,14 @@ class BBHxCuda12xBackend(Cuda12xBackend, BBHxBackend):
 
 
 class BBHxCuda13xBackend(Cuda13xBackend, BBHxBackend):
-    """CUDA 13.x backend."""
+    """CUDA 13.x backend (registered as ``"bbhx_cuda13x"``; ``xp`` is ``cupy``).
+
+    The flavor the production launchers select (``GPU_BACKEND=cuda13x``).
+
+    Args:
+        *args: Forwarded to :class:`gpubackendtools.gpubackendtools.Cuda13xBackend`.
+        **kwargs: Forwarded to :class:`gpubackendtools.gpubackendtools.Cuda13xBackend`.
+    """
 
     _backend_name: str = "bbhx_backend_cuda13x"
     _name = "bbhx_cuda13x"

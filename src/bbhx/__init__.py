@@ -1,4 +1,23 @@
-"""BBHx."""
+"""BBHx: massive black hole binary waveforms, LISA response and likelihoods (CPU and GPU).
+
+Main entry points:
+
+- :class:`bbhx.waveformbuild.BBHWaveformFD`: PhenomHM / PhenomD frequency-domain TDI waveforms
+  (:class:`~bbhx.waveforms.phenomhm.PhenomHMAmpPhase` amplitude/phase +
+  :class:`~bbhx.response.fastfdresponse.LISATDIResponse` fast FD response + interpolation).
+- :class:`bbhx.likelihood.Likelihood` and :class:`bbhx.likelihood.HeterodynedLikelihood`:
+  direct and heterodyned (relative-binning) log-likelihoods for those waveforms.
+- :class:`bbhx.mbhtdionfly.MBHTDIonFly` and :class:`bbhx.sobbhtdionfly.SOBBHTDIonFly`:
+  time-domain TDI-on-the-fly generators for MBHs (phentax modes) and stellar-origin BBHs.
+- :class:`bbhx.sobbhcomps.SOBBHWDMComputations`: SOBBH chunked-heterodyne WDM likelihood.
+- :mod:`bbhx.utils.transform`: SSB <-> LISA frame maps and MBH sky-mode transforms.
+
+Importing the package registers the ``bbhx_cpu``, ``bbhx_cuda11x``, ``bbhx_cuda12x`` and
+``bbhx_cuda13x`` backends with ``gpubackendtools`` (each composes the LISA Analysis Tools
+native backend with BBHx's own kernels, see :mod:`bbhx.cutils`). Compute classes pick their
+backend once, at construction, through the ``force_backend`` argument (see
+:class:`~bbhx.utils.parallelbase.BBHxParallelModule`).
+"""
 
 # ruff: noqa: E402
 try:
@@ -61,6 +80,39 @@ from gpubackendtools.gpubackendtools import Backend
 
 
 def get_backend(backend: str) -> Backend:
+    """Return a BBHx compute backend by name.
+
+    A name that does not contain ``"bbhx"`` gets the ``"bbhx_"`` prefix, then
+    :func:`gpubackendtools.get_backend` resolves it against the backends registered by this
+    package at import. Accepted names:
+
+    - ``"cpu"``, ``"cuda11x"``, ``"cuda12x"``, ``"cuda13x"``: that backend.
+    - ``"cuda"``: the first loadable of ``cuda13x``, ``cuda12x``, ``cuda11x`` (in that order).
+    - ``"gpu"``: alias of ``"cuda"``.
+    - a full registry name containing ``"bbhx"`` (e.g. ``"bbhx_cpu"``), passed through
+      unchanged.
+
+    BBHx registers no JAX backend.
+
+    Args:
+        backend: Backend name, see above.
+
+    Returns:
+        Backend: The loaded backend (a :class:`~bbhx.cutils.BBHxBackend` subclass).
+        ``backend.xp`` is ``numpy`` (CPU) or ``cupy`` (CUDA).
+
+    Raises:
+        gpubackendtools.gpubackendtools.BackendAccessException: When the backend (or, for
+            ``"cuda"`` / ``"gpu"``, every CUDA backend) is unavailable or disabled.
+        ValueError: When the name is not a registered backend.
+
+    Example:
+        >>> import bbhx
+        >>> bbhx.get_backend("cpu").name
+        'bbhx_cpu'
+    """
+    # Assigns a local name only (it does not set the function's __doc__); the
+    # docstring above is what help() shows.
     __doc__ = _get_backend.__doc__
     if "bbhx" not in backend:
         return _get_backend("bbhx_" + backend)
@@ -69,6 +121,34 @@ def get_backend(backend: str) -> Backend:
 
 
 def has_backend(backend: str) -> Backend:
+    """Report whether a BBHx backend can be loaded, without raising.
+
+    The name is prefixed with ``"bbhx_"`` (unless it already contains it) and passed to
+    :func:`gpubackendtools.has_backend`, which tries to load the backend once and caches the
+    result.
+
+    Accepted names: ``"cpu"``, ``"cuda11x"``, ``"cuda12x"``, ``"cuda13x"``, or a full
+    ``"bbhx_<name>"`` registry name. The ``"cuda"`` and ``"gpu"`` aliases are honoured by
+    :func:`get_backend` but not here: the prefixed ``"bbhx_cuda"`` is not a registered name.
+
+    Args:
+        backend: Backend name, see above.
+
+    Returns:
+        bool: ``True`` when the backend's native modules (and ``cupy`` for CUDA) load. The
+        ``-> Backend`` annotation in the signature is inaccurate.
+
+    Raises:
+        ValueError: When the name is not a registered backend (including ``"cuda"`` and
+            ``"gpu"``, see above).
+
+    Example:
+        >>> import bbhx
+        >>> bbhx.has_backend("cpu")
+        True
+    """
+    # Assigns a local name only (it does not set the function's __doc__); the
+    # docstring above is what help() shows.
     __doc__ = _has_backend.__doc__
     if "bbhx_" not in backend:
         return _has_backend("bbhx_" + backend)
@@ -77,6 +157,33 @@ def has_backend(backend: str) -> Backend:
 
         
 def get_first_backend(backend: str) -> Backend:
+    """Return the first loadable backend of a preference list (thin wrapper, see Warning).
+
+    Prefixes ``"bbhx_"`` onto ``backend`` (unless it already contains it) and forwards to
+    :func:`gpubackendtools.get_first_backend`, which expects a SEQUENCE of names.
+
+    Args:
+        backend: Backend name(s), see Warning.
+
+    Returns:
+        Backend: The first loadable backend.
+
+    Raises:
+        gpubackendtools.gpubackendtools.BackendAccessException: When none of the names can be
+            loaded.
+        ValueError: For a ``str`` argument, see Warning.
+        TypeError: For a ``list`` argument, see Warning.
+
+    Warning:
+        As written this wrapper does not work: a ``str`` argument becomes one prefixed string
+        that ``gpubackendtools`` iterates character by character, so the first character
+        fails as an unknown backend name (``ValueError``); a ``list`` argument fails the
+        string concatenation (``TypeError``). BBHx classes resolve their default backend
+        through ``supported_backends()`` and :func:`gpubackendtools.get_first_backend`
+        instead. Use :func:`get_backend` with ``"cuda"`` for "first available CUDA backend".
+    """
+    # Assigns a local name only (it does not set the function's __doc__); the
+    # docstring above is what help() shows.
     __doc__ = _get_first_backend.__doc__
     if "bbhx_" not in backend:
         return _get_first_backend("bbhx_" + backend)

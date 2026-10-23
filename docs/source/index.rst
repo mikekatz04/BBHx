@@ -6,10 +6,14 @@
    :caption: Documentation:
 
    user/main
+   user/conventions
    user/waveforms
    user/response
    user/like
+   user/sobbh
    user/utils
+   user/constants
+   user/backends
 
 .. toctree::
    :maxdepth: 4

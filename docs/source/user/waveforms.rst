@@ -8,3 +8,8 @@ PhenomHM (PhenomD)
     :members:
     :show-inheritance:
     :inherited-members:
+
+PhenomD ringdown tables
+************************
+
+.. automodule:: bbhx.waveforms.ringdownphenomd

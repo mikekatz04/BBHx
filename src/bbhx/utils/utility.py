@@ -15,11 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""
-:code:`bbhx.utils.utility`:
+"""Legacy pointer helpers of the Cython CPU/GPU-agnostic framework.
 
-This module contains tools used in the Cython CPU/GPU Agnostic framework.
+:func:`wrapper` turns ``numpy`` / ``cupy`` arrays (and objects with a ``ptr`` attribute) into
+raw integer data pointers, and :func:`pointer_adjust` applies it to every call of a
+decorated function. BBHx no longer contains Cython extensions (its native code is bound with
+nanobind and takes arrays directly), and nothing in BBHx calls these; the maintained copies
+live in ``gpubackendtools.pointeradjust``.
 
+The module-level flag ``gpu`` is ``True`` when ``cupy`` imports.
 """
 
 import os
@@ -40,28 +44,27 @@ except (ImportError, ModuleNotFoundError) as e:
     gpu = False
 
 
+# TODO check: keep/remove/document -- legacy Cython helper, no caller; only in docs utils.rst
 def wrapper(*args, **kwargs):
-    """Function to convert array and C/C++ class arguments to ptrs
+    """Convert array and C/C++ class arguments to raw pointers.
 
-    This function checks the object type. If it is a cupy or numpy array,
-    it will determine its pointer by calling the proper attributes. If you design
-    a Cython class to be passed through python, it must have a :code:`ptr`
-    attribute.
+    Each argument is checked in turn: a ``cupy.ndarray`` (when ``cupy`` is importable)
+    becomes ``arg.data.mem.ptr``, a ``numpy.ndarray`` becomes
+    ``arg.__array_interface__["data"][0]``, an object with a ``ptr`` attribute (a Cython
+    class) becomes ``arg.ptr``, and anything else is passed through unchanged.
 
-    If you use this function, you must convert input arrays to size_t data type in Cython and
-    then properly cast the pointer as it enters the c++ function. See the
-    Cython codes
+    A Cython consumer must declare the pointer arguments as ``size_t`` and cast them as they
+    enter the C++ function; see the Cython codes
     `here <https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/tree/master/src>`_
     for examples.
 
-    args:
-        *args (list): list of the arguments for a function.
-        **kwargs (dict): dictionary of keyword arguments to be converted.
+    Args:
+        *args: Positional arguments to convert.
+        **kwargs: Keyword arguments to convert (keys kept).
 
-    returns:
-        Tuple: (targs, tkwargs) where t indicates target (with pointer values
-            rather than python objects).
-
+    Returns:
+        tuple[list, dict]: ``(targs, tkwargs)``, the converted positional and keyword
+        arguments.
     """
     # declare target containers
     targs = []
@@ -112,18 +115,19 @@ def wrapper(*args, **kwargs):
     return (targs, tkwargs)
 
 
+# TODO check: keep/remove/document -- legacy Cython decorator, no caller; only in docs utils.rst
 def pointer_adjust(func):
-    """Decorator function for cupy/numpy agnostic cython
+    """Decorate a function so its array arguments arrive as raw pointers.
 
-    This decorator applies :func:`few.utils.utility.wrapper` to functions
-    via the decorator construction.
+    The returned function runs :func:`wrapper` on its ``*args`` / ``**kwargs`` and calls
+    ``func`` with the converted values. The same ``size_t`` / cast requirement as for
+    :func:`wrapper` applies on the Cython side.
 
-    If you use this decorator, you must convert input arrays to size_t data type in Cython and
-    then properly cast the pointer as it enters the c++ function. See the
-    Cython codes
-    `here <https://github.com/BlackHolePerturbationToolkit/FastEMRIWaveforms/tree/master/src>`_
-    for examples.
+    Args:
+        func (callable): Function taking pointer arguments (typically a Cython wrapper).
 
+    Returns:
+        callable: The wrapping function.
     """
 
     def func_wrapper(*args, **kwargs):

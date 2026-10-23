@@ -1,4 +1,4 @@
-"""SOBBH chunked-heterodyne Python frontend (BBHx-side wrapper).
+"""SOBBH chunked-heterodyne Python frontend (BBHx-side wrapper): :class:`SOBBHWDMComputations`.
 
 Phase 3L.7p-followup (2026-06-06): SOBBH-specific code lives in BBHx,
 GB-specific code lives in GBGPU, and the shared chunked-heterodyne
@@ -33,8 +33,10 @@ class SOBBHWDMComputations(WDMComputationsBase):
     * Carrier-frequency column for layer-grouping: ``params[:, 5] = f_low``.
 
     Source intrinsic amp / phase come from the C++ side's
-    ``SOBBHTDIonTheFly`` pointer (and from
-    :class:`bbhx.jax.sources.sobbh.JaxSOBBHSource` on the JAX backend), so the
+    ``SOBBHTDIonTheFly`` pointer (a JAX path would use
+    :class:`bbhx.jax.sources.sobbh.JaxSOBBHSource`, but BBHx registers no ``bbhx_jax``
+    backend, so the ``jax`` entry of the inherited ``supported_backends`` is never
+    available), so the
     only difference at the Python layer is which backend wrap class is
     invoked and how the parameter vector is interpreted -- everything else
     (chunk geometry, WDM window, layer-grouping, narrow-band dispatch,
@@ -43,6 +45,25 @@ class SOBBHWDMComputations(WDMComputationsBase):
     Param order (matches ``lisatools.response.tdionfly.SOBBHTDIonTheFly``):
 
         ``(m1, m2, s1, s2, distance, f_low, phi_c, inc, psi, lam, beta)``.
+
+    Constructor arguments are those of :class:`lisatools.chunked_het.WDMComputationsBase`
+    (``wdm_settings``, ``t_ref``, ``Nt_sub``, ``n_pad``, ``N_sparse``, ``tukey_alpha``,
+    ``use_tukey``, ``N_cp_sig``, ``N_cp_orbit``, ``orbits``, ``tdi_config``,
+    ``force_backend``, ``d_d``, ``tdi_type``, ``t_obs_start``); a bare ``force_backend``
+    flavor resolves to a ``bbhx_<flavor>`` backend. The global-fit production runs do not
+    build this class (``SOBBH_LIKELIHOOD=lookup`` uses the LISA Analysis Tools
+    ``SOBBHLookupRouter``; this class is reached only with ``SOBBH_LIKELIHOOD=chunked``).
+
+    Example:
+        .. code-block:: python
+
+            from bbhx.sobbhcomps import SOBBHWDMComputations
+
+            # wdm_set: a lisatools.domains.WDMSettings; orbits: a configured Orbits
+            chunked_sobbh = SOBBHWDMComputations(
+                wdm_set, t_ref=t_ref, Nt_sub=256, n_pad=32, N_sparse=256,
+                orbits=orbits, tdi_config="2nd generation", d_d=0.0, tdi_type="XYZ",
+            )
     """
 
     # SOBBH chunked-het dispatches through bbhx_<flavor> backends, which

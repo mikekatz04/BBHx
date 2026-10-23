@@ -1,14 +1,21 @@
 """JAX SOBBH (stellar-origin black-hole binary) source.
 
 Thin class wrapper around the module-level ``amplitude(t, params)`` /
-``gw_phase(t, params)`` functions exposed by the prototype
-``sobbhtaylert3.py`` at the repo root. That file is the single source
-of truth for the PN expressions; the C++ ``SOBBHTDIonTheFly`` kernel in
-``TDIonTheFly.cu`` was ported from the same place, so the JAX path and
-the C++ path stay in sync as long as both load the same PN code.
+``gw_phase(t, params)`` / ``gw_frequency_t(t, params)`` functions exposed by the prototype
+``sobbhtaylert3.py``. That file is the single source of truth for the PN expressions; the
+C++ ``SOBBHTDIonTheFly`` kernel (now ``bbhx/cutils/sobbh_tdi_on_the_fly.{hh,cu}``) was
+ported from the same place, so the JAX path and the C++ path stay in sync as long as both
+load the same PN code.
+
+``sobbhtaylert3.py`` is not part of the installed package: it is looked up in up to six
+parent directories of this file, or at ``$SOBBH_TAYLOR_T3_PATH``, on the first call of
+:meth:`JaxSOBBHSource.amplitude` / ``phase`` / ``f`` (``FileNotFoundError`` when absent;
+it is not present in the BBHx checkout, while LISA Analysis Tools keeps a copy at
+``scripts/sobbh/sobbhtaylert3.py`` that ``SOBBH_TAYLOR_T3_PATH`` can point at). Importing
+the module needs ``jax`` and LISA Analysis Tools' ``lisatools.jax.response.base``.
 
 Parameter layout matches the C++ class header
-(``TDIonTheFly.hh:205-216``):
+(``bbhx/cutils/sobbh_tdi_on_the_fly.hh``):
 
     params[0]  = m1            (solar masses)
     params[1]  = m2            (solar masses)
@@ -69,6 +76,7 @@ _pn = None
 
 
 def _pn_mod():
+    """Return the PN module, loading it with :func:`_load_sobbh_pn` on first use (cached)."""
     global _pn
     if _pn is None:
         _pn = _load_sobbh_pn()
@@ -78,9 +86,30 @@ def _pn_mod():
 class JaxSOBBHSource(JaxAmpPhaseSource):
     """Stellar-origin binary black-hole TaylorT3-style PN source.
 
+    Plugin for the LISA Analysis Tools JAX TDI-on-the-fly engine
+    (:class:`lisatools.jax.response.base.JaxAmpPhaseSource`): 11 parameters per source in
+    the layout of the module docstring, with the sky angles at ``inc_index = 7``,
+    ``psi_index = 8``, ``lam_index = 9``, ``beta_index = 10``. Shown in the BBHx SOBBH
+    tutorial; no code in the workspace instantiates this copy (GBGPU's
+    ``SOBBHTDIonTheFlyWrapJAX`` imports a ``gbgpu.jax.sources.sobbh`` module that GBGPU
+    does not contain).
+
     Args:
         t_ref: Reference time at which ``f_low`` is the GW frequency
-            (seconds). Same as ``SOBBHTDIonTheFly::t_ref`` in C++.
+            (seconds). Same as ``SOBBHTDIonTheFly::t_ref`` in C++. Stored only: the
+            amplitude, phase and frequency are evaluated at ``t`` directly (see
+            :meth:`amplitude`).
+
+    Example:
+        .. code-block:: python
+
+            import jax.numpy as jnp
+            from bbhx.jax.sources import JaxSOBBHSource
+
+            src = JaxSOBBHSource(t_ref=0.0)
+            # m1, m2, s1, s2, distance [pc], f_low [Hz], phi_c, inc, psi, lam, beta
+            params = jnp.array([30.0, 25.0, 0.1, 0.2, 5e8, 0.012, 0.3, 0.8, 0.5, 1.0, 0.3])
+            amp = src.amplitude(jnp.linspace(0.0, 1e6, 100), params)  # needs sobbhtaylert3.py
     """
 
     n_params: int = 11
@@ -101,18 +130,25 @@ class JaxSOBBHSource(JaxAmpPhaseSource):
     def amplitude(self, t: jnp.ndarray, params: jnp.ndarray) -> jnp.ndarray:
         """Delegate to ``sobbhtaylert3.amplitude(t, params)``.
 
-        Note: ``t_ref`` is implicit in the SOBBH PN model -- ``f_low``
-        is the GW frequency at the time origin. The C++ kernel uses
-        ``t`` directly (not ``t - t_ref``), and so do we. Setting
-        ``t_ref != 0`` shifts the user's time origin but does not enter
-        the amplitude formula.
+        Note: ``t_ref`` is implicit in the SOBBH PN model here -- ``f_low``
+        is the GW frequency at the time origin, and this method evaluates at ``t``
+        directly (not ``t - t_ref``); ``t_ref`` does not enter the formula. The C++
+        ``SOBBHTDIonTheFly`` kernel evaluates at ``t - t_ref`` since 2026-07-30, so the two
+        agree only for ``t_ref = 0``. The same holds for :meth:`phase` and :meth:`f`.
+
+        Args:
+            t: Time(s) (s).
+            params: 1D parameter vector of length 11.
+
+        Returns:
+            jnp.ndarray: Amplitude, broadcasting with ``t``.
         """
         return _pn_mod().amplitude(t, params)
 
     def phase(self, t: jnp.ndarray, params: jnp.ndarray) -> jnp.ndarray:
-        """Delegate to ``sobbhtaylert3.gw_phase(t, params)``."""
+        """Delegate to ``sobbhtaylert3.gw_phase(t, params)``: GW phase (rad) at ``t``."""
         return _pn_mod().gw_phase(t, params)
 
     def f(self, t: jnp.ndarray, params: jnp.ndarray) -> jnp.ndarray:
-        """Delegate to ``sobbhtaylert3.gw_frequency_t(t, params)``."""
+        """Delegate to ``sobbhtaylert3.gw_frequency_t(t, params)``: GW frequency (Hz) at ``t``."""
         return _pn_mod().gw_frequency_t(t, params)

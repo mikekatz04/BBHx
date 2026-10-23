@@ -15,6 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Time-domain SOBBH TDI-on-the-fly generator (:class:`SOBBHTDIonFly`).
+
+In the global-fit runs this class is built lazily by
+``lisatools.globalfit.stock.erebor.wrappers.get_sobbh_tdionfly_gen`` as the SOBBH move's
+cross-check / fallback waveform generator (``SOBBH_CHECK_LL`` cross-checks are off in the
+production launchers, whose SOBBH likelihood is the LISA Analysis Tools WDM lookup).
+"""
+
 from typing import Optional
 
 import numpy as np
@@ -39,10 +47,10 @@ class SOBBHTDIonFly(BBHxParallelModule):
     on-the-fly delays on a cubic-spline amp/phase). This makes them directly
     comparable in the time domain.
 
-    Unlike :class:`SOBBHTDIonTheFly` (the heterodyned frequency-domain path,
-    which evaluates the PN amplitude/phase internally in C++ on a power-of-two
-    sparse grid), this class produces the dense time-domain TDI exactly as
-    :class:`MBHTDIonFly` does for MBHs.
+    Unlike :class:`lisatools.response.tdionfly.SOBBHTDIonTheFly` (the heterodyned
+    frequency-domain path, which evaluates the PN amplitude/phase internally in C++ on a
+    power-of-two sparse grid), this class produces the dense time-domain TDI exactly as
+    :class:`~bbhx.mbhtdionfly.MBHTDIonFly` does for MBHs.
 
     The amp/phase are splined on a **sparse** node grid (the SOBBH GW phase is
     smooth -- ``fdot`` is tiny -- so a cubic spline through a coarse grid
@@ -60,10 +68,12 @@ class SOBBHTDIonFly(BBHxParallelModule):
     inclination is passed to the response here.
 
     Args:
-        wave_gen (:class:`SOBBHWaveform`): SOBBH PN waveform generator. Only its
-            ``reference_time`` (the epoch at which ``f_low`` is defined) is used
-            here; the amp/phase are evaluated on this class's own node grid via
-            ``wave_gen.compute_amp_phase``.
+        wave_gen: SOBBH PN waveform generator
+            (:class:`lisatools.sources.sobbh.waveform.SOBBHWaveform`). Only its
+            :meth:`~lisatools.sources.sobbh.waveform.SOBBHWaveform.compute_amp_phase` is
+            called, which measures the PN time from ``wave_gen.reference_time`` (the epoch
+            at which ``f_low`` is defined); the amp/phase are evaluated on this class's own
+            node grid.
         orbits (:class:`lisatools.detector.Orbits`): Configured orbits instance
             (load with ``frame="icrs"`` to consume ``(ra, dec)`` directly).
         tdi_config (:class:`lisatools.response.tdiconfig.TDIConfig`): TDI
@@ -72,14 +82,34 @@ class SOBBHTDIonFly(BBHxParallelModule):
         Tobs (float): Observation time (sec) -- used to build the default
             evaluation window when ``upsample_t_arr`` is not given at call time.
         t0 (float): Absolute start time of the default evaluation window (sec).
-        n_grid (int, optional): Number of sparse amplitude/phase spline nodes.
-            (default: ``2048``)
-        buffer_time (float, optional): Seconds by which the amp/phase node grid
+        n_grid: Number of sparse amplitude/phase spline nodes. Default ``2048``.
+        buffer_time: Seconds by which the amp/phase node grid
             is padded beyond the evaluation window on each side, giving the
             on-the-fly kernel light-travel-time headroom for its retarded-time
-            reads. (default: ``5000.0``)
+            reads. Default ``5000.0``.
         force_backend (str, optional): ``"cpu"``, ``"gpu"``, ``"cuda"``,
-            ``"cuda11x"``, ``"cuda12x"``, or ``"cuda13x"``. (default: ``None``)
+            ``"cuda11x"``, ``"cuda12x"``, or ``"cuda13x"`` (see
+            :class:`~bbhx.utils.parallelbase.BBHxParallelModule`); the same flavor is
+            handed to the LISA Analysis Tools response. Default ``None``.
+
+    Example:
+        .. code-block:: python
+
+            from lisatools.detector import ESAOrbits
+            from lisatools.response.tdiconfig import TDIConfig
+            from lisatools.sources.sobbh.waveform import SOBBHWaveform
+            from bbhx.sobbhtdionfly import SOBBHTDIonFly
+
+            Tobs, dt, t0 = 3.0e6, 5.0, 0.0
+            wave_gen = SOBBHWaveform(
+                Tobs=Tobs, dt=dt, t0=t0, reference_time=t0, force_backend="cpu"
+            )  # the recipe of lisatools.globalfit.stock.erebor.wrappers
+            gen = SOBBHTDIonFly(
+                wave_gen, ESAOrbits(force_backend="cpu", frame="icrs"),
+                TDIConfig("2nd generation"), dt, Tobs, t0=t0, force_backend="cpu",
+            )
+            # m1, m2 [Msun], s1, s2, distance [Gpc], f_low [Hz], phi0, inc, ra, dec, psi
+            tdi = gen(30.0, 25.0, 0.1, 0.2, 0.5, 0.012, 0.3, 0.8, 1.0, 0.3, 0.5)  # (3, N)
     """
 
     def __init__(
@@ -106,6 +136,7 @@ class SOBBHTDIonFly(BBHxParallelModule):
 
     @classmethod
     def supported_backends(cls) -> list:
+        """Preference order: ``bbhx_`` + ``cuda13x``, ``cuda12x``, ``cuda11x``, ``cpu``."""
         return ["bbhx_" + _tmp for _tmp in cls.GPU_RECOMMENDED()]
 
     @property
@@ -120,7 +151,7 @@ class SOBBHTDIonFly(BBHxParallelModule):
 
     @property
     def dt(self) -> float:
-        """dt value from data."""
+        """dt value from data (s); setting it also sets ``sampling_frequency = 1 / dt``."""
         return self._dt
 
     @dt.setter
@@ -149,28 +180,36 @@ class SOBBHTDIonFly(BBHxParallelModule):
     ):
         """Generate the time-domain SOBBH TDI observables.
 
+        The amplitude / phase are evaluated on ``n_grid`` nodes spanning the output
+        times padded by ``buffer_time`` on each side (only node times before
+        coalescence are returned by the PN model), the TDI is evaluated on a dense
+        ``dt`` grid inside the nodes and interpolated onto ``upsample_t_arr``.
+
         Args:
-            m1, m2 (float): component masses (solar masses).
-            s1, s2 (float): dimensionless aligned spins.
-            distance (float): luminosity distance (Gpc).
+            m1 (float): Component mass 1 (solar masses).
+            m2 (float): Component mass 2 (solar masses).
+            s1 (float): Dimensionless aligned spin of body 1.
+            s2 (float): Dimensionless aligned spin of body 2.
+            distance (float): Luminosity distance (Gpc).
             f_low (float): GW frequency at the reference epoch (Hz).
-            phi0 (float): orbital phase at the reference epoch (rad) -- the
+            phi0 (float): Orbital phase at the reference epoch (rad) -- the
                 catalogue ``TrueAnomaly``.
-            inc (float): inclination (rad).
-            ra, dec (float): sky position consumed in the orbits frame
-                (ICRS when the orbits are loaded with ``frame="icrs"``).
-            psi (float): polarization (rad).
-            t_shift (float, optional): extra time offset (sec). (default: 0)
-            upsample_t_arr (np.ndarray, optional): absolute times on which to
-                return the TDI. Defaults to ``arange(N)*dt + t0`` covering
-                ``[t0, t0 + Tobs]``.
-            combine (bool, optional): sum over the (single) sub-signal axis so
-                the return shape is ``(3, len(upsample_t_arr))``. (default:
-                ``True``)
+            inc (float): Inclination (rad).
+            ra (float): Sky longitude in the orbits frame (right ascension when the orbits
+                are loaded with ``frame="icrs"``).
+            dec (float): Sky latitude in the orbits frame (declination for ICRS).
+            psi (float): Polarization (rad), same frame.
+            t_shift: Extra time offset (sec) of the PN time origin. Default ``0.0``.
+            upsample_t_arr: Absolute times (sec) on which to return the TDI. Default
+                ``None`` means ``arange(N) * dt + t0`` with ``N = round(Tobs / dt)``.
+            combine: Sum over the (single) sub-signal axis so the return shape is
+                ``(3, len(upsample_t_arr))``. Default ``True``.
+            *args: Ignored.
+            **kwargs: Ignored.
 
         Returns:
-            np.ndarray: TDI observables, ``(3, N)`` if ``combine`` else
-            ``(1, 3, N)``.
+            xp.ndarray: TDI observables, ``(3, N)`` if ``combine`` else ``(1, 3, N)``
+            (``N = len(upsample_t_arr)``); times outside the evaluated span are 0.
         """
         xp = self.xp
 

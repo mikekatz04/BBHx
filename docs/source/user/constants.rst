@@ -1,38 +1,29 @@
-
-
 Constants
-*******************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The module :code:`bbhx.utils.constants` houses the constants used throughout the package.
+The module :code:`bbhx.utils.constants` holds the physical and mathematical constants used
+throughout the package (SI units).
 
-Constants list:
+The physical constants are not written out in BBHx: following the LISA Analysis Tools
+convention, they come from `lisaconstants <https://pypi.org/project/lisaconstants/>`_
+(pinned ``lisaconstants==2.0.2``).
 
-	* MSUN_SI = 1.98848e+30
-	* YRSID_SI = 31558149.763545603
-	* AU_SI = 149597870700.0
-	* C_SI = 299792458.
-	* G_SI = 6.674080e-11
-	* GMSUN = 1.3271244210789466e+20
-	* MTSUN_SI = 4.925491025873693e-06
-	* MRSUN_SI = 1476.6250615036158
-	* PC_SI = 3.0856775814913674e+16
-	* PI = 3.141592653589793238462643383279502884
-	* PI_2 = 1.570796326794896619231321691639751442
-	* PI_3 = 1.047197551196597746154214461093167628
-	* PI_4 = 0.785398163397448309615660845819875721
-	* SQRTPI = 1.772453850905516027298167483341145183
-	* SQRTTWOPI = 2.506628274631000502415765284811045253
-	* INVSQRTPI = 0.564189583547756286948079451560772585
-	* INVSQRTTWOPI = 0.398942280401432677939946059934381868
-	* GAMMA = 0.577215664901532860606512090082402431
-	* SQRT2 = 1.414213562373095048801688724209698079
-	* SQRT3 = 1.732050807568877293527446341505872367
-	* SQRT6 = 2.449489742783178098197284074705891392
-	* INVSQRT2 = 0.707106781186547524400844362104849039
-	* INVSQRT3 = 0.577350269189625764509148780501957455
-	* INVSQRT6 = 0.408248290463863016366214012450981898
-	* F0 = 3.168753578687779e-08
-	* Omega0 = 1.9909865927683788e-07
-	* L_SI = 2.5e9
-	* eorbit = 0.004824185218078991
-	* ConstOmega = 1.99098659277e-7
+- Python: :code:`bbhx.utils.constants` imports :code:`lisaconstants` (``MSUN_SI``,
+  ``YRSID_SI``, ``AU_SI``, ``C_SI``, ``G_SI``, ``GMSUN``, ``PC_SI``) and derives
+  ``MTSUN_SI`` and ``MRSUN_SI`` from them.
+- C++ / CUDA: the kernels read the same numbers from the generated header
+  ``src/bbhx/cutils/lisaconstants_values.h`` (through ``cutils/constants.h``).
+- ``tests/test_lisaconstants_values.py`` checks both against the installed
+  ``lisaconstants`` package.
+
+To see the values in use, print them, e.g.
+:code:`from bbhx.utils.constants import GMSUN; print(GMSUN)`.
+
+The orbit constants ``F0``, ``Omega0`` and ``ConstOmega`` (``= Omega0``) are derived from
+``YRSID_SI``, and ``eorbit`` from ``L_SI`` and ``AU_SI``. They belong to the analytic
+circular-orbit model used by :mod:`bbhx.utils.transform` and by the orbital-delay phase of
+the fast FD response.
+``L_SI`` is the nominal arm length, 2.5e9 m. It is not a ``lisaconstants`` value, and
+realistic armlengths come from the orbit file.
+
+.. automodule:: bbhx.utils.constants
